@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · DFlash: Block Diffusion for Flash Speculative Decoding (2602.06036)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>DFlash: Block Diffusion for Flash Speculative Decoding</h1>
+<div class="meta">
+  UC San Diego · Jian Chen, Yesheng Liang, Zhijian Liu · 2026-02-06 · arXiv:2602.06036<br>
+  关键词: speculative decoding · block diffusion · drafter · EAGLE-3 · KV injection · target hidden features
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 speculative decoding 里的 drafter 从"自回归"换成"block-diffusion + 5 层 target hidden 注入到每层 K/V cache",让 16 个 draft token 在<em>一次</em> forward 里同时被预测出来,Qwen3-8B 上端到端 ~6× 加速,比 EAGLE-3 再快 ~2.5×。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">6.08×</div><div class="l">Math500 / Qwen3-8B 端到端</div></div>
+    <div class="stat"><div class="n">2.5×</div><div class="l">vs EAGLE-3 平均加速比</div></div>
+    <div class="stat"><div class="n">τ ≈ 7.87</div><div class="l">平均 acceptance length(block=16)</div></div>
+  </div>
+  <p><strong>立场:</strong>这是一篇<em>范式分叉</em>论文。EAGLE 系列把"AR drafter"打到了天花板(τ ≈ 3,加速 ≈ 2×);DFlash 主张唯一突破口是把 drafter 换成 block-diffusion——让 drafting 时间几乎与 γ 解耦,从而能放下 5 层的"深"模型,同时把 target 5 层 hidden 永久驻留在 draft K/V 里,使 acceptance 也跟着深度涨。<a href="02_EAGLE_evolution_DFlash.html">见 EAGLE 演化简报</a>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 AR drafter 撞了天花板</a>
+      <ol>
+        <li><a href="#sec1-1">历史脉络: Medusa → EAGLE-1/2/3 的路径与极限</a></li>
+        <li><a href="#sec1-2">别的方案为什么不够 (对比表)</a></li>
+        <li><a href="#sec1-3">为什么"把 diffusion 嫁接给 spec decoding"非平凡</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec2">背景速查: diffusion-for-text + AR vs diffusion drafter</a></li>
+    <li><a href="#sec3">Drafter 架构详解</a>
+      <ol>
+        <li><a href="#sec3-1">Block diffusion drafter 全景</a></li>
+        <li><a href="#sec3-2">5 层 target hidden 注入到每层 K/V (核心 fork 点)</a></li>
+        <li><a href="#sec3-3">Mask schedule 与"一步解 16 个"的微观过程</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec4">训练程序: random-anchor mask + loss decay + KV 注入</a></li>
+    <li><a href="#sec5">推理 / 验证拓扑: 为什么 DFlash 不需要 tree</a></li>
+    <li><a href="#sec6">公式与数值理解 (drafting cost / 加速上限 / loss 衰减)</a></li>
+    <li><a href="#sec7">实验关键结果: Qwen3 / LLaMA / SGLang</a></li>
+    <li><a href="#sec8">消融: 层数 / 5-hidden / block-size mismatch / loss decay / random anchor</a></li>
+    <li><a href="#sec9">与 EAGLE-3 / Medusa / DiffuSpec / PARD 的逐项对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec11">速记盒 (memory points)</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 AR drafter 撞了天花板</h2>
+
+<h3 id="sec1-1">1.1 历史脉络: Medusa → EAGLE-1/2/3 的路径与极限</h3>
+
+<p>过去两年 speculative decoding 的 drafter 路线基本可以画成一条单调向上的曲线,但<strong>方向只有一个</strong>: 把 draft 网络做得更小、跟 target 对齐得更紧、verification topology 做得更宽。这条线大体是这样:</p>
+
+<ul>
+  <li><strong>Vanilla SD (Leviathan 2023):</strong> 直接用一个独立小模型当 drafter,τ ≈ 2,代价是要再维护一个独立训练的 small LM。</li>
+  <li><strong>Medusa (Cai 2024):</strong> 干脆不要外部小模型,在 target 顶上长出 K 个独立 prediction head,用 tree attention 并行验证。但每个 head 看到的上下文都是同一时刻的 hidden,后面的 head 只能"猜",τ ~3.</li>
+  <li><strong>EAGLE-1 (Li 2024):</strong> 把 drafter 做成 1 层 transformer + autoregressive,以 target 最后一层 hidden 作为输入,共享 LM head。从"猜 token 分布"升级到"猜 hidden state 分布",数学上更优(future-token 信息显式编码在 hidden 里)。</li>
+  <li><strong>EAGLE-2:</strong> 引入 dynamic draft tree,每层只展开高置信度的分支,用 rejection sampling 把 draft tree 拉到 60 节点。</li>
+  <li><strong>EAGLE-3 (Li 2025b):</strong> "Training-time test"——用 target 的<em>多层</em> hidden 拼成一个 fused feature,作为<strong>token embedding 的 input</strong>,把 τ 推到 ~3.5,加速比 ~2.0–2.2×。这是目前 AR drafter 公开 SOTA。</li>
+</ul>
+
+<p>问题是,从 EAGLE-1 到 EAGLE-3,虽然每代都涨,但<strong>涨幅在收敛</strong>。原因可以一句话写完:</p>
+
+<div class="formula">L = (T<sub>draft</sub> + T<sub>verify</sub>) / τ &nbsp;&nbsp; ⟹ &nbsp;&nbsp; speedup ≈ τ · t<sub>step</sub><sup>target</sup> / (γ · t<sub>step</sub><sup>draft</sup> + t<sub>verify</sub>)</div>
+
+<p>AR drafter 必然有 <code>T<sub>draft</sub> = γ · t<sub>step</sub></code>——γ 个 token 就要走 γ 次 forward。为了让 <code>T<sub>draft</sub></code> 不爆炸,EAGLE-3 把 drafter 砍到<strong>只剩 1 层 transformer</strong>。但 1 层 transformer 的 capacity 上限就在那;γ 拉到 7 以后,τ 已经接近平台。</p>
+
+<p>这就是 AR drafter 的天花板: 论文里说得很直接——<em>"This imbalance restricts achievable speedups to approximately 2−3×."</em></p>
+
+<div class="fig">
+  <svg viewBox="0 0 640 240" width="100%" style="max-width:620px">
+    <defs>
+      <marker id="arr1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- AR drafter -->
+    <text x="160" y="20" font-size="14" text-anchor="middle" font-weight="bold">AR drafter (EAGLE-3)</text>
+    <text x="160" y="36" font-size="11" text-anchor="middle" fill="#5b5e66">γ 个 token = γ 次 forward</text>
+    <g transform="translate(20,50)">
+      <rect x="0" y="20" width="50" height="40" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="25" y="44" font-size="11" text-anchor="middle">step1</text>
+      <line x1="50" y1="40" x2="70" y2="40" stroke="#5b5e66" marker-end="url(#arr1)"/>
+      <rect x="70" y="20" width="50" height="40" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="95" y="44" font-size="11" text-anchor="middle">step2</text>
+      <line x1="120" y1="40" x2="140" y2="40" stroke="#5b5e66" marker-end="url(#arr1)"/>
+      <rect x="140" y="20" width="50" height="40" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="165" y="44" font-size="11" text-anchor="middle">step3</text>
+      <line x1="190" y1="40" x2="210" y2="40" stroke="#5b5e66" marker-end="url(#arr1)"/>
+      <text x="230" y="44" font-size="13" text-anchor="middle">…</text>
+      <line x1="245" y1="40" x2="265" y2="40" stroke="#5b5e66" marker-end="url(#arr1)"/>
+      <rect x="265" y="20" width="50" height="40" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="290" y="44" font-size="11" text-anchor="middle">step γ</text>
+    </g>
+    <text x="160" y="120" font-size="11" text-anchor="middle" fill="#cc4a1b">深度 ≤ 1 层 (否则 γ × 时间爆炸)</text>
+
+    <!-- Diffusion drafter -->
+    <text x="480" y="20" font-size="14" text-anchor="middle" font-weight="bold">Diffusion drafter (DFlash)</text>
+    <text x="480" y="36" font-size="11" text-anchor="middle" fill="#5b5e66">γ 个 token = 1 次 forward</text>
+    <g transform="translate(380,50)">
+      <rect x="0" y="20" width="200" height="40" fill="#fbe5da" stroke="#cc4a1b"/>
+      <text x="100" y="44" font-size="11" text-anchor="middle">parallel denoise of γ masked tokens</text>
+    </g>
+    <text x="480" y="120" font-size="11" text-anchor="middle" fill="#1f7a4a">深度可以 5 层(因为时间 ≈ 不变)</text>
+
+    <!-- bottom comparison axis -->
+    <line x1="40" y1="160" x2="600" y2="160" stroke="#5b5e66"/>
+    <text x="320" y="180" font-size="11" text-anchor="middle">drafting cost (γ 增加时)</text>
+    <path d="M 60 230 L 200 200 L 340 175 L 480 165" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="490" y="166" font-size="11" fill="#cc4a1b">EAGLE-3 ~ γ · t</text>
+    <path d="M 60 220 L 200 218 L 340 215 L 480 213" fill="none" stroke="#1f7a4a" stroke-width="2"/>
+    <text x="490" y="217" font-size="11" fill="#1f7a4a">DFlash ~ const</text>
+  </svg>
+  <figcaption>AR drafter 的本质问题: T<sub>draft</sub> ∝ γ。为了不让 drafting 占满时间,EAGLE-3 只能用 1 层网络。Block-diffusion drafter 把 γ 个 mask token 同时 denoise 出来,T<sub>draft</sub> 几乎与 γ 无关,所以可以放心做深(5–8 层),换更高的 draft 质量。</figcaption>
+</div>
+
+<h3 id="sec1-2">1.2 别的方案为什么不够</h3>
+
+<p>"AR drafter 撞墙"这件事大家都看到了,过去一年里出现过至少四种突围尝试。但每一种都有自己的硬伤:</p>
+
+<table>
+  <tr><th>方案</th><th>核心想法</th><th>谁做过</th><th>硬伤</th></tr>
+  <tr><td>Tree-AR</td><td>一次提议一棵 draft 树, target 用 tree-attention 并行验证</td><td>SpecInfer / EAGLE-2/3</td><td><span class="no">每个枝干仍然是 AR; 树越大 verify cost 越高;在大 batch 下 tree 收益消失</span></td></tr>
+  <tr><td>Block-AR</td><td>在 target 上加 K 个独立 prediction head</td><td>Medusa</td><td><span class="no">K 个 head 共享同一个上下文;后位置 head 没有"已生成 token" 信息,质量梯度衰减</span></td></tr>
+  <tr><td>Continuous diffusion drafter</td><td>把 token logits 看成连续向量做高斯噪声 + denoise</td><td>SpecDiff-1</td><td><span class="no">需要离散→连续的代理表示;一般要多步 denoise (10+),drafting 反而慢</span></td></tr>
+  <tr><td>Discrete (mask) diffusion 大模型当 drafter</td><td>用 7B 的 LLaDA / Dream 当 drafter</td><td>DiffuSpec / SpecDiff-2</td><td><span class="no">drafter 太大 (7B), drafting latency 占满, 实测加速 3–4× 上不去</span></td></tr>
+  <tr><td>Mimic-diffusion AR</td><td>训一个小 AR 模型去"装"成一次出多 token</td><td>PARD (An 2025)</td><td><span class="no">小 AR 容量不够,τ 上限 ~3, speedup ceiling ≈ 3×</span></td></tr>
+  <tr><td><strong>Block-diffusion 小 drafter + target hidden 注入</strong> 👈</td><td>5 层 mask-diffusion + 5 层 target hidden 进 K/V cache</td><td>DFlash</td><td>本文主张这条是甜蜜点</td></tr>
+</table>
+
+<p>看完这张表你就明白 DFlash 在选址上的位置:它<strong>同时</strong>避开了 (a) 大 drafter 的 latency 陷阱、(b) 小 AR 的 capacity 陷阱、(c) 多步 denoise 的延迟陷阱。具体怎么避的?——靠 5 层 target hidden 永久驻留在 draft K/V 里,把"小模型推理能力不足"的问题外包给了 target 自己。这正是论文那句口号 <em>"the target knows best"</em>。</p>
+
+<h3 id="sec1-3">1.3 为什么"把 diffusion 嫁接给 spec decoding"非平凡</h3>
+
+<p>把 diffusion 拿来做 drafter 听上去就两步: ① 训一个 mask-diffusion 模型; ② 一次 forward 出 γ 个 token。但落到具体细节上,有四个深坑:</p>
+
+<ol>
+  <li><strong>K/V cache 不变性</strong>: AR 模型在 spec decoding 里已经把 K/V cache 玩成艺术——每接受 m 个 token,就 commit m 行 K/V。Diffusion drafter 要 mask 一段、再解 mask,每一步 K/V 写哪儿、清哪儿,需要重新设计;否则 K/V state 会被 mask 污染。</li>
+  <li><strong>训练时如何保证 inference-train 一致</strong>: 标准 block diffusion 是"把 response 切成等大块,每块 mask 一些位置"。但 spec decoding 的 inference 行为是: target 给你一个 verified token (bonus),你以这个 token 为锚点,解后面 γ−1 个 mask。两者的"上下文形状"不一样——这就是论文为什么改成 <em>"random anchor token + 块内剩下都 mask"</em> 的训练策略 (§4)。</li>
+  <li><strong>Verification 拓扑</strong>: AR drafter 提议一条线、tree drafter 提议一棵树。Diffusion drafter 一次出 γ 个并行预测的 token——它们之间是<em>不</em>条件依赖的(都从同一组 mask 上 denoise 出来),所以 token-i 是 sample 自 p(·|context, masks),不是 p(·|context, token_{1..i-1})。这导致 token-i+1 不能直接拼在 token-i 后头做 token-by-token rejection——需要重新审视 verification chain。论文(及 DFlash 的实现)走的是"把 γ 个 token 当作一条 sequence,顺序做 rejection"的路线; 一旦中间某位置 reject,后面整段全丢,所以早期位置 disproportionately 重要(这正是 §4 loss decay 设计的根因)。</li>
+  <li><strong>训练数据质量与 target 对齐</strong>: 如果直接拿原始 Nemotron-V2 / CodeAlpaca 的 ground-truth response 训 diffusion drafter,drafter 会去对齐 ground truth, 但 inference 时它要对齐的是 target model 自己的输出分布。论文的 fix: 先用 target model 自己 generate response,把这个 response 当作训练目标 (§5 Datasets 段)。</li>
+</ol>
+
+<p>没有这四个 fix 中任何一个,DFlash 都跑不出 6×。这才是论文真正的"系统贡献"——主结构是 block-diffusion,但能 work 的是上面这四个细节。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Speculative Decoding</span></td><td>draft 提议 γ token, target 并行验证, rejection sampling 保证最终分布 = target 分布</td></tr>
+  <tr><td><span class="term">τ (acceptance length)</span></td><td>每个 spec 周期平均产出的 token 数, ∈ [1, γ+1] (含 verifier 的 bonus token)</td></tr>
+  <tr><td><span class="term">Block diffusion</span></td><td>把 sequence 切 block, 块内 mask + 并行 denoise, 块间 AR. 是 Arriola 2025 的"interpolating between AR and diffusion"</td></tr>
+  <tr><td><span class="term">Mask token <m></span></td><td>discrete diffusion 里的"未确定"占位符。forward process: clean→mask; reverse: mask→clean</td></tr>
+  <tr><td><span class="term">Anchor token</span></td><td>DFlash 训练里, 块的第一个位置放一个 clean token, 后面 γ−1 位都 mask. 这个 clean token 模拟 inference 时 verifier bonus token</td></tr>
+  <tr><td><span class="term">Target context feature</span></td><td>target model 5 层 hidden states concat → 一个轻量 projection → 紧凑的 fused feature, 注入 draft</td></tr>
+  <tr><td><span class="term">KV injection</span></td><td>把 fused feature 投影成 K, V, 直接挂到 draft 每层的 K/V cache 里, 持续可被 attend</td></tr>
+  <tr><td><span class="term">EAGLE-3 fusion</span></td><td>同样取多层 hidden, 但只 fuse 进 draft 的 token embedding 输入端 (input-side)</td></tr>
+  <tr><td><span class="term">Flex Attention</span></td><td>PyTorch 提供的可编程 attention mask kernel(Dong 2024),DFlash 用它在训练时同时处理多个 block 的 sparse mask</td></tr>
+  <tr><td><span class="term">SGLang Spec-v2</span></td><td>SGLang 的 v2 调度,带 draft / verify overlap, 支持 block drafting</td></tr>
+</table>
+
+<h3>2.2 Mask diffusion for text 简版回顾</h3>
+<p>不需要太多 ELBO 数学,记住这几个事实就够看懂 DFlash:</p>
+<ul>
+  <li><strong>Forward process:</strong> 给定 clean sequence x₀, 在时间 t ∈ [0,1], 每个位置以概率 t 被替换为 <code>&lt;m&gt;</code> (mask token), 否则保留 clean. 整个 process 仅在<em>离散</em> token 空间发生 (没有连续高斯噪声).</li>
+  <li><strong>Reverse process:</strong> 训一个网络 p<sub>θ</sub>(x₀ | x<sub>t</sub>), 即"看 mask 序列, 预测原始 token". 标准 loss 是只在 mask 位置算 cross-entropy.</li>
+  <li><strong>Sampling:</strong> 从全 mask 起步, 多步迭代 (T 步) 每步重新预测 + remask 部分位置. T 越大质量越高但越慢.</li>
+  <li><strong>Block diffusion = mask diffusion 局限到 block</strong>: 块内并行 denoise, 块间 AR (因果). 把全序列建模拆成"局部并行 + 全局自回归"折中.</li>
+</ul>
+
+<p>DFlash 的关键工程小动作: <strong>T = 1</strong> (一步出全 block, 不做多步迭代). 标准 block-diffusion 论文里多步 denoise 是为了高质量, 但 spec-decoding 场景下质量靠 verifier 的 rejection 兜底, 多步 denoise 反而拖慢 drafting. 这是 DFlash 与 dLLM-as-generator 路线最大的工程哲学差异.</p>
+
+<h3>2.3 EAGLE-3 行为简短复习</h3>
+<p>这一节是给已经熟悉 EAGLE-3 的人备查。EAGLE-3 的 drafter:</p>
+<ul>
+  <li>1 层 transformer (decoder block), 输入 = (target multi-layer fused hidden) ⊕ (token embedding).</li>
+  <li>共享 target 的 LM head & embedding (frozen).</li>
+  <li>AR 地往后展开, 每步产生 top-k tokens, 用 dynamic tree (60 节点) 验证.</li>
+  <li>"training-time test": 训练时让 drafter 也用前一步自己输出的 hidden 做下一步 input, 减少 train/inference mismatch.</li>
+</ul>
+<p>记住这一点: <strong>EAGLE-3 用 hidden 时只把它"喂进 input"</strong>。DFlash 的最大反向就是: 不要喂 input, 要把它焊在 K/V cache 里, 让 draft 每一层都能 attend 到。</p>
+
+<hr>
+
+<h2 id="sec3">3 · Drafter 架构详解</h2>
+
+<h3 id="sec3-1">3.1 Block-diffusion drafter 全景 (paper Figure 2 重画)</h3>
+
+<p>从最高层看,DFlash 一个 spec 周期长这样:</p>
+
+<ol>
+  <li>target prefill prompt → 第一个 token (verified bonus) + 5 层 hidden states.</li>
+  <li>5 层 hidden 在 token 维上 concat → projection → fused target feature, 形状 ≈ <code>[L<sub>prompt</sub>, d]</code>.</li>
+  <li>fused feature 在每个 draft 层都过一次 (W<sub>K</sub>, W<sub>V</sub>) 投影, 写进该层 K/V cache. (这一步只发生一次, 后续 reuse.)</li>
+  <li>draft input = (bonus token) ⊕ (γ−1 个 <code>&lt;m&gt;</code>); attend 到自己 + K/V 里的 target context.</li>
+  <li>1 次 forward 5 层 transformer → γ 个位置都 ready → LM head → top-1 (greedy) 或 sample.</li>
+  <li>γ 个 token 当作一条 sequence 送给 target verify; rejection sampling 决定 acceptance 长度 m ∈ [0, γ]; target 顺手再吐 1 个 bonus token, 总产出 m+1 个.</li>
+  <li>下一步: bonus 当 anchor, 再 mask γ−1 个, 重复. <em>注意: target 的 K/V cache 也只增长 m+1, draft 的 K/V cache 只增长 m+1 (mask 位置不写 cache, 详见 §3.3).</em></li>
+</ol>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- target model -->
+    <rect x="20" y="40" width="200" height="100" fill="#dde6f7" stroke="#2f6feb"/>
+    <text x="120" y="62" font-size="13" text-anchor="middle" font-weight="bold">Target Model (frozen)</text>
+    <text x="120" y="80" font-size="11" text-anchor="middle">"Diffusion is good"</text>
+    <line x1="40" y1="95" x2="200" y2="95" stroke="#2f6feb" stroke-dasharray="2,2"/>
+    <text x="120" y="112" font-size="10" text-anchor="middle" fill="#5b5e66">layer 4, 8, 12, 20, 28 hidden</text>
+    <text x="120" y="128" font-size="10" text-anchor="middle" fill="#5b5e66">(5 layers uniformly sampled)</text>
+
+    <!-- fusion -->
+    <line x1="220" y1="90" x2="260" y2="90" stroke="#5b5e66" marker-end="url(#ar)"/>
+    <rect x="260" y="65" width="100" height="50" fill="#fff7e0" stroke="#cc4a1b"/>
+    <text x="310" y="85" font-size="11" text-anchor="middle">concat +</text>
+    <text x="310" y="102" font-size="11" text-anchor="middle">linear projection</text>
+
+    <line x1="360" y1="90" x2="400" y2="90" stroke="#5b5e66" marker-end="url(#ar)"/>
+    <rect x="400" y="65" width="120" height="50" fill="#fbe5da" stroke="#cc4a1b"/>
+    <text x="460" y="85" font-size="11" text-anchor="middle">fused target</text>
+    <text x="460" y="102" font-size="11" text-anchor="middle">context feature</text>
+
+    <!-- draft layers -->
+    <text x="100" y="180" font-size="13" text-anchor="middle" font-weight="bold">Draft Model (5 layers, trainable)</text>
+    <g>
+      <!-- layer 1 -->
+      <rect x="40" y="195" width="160" height="35" fill="#e6f4ea" stroke="#1f7a4a"/>
+      <text x="120" y="217" font-size="11" text-anchor="middle">Draft Layer 1 (bidirectional attn)</text>
+      <!-- KV inject -->
+      <line x1="220" y1="212" x2="200" y2="212" stroke="#cc4a1b" marker-end="url(#ar)"/>
+      <text x="270" y="216" font-size="10" fill="#cc4a1b">→ K, V cache (frozen)</text>
+
+      <rect x="40" y="235" width="160" height="35" fill="#e6f4ea" stroke="#1f7a4a"/>
+      <text x="120" y="257" font-size="11" text-anchor="middle">Draft Layer 2</text>
+      <line x1="220" y1="252" x2="200" y2="252" stroke="#cc4a1b" marker-end="url(#ar)"/>
+      <text x="270" y="256" font-size="10" fill="#cc4a1b">→ K, V cache</text>
+
+      <text x="120" y="282" font-size="13" text-anchor="middle">⋮</text>
+      <rect x="40" y="290" width="160" height="35" fill="#e6f4ea" stroke="#1f7a4a"/>
+      <text x="120" y="312" font-size="11" text-anchor="middle">Draft Layer 5</text>
+      <line x1="220" y1="307" x2="200" y2="307" stroke="#cc4a1b" marker-end="url(#ar)"/>
+      <text x="270" y="311" font-size="10" fill="#cc4a1b">→ K, V cache</text>
+    </g>
+
+    <!-- input tokens -->
+    <text x="500" y="190" font-size="13" font-weight="bold" text-anchor="middle">Input to Draft</text>
+    <g transform="translate(440,205)">
+      <rect x="0" y="0" width="40" height="28" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="20" y="19" font-size="10" text-anchor="middle">"for"</text>
+      <rect x="40" y="0" width="40" height="28" fill="#fbe5da" stroke="#cc4a1b"/>
+      <text x="60" y="19" font-size="10" text-anchor="middle">&lt;m&gt;</text>
+      <rect x="80" y="0" width="40" height="28" fill="#fbe5da" stroke="#cc4a1b"/>
+      <text x="100" y="19" font-size="10" text-anchor="middle">&lt;m&gt;</text>
+      <rect x="120" y="0" width="40" height="28" fill="#fbe5da" stroke="#cc4a1b"/>
+      <text x="140" y="19" font-size="10" text-anchor="middle">&lt;m&gt;</text>
+      <rect x="160" y="0" width="40" height="28" fill="#fbe5da" stroke="#cc4a1b"/>
+      <text x="180" y="19" font-size="10" text-anchor="middle">…</text>
+      <rect x="200" y="0" width="40" height="28" fill="#fbe5da" stroke="#cc4a1b"/>
+      <text x="220" y="19" font-size="10" text-anchor="middle">&lt;m&gt;</text>
+    </g>
+    <text x="540" y="248" font-size="10" text-anchor="middle" fill="#5b5e66">1 anchor token + 15 mask = 16-block</text>
+
+    <!-- output -->
+    <text x="500" y="278" font-size="13" font-weight="bold" text-anchor="middle">After 1 forward</text>
+    <g transform="translate(440,290)">
+      <rect x="0" y="0" width="40" height="28" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="20" y="19" font-size="10" text-anchor="middle">for</text>
+      <rect x="40" y="0" width="60" height="28" fill="#e6f4ea" stroke="#1f7a4a"/>
+      <text x="70" y="19" font-size="10" text-anchor="middle">"speculative"</text>
+      <rect x="100" y="0" width="50" height="28" fill="#e6f4ea" stroke="#1f7a4a"/>
+      <text x="125" y="19" font-size="10" text-anchor="middle">"decoding"</text>
+      <rect x="150" y="0" width="40" height="28" fill="#e6f4ea" stroke="#1f7a4a"/>
+      <text x="170" y="19" font-size="10" text-anchor="middle">"."</text>
+      <rect x="190" y="0" width="50" height="28" fill="#e6f4ea" stroke="#1f7a4a"/>
+      <text x="215" y="19" font-size="10" text-anchor="middle">…</text>
+    </g>
+  </svg>
+  <figcaption>DFlash 推理一个 spec 周期: target 给 fused hidden → 注入 draft 5 层 K/V cache → draft 拿 1 anchor + 15 mask 跑 1 次 forward → 16 个 token 同时落地 → target 验证。注意整个 draft forward 没有任何"自回归循环"。</figcaption>
+</div>
+
+<h4>Worked example #1: 跟踪一个具体 token</h4>
+<p>假设 prompt 是 <code>"Diffusion is good"</code>, target 给 bonus token <code>"for"</code>。Block size γ=16。draft 输入序列(长度 16)按位置写出来:</p>
+<pre>pos:    0      1     2     3     4     5     6     7     8     9    10    11    12    13    14    15
+tok:  "for"   <m>   <m>   <m>   <m>   <m>   <m>   <m>   <m>   <m>   <m>   <m>   <m>   <m>   <m>   <m></pre>
+<p>位置 0 的 token <code>"for"</code> 经过 embedding → e ∈ ℝ⁴⁰⁹⁶。每个 mask 位置的 embedding 是 <code>e_mask</code>(共享一个特殊向量)。同时 draft 每一层的 K/V cache 已经预填好了 prompt + bonus 共 4 个时间步对应的<strong>来自 target 的 K, V 投影</strong>。Draft 第 ℓ 层的注意力计算粗略是:</p>
+<div class="formula">Q<sub>ℓ</sub> = (X<sub>ℓ</sub> + e_pos) · W<sub>Q</sub><sup>ℓ</sup>;<br>
+attn = softmax( Q<sub>ℓ</sub> [K<sub>ℓ</sub><sup>self</sup> | <span class="term">K<sub>ℓ</sub><sup>tgt</sup></span>] / √d ) · [V<sub>ℓ</sub><sup>self</sup> | <span class="term">V<sub>ℓ</sub><sup>tgt</sup></span>]</div>
+<p>关键: <code>K<sub>ℓ</sub><sup>tgt</sup>, V<sub>ℓ</sub><sup>tgt</sup></code> 是<strong>这一层独有的 target-feature 投影</strong>,不是所有层共享。也就是说每层都从 fused target context 里"自取所需"。这跟 EAGLE-3 把 target hidden 只拼在第 0 层 input 是天差地别。</p>
+
+<h4>反向论证 (为什么不能更简单)</h4>
+<p>"为什么不直接用 1 层 mask-diffusion?" — Table 8 给了答案: 5 层 + 没有 target hidden 注入,加速比只有 ~3×, τ ~4.6 (Math500)。少了 target hidden,小模型就成了 from-scratch 推理,质量崩。"为什么不维持 EAGLE-3 的 input 拼接?" — 见 §3.2 的层数消融, 加深没用。</p>
+
+<h3 id="sec3-2">3.2 5 层 target hidden 注入到每层 K/V (核心 fork 点)</h3>
+
+<p>这是论文的<strong>真正核心</strong>。如果只记一件事就记这个。</p>
+
+<p>EAGLE-3 怎么用 multi-layer target hidden? — 拼在 token embedding 上,作为<strong>第 0 层的输入</strong>:</p>
+
+<div class="formula">x<sup>(0)</sup><sub>i</sub> = [embed(t<sub>i</sub>); fuse(h<sup>tgt,1</sup>, h<sup>tgt,8</sup>, h<sup>tgt,16</sup>, ...)]</div>
+
+<p>问题: 信息只在第 0 层"灌进去",经过 5 层 transformer 后,被 layer norm + residual + MLP 一次次稀释,深的层离 target 信号越来越远。EAGLE-3 自己的曲线: drafter 加层数 → τ 不涨(他们因此固定 1 层)。</p>
+
+<p>DFlash 把同一组 hidden 投到<strong>每一层</strong>的 K/V:</p>
+
+<div class="formula">∀ ℓ ∈ {1,...,5}: K<sup>tgt</sup><sub>ℓ</sub> = fused · W<sup>ℓ</sup><sub>K-tgt</sub>;&nbsp; V<sup>tgt</sup><sub>ℓ</sub> = fused · W<sup>ℓ</sup><sub>V-tgt</sub></div>
+
+<p>每层 attention 都能直接 attend 到 target 信号,不被 residual 稀释。结果: 加 draft 层数 τ 一直涨 (Table 5: 3-L τ=5.64 → 5-L τ=5.99 → 8-L τ=6.33)。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <!-- EAGLE-3 left -->
+    <text x="170" y="22" font-size="14" text-anchor="middle" font-weight="bold">EAGLE-3: input-side fusion (稀释)</text>
+    <g>
+      <rect x="80" y="40" width="180" height="22" fill="#fff7e0" stroke="#cc4a1b"/>
+      <text x="170" y="56" font-size="11" text-anchor="middle">[embed ⊕ fused target] 输入</text>
+
+      <rect x="80" y="70" width="180" height="28" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="170" y="89" font-size="11" text-anchor="middle">Layer 1 (强信号)</text>
+      <rect x="80" y="100" width="180" height="28" fill="#e6ecf6" stroke="#2f6feb"/>
+      <text x="170" y="119" font-size="11" text-anchor="middle">Layer 2 (减弱)</text>
+      <rect x="80" y="130" width="180" height="28" fill="#eef1f7" stroke="#2f6feb"/>
+      <text x="170" y="149" font-size="11" text-anchor="middle">Layer 3 (更弱)</text>
+      <rect x="80" y="160" width="180" height="28" fill="#f5f6fa" stroke="#2f6feb"/>
+      <text x="170" y="179" font-size="11" text-anchor="middle">Layer 4 (近乎丢失)</text>
+      <rect x="80" y="190" width="180" height="28" fill="#fafafd" stroke="#2f6feb"/>
+      <text x="170" y="209" font-size="11" text-anchor="middle">Layer 5 (?)</text>
+
+      <text x="170" y="240" font-size="11" fill="#cc4a1b" text-anchor="middle">∴ 加层数 τ 不涨</text>
+    </g>
+
+    <!-- DFlash right -->
+    <text x="530" y="22" font-size="14" text-anchor="middle" font-weight="bold">DFlash: per-layer K/V injection</text>
+    <g>
+      <rect x="440" y="40" width="180" height="22" fill="#fff7e0" stroke="#cc4a1b"/>
+      <text x="530" y="56" font-size="11" text-anchor="middle">embed (干净 input)</text>
+
+      <rect x="440" y="70" width="180" height="28" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="530" y="89" font-size="11" text-anchor="middle">Layer 1 ← target K/V #1</text>
+      <line x1="640" y1="84" x2="660" y2="84" stroke="#cc4a1b" stroke-width="2"/>
+      <text x="675" y="87" font-size="9" fill="#cc4a1b">tgt</text>
+
+      <rect x="440" y="100" width="180" height="28" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="530" y="119" font-size="11" text-anchor="middle">Layer 2 ← target K/V #2</text>
+      <line x1="640" y1="114" x2="660" y2="114" stroke="#cc4a1b" stroke-width="2"/>
+
+      <rect x="440" y="130" width="180" height="28" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="530" y="149" font-size="11" text-anchor="middle">Layer 3 ← target K/V #3</text>
+      <line x1="640" y1="144" x2="660" y2="144" stroke="#cc4a1b" stroke-width="2"/>
+
+      <rect x="440" y="160" width="180" height="28" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="530" y="179" font-size="11" text-anchor="middle">Layer 4 ← target K/V #4</text>
+      <line x1="640" y1="174" x2="660" y2="174" stroke="#cc4a1b" stroke-width="2"/>
+
+      <rect x="440" y="190" width="180" height="28" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="530" y="209" font-size="11" text-anchor="middle">Layer 5 ← target K/V #5</text>
+      <line x1="640" y1="204" x2="660" y2="204" stroke="#cc4a1b" stroke-width="2"/>
+
+      <text x="530" y="240" font-size="11" fill="#1f7a4a" text-anchor="middle">∴ 加层数 τ 持续上升</text>
+    </g>
+  </svg>
+  <figcaption>EAGLE-3 把 target hidden "倒进 input layer 0", 经过若干 transformer block 后被 LN/MLP/residual 稀释殆尽。DFlash 把同一组 hidden 投影成每层<em>专用</em>的 K/V slots, 每层都能直接 attend, 信号永不衰减。这是为什么 DFlash 5–8 层的网络仍然有 acceptance gain。</figcaption>
+</div>
+
+<h4>Worked example #2: 5 层 hidden 是哪 5 层?</h4>
+<p>论文 §5 Implementation: <em>"target hidden features are extracted from 5 layers uniformly selected between the second layer and the third-to-last layer of the target model."</em> 对 Qwen3-8B (28 层 transformer):</p>
+<ul>
+  <li>第 2 层 (浅层语法 / 表层 token 信息)</li>
+  <li>(28 − 3 − 2) / 4 = 5.75 步长 → 大约 layer 8 / 14 / 19 / 25</li>
+  <li>不是最后一层 (最后一层非常 task-specific, 信号过窄)</li>
+</ul>
+<p>每层 hidden ∈ ℝ<sup>L × 4096</sup>, 5 层 concat → ℝ<sup>L × 20480</sup>, 经过 projection W<sub>fuse</sub> ∈ ℝ<sup>20480 × 4096</sup> → fused ∈ ℝ<sup>L × 4096</sup>。再对每个 draft 层做 K/V 投影 W<sup>ℓ</sup><sub>K/V-tgt</sub> ∈ ℝ<sup>4096 × 4096</sup>。Draft 一共 5 层 → 引入 5 × 2 × 4096 × 4096 ≈ 168M 额外参数; 加上 fusion 那个 W<sub>fuse</sub> 还有 84M。这是 DFlash drafter 比 EAGLE-3 重不少的根源, 但因为 drafting cost 与 γ 解耦, 这点参数没拖慢推理。</p>
+
+<h4>反向论证: 为什么不能"只用 1 层 hidden 进每层 K/V"?</h4>
+<p>论文 Table 6: 3-hidden vs 5-hidden, 后者 τ=5.64 / 前者 τ=5.38, 差 ~5%. 同时 3-hidden 训练时 storage 减小线性比例 (offline 训练要 cache 全部 hidden). 5 层是经验甜蜜点, 不是定理. 但作者说<em>"continues to outperform"</em>, 暗示更多 (7? 9?) 还能涨, 只是收益递减 + 训练 IO 成本顶不住.</p>
+
+<h3 id="sec3-3">3.3 Mask schedule 与"一步解 16 个"的微观过程</h3>
+
+<p>这是 DFlash 与"标准 block diffusion"最大的<em>简化</em>: 推理时<strong>denoise 步数 T = 1</strong>。看时间轴:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 220" width="100%" style="max-width:700px">
+    <!-- timeline -->
+    <text x="360" y="22" font-size="13" text-anchor="middle" font-weight="bold">DFlash 推理: 一步 denoise 16 个 token</text>
+
+    <text x="50" y="60" font-size="11" text-anchor="middle">t = 1 (start)</text>
+    <g transform="translate(80,50)">
+      <rect x="0" y="0" width="20" height="20" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="10" y="14" font-size="9" text-anchor="middle">a</text>
+      <g>
+        <rect x="20" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="30" y="14" font-size="9" text-anchor="middle">m</text>
+        <rect x="40" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="50" y="14" font-size="9" text-anchor="middle">m</text>
+        <rect x="60" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="70" y="14" font-size="9" text-anchor="middle">m</text>
+        <rect x="80" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="90" y="14" font-size="9" text-anchor="middle">m</text>
+        <rect x="100" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="110" y="14" font-size="9" text-anchor="middle">m</text>
+        <rect x="120" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="130" y="14" font-size="9" text-anchor="middle">m</text>
+        <rect x="140" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="150" y="14" font-size="9" text-anchor="middle">m</text>
+        <rect x="160" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="170" y="14" font-size="9" text-anchor="middle">…</text>
+        <rect x="180" y="0" width="20" height="20" fill="#fbe5da" stroke="#cc4a1b"/>
+        <text x="190" y="14" font-size="9" text-anchor="middle">m</text>
+      </g>
+    </g>
+    <text x="380" y="65" font-size="11">1 anchor + 15 masks (block size 16)</text>
+
+    <!-- arrow -->
+    <line x1="180" y1="85" x2="180" y2="110" stroke="#5b5e66" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="240" y="100" font-size="11" fill="#5b5e66">1 forward (5 draft layers, bidirectional attn)</text>
+
+    <text x="50" y="135" font-size="11" text-anchor="middle">t = 0 (end)</text>
+    <g transform="translate(80,125)">
+      <rect x="0" y="0" width="20" height="20" fill="#dde6f7" stroke="#2f6feb"/>
+      <text x="10" y="14" font-size="9" text-anchor="middle">a</text>
+      <g>
+        <rect x="20" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="30" y="14" font-size="9" text-anchor="middle">t₁</text>
+        <rect x="40" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="50" y="14" font-size="9" text-anchor="middle">t₂</text>
+        <rect x="60" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="70" y="14" font-size="9" text-anchor="middle">t₃</text>
+        <rect x="80" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="90" y="14" font-size="9" text-anchor="middle">t₄</text>
+        <rect x="100" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="110" y="14" font-size="9" text-anchor="middle">t₅</text>
+        <rect x="120" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="130" y="14" font-size="9" text-anchor="middle">t₆</text>
+        <rect x="140" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="150" y="14" font-size="9" text-anchor="middle">t₇</text>
+        <rect x="160" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="170" y="14" font-size="9" text-anchor="middle">…</text>
+        <rect x="180" y="0" width="20" height="20" fill="#e6f4ea" stroke="#1f7a4a"/>
+        <text x="190" y="14" font-size="9" text-anchor="middle">t₁₅</text>
+      </g>
+    </g>
+    <text x="380" y="140" font-size="11">所有 15 个 mask 同时 denoise → top-1 / sample</text>
+
+    <!-- verify step -->
+    <line x1="180" y1="155" x2="180" y2="185" stroke="#5b5e66" stroke-width="2" marker-end="url(#ar)"/>
+    <text x="280" y="175" font-size="11" fill="#5b5e66">target 1 forward 验证 16 个位置</text>
+    <g transform="translate(80,200)">
+      <rect x="0" y="0" width="20" height="14" fill="#dde6f7"/>
+      <rect x="20" y="0" width="20" height="14" fill="#e6f4ea"/>
+      <rect x="40" y="0" width="20" height="14" fill="#e6f4ea"/>
+      <rect x="60" y="0" width="20" height="14" fill="#e6f4ea"/>
+      <rect x="80" y="0" width="20" height="14" fill="#e6f4ea"/>
+      <rect x="100" y="0" width="20" height="14" fill="#fbe5da"/>
+      <rect x="120" y="0" width="20" height="14" fill="#aaa"/>
+      <rect x="140" y="0" width="20" height="14" fill="#aaa"/>
+      <rect x="160" y="0" width="20" height="14" fill="#aaa"/>
+      <rect x="180" y="0" width="20" height="14" fill="#aaa"/>
+    </g>
+    <text x="320" y="210" font-size="10" fill="#5b5e66">accept t₁..t₄, reject @ t₅, target replaces with bonus → 5 个 token 落地</text>
+  </svg>
+  <figcaption>DFlash 推理时 T=1: 给 anchor + 15 mask, 一次 forward, 同时输出 15 个 token 预测。然后 target 一次 forward 验证整段, rejection sampling 顺序判断每个位置 (见 §5)。被 reject 的位置之后所有 token 全部丢弃, 这就是为什么"早 token 比晚 token 重要" (见 §4 loss decay)。</figcaption>
+</div>
+
+<h4>Worked example #3: 一个具体 mask 的 denoise</h4>
+<p>设 anchor = <code>"for"</code>, target context 已被注入到每层 K/V (5 层 hidden 投影了 prompt + bonus 共 N 个时间步)。block size 16, 所以 input 长度 16. 看位置 1 (第一个 mask):</p>
+<ol>
+  <li>embedding: e<sub>m</sub> (mask token 的 embedding) + pos_emb(1)</li>
+  <li>Layer 1 attention: Q 来自 e<sub>m</sub>, K/V = (其他 15 个位置的当前 hidden) ∪ (5 层 hidden 的 layer-1 K, V slot, 长度 = N)</li>
+  <li>Layer 1 输出 → MLP → Layer 2 (再次 attend, 这次 K/V 包含 Layer 2 的 target slot)...</li>
+  <li>Layer 5 输出 h<sub>final</sub> ∈ ℝ⁴⁰⁹⁶</li>
+  <li>LM head (target 的, frozen): logits = W<sub>lm</sub> h<sub>final</sub> ∈ ℝ<sup>|V|</sup></li>
+  <li>greedy: argmax → 比如 <code>"speculative"</code>; 或 sample (但 spec decoding 中 draft 的采样温度通常等于 target 的)</li>
+</ol>
+<p>注意位置 1 的输出能"看到"位置 2 (是个 mask) 的 hidden, 也能看到位置 15 的 mask hidden, 因为是<strong>双向</strong> attention. 这与 AR drafter 的 causal mask 完全相反, 但因为后面位置都是 mask token, 信息量很低, 主要还是从 target K/V 拿信息.</p>
+
+<details><summary>"为什么不做多步 denoise?"</summary>
+<p>标准 dLLM (LLaDA, LLaDA-V, MMaDA) 推理时跑 T=10–20 步多步 denoise, 每步预测 + remask 低置信度位置, 显著提升 generation quality. DFlash 反其道行之,坚持 T=1, 论证如下:</p>
+<ul>
+  <li>spec-decoding 场景质量靠 verifier 兜底,draft 不必尽善尽美</li>
+  <li>每多一步 denoise, drafting cost 翻倍, 削弱 spec decoding 的本来意义</li>
+  <li>实证 5 层 + 1 步 + target hidden 注入足够把 τ 推到 7+, 已经远超 EAGLE-3 的 3.5</li>
+</ul>
+<p>这其实是论文的隐藏哲学: <em>"diffusion 的多步 denoise 是为了独立生成时质量, 但放到 spec decoding 里, verifier 已经在做"质量保险", 所以可以激进地砍 denoise 步数."</em></p>
+</details>
+
+<hr>
+
+<h2 id="sec4">4 · 训练程序</h2>
+
+<p>DFlash 的训练直接抓住了"inference 时是什么样, 训练时就照搬"原则。但相比标准 block-diffusion, 改了 5 处:</p>
+
+<table>
+  <tr><th>设计</th><th>标准 block diffusion</th><th>DFlash</th></tr>
+  <tr><td>K/V 注入</td><td>无</td><td>每层 K/V 接 5-层 fused target hidden</td></tr>
+  <tr><td>Block 划分</td><td>等宽切, 每块 mask 随机一些位置</td><td>从 response 随机抽 anchor 位置, 每个 anchor 起头一块, 块内剩下全 mask</td></tr>
+  <tr><td>同时训练多块</td><td>单块或几个固定块</td><td>同一 sequence 取 ~512 anchors → 512 块, Flex Attention 一次跑完</td></tr>
+  <tr><td>Loss</td><td>在 mask 位置 uniform CE</td><td>位置 k 加权 w<sub>k</sub> = exp(−(k−1)/γ_decay)</td></tr>
+  <tr><td>Embedding / LM head</td><td>独立训</td><td>共享 target 的, frozen</td></tr>
+</table>
+
+<h3>4.1 Random-anchor 数据增强 (Figure 4 重画)</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 220" width="100%" style="max-width:700px">
+    <!-- prompt + response -->
+    <text x="360" y="22" font-size="13" font-weight="bold" text-anchor="middle">训练: 一条 sequence 拆成多个 anchor-led blocks (block size 4 演示)</text>
+    <text x="50" y="50" font-size="11">原始:</text>
+    <g transform="translate(100,40)">
+      <rect x="0" y="0" width="30" height="22" fill="#dde6f7"/>
+      <text x="15" y="15" font-size="10" text-anchor="middle">p1</text>
+      <rect x="30" y="0" width="30" height="22" fill="#dde6f7"/>
+      <text x="45" y="15" font-size="10" text-anchor="middle">p2</text>
+      <rect x="60" y="0" width="30" height="22" fill="#dde6f7"/>
+      <text x="75" y="15" font-size="10" text-anchor="middle">p3</text>
+      <rect x="90" y="0" width="30" height="22" fill="#dde6f7"/>
+      <text x="105" y="15" font-size="10" text-anchor="middle">p4</text>
+      <!-- response -->
+      <rect x="120" y="0" width="30" height="22" fill="#fff7e0"/>
+      <text x="135" y="15" font-size="10" text-anchor="middle">r1</text>
+      <rect x="150" y="0" width="30" height="22" fill="#fff7e0"/>
+      <text x="165" y="15" font-size="10" text-anchor="middle">r2</text>
+      <rect x="180" y="0" width="30" height="22" fill="#fff7e0"/>
+      <text x="195" y="15" font-size="10" text-anchor="middle">r3</text>
+      <rect x="210" y="0" width="30" height="22" fill="#fff7e0"/>
+      <text x="225" y="15" font-size="10" text-anchor="middle">r4</text>
+      <rect x="240" y="0" width="30" height="22" fill="#fff7e0"/>
+      <text x="255" y="15" font-size="10" text-anchor="middle">r5</text>
+      <rect x="270" y="0" width="30" height="22" fill="#fff7e0"/>
+      <text x="285" y="15" font-size="10" text-anchor="middle">r6</text>
+      <rect x="300" y="0" width="30" height="22" fill="#fff7e0"/>
+      <text x="315" y="15" font-size="10" text-anchor="middle">r7</text>
+      <rect x="330" y="0" width="30" height="22" fill="#fff7e0"/>
+      <text x="345" y="15" font-size="10" text-anchor="middle">r8</text>
+    </g>
+
+    <text x="50" y="100" font-size="11">训练用 anchors 随机选 r2, r5, r6:</text>
+    <g transform="translate(100,90)">
+      <rect x="0" y="0" width="30" height="22" fill="#dde6f7"/>
+      <text x="15" y="15" font-size="10" text-anchor="middle">p1</text>
+      <rect x="30" y="0" width="30" height="22" fill="#dde6f7"/>
+      <text x="45" y="15" font-size="10" text-anchor="middle">p2</text>
+      <rect x="60" y="0" width="30" height="22" fill="#dde6f7"/>
+      <text x="75" y="15" font-size="10" text-anchor="middle">p3</text>
+      <rect x="90" y="0" width="30" height="22" fill="#dde6f7"/>
+      <text x="105" y="15" font-size="10" text-anchor="middle">p4</text>
+      <!-- block A -->
+      <rect x="120" y="0" width="30" height="22" fill="#ffd49e" stroke="#cc4a1b" stroke-width="1.5"/>
+      <text x="135" y="15" font-size="10" text-anchor="middle">r2</text>
+      <rect x="150" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="165" y="15" font-size="10" text-anchor="middle">m</text>
+      <rect x="180" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="195" y="15" font-size="10" text-anchor="middle">m</text>
+      <rect x="210" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="225" y="15" font-size="10" text-anchor="middle">m</text>
+      <!-- block B -->
+      <rect x="240" y="0" width="30" height="22" fill="#ffd49e" stroke="#cc4a1b" stroke-width="1.5"/>
+      <text x="255" y="15" font-size="10" text-anchor="middle">r5</text>
+      <rect x="270" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="285" y="15" font-size="10" text-anchor="middle">m</text>
+      <rect x="300" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="315" y="15" font-size="10" text-anchor="middle">m</text>
+      <rect x="330" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="345" y="15" font-size="10" text-anchor="middle">m</text>
+      <!-- block C -->
+      <rect x="360" y="0" width="30" height="22" fill="#ffd49e" stroke="#cc4a1b" stroke-width="1.5"/>
+      <text x="375" y="15" font-size="10" text-anchor="middle">r6</text>
+      <rect x="390" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="405" y="15" font-size="10" text-anchor="middle">m</text>
+      <rect x="420" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="435" y="15" font-size="10" text-anchor="middle">m</text>
+      <rect x="450" y="0" width="30" height="22" fill="#fbe5da"/>
+      <text x="465" y="15" font-size="10" text-anchor="middle">m</text>
+    </g>
+    <text x="100" y="140" font-size="11" fill="#cc4a1b">每块预测的 ground truth 是 r3,r4,r5 / r6,r7,r8 / r7,r8,r9</text>
+
+    <!-- attention mask -->
+    <text x="360" y="180" font-size="13" text-anchor="middle" font-weight="bold">Sparse attention (Flex Attention)</text>
+    <text x="100" y="200" font-size="11">块内: 双向 attention; 块间: 互不可见 (避免互相泄露 ground truth)</text>
+    <text x="100" y="216" font-size="11">每块都能 attend 到 prompt p1..p4 的 target K/V</text>
+  </svg>
+  <figcaption>训练时 sequence-level 处理: 一条样本里 random-sample ~512 个 anchor, 每个 anchor 起头一块, 块内剩余位置 mask. 块间用 Flex Attention 阻断, 让 ~512 个 (anchor + γ−1 mask) block 在一次 forward + backward 里同时被训练。这样训练成本几乎不随 anchor 数线性增长 (kernel 内 sparse mask 走 0 计算)。</figcaption>
+</div>
+
+<h4>为什么这种构造比"等宽块 + 随机 mask"更好</h4>
+<p>Inference 时, draft 总是看到 <strong>1 个 verifier 给的 clean token + 后面全 mask</strong>。等宽块 + 随机 mask 训出来的模型, 看到的格式是 "块内偶尔有 clean、偶尔有 mask, 顺序随机", 与推理分布偏离。Random-anchor 训练把"块第 0 位 = clean, 后面 = mask"这个固定 pattern 焊在数据里, 和推理对齐。Table 9: 这一改进让 Math500 τ 从 4.94 → 5.64, +14%。</p>
+
+<h3>4.2 Loss decay (Equation 4)</h3>
+
+<div class="formula">w<sub>k</sub> = exp( −(k−1) / γ )</div>
+
+<p>这里的 γ 是个 decay 超参 (注意它跟 block size 不是同一个 γ; 论文 Appendix A.1: block 16 用 γ_decay=7, block 10 用 5, block 8 用 4)。每个 mask 位置 k 的 loss 权重 = w<sub>k</sub>。位置 1 (第一个 mask) 权重 = 1.0; 位置 16 (最后一个 mask) 权重 = exp(−15/7) ≈ 0.117。早期位置的损失约是后期位置的 8.5×。</p>
+
+<table>
+  <tr><th>k (位置)</th><th>w<sub>k</sub> (block 16, γ=7)</th><th>w<sub>k</sub> (block 10, γ=5)</th><th>w<sub>k</sub> (block 8, γ=4)</th></tr>
+  <tr><td>1</td><td>1.000</td><td>1.000</td><td>1.000</td></tr>
+  <tr><td>2</td><td>0.867</td><td>0.819</td><td>0.779</td></tr>
+  <tr><td>4</td><td>0.651</td><td>0.549</td><td>0.472</td></tr>
+  <tr><td>8</td><td>0.368</td><td>0.247</td><td>0.174</td></tr>
+  <tr><td>16</td><td>0.117</td><td>0.050</td><td>0.024</td></tr>
+</table>
+
+<p>物理直觉: spec decoding 一旦中间 reject, 后面 token 全废, 所以早期 token 的正确率"决定整段长度"。但训练时简单 uniform CE 会让网络平均地分配容量, 把后期低重要性的 token 也练得准。Loss decay 让网络把容量集中在"有可能被接受的早期位置", 加速收敛 (Figure 5 显示同样 epoch 数下 acceptance length 高 ~0.4 个 token)。</p>
+
+<h3>4.3 共享 frozen embedding & LM head</h3>
+
+<p>Draft 的 token embedding 和 LM head 直接<strong>复用 target 的 frozen 副本</strong>。这有两个好处:</p>
+<ul>
+  <li><strong>表征空间对齐</strong>: draft 的输出 logits 与 target 在同一向量空间下, 减少 distribution mismatch (类似 EAGLE 系列的设计选择)。</li>
+  <li><strong>参数量少</strong>: Qwen3-8B 的 embedding 矩阵就 ~600M 参数, 不训省一大块。</li>
+</ul>
+
+<h3>4.4 训练数据 & 长上下文友好</h3>
+<p>800K 样本来自 Nemotron Post-Training v2 + CodeAlpaca, 但 response 不直接用 ground-truth, 而是用<strong>target model 自己 generate 的 response</strong>。这是 self-distillation 风格, 和 EAGLE-3 一致, 但放在 diffusion 设定下重要性更突出: diffusion drafter 学的不是"语言模型分布", 而是"target 在每个位置的下一步是什么", 必须用 target 自产数据。</p>
+<p>长上下文支持: 标准 EAGLE-3 在长上下文下做"training-time test"——drafter 自回归地展开一段, 然后在最后位置算 loss——这个递归非常昂贵 (深度 ∝ steps)。DFlash 不需要这种递归, 因为它在一次 forward 里就把所有 mask 解了, 训练时直接对每个 anchor block 算 CE 即可。论文 §4.2 说这让"long-context training 几乎免费"。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 推理与验证拓扑</h2>
+
+<h3>5.1 为什么 DFlash 不用 tree</h3>
+
+<p>EAGLE-2/3 的胜负手是 dynamic draft tree (60 节点)——一棵树同时提议 60 个候选 token, 用 tree-attention 一次 verify, 把 acceptance 拉到 3.5。但 tree 有自己的代价:</p>
+<ul>
+  <li>verification 计算量 ∝ tree size, 60 节点是 16-block 的 ~4×</li>
+  <li>大 batch 下计算 saturate, tree 的边际收益消失 (Table 4 证实: EAGLE-3 (60) 在 concurrency=32 时 speedup ≤ 1×, 反而比 EAGLE-3 (10) 慢)</li>
+  <li>tree 实现复杂, SGLang Spec-v2 不支持</li>
+</ul>
+
+<p>DFlash 选了"一条直线"路线: 提议 16 个连续 token, target 1 次 verify, sequence-level rejection sampling。简单, 但因为 acceptance 本身高 (τ=7+), 总产出比 tree 还高。论文 §5.1 直接秒杀: "DFlash also surpasses EAGLE-3 with tree size 60, achieving higher acceptance length while incurring substantially lower verification overhead."</p>
+
+<h3>5.2 Sequence rejection sampling 在 diffusion drafter 下的细节</h3>
+
+<p>Leviathan 2023 的标准 rejection sampling 是为 AR drafter 设计的: token-i 由 p<sub>draft</sub>(·|t<sub>1..i-1</sub>) 采样, 用 min(1, p<sub>tgt</sub>(t<sub>i</sub>|·)/p<sub>draft</sub>(t<sub>i</sub>|·)) 接受。Diffusion drafter 的 token 不是 AR 采样的, 而是 marginal — token-i 的概率分布是 p<sub>draft</sub>(t<sub>i</sub>|context, all_masks), 不依赖 t<sub>1..i-1</sub>。这看上去会破坏 rejection sampling 的等价性。</p>
+
+<p>DFlash 怎么处理? 论文没有展开, 但从"6× lossless"可推断它仍然走标准 rejection。一个合理解释:</p>
+<ol>
+  <li>把 draft 的 16 个 token 当作一条 sequence, 顺序对每个位置做 rejection。</li>
+  <li>每次 rejection 用的 q<sub>draft</sub>(t<sub>i</sub>) 是 draft 在那个位置的边缘分布 (因为 draft 一次就预测了)。</li>
+  <li>这其实仍然给出 "samples from p<sub>tgt</sub>"——条件是 q<sub>draft</sub> 在每个位置都对 p<sub>tgt</sub> 有支撑 (绝对连续), 这一点 mask-diffusion 的 softmax 输出天然满足。</li>
+</ol>
+
+<p>核心数学不变: 只要 reject 的 fallback 分布是 (p<sub>tgt</sub> − q<sub>draft</sub>)<sub>+</sub>, 接受 / 拒绝混合后的边缘就是 p<sub>tgt</sub>。所以 DFlash 是 lossless 的, 与 EAGLE-3 同地位。</p>
+
+<h4>Worked example #4: 一段具体 rejection 跟踪</h4>
+<p>设 draft 输出 16 个 token: t = ["speculative", "decoding", ".", "It", "achieves", "lossless", "speedup", "by", ...]; greedy 模式 (温度 0)。target 1 次 forward 给出每个位置的 logits。greedy 验证退化为<em>等价比较</em>: 接受当 t<sub>i</sub><sup>draft</sup> = argmax p<sub>tgt</sub>(·|t<sub>1..i-1</sub>) 时, 否则 reject。设比较结果是 ✓ ✓ ✓ ✓ ✗ — 接受 4 个, 第 5 位置被替换为 target argmax (比如 "without"), 第 6+ 全丢, target 顺手再吐 1 个 bonus。本周期产出 = 4 (accepted) + 1 (replacement) + 1 (bonus) = 6 个 token。</p>
+<p>这就是为什么 τ ∈ [1, γ+1]; γ=16 的话 τ 上限 17。Qwen3-8B 实测 τ ≈ 7.87 → 平均每周期产 7.87 个 token, 即接受了 ~6.87 个 draft + 1 个 bonus, 接受比 6.87/16 ≈ 43%。听起来不高, 但因为 drafting cost 接近 0, 这个比例已经够推到 6×。</p>
+
+<h3>5.3 KV cache 在每次周期间的演化</h3>
+
+<p>Draft 的 K/V cache 每周期增长 m+1 行 (m = accepted 数)。Mask 位置不写 cache, 因为它们的预测下个周期就过期了 (会重新 mask)。这点跟 AR drafter 完全一样, 但实现要小心: 当 draft forward 完, 只 commit 前 m+1 个位置的 K/V, 后面 γ−1−m 个位置的 K/V 丢弃。SGLang 的 Spec-v2 支持这种 "partial commit"。</p>
+
+<p>Target 的 K/V 也只增长 m+1 行 (verifier 验证后 commit)。两个 cache 在 prompt 阶段已经"对齐"过一次 (target 给 draft 提供 fused K/V), 之后两边各走各的。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 公式与数值理解</h2>
+
+<h3>6.1 加速比的解析模型</h3>
+
+<p>从 Equation 1 出发:</p>
+
+<div class="formula">L = (T<sub>draft</sub> + T<sub>verify</sub>) / τ;&nbsp; η = L<sub>target</sub> / L</div>
+
+<p>对 EAGLE-3 (16) on Qwen3-8B / Math500: 假设 t<sub>step</sub><sup>draft</sup> ≈ 0.5 ms (1 层), γ=7 → T<sub>draft</sub> ≈ 3.5 ms; T<sub>verify</sub> ≈ 5 ms; τ ≈ 3.49; L<sub>target</sub> ≈ 12 ms (B200 Qwen3-8B 单 token); L_eagle = (3.5+5)/3.49 ≈ 2.43 ms; η = 12/2.43 ≈ 4.9× — 但实际只有 2.05× (per Table 1) 因为 verify 还有 tree-attention 的额外开销 + 调度损耗。</p>
+
+<p>对 DFlash: t<sub>parallel</sub><sup>draft</sup> ≈ 5 ms (5 层一次性, Figure 3 实测); γ=16; T<sub>verify</sub> ≈ 8 ms (target 一次过 16 位); τ ≈ 7.87; L_dflash = (5+8)/7.87 ≈ 1.65 ms; η = 12/1.65 ≈ 7.3× — 实测 6.08× 与之吻合。</p>
+
+<table>
+  <tr><th>变量</th><th>EAGLE-3 (16)</th><th>DFlash (16)</th></tr>
+  <tr><td>γ (draft tokens)</td><td>16 (tree)</td><td>16 (block)</td></tr>
+  <tr><td>T<sub>draft</sub></td><td>~7×0.5 = 3.5 ms (7 个 AR step)</td><td>~5 ms (1 forward, 5 层)</td></tr>
+  <tr><td>T<sub>verify</sub></td><td>~5 ms (tree)</td><td>~8 ms (sequence)</td></tr>
+  <tr><td>τ</td><td>~3.49</td><td>~7.87</td></tr>
+  <tr><td>L</td><td>(3.5+5)/3.49 ≈ 2.43 ms</td><td>(5+8)/7.87 ≈ 1.65 ms</td></tr>
+  <tr><td>η (vs ~12 ms)</td><td>~4.9× (理论) / 2.05× (实测)</td><td>~7.3× (理论) / 6.08× (实测)</td></tr>
+</table>
+
+<h3>6.2 Loss decay 的灵敏度</h3>
+
+<p>给一个直觉表: 假设各位置接受概率 p<sub>k</sub> 单调减 (因为后位置错的可能性大), 整段被全部接受的概率是 ∏ p<sub>k</sub>。期望接受长度:</p>
+
+<div class="formula">E[m] = ∑<sub>k=1..γ</sub> ∏<sub>j=1..k</sub> p<sub>j</sub></div>
+
+<table>
+  <tr><th>p<sub>1</sub></th><th>p<sub>2</sub></th><th>p<sub>3</sub></th><th>... (decay 0.95)</th><th>γ=16, E[m]</th></tr>
+  <tr><td>0.95</td><td>0.90</td><td>0.85</td><td>...</td><td>≈ 5.6</td></tr>
+  <tr><td>0.85</td><td>0.85</td><td>0.85</td><td>0.85</td><td>≈ 4.7</td></tr>
+  <tr><td>0.99</td><td>0.95</td><td>0.90</td><td>...</td><td>≈ 7.4</td></tr>
+</table>
+
+<p>读法: 提升 p<sub>1</sub> 0.05 (从 0.95→0.99) 比同样幅度提升 p<sub>10</sub> 价值大几个量级——所以 loss decay 把训练 budget 偏向 p<sub>1..3</sub> 是数学上正确的。</p>
+
+<h3>6.3 Drafting cost vs γ 的标度律 (Figure 3 重画)</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 600 280" width="100%" style="max-width:580px">
+    <line x1="60" y1="240" x2="560" y2="240" stroke="#5b5e66"/>
+    <line x1="60" y1="240" x2="60" y2="40" stroke="#5b5e66"/>
+    <text x="310" y="270" font-size="12" text-anchor="middle">Number of draft tokens γ</text>
+    <text x="20" y="140" font-size="12" text-anchor="middle" transform="rotate(-90 20 140)">Drafting latency (ms)</text>
+
+    <!-- x ticks -->
+    <text x="160" y="256" font-size="11" text-anchor="middle">4</text>
+    <text x="320" y="256" font-size="11" text-anchor="middle">8</text>
+    <text x="480" y="256" font-size="11" text-anchor="middle">16</text>
+
+    <!-- y ticks -->
+    <text x="50" y="244" font-size="11" text-anchor="end">0</text>
+    <text x="50" y="160" font-size="11" text-anchor="end">10</text>
+    <text x="50" y="80" font-size="11" text-anchor="end">20</text>
+
+    <!-- EAGLE-3 1L: linear ~ 0.5*γ + 1 -->
+    <polyline points="160,228 320,212 480,180" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <circle cx="160" cy="228" r="4" fill="#cc4a1b"/>
+    <circle cx="320" cy="212" r="4" fill="#cc4a1b"/>
+    <circle cx="480" cy="180" r="4" fill="#cc4a1b"/>
+    <text x="495" y="180" font-size="11" fill="#cc4a1b">EAGLE-3 (1L)</text>
+
+    <!-- DFlash 1L: nearly flat -->
+    <polyline points="160,232 320,230 480,228" fill="none" stroke="#1f7a4a" stroke-width="2" stroke-dasharray="4,2"/>
+    <circle cx="160" cy="232" r="4" fill="#1f7a4a"/>
+    <circle cx="320" cy="230" r="4" fill="#1f7a4a"/>
+    <circle cx="480" cy="228" r="4" fill="#1f7a4a"/>
+    <text x="495" y="228" font-size="11" fill="#1f7a4a">DFlash (1L)</text>
+
+    <!-- DFlash 3L -->
+    <polyline points="160,222 320,219 480,216" fill="none" stroke="#1f7a4a" stroke-width="2"/>
+    <circle cx="160" cy="222" r="4" fill="#1f7a4a"/>
+    <circle cx="320" cy="219" r="4" fill="#1f7a4a"/>
+    <circle cx="480" cy="216" r="4" fill="#1f7a4a"/>
+    <text x="495" y="216" font-size="11" fill="#1f7a4a">DFlash (3L)</text>
+
+    <!-- DFlash 5L -->
+    <polyline points="160,210 320,206 480,200" fill="none" stroke="#1f7a4a" stroke-width="3"/>
+    <circle cx="160" cy="210" r="5" fill="#1f7a4a"/>
+    <circle cx="320" cy="206" r="5" fill="#1f7a4a"/>
+    <circle cx="480" cy="200" r="5" fill="#1f7a4a"/>
+    <text x="495" y="202" font-size="11" fill="#1f7a4a" font-weight="bold">DFlash (5L) ★</text>
+
+    <text x="310" y="30" font-size="13" text-anchor="middle" font-weight="bold">drafting latency vs γ (单位时间含 K/V 写入开销)</text>
+  </svg>
+  <figcaption>EAGLE-3 (即使是只有 1 层): drafting latency ∝ γ。DFlash (3L, 5L): latency 与 γ 几乎无关, 因为 1 次 forward 输出全 γ 个 token; 即使 5 层模型, γ=16 时延迟仍低于 EAGLE-3 1 层 8 token. 这是 DFlash 整个故事的物理基础。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · 实验关键结果</h2>
+
+<h3>7.1 Qwen3-8B / Transformers backend (Table 1 精读)</h3>
+
+<table>
+  <tr><th>Bench</th><th>EAGLE-3 (16)</th><th>EAGLE-3 (60)</th><th>DFlash (16)</th><th>提升 vs E3-60</th></tr>
+  <tr><td>GSM8K (T=0)</td><td>1.94× / τ=3.23</td><td>2.23× / τ=3.71</td><td>5.15× / τ=6.54</td><td>×2.31</td></tr>
+  <tr><td>Math500</td><td>1.81× / 3.02</td><td>2.05× / 3.49</td><td>6.08× / 7.87</td><td>×2.97</td></tr>
+  <tr><td>AIME25</td><td>1.79× / 3.00</td><td>2.05× / 3.44</td><td>5.62× / 7.08</td><td>×2.74</td></tr>
+  <tr><td>HumanEval</td><td>1.89× / 3.17</td><td>2.17× / 3.65</td><td>5.14× / 6.50</td><td>×2.37</td></tr>
+  <tr><td>MBPP</td><td>1.69× / 2.82</td><td>1.93× / 3.25</td><td>4.65× / 5.95</td><td>×2.41</td></tr>
+  <tr><td>LiveCodeBench</td><td>1.57× / 2.65</td><td>1.81× / 3.03</td><td>5.51× / 7.27</td><td>×3.04</td></tr>
+  <tr><td>MT-Bench</td><td>1.63× / 2.83</td><td>1.90× / 3.26</td><td>2.75× / 4.24</td><td>×1.45</td></tr>
+  <tr><td><strong>平均</strong></td><td><strong>1.76×</strong></td><td><strong>2.02×</strong></td><td><strong>4.86×</strong></td><td><strong>×2.41</strong></td></tr>
+</table>
+
+<p>读法:</p>
+<ul>
+  <li>结构化任务 (Math, Code) → DFlash 优势最大, 因为 token-level entropy 低, draft 更容易高接受率</li>
+  <li>开放对话 (MT-Bench) → DFlash 优势缩到 1.45×, 因为 chat 文本多样性高, draft 错的频率高</li>
+  <li>EAGLE-3 (60) 比 EAGLE-3 (16) 提升 ~15%, 但 DFlash 比 EAGLE-3 (60) 还快 2.4×, 说明 tree 不是终极方案</li>
+</ul>
+
+<h3>7.2 Reasoning mode (Table 2 精读)</h3>
+<p>Q3-8B + thinking mode (long CoT 数据训练). Math500 / GPQA / AIME25:</p>
+<ul>
+  <li>T=0: speedup 4.17–4.64× (略低于 non-thinking, 因为 reasoning trace 多样性更高)</li>
+  <li>T=1: 仍维持 3.7–4×</li>
+</ul>
+<p>关键: reasoning model 的生成长度大 (上千 token), spec decoding 加速直接乘到端到端 latency, 实际收益绝对值最大。</p>
+
+<h3>7.3 SGLang on B200 + FA4 (Table 3 精读)</h3>
+
+<table>
+  <tr><th>Model + bench</th><th>concurrency=1</th><th>=8</th><th>=32</th><th>τ</th></tr>
+  <tr><td>Q3-8B / Math500</td><td>5.1×</td><td>4.5×</td><td>2.8×</td><td>8.01</td></tr>
+  <tr><td>Q3-8B / HumanEval</td><td>4.2×</td><td>3.6×</td><td>2.4×</td><td>6.50</td></tr>
+  <tr><td>Q3-Coder-30B / HumanEval</td><td>3.5×</td><td>3.2×</td><td>3.1×</td><td>8.09</td></tr>
+  <tr><td>Q3-Coder-30B / LCB</td><td>2.6×</td><td>2.3×</td><td>2.3×</td><td>6.42</td></tr>
+</table>
+
+<p>有趣观察: concurrency 上升, speedup 下降, 但比起 EAGLE-3 在大 batch 跌到 0.6× 已经好很多。30B-A3B (MoE) 的 speedup 反而在大 batch 更稳, 因为 MoE 在小 batch 下 GPU 浪费率高, draft 节省的 verification 占比相对大。</p>
+
+<h3>7.4 LLaMA-3.1-8B head-to-head (Table 4 精读)</h3>
+<p>这是与 EAGLE-3 在<strong>相同训练数据 (UltraChat + ShareGPT)</strong> 下的公平对比。block size 用 10 (不是 16) 是因为 LLaMA-3.1 与 Qwen3 字典 / 模型结构不同, 经验最优。</p>
+<table>
+  <tr><th>Bench / conc</th><th>EAGLE-3 (10)</th><th>EAGLE-3 (60)</th><th>DFlash (10)</th></tr>
+  <tr><td>GSM8K conc=1</td><td>1.6×</td><td>1.9×</td><td>2.4×</td></tr>
+  <tr><td>GSM8K conc=32</td><td>1.0×</td><td>0.6×</td><td>1.6×</td></tr>
+  <tr><td>HumanEval conc=1</td><td>2.0×</td><td>2.0×</td><td>2.8×</td></tr>
+  <tr><td>HumanEval conc=32</td><td>1.2×</td><td>0.6×</td><td>1.8×</td></tr>
+  <tr><td>Alpaca conc=32</td><td>0.9×</td><td>0.5×</td><td>1.4×</td></tr>
+</table>
+<p>注意 conc=32 下 EAGLE-3 (60) 跌到 <span class="no">0.5×</span>(比 baseline 慢 2 倍!)。tree 越大, verification 越占满, 在大 batch 下 spec decoding 的"draft 成本免费"假设破产。DFlash 因为没有 tree 这个负担, 即使 conc=32 仍维持 1.4–1.8×。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 消融实验</h2>
+
+<h3>8.1 Draft 层数 (Table 5)</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 600 250" width="100%" style="max-width:580px">
+    <line x1="60" y1="200" x2="540" y2="200" stroke="#5b5e66"/>
+    <line x1="60" y1="200" x2="60" y2="40" stroke="#5b5e66"/>
+    <text x="300" y="232" font-size="12" text-anchor="middle">Number of draft layers</text>
+    <text x="20" y="120" font-size="12" text-anchor="middle" transform="rotate(-90 20 120)">Math500 speedup ×</text>
+
+    <text x="160" y="216" font-size="11" text-anchor="middle">3-L</text>
+    <text x="300" y="216" font-size="11" text-anchor="middle">5-L</text>
+    <text x="440" y="216" font-size="11" text-anchor="middle">8-L</text>
+
+    <!-- speedup bars -->
+    <rect x="135" y="65" width="50" height="135" fill="#dde6f7" stroke="#2f6feb"/>
+    <text x="160" y="60" font-size="11" text-anchor="middle">4.69×</text>
+    <rect x="275" y="64" width="50" height="136" fill="#1f7a4a"/>
+    <text x="300" y="59" font-size="11" text-anchor="middle" font-weight="bold">4.71×</text>
+    <text x="300" y="46" font-size="10" text-anchor="middle" fill="#1f7a4a">★ best</text>
+    <rect x="415" y="68" width="50" height="132" fill="#dde6f7" stroke="#2f6feb"/>
+    <text x="440" y="63" font-size="11" text-anchor="middle">4.64×</text>
+
+    <!-- tau line overlay -->
+    <text x="500" y="60" font-size="11" fill="#cc4a1b">τ:</text>
+    <polyline points="160,135 300,127 440,118" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <circle cx="160" cy="135" r="4" fill="#cc4a1b"/>
+    <text x="170" y="130" font-size="10" fill="#cc4a1b">5.64</text>
+    <circle cx="300" cy="127" r="4" fill="#cc4a1b"/>
+    <text x="310" y="122" font-size="10" fill="#cc4a1b">5.99</text>
+    <circle cx="440" cy="118" r="4" fill="#cc4a1b"/>
+    <text x="450" y="113" font-size="10" fill="#cc4a1b">6.33</text>
+  </svg>
+  <figcaption>Table 5 重画: τ 单调上升 (5.64 → 5.99 → 6.33), 但加层数同时让 drafting cost 上升, 5 层是甜蜜点 (τ vs cost balance)。这是 §3.2 KV 注入设计真正发力的体现——只有"每层都能 attend target"时, 加层数 τ 才会涨。</figcaption>
+</div>
+
+<h3>8.2 Target hidden 层数 (Table 6)</h3>
+<table>
+  <tr><th>Setting</th><th>Math500 speedup / τ</th><th>HumanEval</th><th>MT-Bench</th></tr>
+  <tr><td>3 hidden</td><td>4.49× / 5.38</td><td>3.80× / 4.47</td><td>2.32× / 3.07</td></tr>
+  <tr><td>5 hidden</td><td>4.69× / 5.64</td><td>3.90× / 4.61</td><td>2.38× / 3.18</td></tr>
+</table>
+<p>5 hidden 一致好于 3。但代价: offline training 要 cache 5 层 hidden, IO 翻 5/3 倍。论文没试 7+ 层, 估计是工程上 unlocking 收益不够 cover 训练成本。</p>
+
+<h3>8.3 Block-size mismatch (Table 7)</h3>
+<table>
+  <tr><th>train BS</th><th>test BS</th><th>Math500 speedup / τ</th></tr>
+  <tr><td>16</td><td>16</td><td>4.64× / 6.33</td></tr>
+  <tr><td>16</td><td>8</td><td>3.87× / 5.09</td></tr>
+  <tr><td>8</td><td>16</td><td>3.78× / 5.02</td></tr>
+  <tr><td>8</td><td>8</td><td>3.97× / 5.21</td></tr>
+</table>
+<p>清晰的不对称性: <strong>训大用小</strong> (16→8) 不太掉, <strong>训小用大</strong> (8→16) 掉得明显。原因: 大 block 训出来的 attention 已经学会"看远处的 mask 信号", 缩小到 8 没有 gap; 反过来训 8 的从来没 attend 过 8 个以上 mask, 推理时 16 直接 OOD。这条性质支持<strong>动态 block-size 调度</strong>: 训一次 BS=16, 推理时根据负载动态在 8/16 之间切换 (大 batch 走 8 节省 verify cost, 小 batch 走 16 拉 acceptance)。</p>
+
+<h3>8.4 Loss decay (Figure 5) 与 random anchor (Table 9)</h3>
+<table>
+  <tr><th>消融项</th><th>关掉后 vs 开</th><th>Math500 τ 提升</th></tr>
+  <tr><td>Loss decay (Eq 4)</td><td>uniform vs decay (γ=7)</td><td>+0.4 (≈ epoch 收敛快 2×)</td></tr>
+  <tr><td>Random-anchor masking</td><td>standard block split vs anchor</td><td>+0.7 (从 4.94 → 5.64)</td></tr>
+</table>
+<p>这两条配合: random-anchor 让训练分布对齐推理 (块结构正确), loss decay 让训练目标对齐 spec decoding 的"早 token 重要"(损失权重正确)。两者各贡献 ~10% 加速, 缺一不可。</p>
+
+<h3>8.5 没有 target hidden (Table 8) — 严重退化</h3>
+<table>
+  <tr><th>Bench</th><th>5L diffusion (no target hidden)</th><th>5L DFlash (with hidden)</th></tr>
+  <tr><td>GSM8K (T=0)</td><td>2.83× / τ=3.38</td><td>5.15× / τ=6.54</td></tr>
+  <tr><td>Math500</td><td>3.73× / 4.61</td><td>6.08× / 7.87</td></tr>
+  <tr><td>AIME25</td><td>3.35× / 4.07</td><td>5.62× / 7.08</td></tr>
+</table>
+<p>剥离 target hidden 注入后, 模型退化到与 PARD / 一般 small diffusion drafter 同档 (3× 上限)。这条消融 = "DFlash 的全部魔法在 K/V 注入"的实证。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与 EAGLE-3 / Medusa / DiffuSpec / PARD 的逐项对比</h2>
+
+<table>
+  <tr><th>维度</th><th>EAGLE-3</th><th>Medusa</th><th>DiffuSpec / SpecDiff-2</th><th>PARD</th><th>DFlash</th></tr>
+  <tr><td>Drafter 类型</td><td>1 层 AR</td><td>K 个独立 head</td><td>7B mask diffusion</td><td>小 AR mimic-diffusion</td><td>5 层 mask diffusion</td></tr>
+  <tr><td>每周期 draft 步数</td><td>γ (序列)</td><td>1 (并行)</td><td>多步 denoise (10+)</td><td>γ (序列)</td><td><strong>1 (并行)</strong></td></tr>
+  <tr><td>Target hidden 用法</td><td>融入 input layer 0</td><td>无 (head 直接接 hidden)</td><td>无 (drafter 自己强)</td><td>无</td><td><strong>注入每层 K/V</strong></td></tr>
+  <tr><td>Verification topology</td><td>Tree (60 节点)</td><td>Tree</td><td>Sequence</td><td>Sequence</td><td>Sequence (16)</td></tr>
+  <tr><td>典型 τ</td><td>3.5</td><td>~3</td><td>5–6 但 latency 高</td><td>~3</td><td><strong>7–8</strong></td></tr>
+  <tr><td>End-to-end speedup</td><td>2.0×</td><td>~2×</td><td>3–4×</td><td>~3×</td><td><strong>5–6×</strong></td></tr>
+  <tr><td>Drafter 参数量</td><td>~1.5B (1 层 80% target)</td><td>~K × small head</td><td>7B</td><td>~1B</td><td>~1.5B (5 层 + 注入)</td></tr>
+  <tr><td>大 batch 表现</td><td><span class="no">tree-60 跌到 0.5×</span></td><td>退化</td><td><span class="no">drafter 占满</span></td><td>OK</td><td><span class="ok">仍维持 ≥ 1.4×</span></td></tr>
+  <tr><td>训练 data 需要</td><td>self-distill</td><td>self-distill</td><td>大规模 web text</td><td>self-distill</td><td>self-distill (target generated)</td></tr>
+  <tr><td>训练 cost</td><td>training-time test 贵</td><td>便宜</td><td>独立预训</td><td>便宜</td><td><span class="ok">便宜 (无 recursive expand)</span></td></tr>
+</table>
+
+<p><strong>关键解读 1 — drafter 容量是不是免费的 lunch?</strong> EAGLE-3 砍到 1 层是因为 AR 加层数 ∝ 时间。DFlash 5 层在 GPU 上由于 batch=16 一次过, 实际 latency ≈ 1 层 + 4 层并行计算的 epsilon, 不算"免费"但近似免费。所以"drafter 加深"这条在 diffusion-drafter 路线下重新打开了。</p>
+
+<p><strong>关键解读 2 — 为什么 DiffuSpec 7B drafter 会输给 1.5B DFlash?</strong> 因为 7B drafter 单步 forward ≈ 几十 ms, 即使每步出 16 token, 摊到每 token 仍贵。DFlash 1.5B + target hidden 注入相当于"借了 target 的脑子但只跑 1.5B 的腿"。这是论文那句 <em>"diffusion adapter that efficiently leverages the deep context features modeled by the large target model"</em> 的精确表达。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>10.1 已知 / 推测的局限</h3>
+<ul>
+  <li><strong>Chat 任务收益缩水</strong>: MT-Bench 只有 2.75×, 远低于数学 / 代码任务的 5–6×。Chat 输出 entropy 高, draft 难以一次出对 16 个连续 token。开放任务的 ceiling 可能就在 3× 左右。</li>
+  <li><strong>采样温度 T=1 时下降</strong>: T=0 → 4.86×, T=1 → 4.03× (Q3-8B 平均). 高温下 sampling 多样性大, draft 命中率掉, 但仍优于 EAGLE-3。</li>
+  <li><strong>大 concurrency 下退化</strong>: SGLang conc=32 时 speedup 缩到 ~2.5–3×。Verifier 在大 batch 已计算 saturate, draft 节省的"计算空泡"消失。</li>
+  <li><strong>训练 IO 成本随 hidden 数线性</strong>: 5-hidden offline 训练每条样本 cache 5 × 4096 维 hidden, 800K 样本 × 3072 长度 ≈ 50TB hidden cache. 论文用 online 模式 (训时 fly compute) 也行但每 step 多一次 target forward, 成本约 2×。</li>
+  <li><strong>Block-size 训-推不对称</strong>: 训 BS=8 推 BS=16 掉 ~20% (Table 7). 想做"训一次模型部署多种 block-size"得用大 BS 训, 增加训练 GPU 内存 (Flex Attention 单 sequence ~512 anchors × BS=16 = 8K tokens, 加 prompt 后总 sequence 上万)。</li>
+  <li><strong>对 verifier 改动敏感</strong>: 5-hidden 是从 target 特定层抽的, target 微调 / 量化后这些层的语义可能漂移, draft 可能要重训。论文没做 verifier 量化下的 robustness 实验。</li>
+  <li><strong>不支持非 transformer target</strong>: 抽 hidden 这件事强依赖 transformer 的层结构, 对 Mamba / RWKV-style verifier 不直接可用。</li>
+</ul>
+
+<h3>10.2 个人 take</h3>
+<p>这篇论文的真正贡献不在"用 diffusion 做 drafter"——这条路 PARD / DiffuSpec / SpecDiff-2 都试过——而是在<strong>把 5 层 target hidden 焊到每层 K/V cache</strong>这个具体工程决策。它一次性解决了:</p>
+<ol>
+  <li>"加 draft 层数 τ 不涨"(EAGLE-3 痛点, 通过每层 inject 解决)</li>
+  <li>"小 drafter 智商不够"(通过把 target 知识打在 K/V 里解决)</li>
+  <li>"diffusion 多步太慢"(因为质量靠 target hidden 兜底, T=1 即可)</li>
+  <li>"tree verification 大 batch 不 work"(取消 tree, 用 sequence)</li>
+</ol>
+<p>之后想继续加速, 突破口可能在: (a) 让 K/V 注入也针对 query 自适应 (e.g. attention over hidden layers); (b) 做 dynamic block-size 调度; (c) 在 reasoning model 上挖更多 routing 信息 (因为 long CoT 局部高度可预测)。我个人觉得 DFlash 的设计已经把"AR drafter 范式 → 单层 + tree"和"大 dLLM drafter 范式 → 7B 多步"的中间地带占满了, 后续真正的下一步可能是非 spec decoding 的, 比如 lookahead-decoding 风格 / latent-space decoding。</p>
+
+<h3>10.3 待验证问题</h3>
+<ol>
+  <li>5 层选择是 fixed uniform; 如果用 attention 学一个 layer-routing weights, 是否更好?</li>
+  <li>Block size 16 是 Qwen3-8B 上的甜蜜点。30B 模型 / MoE 是不是仍然 16 最优? 论文 Coder-30B 用 8 层 + BS 16, 可能 BS 还能更大。</li>
+  <li>Sequence rejection sampling 在 diffusion drafter 下的 lossless 性, 论文断言"lossless"但没正式证明。理论上需要 q<sub>draft</sub>(t<sub>i</sub>) ≪ p<sub>tgt</sub>(t<sub>i</sub>) (绝对连续), mask diffusion softmax 输出能保证, 但温度 T → 0 时的 argmax 行为可能违反, 严格证明缺。</li>
+  <li>训练时若改用 random 长度 block (而不是固定 16), 会不会让模型同时支持多 block-size 而不掉点?</li>
+  <li>能否把 K/V 注入与 LoRA 复用——同一个 LoRA-adapter target model 上, 是否需要重训 drafter?</li>
+  <li>Reasoning model thinking-mode 下 τ=5–6, 比 Math500 (τ=7+) 低, 为什么? 是 long CoT 的中段 reasoning step 内在熵更高, 还是数据 coverage 问题?</li>
+  <li>对超大模型 (Qwen3-Coder-30B-A3B = 30B MoE active 3B), DFlash 用 8 层 drafter, drafter 参数量已经 ~3B 接近 active expert 大小, 还能不能再扁平化到 5 层?</li>
+  <li>比较 baseline 缺: TiDAR / Samragh-LoRA 这两个最相关方案没开源, 论文没对比。如果这俩开源后, DFlash 优势 margin 会缩小到哪里?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec11">11 · 速记盒 (memory points)</h2>
+
+<div class="kv"><span class="pill">立场</span> Drafter 范式从 AR 分叉到 block-diffusion + per-layer K/V 注入, 让 spec decoding 加速从 2× 跳到 6×。</div>
+<div class="kv"><span class="pill">核心机制</span> 5 层 target hidden → fused → 投影成每层 draft K/V cache, attention 永远能 attend, 不被 layer 稀释。</div>
+<div class="kv"><span class="pill">物理直觉</span> AR drafter T_draft ∝ γ 强迫深度 ≤ 1; diffusion drafter T_draft ≈ const 解锁 5–8 层。</div>
+<div class="kv"><span class="pill">数字</span> Q3-8B Math500: 6.08× speedup, τ=7.87 (vs EAGLE-3 (60) 2.05× / τ=3.49). MT-Bench 收益最小 2.75×。</div>
+<div class="kv"><span class="pill">推理简化</span> denoise 步数 T=1 (而非标准 dLLM 的 10+); 质量靠 verifier 兜底。</div>
+<div class="kv"><span class="pill">训练关键</span> random anchor block + loss decay w_k = exp(-(k-1)/γ) + Flex Attention 一次跑 ~512 块。</div>
+<div class="kv"><span class="pill">数据</span> 800K 样本, response 必须用 target 自产 (不是原 ground truth)。</div>
+<div class="kv"><span class="pill">无 tree</span> 不用 tree-attention; sequence-level rejection sampling, 大 batch 下比 EAGLE-3 (60) 鲁棒得多。</div>
+<div class="kv"><span class="pill">block-size 不对称</span> 训 16 推 8 几乎不掉; 反向掉 ~20%。支持动态 block-size 调度。</div>
+<div class="kv"><span class="pill">消融</span> 关掉 target hidden 注入直接退到 3×; 关掉 random anchor 掉 ~14%; 关掉 loss decay 收敛慢 2×。</div>
+<div class="kv"><span class="pill">局限</span> chat 任务收益缩到 2.75×; 大 batch 仍降级; 5-hidden offline cache 大。</div>
+<div class="kv"><span class="pill">未来</span> 自适应 layer routing / 动态 block-size 调度 / 与 reasoning router 配合 / 严格 lossless 证明。</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center">arXiv:2602.06036 · DFlash · UC San Diego · 精读笔记 · 2026-05-07</p>
+
+</main>
+</body>
+</html>

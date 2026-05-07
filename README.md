@@ -12,6 +12,7 @@
 | 04 | [ReSpec](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/04_ReSpec_2510.26475.html) | 三个 gap + reward-weighted KD | 50 KB |
 | 05 | [DAS](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/05_DAS_2511.13841.html) | suffix tree + length-aware budget | 40 KB |
 | 06 | [SRT](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/06_SRT_2601.09083.html) | per-prompt token-frequency trie + run-ahead | 40 KB |
+| 07 | [DFlash 详细版](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/07_DFlash_2602.06036.html) | 块扩散 drafter / 5 层 K/V 注入 / EAGLE-3 范式分叉(深度版) | 80 KB |
 
 建议阅读顺序: **02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT)**
 
