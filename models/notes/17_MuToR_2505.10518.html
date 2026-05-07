@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · MuToR: Multi-Token Prediction Needs Registers (2505.10518)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Multi-Token Prediction Needs Registers (MuToR)</h1>
+<div class="meta">
+  Anastasios Gerontopoulos · Spyros Gidaris · Nikos Komodakis · 2025-05-15 · arXiv:2505.10518<br>
+  关键词: multi-token prediction · register tokens · auxiliary supervision · SFT · PEFT · autoregressive image generation
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 MTP 的"加 n 个 output head"换成"在输入序列里穿插 learnable register token,每个负责预测一个未来 offset"——零架构改动、≈ 2K 额外参数、horizon 任意,SFT 上首次稳定打过 next-token baseline。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">≈ 2K</div><div class="l">新增可训练参数 (vs Gloeckle 110M–550M)</div></div>
+    <div class="stat"><div class="n">+1.4 ~ +3 pt</div><div class="l">数学/总结 SFT 提升 (Gemma-2B / Llama3-8B)</div></div>
+    <div class="stat"><div class="n">d ≤ 6</div><div class="l">prediction horizon, register 数与 d 无关</div></div>
+  </div>
+  <p><strong>立场:</strong>这是把 ViT registers 的 idea 反向迁移到 LM 训练时辅助信号的论文。核心 contribution 不是新损失函数,而是<em>用 attention mask 完美隔离</em>register 的训练信号 — 推理时一字不变,SFT pipeline 全兼容。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 Gloeckle 的 MTP 在 SFT 上不灵</a></li>
+    <li><a href="#sec2">背景速查 (术语 / NTP / Gloeckle MTP)</a></li>
+    <li><a href="#sec3">方法:Register 是怎么工作的</a></li>
+    <li><a href="#sec4">Attention mask:三类 token 的连接矩阵</a></li>
+    <li><a href="#sec5">Position embedding 的精巧设计</a></li>
+    <li><a href="#sec6">Worked example:三个 register 串起一帧</a></li>
+    <li><a href="#sec7">2D 扩展(图像生成)</a></li>
+    <li><a href="#sec8">实验关键结果</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 Gloeckle 的 MTP 在 SFT 上不灵</h2>
+
+<h3>1.1 历史脉络:从 Prophet 到 Gloeckle 再到这里</h3>
+<p>多 token 预测(MTP)不是新事:</p>
+<ul>
+  <li><strong>2020 ProphetNet</strong> (Qi et al.)首次把"预测未来 n-gram"作为 seq2seq 预训练目标。但其 multi-stream attention 随预测深度计算量爆炸,scale 不到 decoder-only 大模型。</li>
+  <li><strong>2024 Gloeckle</strong> (Better &amp; faster LLMs via MTP) 提出最简形式: 在主干 transformer 之上加 <strong>n 个并行 output head</strong>(每个一层 transformer + LM head),分别预测 t+1, t+2, ..., t+n。在 pretraining 阶段(代码任务尤其)显著加速、提质,被 DeepSeek-V3 采纳为 sequential head 变体。</li>
+  <li><strong>但 SFT 场景下 Gloeckle 几乎没增益</strong>。Table 11 (论文复现): Gemma-2B 在 GSM8K SFT 上 Gloeckle MTP <em>40.66 vs 38.87</em>,加倍训练后反而掉到 39.98。这是 MuToR 想攻击的痛点。</li>
+</ul>
+
+<p>另一条平行线: 2024 年 ICLR <strong>Darcet et al. "Vision Transformers Need Registers"</strong>。他们观察到 ViT 的 attention map 在大图上出现莫名的 high-norm "artifact patches" — 模型把背景的某些 token 偷偷当成"草稿纸"做全局聚合。解法很简单: 在输入 patch 序列前面 prepend 几个 learnable <em>register token</em>,显式给模型一块"不被任何下游任务读取的草稿纸",artifact 立刻消失,attention map 变干净,DINOv2 性能上升。</p>
+
+<p>MuToR 的智识来源就是把这两条线交起来:<strong>"register = 不污染下游的额外 attention 槽位"</strong>这个抽象,恰好是 SFT 阶段做 MTP 所需要的——既要给模型多 token 的监督信号,又不能动正常的 next-token 通路(否则 inference 完全坏了)。</p>
+
+<h3>1.2 别的方案为什么不够</h3>
+<table>
+  <tr><th>方案</th><th>怎么注入未来 token 信号</th><th>SFT 上的硬伤</th></tr>
+  <tr><td>Gloeckle 并行 heads</td><td>n 个 transformer layer + n 个 LM head,共享 trunk</td><td><span class="no">每个 head ~110M 新参数 (Gemma-2B)从 0 训,SFT 数据量小学不动;且 base trunk 必须同时服务 n 个 head 的 loss → 表征压力大</span></td></tr>
+  <tr><td>DeepSeek-V3 sequential heads</td><td>n 个 head 串成短链 (用 head_i 的 hidden 做 head_{i+1} 的输入)</td><td><span class="no">同样需要预训练阶段才能学到合理的 hidden,SFT 直接接的话信号噪</span></td></tr>
+  <tr><td>ProphetNet multi-stream</td><td>每个未来 offset 一个独立 attention stream</td><td><span class="no">O(n × seq²) 计算,decoder-only 大模型扛不住</span></td></tr>
+  <tr><td>Pause / Think tokens (Goyal 2024)</td><td>在 prompt 后追加 dummy token,增加推理时计算</td><td><span class="no">改变 inference 行为,违背"零开销 SFT"诉求</span></td></tr>
+  <tr><td>PASS / lookahead tokens (Monea 2023)</td><td>append lookahead token,冻结 base 训它们做 spec sampling</td><td><span class="no">目标是加速 inference,不是给 base 增强训练信号</span></td></tr>
+  <tr><td><strong>MuToR (本文)</strong> 👈</td><td>interleave register token 进 input,每个预测某 future offset</td><td><span class="ok">2K 参数,base 完全可用 (frozen 兼容 LoRA),inference 拔掉 register 后字面上不变</span></td></tr>
+</table>
+
+<h3>1.3 为什么这事不平凡</h3>
+
+<p>表面看 MuToR 很 trivial: 不就是塞几个 token 进去给 loss 吗?三件事让它 non-obvious。</p>
+
+<p><strong>(a) 未来信息泄露问题。</strong>如果 register r₁(放在 x_t 后面,要预测 x_{t+1})被 normal token x_{t+1}, x_{t+2}, ... 看见,那就是数据泄露 — 训练时监督信号是污染的,推理时这部分信号又消失,SFT 完直接退化。所以必须 <strong>regular token 完全看不到 register</strong>。</p>
+
+<p><strong>(b) 同时 register 又得"看到正确的过去"。</strong>r_d 要预测 x_{t+d},它必须能看到 x_1, ..., x_t(不能多也不能少)。如果它能看到其他 register 怎么办?那就违背独立性,而且其他 register 的 hidden 是"未来 target"的预测,看了等于又泄露。所以 <strong>register 之间也要互相不可见</strong>。</p>
+
+<p><strong>(c) Position id 怎么设。</strong>RoPE 是通过相对位置索引算 attention 的;如果 r_d 和 x_t 共享同一个位置 t,模型就分不清"我现在是在做 next-token 还是 d-token 预测"。Gloeckle 用不同 head 来区分,而 MuToR 没有 head — <strong>必须把"我要预测 d 步以后"这个信息从位置编码灌进去</strong>。论文的解法: 把 r_d 的 pos id 设成 <em>t+d−1</em>,正好等于"在标准 NTP 设置下,谁会预测 x_{t+d}"那个位置。这样 RoPE 自然把 r_d 的 query 投到一个"假装自己已经在未来 t+d−1 位置"的方向,attention 行为与 NTP 一致。</p>
+
+<div class="nb">
+  <strong>核心洞察:</strong>register 的本质是<em>"future-target attention slot"</em> — 给模型提供一个独立的、不污染主干信息流的容器,把多 token 监督的梯度从这里反传回主干。它和 ViT registers (草稿纸) 的功能一致: <strong>提供 un-tokenized 的 attention 槽位,不污染 normal flow</strong>。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">NTP (next-token prediction)</span></td><td>给定 x_{≤t} 预测 x_{t+1},decoder-only LM 的标准目标</td></tr>
+  <tr><td><span class="term">MTP (multi-token prediction)</span></td><td>同时预测 x_{t+1:t+d_max},Gloeckle 2024 提出的训练增强</td></tr>
+  <tr><td><span class="term">Teacher forcing</span></td><td>训练时用 ground-truth 历史 token 作为 context,允许 mask 化并行</td></tr>
+  <tr><td><span class="term">Register token</span></td><td>本文定义: 插入在 input sequence 中的 learnable embedding,只用作辅助 loss 的"载体"</td></tr>
+  <tr><td><span class="term">Offset d</span></td><td>register 要预测的未来步数,从 {1, ..., d_max} 均匀采样</td></tr>
+  <tr><td><span class="term">d_max</span></td><td>prediction horizon 的上界 (语言任务最优 d_max=4,2D 图像 d_max_2D=4)</td></tr>
+  <tr><td><span class="term">a (loss weight)</span></td><td>L = (1−a) L_ntp + a L_reg,语言任务最佳 a∈[0.1, 0.5]</td></tr>
+  <tr><td><span class="term">RoPE</span></td><td>Rotary Position Embedding,Su et al. 2024,相对位置 encoding</td></tr>
+  <tr><td><span class="term">Causal mask</span></td><td>下三角 attention mask,token i 只能看 j≤i</td></tr>
+  <tr><td><span class="term">ViT register (Darcet 2024)</span></td><td>在 ViT 输入前 prepend learnable token,作为"全局草稿纸"消除 artifact</td></tr>
+</table>
+
+<h3>2.2 Gloeckle MTP 速回顾(便于对比)</h3>
+<p>预测 t+1, t+2, ..., t+n 用 n 个独立的"transformer layer + LM head" 接在 base 主干输出上,主干 hidden h_t 被 n 个 head 共享:</p>
+<div class="formula">L_mtp = ED [ −Σ_t Σ_{i=1}^{n} log P_θ(x_{t+i} | x_{≤t}) ]</div>
+<p>每个 head 独立产 logits,反向传梯度回主干。<strong>每个 head 是一整层 transformer (~110M for Gemma-2B 的 hidden size)</strong>,这就是论文 Table 3 里 dmax=2 的 Gloeckle 要多 110M 参数、dmax=4 要 330M 的来源。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 方法:Register 是怎么工作的</h2>
+
+<h3>3.1 一句话定义</h3>
+
+<div class="formula">x' = ( x₁ , r_d , x₂ , r_d , ... , x_{T−1} , r_d , x_T )</div>
+
+<p>把 sequence 每两个相邻 regular token 之间塞一个 register token r_d。所有 r_d 共享<strong>同一个 learnable embedding</strong>(2K 参数 = hidden_dim × 1),区分"我要预测谁"的信息<em>纯靠 position id</em>。同一个 sequence 里 d 是固定的(从 {1,...,d_max} 均匀采样一个);不同 sequence 之间 d 不同。</p>
+
+<h3>3.2 序列布局示意</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 200" width="100%" style="max-width:700px">
+    <!-- regular tokens -->
+    <g font-size="13">
+      <rect x="20"  y="60" width="56" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="48" y="88" text-anchor="middle" fill="#1a4f99">x₁</text>
+      <text x="48" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">pos 1</text>
+
+      <rect x="140" y="60" width="56" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="168" y="88" text-anchor="middle" fill="#1a4f99">x₂</text>
+      <text x="168" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">pos 2</text>
+
+      <rect x="260" y="60" width="56" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="288" y="88" text-anchor="middle" fill="#1a4f99">x₃</text>
+      <text x="288" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">pos 3</text>
+
+      <rect x="380" y="60" width="56" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="408" y="88" text-anchor="middle" fill="#1a4f99">x₄</text>
+      <text x="408" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">pos 4</text>
+
+      <rect x="500" y="60" width="56" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="528" y="88" text-anchor="middle" fill="#1a4f99">x₅</text>
+      <text x="528" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">pos 5</text>
+
+      <rect x="620" y="60" width="56" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="648" y="88" text-anchor="middle" fill="#1a4f99">x₆</text>
+      <text x="648" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">pos 6</text>
+    </g>
+
+    <!-- register tokens (d=3 case) -->
+    <g font-size="12">
+      <rect x="80"  y="60" width="56" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="108" y="80" text-anchor="middle" fill="#856404">r₃</text>
+      <text x="108" y="98" text-anchor="middle" font-size="10" fill="#856404">→x₄</text>
+      <text x="108" y="135" text-anchor="middle" font-size="10" fill="#cc4a1b">pos 1+3−1=3</text>
+
+      <rect x="200" y="60" width="56" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="228" y="80" text-anchor="middle" fill="#856404">r₃</text>
+      <text x="228" y="98" text-anchor="middle" font-size="10" fill="#856404">→x₅</text>
+      <text x="228" y="135" text-anchor="middle" font-size="10" fill="#cc4a1b">pos 2+3−1=4</text>
+
+      <rect x="320" y="60" width="56" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="348" y="80" text-anchor="middle" fill="#856404">r₃</text>
+      <text x="348" y="98" text-anchor="middle" font-size="10" fill="#856404">→x₆</text>
+      <text x="348" y="135" text-anchor="middle" font-size="10" fill="#cc4a1b">pos 3+3−1=5</text>
+
+      <rect x="440" y="60" width="56" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="468" y="80" text-anchor="middle" fill="#856404">r₃</text>
+      <text x="468" y="98" text-anchor="middle" font-size="10" fill="#856404">→x₇</text>
+      <text x="468" y="135" text-anchor="middle" font-size="10" fill="#cc4a1b">pos 4+3−1=6</text>
+
+      <rect x="560" y="60" width="56" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="588" y="80" text-anchor="middle" fill="#856404">r₃</text>
+      <text x="588" y="98" text-anchor="middle" font-size="10" fill="#856404">→x₈</text>
+      <text x="588" y="135" text-anchor="middle" font-size="10" fill="#cc4a1b">pos 5+3−1=7</text>
+    </g>
+
+    <!-- legend -->
+    <g font-size="11">
+      <rect x="20" y="160" width="14" height="14" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="40" y="172" fill="#3a3b40">regular token (NTP)</text>
+      <rect x="180" y="160" width="14" height="14" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="200" y="172" fill="#3a3b40">register r_d (predicts x_{t+d})</text>
+      <text x="20" y="20" font-size="13" font-weight="600" fill="#3a3b40">d=3 时, sequence 实际长这样 (interleave 后):</text>
+      <text x="20" y="40" font-size="11" fill="#5b5e66">x₁, r₃, x₂, r₃, x₃, r₃, x₄, r₃, x₅, r₃, x₆ — 共 11 个 token,所有 r₃ 共享 embedding,只是 position id 不同</text>
+    </g>
+  </svg>
+  <figcaption>关键点: 所有 r₃ 共用一个 learnable embedding,但 position id 各不相同 (3, 4, 5, 6, 7)。RoPE 通过这个 position id 让每个 r₃ 的 query 对齐到"假装自己在 t+d−1 位置发起 next-token 查询"的方向 — 完全模仿 NTP。</figcaption>
+</div>
+
+<h3>3.3 训练 loss</h3>
+<div class="formula">L = (1−a) · L_ntp + a · L_reg</div>
+<p>L_ntp 走 regular token 通路,完全不变;L_reg 是 register 位置上的预测 loss:</p>
+<div class="formula">L_reg = ED [ −Σ_t log P_θ(x_{t+d} | x_{≤t}, r_d) ]</div>
+<p>注意 cond 上是 x_{≤t} 而<strong>不是 x_{≤t+d−1}</strong> — 即便 r_d 的 position id 是 t+d−1,attention mask 也强制它只能 attend 到 x_{≤t}。<em>位置在未来,看见的过去仍然停在 t</em>。这是设计的精髓。</p>
+
+<h3>3.4 反向论证: 不这样设计会怎样?</h3>
+<table>
+  <tr><th>偏离设计</th><th>会发生什么</th></tr>
+  <tr><td>regular token 能看见 register</td><td>训练时 x_{t+1} 看到 r_d (它已经在"猜" x_{t+d}),信息泄露 → 推理时 register 不在,分布漂移 → SFT 后性能崩</td></tr>
+  <tr><td>register 之间能互相 attend</td><td>r_d@pos 4 attend 到 r_d@pos 3,后者承载着对 x_5 的预测信息 → 间接看到了未来 token 的猜测,信号被噪声污染</td></tr>
+  <tr><td>register 用 position t (和它前面的 regular token 同位)</td><td>RoPE 给的 query 角度与 NTP 不一致,模型分不清"我现在到底要预测什么距离"</td></tr>
+  <tr><td>每个 d 用独立 embedding</td><td>论文 Table 5 实测: shared 比 different 略好 (42.10 vs 41.85)。因为 position id 已经蕴含 d 信息,再多一组 embedding 反而切碎数据 — 每个 embedding 只看到 1/d_max 比例的样本</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec4">4 · Attention mask:三类 token 的连接矩阵</h2>
+
+<p>这是全文最 load-bearing 的图。用 d=2 的 5-token 输入做例子: 序列 augment 后是 (x₁, r₂, x₂, r₂, x₃, r₂, x₄, r₂, x₅),我们关心一个 9×9 的 mask。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 660 380" width="100%" style="max-width:640px">
+    <!-- title -->
+    <text x="330" y="20" text-anchor="middle" font-size="13" font-weight="600">MuToR Attention Mask (深 = 可 attend, 浅 = 不可)</text>
+
+    <!-- top labels (cols) -->
+    <g font-size="11">
+      <text x="100" y="50" text-anchor="middle" fill="#3a3b40">x₁</text>
+      <text x="130" y="50" text-anchor="middle" fill="#cc4a1b">r₂</text>
+      <text x="160" y="50" text-anchor="middle" fill="#3a3b40">x₂</text>
+      <text x="190" y="50" text-anchor="middle" fill="#cc4a1b">r₂</text>
+      <text x="220" y="50" text-anchor="middle" fill="#3a3b40">x₃</text>
+      <text x="250" y="50" text-anchor="middle" fill="#cc4a1b">r₂</text>
+      <text x="280" y="50" text-anchor="middle" fill="#3a3b40">x₄</text>
+      <text x="310" y="50" text-anchor="middle" fill="#cc4a1b">r₂</text>
+      <text x="340" y="50" text-anchor="middle" fill="#3a3b40">x₅</text>
+    </g>
+
+    <!-- left labels (rows) -->
+    <g font-size="11">
+      <text x="60" y="74" text-anchor="end" fill="#3a3b40">x₁ (q)</text>
+      <text x="60" y="98" text-anchor="end" fill="#cc4a1b">r₂ (q)</text>
+      <text x="60" y="122" text-anchor="end" fill="#3a3b40">x₂ (q)</text>
+      <text x="60" y="146" text-anchor="end" fill="#cc4a1b">r₂ (q)</text>
+      <text x="60" y="170" text-anchor="end" fill="#3a3b40">x₃ (q)</text>
+      <text x="60" y="194" text-anchor="end" fill="#cc4a1b">r₂ (q)</text>
+      <text x="60" y="218" text-anchor="end" fill="#3a3b40">x₄ (q)</text>
+      <text x="60" y="242" text-anchor="end" fill="#cc4a1b">r₂ (q)</text>
+      <text x="60" y="266" text-anchor="end" fill="#3a3b40">x₅ (q)</text>
+    </g>
+
+    <!-- grid cells: x can attend to all preceding x (lower-left triangle on x-cols)
+         x cannot attend to any r-col
+         r can attend to all preceding x; cannot attend to other r -->
+    <g>
+      <!-- helper: cells. col positions: 85..355 step 30. row positions: 60..240 step 24 -->
+      <!-- cols: indices 0..8 -> [85,115,145,175,205,235,265,295,325] -->
+      <!-- rows: indices 0..8 -> [60,84,108,132,156,180,204,228,252]   each 24 high, 30 wide -->
+      <!-- token_type[i]: 0=x, 1=r:  [0,1,0,1,0,1,0,1,0] -->
+      <!-- positions: x₁=1, r=2, x₂=2, r=3, x₃=3, r=4, x₄=4, r=5, x₅=5 -->
+
+      <!-- row 0 (x₁ q at pos 1) attends to x₁ -->
+      <rect x="85" y="60" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="115" y="60" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="60" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="175" y="60" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="60" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="235" y="60" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="60" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="295" y="60" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="60" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+
+      <!-- row 1 (r at pos 2 → predict x₃) attends to x₁ only (preceding x, not r) -->
+      <rect x="85" y="84" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="115" y="84" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="84" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="175" y="84" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="84" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="235" y="84" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="84" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="295" y="84" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="84" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+
+      <!-- row 2 (x₂ q at pos 2) attends to x₁, x₂ -->
+      <rect x="85" y="108" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="115" y="108" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="108" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="175" y="108" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="108" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="235" y="108" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="108" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="295" y="108" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="108" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+
+      <!-- row 3 (r at pos 3 → predict x₄) attends to x₁, x₂ -->
+      <rect x="85" y="132" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="115" y="132" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="132" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="175" y="132" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="132" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="235" y="132" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="132" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="295" y="132" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="132" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+
+      <!-- row 4 (x₃) attends to x₁..x₃ -->
+      <rect x="85" y="156" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="115" y="156" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="156" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="175" y="156" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="156" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="235" y="156" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="156" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="295" y="156" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="156" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+
+      <!-- row 5 (r → predict x₅) attends to x₁..x₃ -->
+      <rect x="85" y="180" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="115" y="180" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="180" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="175" y="180" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="180" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="235" y="180" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="180" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="295" y="180" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="180" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+
+      <!-- row 6 (x₄) attends to x₁..x₄ -->
+      <rect x="85" y="204" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="115" y="204" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="204" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="175" y="204" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="204" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="235" y="204" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="204" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="295" y="204" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="204" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+
+      <!-- row 7 (r → predict x₆) attends to x₁..x₄ -->
+      <rect x="85" y="228" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="115" y="228" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="228" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="175" y="228" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="228" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="235" y="228" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="228" width="30" height="24" fill="#cc4a1b" stroke="#fff"/>
+      <rect x="295" y="228" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="228" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+
+      <!-- row 8 (x₅) attends to x₁..x₅ -->
+      <rect x="85" y="252" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="115" y="252" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="145" y="252" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="175" y="252" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="205" y="252" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="235" y="252" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="265" y="252" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+      <rect x="295" y="252" width="30" height="24" fill="#f3eee0" stroke="#fff"/>
+      <rect x="325" y="252" width="30" height="24" fill="#1f6feb" stroke="#fff"/>
+    </g>
+
+    <!-- legend -->
+    <g font-size="11">
+      <rect x="400" y="60" width="20" height="14" fill="#1f6feb"/>
+      <text x="425" y="72" fill="#3a3b40">x → x (NTP 通路, 标准 causal)</text>
+      <rect x="400" y="84" width="20" height="14" fill="#cc4a1b"/>
+      <text x="425" y="96" fill="#3a3b40">r → x (register 看过去 regular)</text>
+      <rect x="400" y="108" width="20" height="14" fill="#f3eee0" stroke="#888"/>
+      <text x="425" y="120" fill="#3a3b40">禁止</text>
+    </g>
+
+    <g font-size="11.5" fill="#3a3b40">
+      <text x="400" y="155" font-weight="600">三条铁律:</text>
+      <text x="400" y="175">① x 行的 r 列 = 全空</text>
+      <text x="400" y="193">  → 推理时拔掉 register, x 行为不变</text>
+      <text x="400" y="218">② r 行的 r 列 = 全空</text>
+      <text x="400" y="236">  → register 互不可见</text>
+      <text x="400" y="261">③ r 行的 x 列 = 严格因果到 t</text>
+      <text x="400" y="279">  → r_d (插在 x_t 后) 看 x_{≤t}, 不看 x_{t+1..t+d-1}</text>
+    </g>
+
+    <text x="330" y="320" text-anchor="middle" font-size="11.5" fill="#5b5e66" font-style="italic">蓝色子矩阵恰好是原始 NTP 的 5×5 下三角 mask — 拔掉 r 行 r 列后字面相等</text>
+    <text x="330" y="345" text-anchor="middle" font-size="12" fill="#cc4a1b" font-weight="600">这就是 "inference time identical to NTP" 的来源</text>
+  </svg>
+  <figcaption>整个矩阵可以拆成两个独立信道: 蓝色子矩阵(x↔x)是<em>未触动的</em> NTP 计算图;红色子矩阵(r→x)是辅助信号通路。两者通过 attention 在<em>同一次 forward</em>里并行算完,但梯度永远只能从 r 单向流向 x — 这是设计的核心几何结构。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · Position embedding 的精巧设计</h2>
+
+<p>这一节是论文最微妙的地方。RoPE 通过 (q_pos − k_pos) 的相对位置算 attention,所以 query 和 key 的 position id 共同决定了"我在以什么角度看历史"。</p>
+
+<h3>5.1 设计选择</h3>
+<table>
+  <tr><th>Token</th><th>Position id</th><th>解释</th></tr>
+  <tr><td>x_t (regular)</td><td><strong>t</strong></td><td>原序列里它本来的位置,完全不动</td></tr>
+  <tr><td>r_d 插在 x_t 后,要预测 x_{t+d}</td><td><strong>t + d − 1</strong></td><td>"如果按 NTP 规则,谁会预测 x_{t+d}?" 答: x_{t+d−1}。让 r_d 站在那个位置上,query 角度就和 NTP 一致</td></tr>
+</table>
+
+<h3>5.2 物理直觉:让 r_d 假装自己是"那个未来位置"</h3>
+
+<p>NTP 时,x_{t+d−1} 的 hidden 通过 query Q(pos = t+d−1) 与 keys K(pos = 1..t+d−1) 做 attention,然后预测 x_{t+d}。MuToR 时 r_d 也想预测 x_{t+d},于是论文让它<em>在 RoPE 视角下与 x_{t+d−1} 长得像</em>: 同一个 query position id。但 attention mask 限制了 key 视野只到 x_t — <strong>位置在未来,看到的过去更短</strong>。</p>
+
+<p>这听起来像作弊,但其实就是教模型: "假如我现在站在 t+d−1 这个未来位置,但只能看到 t 之前的信息,我能猜出 t+d 是什么吗?" 这正是希望模型学会的"前瞻 planning"能力。</p>
+
+<h3>5.3 worked numerics</h3>
+<p>设 hidden_dim=4096,RoPE 的 base θ=10000,某个 head 的频率 ω_k = θ^(−2k/d_head)。</p>
+<ul>
+  <li>普通 NTP: 给定 x₃ (pos=3) 预测 x₄,query 旋转角 = 3·ω_k</li>
+  <li>MuToR d=2: r₂ 插在 x₂ 后预测 x₄,position 设 2+2−1 = 3,query 旋转角 = 3·ω_k <strong>完全一致</strong></li>
+  <li>但 r₂ 看到的 keys 是 x₁ (旋转 1·ω_k)、x₂ (旋转 2·ω_k) — 比 NTP 少了 x₃</li>
+</ul>
+<p>所以 RoPE 几何上 r₂ 是"缺一只眼睛的 x₃"。模型必须学会用更短的历史做更远的预测,这恰好是 MTP 想要的"planning 信号"。</p>
+
+<h3>5.4 反向论证: position 设成 t (跟 x_t 同位)会怎样?</h3>
+<p>那 r_d 的 query 角度 = t·ω_k,与 NTP 里 x_t 的 query 一致 — 但 x_t 是预测 x_{t+1} 的!模型现在面对一个矛盾输入: "query 角度让我预测 x_{t+1},但 loss 让我预测 x_{t+d}",梯度方向冲突,训练不收敛。论文 Table 5 暗示了这一点 — 共享 embedding + 区别 position 是必须的组合。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Worked example:三个 register 串起一帧</h2>
+
+<p>这是把 §3-§5 全部组合起来的具象案例。考虑一句中文 SFT 数据 "<em>一加一等于二</em>",分词后 x = (一, 加, 一, 等, 于, 二),T=6。SFT 时设 d_max=4,每个 sequence 采样 d∈{1,2,3,4}。本帧采到 d=3。</p>
+
+<h3>6.1 augment 后的输入</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+    <!-- header -->
+    <text x="360" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">d=3 case: 在每个 x_t (t≤T−d) 后插一个 r₃,目标 x_{t+3}</text>
+
+    <!-- regular -->
+    <g font-size="13">
+      <rect x="20"  y="50" width="60" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="50" y="78" text-anchor="middle">一</text>
+      <text x="50" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">pos=1</text>
+      <text x="50" y="124" text-anchor="middle" font-size="10" fill="#2f6feb">→ 加</text>
+
+      <rect x="160" y="50" width="60" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="190" y="78" text-anchor="middle">加</text>
+      <text x="190" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">pos=2</text>
+      <text x="190" y="124" text-anchor="middle" font-size="10" fill="#2f6feb">→ 一</text>
+
+      <rect x="300" y="50" width="60" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="330" y="78" text-anchor="middle">一</text>
+      <text x="330" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">pos=3</text>
+      <text x="330" y="124" text-anchor="middle" font-size="10" fill="#2f6feb">→ 等</text>
+
+      <rect x="440" y="50" width="60" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="470" y="78" text-anchor="middle">等</text>
+      <text x="470" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">pos=4</text>
+      <text x="470" y="124" text-anchor="middle" font-size="10" fill="#2f6feb">→ 于</text>
+
+      <rect x="560" y="50" width="60" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="590" y="78" text-anchor="middle">于</text>
+      <text x="590" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">pos=5</text>
+
+      <rect x="640" y="50" width="60" height="44" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="670" y="78" text-anchor="middle">二</text>
+      <text x="670" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">pos=6</text>
+    </g>
+
+    <!-- registers -->
+    <g font-size="12">
+      <rect x="90"  y="50" width="60" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="120" y="72" text-anchor="middle" fill="#856404">r₃</text>
+      <text x="120" y="88" text-anchor="middle" font-size="10" fill="#856404">pos=3</text>
+      <text x="120" y="124" text-anchor="middle" font-size="10" fill="#cc4a1b">→ 等 (t+3=4)</text>
+
+      <rect x="230" y="50" width="60" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="260" y="72" text-anchor="middle" fill="#856404">r₃</text>
+      <text x="260" y="88" text-anchor="middle" font-size="10" fill="#856404">pos=4</text>
+      <text x="260" y="124" text-anchor="middle" font-size="10" fill="#cc4a1b">→ 于 (t+3=5)</text>
+
+      <rect x="370" y="50" width="60" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="400" y="72" text-anchor="middle" fill="#856404">r₃</text>
+      <text x="400" y="88" text-anchor="middle" font-size="10" fill="#856404">pos=5</text>
+      <text x="400" y="124" text-anchor="middle" font-size="10" fill="#cc4a1b">→ 二 (t+3=6)</text>
+    </g>
+
+    <!-- loss labels -->
+    <g font-size="11" fill="#3a3b40">
+      <text x="360" y="170" text-anchor="middle" font-weight="600">这一帧产生的总 loss:</text>
+      <text x="360" y="195" text-anchor="middle">L_ntp = −[log p(加|一) + log p(一|一加) + log p(等|一加一) + log p(于|一加一等) + log p(二|一加一等于)]</text>
+      <text x="360" y="216" text-anchor="middle" fill="#cc4a1b">L_reg = −[log p(等 | 一, r₃@pos3) + log p(于 | 一加, r₃@pos4) + log p(二 | 一加一, r₃@pos5)]</text>
+    </g>
+  </svg>
+  <figcaption>注意: r₃@pos3 通过 attention mask 只看见 "一",但 RoPE 让它的 query 角度 = 标准 NTP 中 pos=3 的 query 角度;它要从极少的 context 跳过两个 token 直接预测"等"。这是相当难的任务 — 但梯度反传会逼 base trunk 把 hidden(一) 编码得比 NTP 时更"信息密集",迫使表征前瞻。这就是 MTP 信号的本质。</figcaption>
+</div>
+
+<h3>6.2 一个 register 的信息流</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- input embeddings layer -->
+    <text x="20" y="30" font-size="12" font-weight="600" fill="#3a3b40">Layer L (输出层)</text>
+    <text x="20" y="160" font-size="12" font-weight="600" fill="#3a3b40">Layer 0 (embedding)</text>
+
+    <!-- embedding row -->
+    <g font-size="11">
+      <rect x="60"  y="160" width="50" height="34" rx="5" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="85" y="180" text-anchor="middle">e(一)</text>
+
+      <rect x="120" y="160" width="50" height="34" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="145" y="180" text-anchor="middle">e_reg</text>
+
+      <rect x="180" y="160" width="50" height="34" rx="5" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="205" y="180" text-anchor="middle">e(加)</text>
+
+      <rect x="240" y="160" width="50" height="34" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="265" y="180" text-anchor="middle">e_reg</text>
+
+      <rect x="300" y="160" width="50" height="34" rx="5" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="325" y="180" text-anchor="middle">e(一)</text>
+
+      <rect x="360" y="160" width="50" height="34" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="385" y="180" text-anchor="middle">e_reg</text>
+
+      <text x="60" y="220" font-size="10" fill="#5b5e66">pos=1</text>
+      <text x="120" y="220" font-size="10" fill="#cc4a1b">pos=3</text>
+      <text x="180" y="220" font-size="10" fill="#5b5e66">pos=2</text>
+      <text x="240" y="220" font-size="10" fill="#cc4a1b">pos=4</text>
+      <text x="300" y="220" font-size="10" fill="#5b5e66">pos=3</text>
+      <text x="360" y="220" font-size="10" fill="#cc4a1b">pos=5</text>
+    </g>
+
+    <!-- attention focus on r₃@pos5: it sees x_{≤t=3} = (一, 加, 一) -->
+    <g>
+      <!-- highlighted: query is r₃@pos5 (x=385, y=160) -->
+      <circle cx="385" cy="160" r="22" fill="none" stroke="#cc4a1b" stroke-width="2.5"/>
+      <text x="385" y="148" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">query</text>
+
+      <!-- attention edges to allowed keys: pos1, pos2, pos3 (the three regular tokens) -->
+      <path d="M 385 160 Q 280 110 85 160" stroke="#cc4a1b" stroke-width="1.5" fill="none" opacity="0.7" marker-end="url(#arrM)"/>
+      <path d="M 385 160 Q 290 95 205 160" stroke="#cc4a1b" stroke-width="1.5" fill="none" opacity="0.7" marker-end="url(#arrM)"/>
+      <path d="M 385 160 Q 360 105 325 160" stroke="#cc4a1b" stroke-width="1.5" fill="none" opacity="0.7" marker-end="url(#arrM)"/>
+
+      <!-- forbidden edges (faded with X): registers, future tokens (none in this seq for pos>5 here) -->
+      <line x1="385" y1="160" x2="145" y2="160" stroke="#a8353e" stroke-width="1" stroke-dasharray="3,2" opacity="0.4"/>
+      <line x1="385" y1="160" x2="265" y2="160" stroke="#a8353e" stroke-width="1" stroke-dasharray="3,2" opacity="0.4"/>
+      <text x="265" y="148" font-size="10" fill="#a8353e">×</text>
+      <text x="145" y="148" font-size="10" fill="#a8353e">×</text>
+    </g>
+
+    <!-- output -->
+    <g>
+      <rect x="360" y="40" width="60" height="40" rx="6" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+      <text x="390" y="65" text-anchor="middle" font-size="12" fill="#cc4a1b" font-weight="600">h_r</text>
+      <line x1="385" y1="138" x2="385" y2="82" stroke="#888" stroke-width="1.5" marker-end="url(#arrM)"/>
+
+      <!-- shared LM head -->
+      <rect x="360" y="0" width="100" height="22" rx="4" fill="#fff7e0" stroke="#d2a32a"/>
+      <text x="410" y="15" text-anchor="middle" font-size="11" fill="#856404">shared LM head</text>
+      <line x1="395" y1="40" x2="410" y2="22" stroke="#888" stroke-width="1.5" marker-end="url(#arrM)"/>
+
+      <!-- predicted target -->
+      <rect x="500" y="0" width="100" height="22" rx="4" fill="#cc4a1b"/>
+      <text x="550" y="15" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">target = "二"</text>
+      <line x1="460" y1="11" x2="500" y2="11" stroke="#888" stroke-width="1.5" marker-end="url(#arrM)"/>
+    </g>
+
+    <text x="360" y="260" text-anchor="middle" font-size="11.5" fill="#5b5e66" font-style="italic">
+      r₃@pos5 想预测 "二": query 角度 = 5·ω, 但只能 attend 到 (一@1, 加@2, 一@3) 三个 key. 难!但梯度反传逼迫 base 让前 3 个 token 的 hidden 蕴含"5 步后是结尾"的语义.
+    </text>
+
+    <defs>
+      <marker id="arrM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#888"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>追踪一个 register 的信息流。注意 LM head 是<em>共享的</em>(NTP 和 register 共用同一个 vocab projection),所以 register 不引入额外的 output head 参数 — 这是为什么"only 2K extra params"成立的关键。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · 2D 扩展(图像生成)</h2>
+
+<p>论文展示了 MuToR 不止于语言:LlamaGen-B (111M) 在 ImageNet 256×256 上,把 d 推广到 2D。这是<strong>对 Gloeckle n-head 范式的暴击</strong>: Gloeckle 要预测 (d_h, d_w) 范围内的所有未来 token,需要 d_max_2D² − 1 个独立 head。MuToR 一个 register embedding 通吃。</p>
+
+<h3>7.1 2D offset 采样</h3>
+<div class="formula">(d_h, d_w) ~ Uniform({1,...,d_max_2D}² \ {(1,1)}),  d = (d_h − 1)·w + d_w − 1</div>
+<p>w 是图像宽度(token grid 的宽)。每个 register 预测一个 2D 邻域中的 token,d_max_2D=4 时有 15 个候选 target。</p>
+
+<h3>7.2 数据点:dmax_2D 比 1D 强很多</h3>
+<table>
+  <tr><th>方法 (200K iters)</th><th>FID ↓</th><th>IS ↑</th></tr>
+  <tr><td>Next-Token baseline</td><td>6.83</td><td>158.4</td></tr>
+  <tr><td>MuToR-1D (d=4)</td><td>6.43</td><td>163.0</td></tr>
+  <tr><td><strong>MuToR-2D (d_max_2D=4, 15 targets)</strong></td><td><strong>5.65</strong></td><td><strong>183.5</strong></td></tr>
+</table>
+
+<p><strong>关键观察:</strong>"MuToR-2D 100K iter" 已经超越 "Next-Token 200K iter" — 即等计算下加速收敛 2×。这是 SFT 之外另一个稳定胜利的证据。同时 sparse register (256 → 80,只增 30% 序列长度)几乎不掉点 — 提示 register 摆放有"<em>潜在的 budget-vs-quality 自由度</em>",论文留为 future work。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 SFT 数学推理 (核心战场)</h3>
+<table>
+  <tr><th>Model</th><th>Method</th><th>GSM8K (1M-GSM)</th><th>MATH500 (1M-MATH)</th></tr>
+  <tr><td rowspan="3">Gemma 2B</td><td>Next-Token</td><td>66.09</td><td>26.73</td></tr>
+  <tr><td>Multi-Token (Gloeckle)</td><td>66.69 (+0.6)</td><td>26.87 (+0.1)</td></tr>
+  <tr><td><strong>MuToR</strong></td><td><strong>68.33 (+2.2)</strong></td><td><strong>28.13 (+1.4)</strong></td></tr>
+  <tr><td rowspan="3">Llama3 8B</td><td>Next-Token</td><td>85.74</td><td>41.4</td></tr>
+  <tr><td>Multi-Token</td><td>85.67 (−0.1)</td><td>42.6 (+1.2)</td></tr>
+  <tr><td><strong>MuToR</strong></td><td><strong>87.03 (+1.3)</strong></td><td><strong>43.2 (+1.8)</strong></td></tr>
+</table>
+
+<p><strong>读法:</strong>Gloeckle 在 8B + GSM8K 上甚至倒挂 next-token,MuToR 全表正向。注意 Llama3-8B GSM8K 已经 85+,在这个高位再吃 1.3 pt 是<em>不容易的</em>。</p>
+
+<h3>8.2 增加 d_max,Gloeckle 越涨越拖后腿</h3>
+<table>
+  <tr><th>d_max</th><th>Gloeckle 新参数</th><th>Gloeckle GSM8K (1M-GSM)</th><th>MuToR 新参数</th><th>MuToR GSM8K (1M-GSM)</th></tr>
+  <tr><td>2</td><td>110M</td><td>66.69</td><td>2K</td><td>67.15</td></tr>
+  <tr><td>3</td><td>220M</td><td>66.36</td><td>2K</td><td>68.01</td></tr>
+  <tr><td>4</td><td>330M</td><td>65.53</td><td>2K</td><td><strong>68.33</strong></td></tr>
+  <tr><td>6</td><td>550M</td><td>65.55</td><td>2K</td><td>68.16</td></tr>
+</table>
+
+<p>Gloeckle 在 d_max=4/6 时连 next-token (66.09) 都打不过 — 加的 head 学不动。MuToR 一直稳稳挂在 +2pt。</p>
+
+<h3>8.3 LoRA + MuToR (PEFT 兼容)</h3>
+<table>
+  <tr><th>方法</th><th>GSM8K</th><th>1M-GSM</th></tr>
+  <tr><td>Full Next-Token</td><td>38.87</td><td>66.09</td></tr>
+  <tr><td>LoRA Next-Token</td><td>36.34</td><td>66.11</td></tr>
+  <tr><td><strong>LoRA + MuToR</strong></td><td><strong>38.59</strong> (≈ full)</td><td><strong>68.11</strong> (&gt; full)</td></tr>
+</table>
+<p>PEFT 上 MuToR 让 LoRA 追平甚至反超 full-finetune。Gloeckle 的"加一整层 transformer"在 LoRA 下根本没法用 — head 是 frozen base 之外新加的,要从 0 学。</p>
+
+<h3>8.4 Star-Graph 路径任务</h3>
+<p>Bachmann &amp; Nagarajan 2024 的合成任务,标准 teacher forcing 由于 shortcut learning <em>完全失败</em> (solve rate ≈ 0%)。MuToR 直接 solve,提供了 MTP 信号能"破除 shortcut"的最 clean 证据。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>核心机制</th><th>额外参数</th><th>Inference 影响</th><th>SFT 友好?</th></tr>
+  <tr><td><strong>Gloeckle 2024 (MTP heads)</strong></td><td>n 个并行 transformer head</td><td>n × layer (~110M each)</td><td>不变 (扔掉 heads)</td><td><span class="no">弱 (head 从 0 学,数据少不动)</span></td></tr>
+  <tr><td>DeepSeek-V3 sequential heads</td><td>n 个 head 串成短链</td><td>n × layer</td><td>不变</td><td><span class="no">同上</span></td></tr>
+  <tr><td>L-MTP (leap MTP, 2024)</td><td>跳跃式 MTP,head 预测 t+k 而非连续</td><td>n × layer</td><td>不变</td><td><span class="no">同上</span></td></tr>
+  <tr><td>FSP (future supervised prediction)</td><td>用 future hidden 做 contrastive 监督</td><td>contrastive head</td><td>不变</td><td>中等</td></tr>
+  <tr><td>ProphetNet (2020)</td><td>Multi-stream attention</td><td>O(n) 计算</td><td>不变</td><td><span class="no">scale 差</span></td></tr>
+  <tr><td>Pause/Think tokens (Goyal 2024)</td><td>append dummy → 增加推理 compute</td><td>≈0</td><td><span class="no">改变 inference</span></td><td>中等</td></tr>
+  <tr><td>PASS (Monea 2023)</td><td>append lookahead, frozen base, 训自己</td><td>≈0</td><td><span class="no">改 spec sampling</span></td><td>不适用</td></tr>
+  <tr><td>ViT registers (Darcet 2024)</td><td>prepend register,消除 attention artifact</td><td>k × hidden</td><td>不变 (扔掉)</td><td>不同领域,但智识来源</td></tr>
+  <tr><td><strong>MuToR (本文)</strong></td><td>interleave register,<em>共享</em> embedding,position id 编码 d</td><td><strong>2K (一个 embedding)</strong></td><td>完全不变</td><td><span class="ok">优秀</span></td></tr>
+</table>
+
+<div class="nb">
+  <strong>关键差别:</strong>MuToR 与 ViT registers 的形态最像(都是"插额外 token + attention mask 隔离"),但语义不同 — ViT register 是"聚合工具"(让背景信息有处可去),MuToR register 是"前瞻容器"(把未来监督信号作为辅助 loss 灌进去)。两者共享的<em>抽象</em>是: 给 transformer 提供一类 attention 槽位,既参与计算又不污染主流输出。这就是为什么作者借用了"register"这个词。
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>Register 的位置是<em>均匀插</em>或<em>随机插</em>,没有 task-aware 的 placement 策略 — 留给 future work</li>
+  <li>同一个 sequence 里 d 是固定的(单个 d),没有混合 d 的尝试 — 简化处理</li>
+  <li>Pretraining 上只在图像上验证,语言 pretraining 的对比实验缺席(只做了 SFT)</li>
+  <li>Inference 完全不用 register — 没有像 EAGLE/Medusa 那样把 register 复用到 spec decoding 的尝试</li>
+</ul>
+
+<h3>个人 take</h3>
+<ul>
+  <li><strong>这是"register 抽象"在 LM 训练侧第一次落地。</strong>更深远的意义可能是: 任何"我想要给模型加辅助监督但不想动 inference"的 case,register 都是合适的载体。比如 process reward 的过程监督、retrieval 信号、structure prediction……</li>
+  <li><strong>论文的对比偏弱:</strong>没有跟 DeepSeek-V3 sequential head 在 SFT 上对比(因为 V3 是 MoE 难复现,但应该提)。</li>
+  <li><strong>2D 扩展非常 underrated。</strong>视觉 AR 模型 (LlamaGen, MAR) 几乎没人用 MTP — Gloeckle 在 2D 上扩展需要 d² 个 head,prohibitive。MuToR 给了一个简单可行的入口。</li>
+  <li>与 Gloeckle 在 pretraining 上的优势会不会消失? 值得跑一次 1B 级别的 from-scratch 对比。</li>
+</ul>
+
+<h3>待验证问题</h3>
+<ol>
+  <li>序列长度倍增 (d=4 时输入变 ~2×) → FlashAttention / memory footprint 翻倍。在 32k+ long-CoT SFT 上是否仍可行?</li>
+  <li>register 之间互不可见的设计是否过严? 如果允许 r 看更早的 r (类似 MoE 的 expert 间通信),信号会不会更丰富?</li>
+  <li>position id = t+d−1 的设定在<em>extrapolation</em>(序列长度超出训练)上行为如何? RoPE 已知有外推问题,加 register 会不会进一步打破?</li>
+  <li>能否把 register loss 改成 distillation (从 teacher 模型蒸馏未来 token 分布) → 类似 EAGLE-3 的训练目标但作为辅助而非主任务?</li>
+  <li>Loss weight a 在不同 d_max 下的最优值规律是什么? 论文 Table 9 显示 a∈[0.1, 0.5] 跳变,没有 trend 解释。</li>
+  <li>训练时 d 的<em>分布</em>(目前 uniform)能否换成 task-aware (e.g. 数学推理偏长 d, 短文本偏短 d)? 论文没探。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> Register = 不污染 inference 的辅助 loss 容器,把 ViT registers 的抽象搬到 LM 训练侧<br>
+  <span class="pill">机制</span> interleave learnable token,共享 embedding (2K 参数),靠 position id = t+d−1 区分目标 offset<br>
+  <span class="pill">三铁律</span> x 不见 r;r 不见 r;r 看 x_{≤t} (强因果到 t 而非 t+d−1)<br>
+  <span class="pill">对比</span> Gloeckle 加 110M+ 参数 SFT 学不动;MuToR 加 2K 稳定胜<br>
+  <span class="pill">扩展</span> 2D 版本一个 embedding 通吃 d² 个邻域 target,prior 方法需 d² 个 head<br>
+  <span class="pill">陷阱</span> position id 设错 (用 t 而非 t+d−1) 会让 query 角度与 NTP 矛盾,训练发散<br>
+  <span class="pill">见也</span> see 14_MTP_Gloeckle_2404.19737 (foundational MTP); ViT registers (Darcet 2024) 智识来源
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF 在 <code>/data/szhang967/papers/paper-notes/models/MuToR_2505.10518.pdf</code>
+</p>
+
+</main>
+
+</body>
+</html>

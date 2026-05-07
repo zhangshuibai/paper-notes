@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · FastMTP (2509.18362)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>FastMTP: Accelerating LLM Inference with Enhanced Multi-Token Prediction</h1>
+<div class="meta">
+  Tencent BAC · Yuxuan Cai et al. · 2025-09-16 · arXiv:2509.18362<br>
+  关键词: speculative decoding · MTP · self-distillation · shared-weight head · vocabulary compression · EAGLE-style verify<br>
+  代码: <code>github.com/Tencent-BAC/FastMTP</code> · 模型: <code>huggingface.co/TencentBAC/FastMTP</code>
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> 把 DeepSeek-V3 那种"多个独立 MTP 模块"换成<em>单个 position-shared 权重的 MTP head</em>,在 self-distilled 数据上 fine-tune,让它学会被<em>递归复用</em> K 次都还能保持高 acceptance,再叠一层语言相关的 dynamic vocabulary compression。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">2.03×</div><div class="l">vs NTP baseline (lossless)</div></div>
+    <div class="stat"><div class="n">+82%</div><div class="l">vs vanilla MTP (1.21×→2.03×)</div></div>
+    <div class="stat"><div class="n">2%→36%</div><div class="l">第三 token acceptance</div></div>
+  </div>
+  <p><strong>立场:</strong> 很多 frontier 模型(DeepSeek-V3 / GLM-4.5 / MiMo)训练时已经送了 MTP 模块,但部署时只敢用第一个或干脆扔掉。FastMTP 是把这个"已付费但没用的赠品"<em>真正变现</em>的工程方案——只 fine-tune 一个 head,< 1 天 H20 训练,直接喂进 SGLang。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 vanilla MTP 在 inference 上是被遗弃的</a></li>
+    <li><a href="#sec2">背景速查 (术语 / EAGLE-style verify / FR-Spec)</a></li>
+    <li><a href="#sec3">方法 ① — Position-shared 单 head 架构</a></li>
+    <li><a href="#sec4">方法 ② — Self-distilled 训练数据</a></li>
+    <li><a href="#sec5">方法 ③ — Language-aware dynamic vocab compression</a></li>
+    <li><a href="#sec6">公式 — 加权 cross-entropy 损失</a></li>
+    <li><a href="#sec7">Worked example — 一个数学题片段在 K=3 上的轨迹</a></li>
+    <li><a href="#sec8">实验关键结果</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:已经训好的 MTP 为什么没人在 inference 时用?</h2>
+
+<h3>1.1 历史脉络:MTP 的两个时代</h3>
+<p>Multi-Token Prediction 由 Gloeckle et al. 2024 提出(<a href="14_MTP_Gloeckle_2404.19737.html">见 14_MTP_Gloeckle</a> 的精读),最初是把它当成一种<strong>训练辅助任务</strong>:在主头之外挂 n 个独立的 head,各自负责预测 t+1, t+2, ..., t+n。其论点是 <em>"提供更密集的监督信号 + 鼓励 planning ahead"</em>,主要好处兑现在<strong>训练时</strong>——下游任务质量轻微提升、收敛更快。</p>
+
+<p>到 DeepSeek-V3 把它进一步演化成<strong>串行 MTP</strong> (sequential MTP):n 个 module 之间有 cross attention 形成因果链,每个都吃前一个 module 的 hidden state,而不是 Gloeckle 的并行独立设计。这一改保住了 autoregressive 性质,看起来"<em>顺手就能拿来做 speculative decoding 的 draft</em>"。</p>
+
+<p>但实际部署中,几乎所有开放权重的 MTP 模型(DeepSeek-V3、GLM-4.5、MiMo)都做出了同一选择:</p>
+<ul>
+  <li>开源时只放<strong>一个</strong> MTP module(明明训了多个)</li>
+  <li>SGLang / vLLM 等 serving 框架的 MTP 路径只支持 K=1</li>
+  <li>K≥2 时性能反而崩</li>
+</ul>
+
+<p>这就是 FastMTP 看到的"商机":<strong>这些已被付费训练的 MTP 模块,本来应该能加速 inference,但实际拿来一用就崩,作者要回答崩在哪、怎么修。</strong></p>
+
+<h3>1.2 别的方案为什么都"够呛"</h3>
+
+<table>
+  <tr><th>方案</th><th>怎么用 MTP 做 draft</th><th>问题</th></tr>
+  <tr><td>多 MTP module 串接 (DeepSeek-V3 原意)</td><td>K=3 就加载 3 个独立模块,各自带 KV cache</td><td><span class="no">显存 × K · 每模块独立 weight + KV · 调度复杂 · serving 框架几乎不支持</span></td></tr>
+  <tr><td>只用一个 MTP module 验 1 个 token (现状)</td><td>K=1 跑一次额外 token</td><td><span class="no">α ≈ 1.7,加速天花板 ~1.3×;浪费 MTP 多步预测潜力</span></td></tr>
+  <tr><td>递归复用同一个 MTP module 跑 K 步 (naive)</td><td>把第 1 步预测的 hidden state 作为第 2 步输入</td><td><span class="no">这个 module 训练时只见过"输入 = target hidden state"——第 2 步起 acceptance 从 70% 崩到 11%、第 3 步崩到 2%</span></td></tr>
+  <tr><td>训一个独立 EAGLE-3 draft head</td><td>额外蒸馏出小 transformer + projection</td><td><span class="no">需要从零训一个 head,放弃了已训好的 MTP module</span></td></tr>
+  <tr><td><strong>FastMTP (本文)</strong></td><td>fine-tune 单个 shared-weight MTP head + self-distill</td><td><span class="ok">单 head 内存常数; serving 等价 EAGLE-3 已支持; 复用 MTP 架构</span></td></tr>
+</table>
+
+<div class="nb">
+  <strong>关键观察:</strong> 论文标题是 "Enhanced MTP" 而不是 "Replace MTP" — 它不是发明新的 draft 架构,而是<em>修复</em> vanilla MTP 在 K>1 时的 train-inference mismatch。论文反复强调 "<em>aligning MTP training with its inference pattern</em>"。
+</div>
+
+<h3>1.3 为什么这事不平凡 — train-inference mismatch 的根源</h3>
+
+<p>把 vanilla MTP 拿来递归用 K 次,本质上是 <strong>exposure bias 的极端版本</strong>。考虑训练时第 k 个 module 看见什么:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <!-- Training time -->
+    <rect x="20" y="15" width="320" height="190" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-dasharray="4,2"/>
+    <text x="180" y="36" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">训练时 (vanilla MTP)</text>
+
+    <rect x="40" y="55" width="80" height="32" rx="5" fill="#fff" stroke="#888"/>
+    <text x="80" y="76" text-anchor="middle" font-size="11">main F</text>
+    <text x="80" y="100" text-anchor="middle" font-size="10" fill="#5b5e66">→ h_i (gold)</text>
+
+    <rect x="160" y="55" width="80" height="32" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="200" y="76" text-anchor="middle" font-size="11">M (k=1)</text>
+    <text x="200" y="100" text-anchor="middle" font-size="10" fill="#5b5e66">输入: h_i (gold)</text>
+
+    <rect x="160" y="120" width="80" height="32" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="200" y="141" text-anchor="middle" font-size="11">M (k=2)</text>
+    <text x="200" y="167" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="600">teacher forcing</text>
+    <text x="200" y="180" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="600">输入还是 gold!</text>
+
+    <line x1="120" y1="71" x2="155" y2="71" stroke="#666" marker-end="url(#arrA)"/>
+    <line x1="120" y1="71" x2="120" y2="135" stroke="#666"/>
+    <line x1="120" y1="135" x2="155" y2="135" stroke="#666" marker-end="url(#arrA)"/>
+
+    <!-- Inference time -->
+    <rect x="360" y="15" width="320" height="190" rx="10" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="520" y="36" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">推理时 (递归复用)</text>
+
+    <rect x="380" y="55" width="80" height="32" rx="5" fill="#fff" stroke="#888"/>
+    <text x="420" y="76" text-anchor="middle" font-size="11">main F</text>
+    <text x="420" y="100" text-anchor="middle" font-size="10" fill="#5b5e66">→ h_i (gold)</text>
+
+    <rect x="500" y="55" width="80" height="32" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="540" y="76" text-anchor="middle" font-size="11">M (k=1)</text>
+    <text x="540" y="100" text-anchor="middle" font-size="10" fill="#5b5e66">输入: h_i ✓</text>
+
+    <rect x="500" y="120" width="80" height="32" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="540" y="141" text-anchor="middle" font-size="11">M (k=2)</text>
+    <text x="540" y="167" text-anchor="middle" font-size="10" fill="#a8353e" font-weight="600">输入: ĥ (M 自己的)</text>
+    <text x="540" y="180" text-anchor="middle" font-size="10" fill="#a8353e" font-weight="600">从未见过的分布!</text>
+
+    <line x1="460" y1="71" x2="495" y2="71" stroke="#666" marker-end="url(#arrA)"/>
+    <line x1="460" y1="71" x2="460" y2="135" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <line x1="460" y1="135" x2="495" y2="135" stroke="#a8353e" marker-end="url(#arrR)"/>
+    <text x="430" y="120" font-size="9" fill="#a8353e">ĥ_{i+1}</text>
+
+    <defs>
+      <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+      <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#a8353e"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Vanilla MTP 的 train-inference mismatch:训练每一步用的都是 main model F 输出的 <strong>gold</strong> hidden state(teacher forcing),但推理 K=2 起没法再调用 F(否则就破坏了 spec decoding 的并行性),只能拿 MTP 自己第 1 步生出的 hidden state 喂进去。这是一个完全 OOD 的输入分布,所以崩。</figcaption>
+</div>
+
+<p>那 train 时为什么不直接做 scheduled sampling / use ĥ_{k-1}?——因为 vanilla MTP 的设计目标是<strong>训练辅助</strong>,不是为 inference 优化的。每个 module 各管各的位置,就像 Gloeckle 的"n 头并行各预测一个 future token"——根本没想过递归。</p>
+
+<p>FastMTP 的本质修补就两点:</p>
+<ol>
+  <li><strong>架构层:</strong>把 K 个独立 module 改成<em>同一个</em> head 在 K 个位置上反复用 → 强迫它在权重里融合"对不同 lookahead 距离都 robust"的能力</li>
+  <li><strong>训练层:</strong>显式让训练时的输入分布 = 推理时的递归输入分布,不再单纯 teacher-force</li>
+</ol>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">MTP head / module</span></td><td>挂在主模型上、预测未来若干 token 的小型子网络;DeepSeek-V3 风格通常是 1 层 transformer + projection</td></tr>
+  <tr><td><span class="term">Vanilla MTP</span></td><td>预训练时按 DeepSeek-V3 方式训出来的、未做 inference-pattern fine-tune 的 MTP checkpoint</td></tr>
+  <tr><td><span class="term">Position-shared weights</span></td><td>K 个 draft 步骤共用<em>同一份</em> MTP head 权重;对比 Gloeckle 的 n 独立 head 和 V3 的 cascaded n module</td></tr>
+  <tr><td><span class="term">Self-distilled data</span></td><td>用 main model 自己生成的 (prompt, response) 当训练样本,而不是用原数据集中的人写 / 别的模型 response</td></tr>
+  <tr><td><span class="term">EAGLE-style verify</span></td><td>主模型对 K 个 draft token 一次并行 forward,从左到右接受到第一个不匹配位置;数学上 lossless(<a href="../spec-rl/notes/15_Lossless_Proof_Tutorial.html">见 lossless proof tutorial</a>)</td></tr>
+  <tr><td><span class="term">FR-Spec</span></td><td>Frequency-Ranked Speculative Sampling — 把 draft 的 vocab 限制到高频子集以省 logits 投影开销</td></tr>
+  <tr><td><span class="term">Acceptance rate at step k</span></td><td>第 k 个 draft token 通过 verifier 检查的概率(条件:前 k-1 都通过)</td></tr>
+  <tr><td><span class="term">Acceptance length τ</span></td><td>每次主模型 forward 平均产出 token 数 = 1 + 累积 accept 数</td></tr>
+</table>
+
+<h3>2.2 EAGLE-style verify 流程速记 (本文用的就是这个)</h3>
+<ol>
+  <li>主模型 F 跑一次 prefill / 当前 step,得到 ĥ_i 和下一 token ĥ_{i+1}(这一个总是被接受)</li>
+  <li>MTP head M 递归 K 次,生出 ĥ_{i+2}, ĥ_{i+3}, ..., ĥ_{i+K+1}</li>
+  <li>主模型 F 一次 forward 处理这 K+1 个位置,得到每个位置的 p_target</li>
+  <li>从左到右逐位置匹配 draft token vs argmax p_target;greedy 模式下"匹配 ≡ 接受",一旦不匹配就停,补一个 p_target 重采样的 token</li>
+  <li>本步产出 1..K+1 个 token</li>
+</ol>
+
+<p>本文实验 <strong>greedy + temperature=0</strong>,所以"接受"就是 draft 与 target argmax 严格相等;非 greedy 情况标准 rejection sampling 一样适用,lossless 性质由 Leviathan 2023 / Chen 2023 证明。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 方法① · Position-shared 单 head 架构</h2>
+
+<h3>3.1 与 Gloeckle / DeepSeek-V3 的对比图</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- Gloeckle -->
+    <text x="120" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Gloeckle 2024</text>
+    <text x="120" y="36" text-anchor="middle" font-size="11" fill="#5b5e66">n 个独立并行 head</text>
+    <rect x="80" y="50" width="80" height="34" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="120" y="72" text-anchor="middle" font-size="12">trunk h_i</text>
+    <line x1="120" y1="84" x2="120" y2="100" stroke="#666"/>
+    <line x1="120" y1="100" x2="60" y2="115" stroke="#666"/>
+    <line x1="120" y1="100" x2="120" y2="115" stroke="#666"/>
+    <line x1="120" y1="100" x2="180" y2="115" stroke="#666"/>
+    <rect x="35" y="115" width="50" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="60" y="135" text-anchor="middle" font-size="11">H₁</text>
+    <rect x="95" y="115" width="50" height="30" rx="5" fill="#ffd7b3" stroke="#cc4a1b"/>
+    <text x="120" y="135" text-anchor="middle" font-size="11">H₂</text>
+    <rect x="155" y="115" width="50" height="30" rx="5" fill="#f7c08a" stroke="#cc4a1b"/>
+    <text x="180" y="135" text-anchor="middle" font-size="11">H₃</text>
+    <text x="60" y="165" text-anchor="middle" font-size="10" fill="#5b5e66">→ t+1</text>
+    <text x="120" y="165" text-anchor="middle" font-size="10" fill="#5b5e66">→ t+2</text>
+    <text x="180" y="165" text-anchor="middle" font-size="10" fill="#5b5e66">→ t+3</text>
+    <text x="120" y="195" text-anchor="middle" font-size="10" fill="#a8353e">推理: 3 个独立预测,无递归</text>
+    <text x="120" y="210" text-anchor="middle" font-size="10" fill="#a8353e">不互相 condition</text>
+
+    <!-- DeepSeek-V3 -->
+    <text x="360" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">DeepSeek-V3</text>
+    <text x="360" y="36" text-anchor="middle" font-size="11" fill="#5b5e66">n 个 cascaded module (各自独立 weight)</text>
+    <rect x="320" y="50" width="80" height="34" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="72" text-anchor="middle" font-size="12">trunk h_i</text>
+    <line x1="360" y1="84" x2="360" y2="100" stroke="#666"/>
+    <rect x="270" y="105" width="60" height="32" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="300" y="125" text-anchor="middle" font-size="11">M₁ θ₁</text>
+    <line x1="330" y1="120" x2="350" y2="120" stroke="#666" marker-end="url(#arrA2)"/>
+    <rect x="350" y="105" width="60" height="32" rx="5" fill="#ffd7b3" stroke="#cc4a1b"/>
+    <text x="380" y="125" text-anchor="middle" font-size="11">M₂ θ₂</text>
+    <line x1="410" y1="120" x2="430" y2="120" stroke="#666" marker-end="url(#arrA2)"/>
+    <rect x="430" y="105" width="60" height="32" rx="5" fill="#f7c08a" stroke="#cc4a1b"/>
+    <text x="460" y="125" text-anchor="middle" font-size="11">M₃ θ₃</text>
+    <text x="360" y="165" text-anchor="middle" font-size="10" fill="#5b5e66">→ t+1, t+2, t+3 各自</text>
+    <text x="360" y="195" text-anchor="middle" font-size="10" fill="#a8353e">推理: K module 全加载, KV × K</text>
+    <text x="360" y="210" text-anchor="middle" font-size="10" fill="#a8353e">显存翻倍, 框架支持差</text>
+
+    <!-- FastMTP -->
+    <text x="610" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">FastMTP (本文)</text>
+    <text x="610" y="36" text-anchor="middle" font-size="11" fill="#5b5e66">单 head + position-shared θ</text>
+    <rect x="570" y="50" width="80" height="34" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="610" y="72" text-anchor="middle" font-size="12">trunk h_i</text>
+    <line x1="610" y1="84" x2="610" y2="100" stroke="#666"/>
+    <rect x="575" y="105" width="70" height="32" rx="5" fill="#fff3cd" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="610" y="125" text-anchor="middle" font-size="11" font-weight="600">M (one θ)</text>
+    <!-- recursive arrow -->
+    <path d="M 645 121 Q 685 121 685 95 Q 685 70 645 70" fill="none" stroke="#cc4a1b" stroke-width="2" stroke-dasharray="3,2"/>
+    <path d="M 650 75 L 645 70 L 650 65" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="690" y="100" font-size="10" fill="#cc4a1b" font-weight="600">递归</text>
+    <text x="690" y="113" font-size="10" fill="#cc4a1b" font-weight="600">k=1,2,3</text>
+    <text x="610" y="165" text-anchor="middle" font-size="10" fill="#5b5e66">→ t+1 → t+2 → t+3</text>
+    <text x="610" y="195" text-anchor="middle" font-size="10" fill="#1f7a4a">单 KV cache, 兼容 EAGLE-style</text>
+    <text x="610" y="210" text-anchor="middle" font-size="10" fill="#1f7a4a">SGLang 直接吃</text>
+
+    <!-- Bottom comparison -->
+    <rect x="40" y="235" width="640" height="35" rx="6" fill="#f3eee0" stroke="#888"/>
+    <text x="360" y="256" text-anchor="middle" font-size="12" fill="#3a3b40" font-style="italic">关键差别: Gloeckle 不递归 · V3 递归但 weight 不共享 · FastMTP 递归 + 共享 → 强迫单 θ 学习"对所有 lookahead 距离都 robust"</text>
+
+    <defs>
+      <marker id="arrA2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>三种 MTP 架构对比。FastMTP 的设计可以理解成"DeepSeek-V3 cascaded MTP 在 θ₁=θ₂=θ₃ 约束下的特例 + 拿这个特例去 fine-tune"——架构上等价于把 V3 的多 module 退化成一个,推理时反复 unroll。</figcaption>
+</div>
+
+<h3>3.2 为什么 weight share 反而能涨 acceptance(反向论证)</h3>
+
+<p>"weight share"在 ML 史上往往是表达力的<em>限制</em>(每个 head 只能学同一个 mapping)。这里为什么能涨 acceptance?</p>
+
+<ol>
+  <li><strong>训练 signal 在 K 个位置上叠加</strong>:同一份 θ 同时受到"预测 t+1"、"预测 t+2"、"预测 t+3"三种 loss 拉扯,被迫学一个对 lookahead 距离<em>无关</em>的"下一 token mapping",而不是 over-fit 到固定位置。</li>
+  <li><strong>训练分布与推理分布严格对齐</strong>:推理时 M 在第 k 步看到的是 ĥ_{k-1}(自己生成的);训练时也按这个递归方式喂数据(下一节展开)。两边输入分布 i.d.d.。</li>
+  <li><strong>推理时显存常数</strong>:1 个 KV cache、1 份权重。哪怕 K=7,显存与 K=1 相同,这让<em>更长 draft</em>变得可负担。</li>
+</ol>
+
+<p>论文 §3.4 的 ablation 给的硬数据(详见 §<a href="#sec8">8</a>):同样 fine-tune,但 fix-data(用源数据集 response)的 K=3 acceptance length τ=2.54;换成 self-distilled 后 τ=2.73。再加 FR vocab compression τ=2.66 但 token/s 涨。这说明 share weight 是<em>必要</em>但不<em>充分</em>条件 — 配合 self-distill 才能解锁全部潜力。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 方法② · Self-distilled 训练数据 — fine-tune 的核心 trick</h2>
+
+<h3>4.1 数据流程图</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+    <!-- Source datasets -->
+    <rect x="20" y="20" width="120" height="60" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="80" y="44" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">原始数据集</text>
+    <text x="80" y="62" text-anchor="middle" font-size="10" fill="#3a3b40">{(x_n, y_n)}</text>
+    <text x="80" y="76" text-anchor="middle" font-size="10" fill="#5b5e66">SFT/instruction</text>
+
+    <!-- Discard y_n -->
+    <text x="170" y="55" font-size="11" fill="#a8353e" font-weight="600">丢掉 y_n</text>
+    <line x1="140" y1="55" x2="200" y2="55" stroke="#a8353e" stroke-width="1.5" marker-end="url(#arrSD)"/>
+
+    <!-- Main model regen -->
+    <rect x="220" y="20" width="160" height="60" rx="8" fill="#fff3cd" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="300" y="44" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Main Model F</text>
+    <text x="300" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">MiMo-7B-RL</text>
+    <text x="300" y="74" text-anchor="middle" font-size="10" fill="#3a3b40">temp=0.6, top-p=0.95</text>
+
+    <!-- Output -->
+    <rect x="410" y="20" width="140" height="60" rx="8" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="480" y="44" text-anchor="middle" font-size="12" font-weight="600" fill="#1f7a4a">{(x_n, ỹ_n)}</text>
+    <text x="480" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">F 自己写的 response</text>
+    <text x="480" y="74" text-anchor="middle" font-size="10" fill="#3a3b40">389.4K samples</text>
+
+    <line x1="380" y1="50" x2="408" y2="50" stroke="#666" marker-end="url(#arrSD)"/>
+
+    <!-- Filter / dedup -->
+    <rect x="580" y="20" width="120" height="60" rx="8" fill="#f3eee0" stroke="#888"/>
+    <text x="640" y="40" text-anchor="middle" font-size="11" font-weight="600">清洗</text>
+    <text x="640" y="56" text-anchor="middle" font-size="10" fill="#3a3b40">MinHash dedup</text>
+    <text x="640" y="70" text-anchor="middle" font-size="10" fill="#3a3b40">长度 / 重复过滤</text>
+    <line x1="550" y1="50" x2="578" y2="50" stroke="#666" marker-end="url(#arrSD)"/>
+
+    <!-- Bottom: training -->
+    <rect x="180" y="125" width="380" height="80" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="2" stroke-dasharray="3,2"/>
+    <text x="370" y="148" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Fine-tune 单个 MTP head M (210.8M params)</text>
+    <text x="370" y="168" text-anchor="middle" font-size="11" fill="#3a3b40">F 全程冻结  ·  loss = Σ α_k · CE(ĥ_k, t_{i+k})</text>
+    <text x="370" y="184" text-anchor="middle" font-size="11" fill="#3a3b40">3 epoch · lr 5e-5 · K=3 · β=0.6 · &lt; 1 day on H20</text>
+
+    <line x1="640" y1="80" x2="640" y2="115" stroke="#666"/>
+    <line x1="640" y1="115" x2="380" y2="115" stroke="#666"/>
+    <line x1="380" y1="115" x2="380" y2="123" stroke="#666" marker-end="url(#arrSD)"/>
+
+    <!-- Composition pie hint -->
+    <text x="370" y="225" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">数据组成: 42% general · 18% math · 13% code · 27% Chinese (中英双语)</text>
+
+    <defs>
+      <marker id="arrSD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Self-distillation 数据流。注意只有 prompt 复用,response 全部由 main model 重新生成。这一步把 "ground truth" 从"人写的"或"别的模型写的"换成了"<em>当前 target 自己会写的</em>",从而保证 MTP head 学的就是模仿这个 target 的下一 token 分布。</figcaption>
+</div>
+
+<h3>4.2 Self-distill vs Fixed-data 的硬数据 (论文 Table 1, K=3)</h3>
+
+<table>
+  <tr><th>变体</th><th>τ (mean)</th><th>token/s</th><th>Speedup</th></tr>
+  <tr><td>Vanilla MTP (no FT)</td><td>1.83</td><td>38.04</td><td>1.21×</td></tr>
+  <tr><td>Fixed-data FT</td><td>2.54</td><td>52.68</td><td>1.67×</td></tr>
+  <tr><td><strong>Self-data FT</strong></td><td><strong>2.73</strong></td><td>57.01</td><td><strong>1.81×</strong></td></tr>
+  <tr><td>Self-data FT + FR</td><td>2.66</td><td>64.12</td><td><strong>2.03×</strong></td></tr>
+</table>
+
+<p>从 Vanilla MTP → Fixed-data FT,τ 从 1.83 涨到 2.54(+39%);单单换数据(Fixed → Self),τ 从 2.54 → 2.73(+7%),speedup 从 1.67× → 1.81× (+8%)。看似不大,但乘进 1.81 → 2.03 这一步,self-distill 是必要的踏板。</p>
+
+<h3>4.3 反向思考 — 不 self-distill 会怎样?</h3>
+
+<p>假设你直接用原数据集的 (x_n, y_n) 来训 MTP head:</p>
+
+<ul>
+  <li>MTP head 学到的"下一 token"是 y_n 的下一 token,即<em>原作者</em>的写法</li>
+  <li>但推理时 main model F 会用<em>自己的</em>分布写 response,例如更喜欢 "Let me think step by step" 而 y_n 是 "First, "</li>
+  <li>MTP head 草稿出 "First, ",F verify 时发现自己想写 "Let me",reject</li>
+  <li>哪怕 F 和 y_n 写法在语义上等价,token-level mismatch → acceptance 跳水</li>
+</ul>
+
+<p>Self-distill 的本质就是<strong>把"语义等价"提升到"token 级一致"</strong>。这是 EAGLE 系列、Medusa 都用过的标准 trick(Cai 2024、Yang 2024c),只是 FastMTP 把它显式应用到 MTP fine-tune 上。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 方法③ · Language-aware Dynamic Vocabulary Compression</h2>
+
+<h3>5.1 问题:MTP head 的 vocab projection 是大头</h3>
+
+<p>MiMo-7B-RL 的 vocab size 是 <strong>152K</strong>(用 Qwen2 tokenizer)。MTP head 每生成一个 draft token,要做 <code>logits = h · W^T</code>,其中 W ∈ ℝ^{152K × 4096}。对于一个 7B 模型,这个 projection 在 draft 阶段(短序列、batch=1)<em>不可忽略</em>——FR-Spec (Zhao 2025a) 已经指出过这是个瓶颈。</p>
+
+<h3>5.2 机制图</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- Input language detect -->
+    <rect x="20" y="20" width="140" height="50" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="90" y="42" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">输入 context</text>
+    <text x="90" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">"小明买了 3 个苹果..."</text>
+
+    <line x1="160" y1="45" x2="195" y2="45" stroke="#666" marker-end="url(#arrV)"/>
+    <text x="178" y="38" font-size="9" fill="#5b5e66">检测</text>
+
+    <rect x="200" y="20" width="100" height="50" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="250" y="42" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">语言判别</text>
+    <text x="250" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">→ ZH</text>
+
+    <line x1="300" y1="45" x2="335" y2="45" stroke="#666" marker-end="url(#arrV)"/>
+
+    <!-- Vocab pool -->
+    <rect x="340" y="10" width="160" height="70" rx="8" fill="#f3eee0" stroke="#888"/>
+    <text x="420" y="28" text-anchor="middle" font-size="11" font-weight="600">语言相关 vocab pool</text>
+    <text x="420" y="44" text-anchor="middle" font-size="10" fill="#3a3b40">V_high^EN: 32K (MT-Bench 最优)</text>
+    <text x="420" y="58" text-anchor="middle" font-size="10" fill="#3a3b40">V_high^ZH: 16K (C-Eval 最优)</text>
+    <text x="420" y="72" text-anchor="middle" font-size="9" fill="#5b5e66">在不同 corpus 上离线统计</text>
+
+    <line x1="500" y1="45" x2="535" y2="45" stroke="#666" marker-end="url(#arrV)"/>
+    <text x="518" y="38" font-size="9" fill="#5b5e66">选 V_high^ZH</text>
+
+    <rect x="540" y="20" width="160" height="50" rx="8" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="620" y="42" text-anchor="middle" font-size="11" font-weight="600" fill="#1f7a4a">W̃ ∈ ℝ^{16K × 4096}</text>
+    <text x="620" y="58" text-anchor="middle" font-size="10" fill="#3a3b40">152K → 16K 投影矩阵</text>
+
+    <!-- Bottom row: actual draft step -->
+    <text x="370" y="105" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">draft step (一次)</text>
+
+    <rect x="40" y="120" width="120" height="44" rx="6" fill="#fff" stroke="#888"/>
+    <text x="100" y="138" text-anchor="middle" font-size="11">MTP head M</text>
+    <text x="100" y="156" text-anchor="middle" font-size="10" fill="#5b5e66">→ ĥ ∈ ℝ⁴⁰⁹⁶</text>
+
+    <line x1="160" y1="142" x2="195" y2="142" stroke="#666" marker-end="url(#arrV)"/>
+
+    <rect x="200" y="120" width="180" height="44" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="290" y="138" text-anchor="middle" font-size="11">logits = ĥ · W̃^T</text>
+    <text x="290" y="156" text-anchor="middle" font-size="10" fill="#a8353e">|V|=16K (压缩后)</text>
+
+    <line x1="380" y1="142" x2="415" y2="142" stroke="#666" marker-end="url(#arrV)"/>
+
+    <rect x="420" y="120" width="180" height="44" rx="6" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="510" y="138" text-anchor="middle" font-size="11">argmax → draft token</text>
+    <text x="510" y="156" text-anchor="middle" font-size="10" fill="#1f7a4a">9.5× 投影量减少</text>
+
+    <!-- Verify side -->
+    <rect x="40" y="195" width="660" height="60" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-dasharray="4,2"/>
+    <text x="370" y="217" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Verify 阶段始终用<em>完整</em> 152K vocab</text>
+    <text x="370" y="236" text-anchor="middle" font-size="11" fill="#3a3b40">→ 接受标准基于 main model 的 full distribution</text>
+    <text x="370" y="250" text-anchor="middle" font-size="11" fill="#3a3b40">→ 即使 draft 在压缩 vocab 上做的判断,verify 是 lossless 的</text>
+
+    <defs>
+      <marker id="arrV" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>语言相关动态压缩。两个关键点:① V_high 是<em>按语言离线统计</em>的(不是"每输入都算 top-K"),所以推理时只是 lookup 一个预存的子矩阵,无在线开销。② Verify 阶段恢复完整 vocab,所以最终输出分布与原模型严格相同——压缩只影响 draft 的"提议",不影响 acceptance criterion。</figcaption>
+</div>
+
+<h3>5.3 选 vocab size 的实验数据 (Table 2)</h3>
+
+<table>
+  <tr><th>语言 / 任务</th><th>|V|</th><th>τ</th><th>token/s</th><th>Speedup</th></tr>
+  <tr><td rowspan="2">C-Eval (中)</td><td>Full 152K</td><td>2.551</td><td>54.36</td><td>1.72×</td></tr>
+  <tr><td><strong>16K</strong></td><td>2.525 (-0.026)</td><td><strong>62.93</strong></td><td><strong>1.99×</strong></td></tr>
+  <tr><td rowspan="2">MT-Bench (英)</td><td>Full 152K</td><td>2.690</td><td>56.33</td><td>1.80×</td></tr>
+  <tr><td><strong>32K</strong></td><td>2.622 (-0.068)</td><td><strong>63.42</strong></td><td><strong>2.03×</strong></td></tr>
+</table>
+
+<p><strong>反直觉结论:</strong>中文用 <em>更激进</em>的 16K 压缩,英文反而需要 32K。论文解释是:中文 token 的 head distribution 更集中(很多高频字 + 复合 token),英文 BPE 的长尾更长。</p>
+
+<h3>5.4 反向思考 — 为什么不直接用 top-K 的全局 vocab?</h3>
+
+<p>原 FR-Spec 用 SlimPajama (英语为主)统计 top-K → 中文 task 上 acceptance 跳水。FastMTP 的修补就是<strong>按语言切多个 V_high,运行时 detect 切换</strong>。这其实是个朴素工程,但效果显著——<em>提醒我们 vocab compression 的"高频"要 conditional on 输入分布</em>。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 公式 · 加权 cross-entropy 损失</h2>
+
+<h3>6.1 损失定义</h3>
+
+<div class="formula">
+  L_mtp = Σ_{k=1}^{K} α_k · L_mtp^k = Σ_{k=1}^{K} α_k · CE(ĥ_k, t_{shifted})
+</div>
+
+<p>其中第 k 步的权重按指数衰减:</p>
+
+<div class="formula">
+  α_k = β^{k-1} / Σ_{j=1}^{K} β^{j-1}     (β = 0.6, K = 3)
+</div>
+
+<h3>6.2 代入数值</h3>
+
+<table>
+  <tr><th>k</th><th>β^{k-1}</th><th>α_k (归一化后)</th></tr>
+  <tr><td>1</td><td>1.00</td><td>0.510</td></tr>
+  <tr><td>2</td><td>0.60</td><td>0.306</td></tr>
+  <tr><td>3</td><td>0.36</td><td>0.184</td></tr>
+  <tr><td colspan="2"><strong>Σ</strong></td><td><strong>1.000</strong></td></tr>
+</table>
+
+<h3>6.3 物理直觉</h3>
+
+<p>权重指数衰减,代表<strong>"越远的 token 越不可能预测准,降低它的损失贡献"</strong>。如果不衰减(β=1),三个步骤等权——但第 3 步的 CE loss 自然就大(理论下界 = data entropy + 累积 mismatch),会主导梯度,反而让第 1 步没学好。β=0.6 把第 3 步权重压到 18.4%,让"近期对、远期凑合"成为优化目标。</p>
+
+<h3>6.4 β 的敏感度(论文未做完整 sweep, 反推)</h3>
+
+<table>
+  <tr><th>β</th><th>α_1</th><th>α_2</th><th>α_3</th><th>预期 effect</th></tr>
+  <tr><td>1.0 (no decay)</td><td>0.333</td><td>0.333</td><td>0.333</td><td>第 3 步主导,第 1 步退化</td></tr>
+  <tr><td>0.8</td><td>0.41</td><td>0.33</td><td>0.26</td><td>偏均匀</td></tr>
+  <tr><td><strong>0.6 (本文)</strong></td><td>0.51</td><td>0.31</td><td>0.18</td><td>论文选定,K=3 最优</td></tr>
+  <tr><td>0.3</td><td>0.71</td><td>0.21</td><td>0.07</td><td>等于不学第 3 步</td></tr>
+  <tr><td>→ 0</td><td>→ 1</td><td>→ 0</td><td>→ 0</td><td>退回 vanilla MTP K=1</td></tr>
+</table>
+
+<div class="nb">
+  论文没报 β sweep,但 §3.3.1 显示 K=4..7 也训过(用同样的指数衰减),acceptance length 在 K=7 时还能涨到 ~3.2,只是 token/s 反降。这间接说明 β=0.6 在 K≤3 是足够的;更长 horizon 下也许该减小 β 让远期 loss 进一步弱化。
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · Worked Example · 一个数学题片段在 K=3 上的轨迹</h2>
+
+<p>设输入 prompt 是 <code>"求 sin²(x) 的不定积分。"</code>,main model 已经写到 <code>"sin²(x)dx = (1−cos(2x))/2 dx, 所以 <strong>积分</strong>"</code>。下一步 main model 会预测 <code>"等于"</code>。</p>
+
+<p>FastMTP 的一次 step:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- Step 0: main model produces ĥ -->
+    <rect x="20" y="15" width="660" height="58" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="350" y="36" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Step 0: Main F forward → ĥ_i + 第一 token "等于" (always accepted)</text>
+    <text x="350" y="56" text-anchor="middle" font-size="11" fill="#3a3b40">ĥ_i ∈ ℝ⁴⁰⁹⁶ · 这一 forward 同时给出剩余位置的 verify-target (后面用)</text>
+
+    <line x1="350" y1="73" x2="350" y2="98" stroke="#666" marker-end="url(#arrW)"/>
+
+    <!-- Step k=1 -->
+    <rect x="40" y="100" width="640" height="65" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="60" y="122" font-size="13" font-weight="600" fill="#cc4a1b">k=1</text>
+    <text x="120" y="122" font-size="12" fill="#3a3b40">M(ĥ_i, embed("等于")) → ĥ_{i+1}, draft = "x"</text>
+    <text x="120" y="142" font-size="11" fill="#5b5e66">FR vocab=32K (英文 token 也涵盖) · main F greedy 也会预测 "x"</text>
+    <text x="120" y="158" font-size="11" fill="#1f7a4a" font-weight="600">→ acceptance@k=1: 81% (训练后) / 70% (vanilla)</text>
+
+    <line x1="350" y1="165" x2="350" y2="190" stroke="#666" marker-end="url(#arrW)"/>
+
+    <!-- Step k=2 -->
+    <rect x="40" y="192" width="640" height="65" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="60" y="214" font-size="13" font-weight="600" fill="#cc4a1b">k=2</text>
+    <text x="120" y="214" font-size="12" fill="#3a3b40">M(ĥ_{i+1}, embed("x")) → ĥ_{i+2}, draft = "/"</text>
+    <text x="120" y="234" font-size="11" fill="#5b5e66">输入是 M 自己的 ĥ_{i+1} (不是 main F 的!) · main F 也想要 "/"</text>
+    <text x="120" y="250" font-size="11" fill="#1f7a4a" font-weight="600">→ acceptance@k=2: 56% (训练后) / 11% (vanilla 崩!)</text>
+
+    <line x1="350" y1="257" x2="350" y2="282" stroke="#666" marker-end="url(#arrW)"/>
+
+    <!-- Step k=3 -->
+    <rect x="40" y="284" width="640" height="65" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="60" y="306" font-size="13" font-weight="600" fill="#cc4a1b">k=3</text>
+    <text x="120" y="306" font-size="12" fill="#3a3b40">M(ĥ_{i+2}, embed("/")) → ĥ_{i+3}, draft = "2"</text>
+    <text x="120" y="326" font-size="11" fill="#5b5e66">main F 预测的是 "2" — match → 接受</text>
+    <text x="120" y="342" font-size="11" fill="#1f7a4a" font-weight="600">→ acceptance@k=3: 36% (训练后) / 2% (vanilla 几乎归零)</text>
+
+    <defs>
+      <marker id="arrW" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>本 step 总产出: 1 (always-accepted) + 3 (drafts all matched) = 4 个 token,即 τ=4。在 vanilla MTP 上等概率走完 3 步的概率是 0.70 × 0.11 × 0.02 ≈ 0.15%,实际平均产出 ~1.83;FastMTP 是 0.81 × 0.56 × 0.36 ≈ 16%,平均产出 ~2.73。</figcaption>
+</div>
+
+<h3>7.1 期望产出推导</h3>
+
+<p>记 a_k = step k 的条件接受率,τ = 1 + Σ_{k=1}^{K} ∏_{j=1}^{k} a_j。代入 FastMTP 的 (0.81, 0.56, 0.36):</p>
+
+<div class="formula">
+  τ = 1 + 0.81 + 0.81×0.56 + 0.81×0.56×0.36 = 1 + 0.81 + 0.454 + 0.163 = <strong>2.43</strong>
+</div>
+
+<p>论文实测 K=3 mean τ=2.73,略高,因为某些任务(数学)acceptance 显著偏高(数学第 3 步 acceptance >50%)。</p>
+
+<p>同样代入 vanilla MTP (0.70, 0.11, 0.02):</p>
+
+<div class="formula">
+  τ = 1 + 0.70 + 0.70×0.11 + 0.70×0.11×0.02 = 1 + 0.70 + 0.077 + 0.0015 = <strong>1.78</strong>
+</div>
+
+<p>实测 1.83 接近。这就是 vanilla MTP 在 K=3 上 speedup 反而<em>退回</em>到 1.21× 的根本原因——多走的 step 几乎都不接受,白付 draft 计算。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 主结果 (Table 1, MiMo-7B-RL on A10 24GB, 7 任务平均)</h3>
+
+<table>
+  <tr><th>方法</th><th>K=1 speedup</th><th>K=2 speedup</th><th>K=3 speedup</th></tr>
+  <tr><td>Baseline (NTP)</td><td colspan="3" style="text-align:center">1.00× (31.55 token/s)</td></tr>
+  <tr><td>Vanilla MTP</td><td>1.32×</td><td>1.31×</td><td>1.21× ↓</td></tr>
+  <tr><td>Fixed-data FT</td><td>1.37×</td><td>1.61×</td><td>1.67×</td></tr>
+  <tr><td>Self-data FT</td><td>1.40×</td><td>1.71×</td><td>1.81×</td></tr>
+  <tr><td><strong>Self-data FT + FR (FastMTP)</strong></td><td><strong>1.46×</strong></td><td><strong>1.85×</strong></td><td><strong>2.03×</strong></td></tr>
+</table>
+
+<p><strong>看点:</strong></p>
+<ul>
+  <li>Vanilla MTP 在 K=2→K=3 时 speedup <em>下降</em>(1.31× → 1.21×): draft 计算白花了</li>
+  <li>FastMTP 在 K=1→K=3 单调上升,符合"训练 reward 多步预测"</li>
+  <li>Math 上 K=3 speedup 最高(单任务 2.31×, math τ=3.07)</li>
+  <li>QA 上最低(1.84×),非结构化文本 acceptance 自然低</li>
+</ul>
+
+<h3>8.2 Acceptance rate breakdown (Figure 4a) — 全篇最 killer 的图</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 300" width="100%" style="max-width:680px">
+    <!-- Axes -->
+    <line x1="80" y1="240" x2="660" y2="240" stroke="#888"/>
+    <line x1="80" y1="40" x2="80" y2="240" stroke="#888"/>
+    <text x="60" y="240" text-anchor="end" font-size="10" fill="#5b5e66">0%</text>
+    <text x="60" y="180" text-anchor="end" font-size="10" fill="#5b5e66">25%</text>
+    <text x="60" y="120" text-anchor="end" font-size="10" fill="#5b5e66">50%</text>
+    <text x="60" y="60" text-anchor="end" font-size="10" fill="#5b5e66">75%</text>
+    <text x="60" y="40" text-anchor="end" font-size="10" fill="#5b5e66">100%</text>
+
+    <!-- Group bars: 7 tasks, k=1/2/3 vanilla vs ft -->
+    <!-- positions for 7 tasks -->
+    <g font-size="10" text-anchor="middle">
+      <!-- task 1: MT, k=1 vanilla 70, ft 80; k=2 vanilla 11, ft 56; k=3 vanilla 2, ft 36 (using paper avg) -->
+      <!-- Drawing simplified: just k=1, k=2, k=3 averages -->
+    </g>
+
+    <!-- Average bars (3 groups of 2 bars each) -->
+    <!-- k=1 -->
+    <rect x="160" y="74" width="40" height="166" fill="#bcc3d6"/>
+    <text x="180" y="68" text-anchor="middle" font-size="11" fill="#5b5e66">70%</text>
+    <rect x="205" y="48" width="40" height="192" fill="#cc4a1b"/>
+    <text x="225" y="42" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">81%</text>
+    <text x="200" y="262" text-anchor="middle" font-size="12" font-weight="600">k=1</text>
+
+    <!-- k=2 -->
+    <rect x="335" y="214" width="40" height="26" fill="#bcc3d6"/>
+    <text x="355" y="208" text-anchor="middle" font-size="11" fill="#5b5e66">11%</text>
+    <rect x="380" y="106" width="40" height="134" fill="#cc4a1b"/>
+    <text x="400" y="100" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">56%</text>
+    <text x="375" y="262" text-anchor="middle" font-size="12" font-weight="600">k=2</text>
+
+    <!-- k=3 -->
+    <rect x="510" y="236" width="40" height="4" fill="#bcc3d6"/>
+    <text x="530" y="232" text-anchor="middle" font-size="11" fill="#5b5e66">2%</text>
+    <rect x="555" y="155" width="40" height="85" fill="#cc4a1b"/>
+    <text x="575" y="148" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">36%</text>
+    <text x="550" y="262" text-anchor="middle" font-size="12" font-weight="600">k=3</text>
+
+    <!-- Legend -->
+    <rect x="180" y="280" width="14" height="14" fill="#bcc3d6"/>
+    <text x="200" y="291" font-size="11" fill="#5b5e66">Vanilla MTP</text>
+    <rect x="320" y="280" width="14" height="14" fill="#cc4a1b"/>
+    <text x="340" y="291" font-size="11" fill="#cc4a1b">FastMTP (Self-data FT)</text>
+
+    <!-- Title -->
+    <text x="370" y="20" text-anchor="middle" font-size="13" font-weight="600">Acceptance Rate · 7 任务平均</text>
+  </svg>
+  <figcaption>论文最 killer 的发现。Vanilla MTP 在 k=1 已经接近 EAGLE-3 水平 (70%),但 k=2 跌 6 倍,k=3 几乎归零。FastMTP 在 k=1 微涨 11pp,但 k=2/k=3 拉升 5×、18×。</figcaption>
+</div>
+
+<p>这张图的 take-away:<strong>vanilla MTP 不是"draft 不行",而是"递归不行"</strong>。修补方式不是换更强的 head,而是教它"被反复递归用"——FastMTP 的 fine-tune 改变的不是表达力,而是<em>训练-推理输入分布对齐</em>。</p>
+
+<h3>8.3 Optimal draft length (Figure 3, on A100)</h3>
+
+<p>论文额外训了一个 K=7 的 head:</p>
+
+<table>
+  <tr><th>K</th><th>FastMTP τ</th><th>FastMTP token/s</th><th>Vanilla τ</th><th>Vanilla token/s</th></tr>
+  <tr><td>1</td><td>~1.8</td><td>~80</td><td>~1.7</td><td>~75</td></tr>
+  <tr><td>2</td><td>~2.4</td><td>~110</td><td>~1.8</td><td>~80</td></tr>
+  <tr><td><strong>3</strong></td><td>~2.7</td><td><strong>~140</strong></td><td>~1.85</td><td>~85</td></tr>
+  <tr><td>4</td><td>~2.9</td><td>~135</td><td>~1.85</td><td>~80</td></tr>
+  <tr><td>5</td><td>~3.0</td><td>~125</td><td>~1.85</td><td>~75</td></tr>
+  <tr><td>7</td><td>~3.2</td><td>~110</td><td>~1.85</td><td>~70</td></tr>
+</table>
+
+<p><strong>K=3 是 sweet spot</strong>。τ 单调涨但 token/s 在 K=4 就开始降——边际 acceptance 抵不过递归 forward 成本。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>Draft 架构</th><th>训练数据</th><th>Lookahead 方式</th><th>Vocab compress</th></tr>
+  <tr><td><a href="14_MTP_Gloeckle_2404.19737.html">Gloeckle MTP (2404.19737)</a></td><td>n 独立并行 head</td><td>预训练同分布</td><td>无递归(直接 K 预测)</td><td>—</td></tr>
+  <tr><td>DeepSeek-V3 sequential MTP</td><td>n cascaded module 各自权重</td><td>预训练</td><td>原生 cascade</td><td>—</td></tr>
+  <tr><td>Medusa</td><td>多 MLP head 并行 + tree</td><td>SFT-like</td><td>无递归</td><td>—</td></tr>
+  <tr><td><a href="../spec-rl/notes/02_EAGLE_evolution_DFlash.html">EAGLE-3</a></td><td>独立 transformer head + multi-layer hidden</td><td>self-distill</td><td>autoregressive 递归</td><td>—</td></tr>
+  <tr><td>FR-Spec</td><td>原 draft 不变</td><td>原 draft 不变</td><td>原 draft 不变</td><td>top-K 全局</td></tr>
+  <tr><td><strong>FastMTP</strong></td><td><strong>1 个 shared MTP head</strong></td><td><strong>self-distill</strong></td><td><strong>autoregressive 递归 (训练时同分布)</strong></td><td><strong>language-aware 动态</strong></td></tr>
+</table>
+
+<h3>9.1 vs EAGLE-3</h3>
+<p>FastMTP 与 EAGLE-3 在<em>形式上</em>非常像:都是单个轻量 head + autoregressive 递归 + self-distill 数据。差别在 head 来源:</p>
+<ul>
+  <li><strong>EAGLE-3</strong>: 从零训一个 transformer + projection,要选 hidden state 哪几层、要重新对齐 vocab</li>
+  <li><strong>FastMTP</strong>: 直接复用模型预训练就有的 MTP head 的<em>架构</em>和<em>初始化</em>,只 fine-tune;serving 框架已经支持 EAGLE-style verify,所以"假装是 EAGLE-3" 跑得通</li>
+</ul>
+<p>论文措辞:"<em>ensures compatibility with EAGLE-style speculative decoding for seamless integration with existing inference frameworks such as SGLang</em>"。</p>
+
+<h3>9.2 vs DeepSeek-V3 sequential MTP</h3>
+<p>V3 部署时一般只用 first MTP module 做 K=1,因为加载多个 module 需要框架特别支持。FastMTP 的视角是:既然多 module 部署难,就把 K 个权重<em>合并成一个</em>(用 share 约束),同时通过 self-distill fine-tune 把它训得递归 robust。从模型容量上确实失去了一部分(K 份独立 weight 退到 1 份),但部署上换来了 EAGLE-style 框架原生支持。</p>
+
+<h3>9.3 vs Medusa</h3>
+<p>Medusa 的 head 之间<em>不递归</em>:K 个 MLP head 各看 main 的同一个 hidden state,各自预测 t+1, t+2, ...。所以 Medusa 不会出现 FastMTP 担忧的 "递归输入 OOD",但反过来也吃了 t+k 没法 condition on t+1, ..., t+k-1 的亏 — 因此 Medusa 通常需要 tree-attention 来弥补。FastMTP 是另一个极端:严格 sequential,但靠 share weight + 训练对齐保证递归不崩。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认或暗含的局限</h3>
+<ul>
+  <li>只在 <strong>MiMo-7B-RL</strong> 上验证。MTP 模块本身得是预训练就送的,模型必须有这个 head 才能套 FastMTP。Llama / Qwen3-Dense 没有原生 MTP,套不了——只能上 EAGLE-3。</li>
+  <li>K=3 是 A10 单 batch 下的甜点,生产 batch=64+ 时 draft 开销与 verify 开销比例会变,K 甜点可能后退到 2(但论文未给 batch sweep)。</li>
+  <li>所有实验<strong> greedy + temp=0</strong>。RL/创造性场景需要 sampling,acceptance 会下降(rejection sampling 会拒一部分概率不匹配 token)。</li>
+  <li>语言只测了中英二选一。多语言混合(code + 中 + 日 + ...)如何选 V_high?context 切换频繁怎么办?</li>
+</ul>
+
+<h3>个人 take</h3>
+<ul>
+  <li>这是一篇<strong>"工程把 MTP 这个已付费的赠品兑现"</strong>的论文。想象一下买了 SaaS pro 但没用一半功能的味道。</li>
+  <li>核心 insight 不算新——EAGLE 系列早就用 self-distill 训过 draft——但<em>把 self-distill 应用到 share-weight MTP head fine-tune</em>是干净的组合创新。</li>
+  <li>"vanilla MTP K=3 反而比 K=2 慢" 这个数据应该被钉在每个 RL/inference 工程师的工位上。盲目加 K 是最常见的本能错误。</li>
+  <li>FR-Spec 那部分相对 minor — 1.81× → 2.03× 大约 +12% 的 speedup,但代价是引入"语言切换"的工程复杂度。如果只追求工程简洁,不上 FR 也已经 1.81×。</li>
+</ul>
+
+<h3>我会想验证的问题</h3>
+<ol>
+  <li>K=3 的甜点会不会在大 batch 下后退?vLLM/SGLang 多并发场景下 draft 的固定开销摊薄了,理论上 K 甜点会前移(不是后退),但需实测。</li>
+  <li>把 share-weight 改成 LoRA-per-step(K 个 LoRA adapter,共享 base)能否进一步涨 acceptance 而几乎不增显存?这是一个介于"K 独立 module"和"完全 share"中间的折中。</li>
+  <li>MiMo-7B-RL 本身已是 RL 后训过的模型;在<em>没有</em> RL 后训的 base model 上(纯 pretrain)做 FastMTP 效果会不会差很多?数学上的高 acceptance 是不是模型本身被 RL 训得"模式化"了?</li>
+  <li>对 long-CoT(>4k)长文本的 acceptance 衰减如何?论文 max-length=1024,实际推理场景动辄数万 token,KV growth + 长上下文的 token 多样性可能让 acceptance 单调下降。</li>
+  <li>在 sampling 模式(temp>0)下,FR-Spec 的 vocab 截断会不会让"被截断的低概率 token"在 rejection sampling 时永远拿不到——是不是技术意义上仍然 lossless?(论文说 verify 用 full vocab 所以 lossless,但 draft 提议本身受截断影响,会改变 acceptance distribution。)</li>
+</ol>
+
+<h3>记忆点 (cold recall)</h3>
+<div class="kv">
+  <span class="pill">立场</span> 把"已训好的 MTP 模块"从"训练辅助"兑现为"inference 加速"。<br>
+  <span class="pill">架构</span> 单 head + position-shared θ + EAGLE-style verify(SGLang 直接吃)。<br>
+  <span class="pill">训练</span> Self-distilled 数据 (main model 自己生 response)+ exponentially weighted CE,β=0.6,K=3。<br>
+  <span class="pill">数字</span> 2.03× e2e · acceptance k=2: 11%→56% · k=3: 2%→36% · 训练 < 1 day on H20。<br>
+  <span class="pill">陷阱</span> Vanilla MTP K=3 比 K=2 还慢 (1.21× vs 1.31×); 数学/代码加速 > QA。<br>
+  <span class="pill">vocab</span> Language-aware FR: 中文 16K,英文 32K, +8% throughput,verify 仍用 full vocab 保 lossless。<br>
+  <span class="pill">看也</span> see also: Gloeckle MTP (14_MTP) · EAGLE-3 (DFlash 02) · Lossless proof (15)。
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · PDF: <code>/data/szhang967/papers/paper-notes/models/FastMTP_2509.18362.pdf</code>
+</p>
+
+</main>
+
+<script>
+  // (无动画,本文图全静态。保留 setOp 给将来扩展用)
+  function setOp(id, op){ document.getElementById(id).setAttribute('opacity', op); }
+</script>
+
+</body>
+</html>

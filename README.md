@@ -42,6 +42,22 @@
 | 11 | [TIDE](https://zhangshuibai.github.io/paper-notes/models/notes/11_TIDE_2604.26951.html) | 跨架构 dLLM 蒸馏 / TIDAL+CompDemo+Reverse CALM | 51 KB |
 | 12 | [NCP / ConceptLM](https://zhangshuibai.github.io/paper-notes/models/notes/12_NCP_2602.08984.html) | Next Concept Prediction / VQ 离散 latent | 50 KB |
 | 13 | [LongLLaDA](https://zhangshuibai.github.io/paper-notes/models/notes/13_LongLLaDA_2506.14429.html) | 扩散 LLM 长上下文 / NTK-RoPE training-free | 46 KB |
+| 14 | [MTP (Gloeckle, Meta)](https://zhangshuibai.github.io/paper-notes/models/notes/14_MTP_Gloeckle_2404.19737.html) | MTP 元论文 / 共享 trunk + n heads / 自-spec | 36 KB |
+| 15 | [FastMTP](https://zhangshuibai.github.io/paper-notes/models/notes/15_FastMTP_2509.18362.html) | 单 head + position-shared / self-distill / 2.03× lossless | 54 KB |
+| 16 | [L-MTP (Leap MTP)](https://zhangshuibai.github.io/paper-notes/models/notes/16_LMTP_2505.17505.html) | 跳跃式 MTP / 非相邻 future / NeurIPS 2025 | 50 KB |
+| 17 | [MuToR (Registers)](https://zhangshuibai.github.io/paper-notes/models/notes/17_MuToR_2505.10518.html) | 可学习 register tokens 替代 n heads | 53 KB |
+| 18 | [FSP (Beyond MTP)](https://zhangshuibai.github.io/paper-notes/models/notes/18_FSP_2510.14751.html) | Future Summary Prediction / RevLM 蒸馏 | 41 KB |
+
+### MTP 系列阅读建议
+
+**14 (Gloeckle 元论文) → 15 (FastMTP 工程化) → 16 (L-MTP 跳跃) → 17 (MuToR registers) → 18 (FSP summary)**
+
+- 14 是起源(n 个独立 heads,提 sample efficiency + 自-spec decoding)
+- 15 是把 MTP 真正做成可工程化的 spec decoding(单 head + self-distill + 2.03× lossless 加速)
+- 16/17 是对 head 设计的两条改良路线: 跳跃 vs register
+- 18 是对 MTP "预测精确 token"这一根本目标的反思——预测未来摘要更稳
+
+也可参考 [TOP (10)](https://zhangshuibai.github.io/paper-notes/models/notes/10_TOP_2508.19228.html) 看反向观点(用 ranking 替代 MTP)。
 
 ### INTELLECT 系列阅读建议
 
@@ -101,6 +117,11 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | NCP / ConceptLM | — | 2026-02 | [2602.08984](https://arxiv.org/abs/2602.08984) |
 | Kimi K2.5 | Kimi Team | 2026-02 | [2602.02276](https://arxiv.org/abs/2602.02276) |
 | TIDE | PKU YuanGroup | 2026-04 | [2604.26951](https://arxiv.org/abs/2604.26951) |
+| MTP (Gloeckle, Meta) | Meta FAIR | 2024-04 | [2404.19737](https://arxiv.org/abs/2404.19737) |
+| MuToR (Registers) | — | 2025-05 | [2505.10518](https://arxiv.org/abs/2505.10518) |
+| L-MTP (Leap MTP) | NeurIPS'25 | 2025-05 | [2505.17505](https://arxiv.org/abs/2505.17505) |
+| FastMTP | Tencent BAC | 2025-09 | [2509.18362](https://arxiv.org/abs/2509.18362) |
+| FSP (Beyond MTP) | — | 2025-10 | [2510.14751](https://arxiv.org/abs/2510.14751) |
 
 ### Agent 训练 / 环境 / 内存
 

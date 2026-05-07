@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · FSP: Future Summary Prediction (2510.14751)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Beyond Multi-Token Prediction: Pretraining LLMs with Future Summaries</h1>
+<div class="meta">
+  Mila / CMU / FAIR-Meta · Mahajan, Goyal, Idrissi, Pezeshki, Mitliagkas, Lopez-Paz, Ahuja · arXiv:2510.14751 (ICLR 2026)<br>
+  关键词: pretraining objective · multi-token prediction · teacher forcing · reverse LM · representation distillation
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> 预测<em>具体的远期 token</em> 是错的抽象层级 —— 远期未来该用一个紧凑的<strong>summary 向量</strong>来监督;FSP 在 NTP 旁挂一个辅助 head,要么去拟合未来窗口的 bag-of-words(FSP-BoW),要么去 distill 一个反向语言模型(RevLM, 右到左训)的隐藏状态(FSP-RevLM)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">+4.2</div><div class="l">MATH (8B, vs MTP)</div></div>
+    <div class="stat"><div class="n">+5.0</div><div class="l">ARC-Easy (8B, vs NTP)</div></div>
+    <div class="stat"><div class="n">1 head</div><div class="l">vs MTP 的 N 个 head</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是一篇 <em>objective design</em> 的论文,不是新架构。核心贡献是把"未来"从 token 列表抽象成可学习的向量,从而绕开 MTP 加 head 不可扩展的瓶颈。RevLM 翻倍了 pretraining FLOPs,但作者赌的是"compute 多 / data 少"这个时代;summary 是 train-time only,推理时 head 直接丢掉。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 MTP 不够,且 token 不是对的目标</a></li>
+    <li><a href="#sec2">背景速查 (NTP / MTP / DS-MTP / teacher forcing)</a></li>
+    <li><a href="#sec3">FSP 框架:统一所有 future-aware 目标</a></li>
+    <li><a href="#sec4">FSP-BoW:hand-crafted summary</a></li>
+    <li><a href="#sec5">FSP-RevLM:learned summary via reverse LM</a></li>
+    <li><a href="#sec6">同一 token,四种目标的 worked example</a></li>
+    <li><a href="#sec7">合成实验:path-star 与 sibling discovery</a></li>
+    <li><a href="#sec8">8B / 3B 真实 pretraining 结果</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec11">Memory points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1. 动机:为什么 MTP 不够,且 token 不是对的目标</h2>
+
+<h3>1.1 历史脉络:从 NTP 的 exposure bias 到 MTP 的短视</h3>
+<p>整个故事的起点是<strong>teacher forcing</strong> 这个老问题。NTP 训练时永远喂 ground-truth 前缀去预测 <code>x<sub>t+1</sub></code>;推理时模型却只能基于自己 sample 出的 token 继续走。这个 train-inference mismatch(Bengio 2015 起就在讲)在长输出场景里会复合:错误一旦累积,模型就 drift 出训练分布。</p>
+<p>更阴险的是 Bachmann & Nagarajan 2024 指出的 <span class="term">"Clever Hans cheat"</span>:就算训练时不 drift,teacher forcing 也会让模型走捷径 —— 直接从 prefix 里某个局部线索抄答案,绕过它本应学的长程结构。结果是<strong>梯度饥饿</strong>(gradient starvation):该被训出来的 long-horizon plan 因为 loss 已经被简单捷径吃饱,就再也得不到信号了。</p>
+<p>Gloeckle 等人的 <strong>MTP</strong> (2024) 是对此的第一记重击:在 backbone 顶上挂 <code>k</code> 个辅助 head,每个 head 单独负责预测 <code>x<sub>t+2</sub>, x<sub>t+3</sub>, …, x<sub>t+k</sub></code>。这等价于"减弱 teacher forcing":要预测 <code>x<sub>t+3</sub></code> 但只给到 <code>x<sub>≤t</sub></code>,模型必须把 <code>x<sub>t+1</sub>, x<sub>t+2</sub>, x<sub>t+3</sub></code> 的<em>边际</em>都隐式建出来。DeepSeek-V3、Qwen-3、MiMo、Nemotron-3 都已经在用 MTP 变体了 —— 它确实 work。</p>
+
+<h3>1.2 别的方案为什么不够 —— "exact token" 不是对的抽象</h3>
+<p>但 MTP 有两个根本性的限制,这正是 FSP 要打的靶子:</p>
+
+<table>
+<thead><tr><th>方案</th><th>怎么减弱 teacher forcing</th><th>瓶颈</th></tr></thead>
+<tbody>
+<tr><td>NTP</td><td>不减弱</td><td>shortcut + exposure bias</td></tr>
+<tr><td>MTP (Gloeckle)</td><td>每个 future token 一个 head</td><td>head 数 ∝ 视野;实际只能 k=2~4</td></tr>
+<tr><td>DS-MTP</td><td>head 之间递归喂中间表示</td><td>同上,head 数仍受限</td></tr>
+<tr><td>L-MTP / MuToR</td><td>跳跃 / 随机偏移采样未来 token</td><td>启发式抽样,可能漏掉关键信号</td></tr>
+<tr><td>Joint-token / Next-Latent</td><td>联合分布 / 表示空间对齐</td><td>仍是 token 粒度,head 无法长程</td></tr>
+<tr><td><strong>FSP (本文)</strong></td><td>1 个 head 预测整段未来的 <em>summary</em></td><td>怎么定义 summary 是新问题</td></tr>
+</tbody>
+</table>
+
+<p>关键 insight:<strong>具体哪个 token 在哪个位置出现</strong> —— 这件事在 100 个 token 之外 <em>本质上是不可预测的</em>(natural language 的天花板就是 entropy 噪声)。把 cross-entropy 算在它们头上,要么把模型逼疯,要么模型干脆放弃学习,只优化前几位的边际分布。这就是 paper 反复强调的"<em>不是所有未来 token 都同等重要</em>"。</p>
+<p>而 summary —— 比如"未来这一段大概会出现哪些 vocabulary 项"或"未来这一段对应一个怎样的语义状态" —— 反而是<em>可学的、可压缩的、对当前预测有用的</em>。</p>
+
+<h3>1.3 为什么这事不平凡 —— 怎么定义和算这个 summary?</h3>
+<p>三个非平凡的地方:</p>
+<ul>
+<li><strong>形式选择</strong>:summary 是 multi-hot 词表向量?池化的 hidden state?VQ code?clustering id?每种都对应不同的 inductive bias 和 loss(BCE / ℓ2 / softmax)。本文实验了两种:BoW + RevLM 的 hidden state。</li>
+<li><strong>计算成本</strong>:如果 summary 需要训一个 teacher,等于 pretraining 成本翻倍。RevLM 跟 forward model 同等大小、同等步数训 —— 这是论文最大的"代价"。但作者论证的是 distillation 经典不算 teacher cost。</li>
+<li><strong>"adaptive vs static"</strong>:hand-crafted summary 把所有未来 token 等权对待,在 sibling discovery 这类<em>"未来里只有一小段相关"</em> 的场景下会被噪声淹没。learned summary 才能自己挑出"对当前预测有用的"那一块。</li>
+</ul>
+
+<div class="nb"><strong>Reverse 不是 reverse Curse 那个 reverse。</strong> RevLM 的目的不是修"A is B → B is A",而是把"未来 → 现在" 的依赖打包成一个向量。它训完只用 hidden state,不当生成模型用。</div>
+
+<h2 id="sec2">2. 背景速查</h2>
+
+<table>
+<thead><tr><th>缩写 / 术语</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td>NTP</td><td>Next-Token Prediction,标准 LM loss</td></tr>
+<tr><td>MTP</td><td>Multi-Token Prediction (Gloeckle 2024),N 个 head 同时预测 t+1..t+N</td></tr>
+<tr><td>DS-MTP</td><td>DeepSeek 变体,head 递归依赖 + 接收 ground-truth 中间 token</td></tr>
+<tr><td>teacher forcing</td><td>训练时喂 ground-truth 前缀给模型;严格定义"模型每接收 1 个 GT token 要预测多少 unseen 的信息"</td></tr>
+<tr><td>FSP</td><td>本文提出的 Future Summary Prediction,1 个 head 预测一个 future summary 向量</td></tr>
+<tr><td>FSP-BoW</td><td>summary = future window 的 multi-hot bag-of-words(可加 tf-idf 权重)</td></tr>
+<tr><td>FSP-RevLM</td><td>summary = 反向 LM 在对应位置的 hidden state(ℓ2 distill)</td></tr>
+<tr><td>RevLM</td><td>Reverse LM,在右到左序列上训的一个 standard transformer LM</td></tr>
+<tr><td>τ</td><td>未来窗口长度(BoW 收集 x<sub>t+2</sub>..x<sub>t+τ</sub>;RevLM 用全部 x<sub>≥t+2</sub>)</td></tr>
+<tr><td>path-star / sibling discovery</td><td>两个 synthetic 任务,分别测 long-horizon plan 与 adaptive future</td></tr>
+</tbody>
+</table>
+
+<details>
+<summary>NTP / MTP 公式刷新</summary>
+<div class="formula">𝓛<sub>NTP</sub> = −Σ<sub>t</sub> log P<sub>θ</sub>(x<sub>t+1</sub> | x<sub>≤t</sub>)</div>
+<div class="formula">𝓛<sub>MTP</sub> = −Σ<sub>t</sub> Σ<sub>k=1..τ</sub> log P<sub>θ</sub>(x<sub>t+k</sub> | x<sub>≤t</sub>)</div>
+<p>注意 MTP 是 marginal 假设(各 head 条件独立),近似真正的联合分布 <code>P(x<sub>t+1..t+τ</sub>|x<sub>≤t</sub>)</code>。</p>
+</details>
+
+<h2 id="sec3">3. FSP 框架:统一所有 future-aware 目标</h2>
+
+<p>FSP 的 loss 形式特别干净:</p>
+<div class="formula">𝓛<sub>FSP</sub> = 𝓛<sub>NTP</sub> + 𝔼[ ℓ<sub>a</sub>( A<sub>φ</sub>(x<sub>≤t</sub>), <strong>a</strong>(t, τ) ) ]</div>
+<p>其中:</p>
+<ul>
+<li><code>A<sub>φ</sub>(x<sub>≤t</sub>) = f<sub>ha</sub>′ ∘ f<sub>s</sub>(x<sub>≤t</sub>)</code> —— 共享 backbone <code>f<sub>s</sub></code>,加一个独立的 auxiliary head <code>f<sub>ha</sub>′</code>;</li>
+<li><code><strong>a</strong>(t, τ)</code> —— "未来 summary",这是 FSP 框架的<em>设计自由度</em>;</li>
+<li><code>ℓ<sub>a</sub></code> —— 取决于 summary 形式:BCE(BoW) 或 ℓ2(hidden state)。</li>
+</ul>
+
+<p>整个 FSP 设计的优雅之处在于:<strong>无论 summary 选什么,辅助 head 永远只有一个</strong>。这跟 MTP "每加一个未来位置就加一个 head" 是结构上的本质区别。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 240" width="100%">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/></marker></defs>
+<!-- backbone -->
+<rect x="40" y="100" width="120" height="50" rx="8" fill="#f3eee0" stroke="#cc4a1b"/>
+<text x="100" y="130" text-anchor="middle" font-size="14">Transformer<tspan x="100" dy="14">backbone f_s</tspan></text>
+<text x="100" y="170" text-anchor="middle" font-size="11" fill="#5b5e66">x_≤t</text>
+<!-- main head -->
+<rect x="220" y="40" width="100" height="42" rx="6" fill="#fff" stroke="#2f6feb"/>
+<text x="270" y="65" text-anchor="middle" font-size="13">main head f_h</text>
+<rect x="350" y="40" width="120" height="42" rx="6" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="410" y="58" text-anchor="middle" font-size="13">softmax</text>
+<text x="410" y="75" text-anchor="middle" font-size="11" fill="#5b5e66">→ x_{t+1}</text>
+<!-- aux head -->
+<rect x="220" y="170" width="100" height="42" rx="6" fill="#fff" stroke="#cc4a1b"/>
+<text x="270" y="195" text-anchor="middle" font-size="13">aux head f_ha'</text>
+<rect x="350" y="170" width="160" height="42" rx="6" fill="#fef3e9" stroke="#cc4a1b"/>
+<text x="430" y="188" text-anchor="middle" font-size="13">predict a(t,τ)</text>
+<text x="430" y="204" text-anchor="middle" font-size="10" fill="#5b5e66">BoW / RevLM hidden</text>
+<!-- arrows -->
+<line x1="160" y1="115" x2="220" y2="60" stroke="#5b5e66" marker-end="url(#ar)"/>
+<line x1="160" y1="135" x2="220" y2="190" stroke="#5b5e66" marker-end="url(#ar)"/>
+<line x1="320" y1="61" x2="350" y2="61" stroke="#5b5e66" marker-end="url(#ar)"/>
+<line x1="320" y1="191" x2="350" y2="191" stroke="#5b5e66" marker-end="url(#ar)"/>
+<!-- target box -->
+<rect x="540" y="170" width="160" height="42" rx="6" fill="#fffbe5" stroke="#d2a32a" stroke-dasharray="3 3"/>
+<text x="620" y="188" text-anchor="middle" font-size="12">target a(t,τ)</text>
+<text x="620" y="204" text-anchor="middle" font-size="10" fill="#5b5e66">(BCE 或 ℓ2 比对)</text>
+<line x1="510" y1="191" x2="540" y2="191" stroke="#5b5e66" stroke-dasharray="2 2"/>
+<text x="40" y="20" font-size="13" fill="#1f2024" font-weight="600">FSP 架构:1 个 backbone + 2 个 head(主+aux)</text>
+</svg>
+<figcaption>FSP 架构。Backbone 共享;主 head 走 NTP,aux head 走 summary。推理时 aux head 直接丢掉。这跟 MTP 的"k 个 head 平行打"形成强烈对比 —— 后者 head 数受限于实际可承担的参数预算。</figcaption>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" width="100%">
+<text x="360" y="20" text-anchor="middle" font-size="13" font-weight="600">NTP / MTP / FSP 的目标空间对比</text>
+<!-- Row 1 NTP -->
+<text x="20" y="55" font-size="13" fill="#cc4a1b" font-weight="600">NTP</text>
+<rect x="80" y="40" width="50" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="105" y="60" text-anchor="middle" font-size="12">x_{t+1}</text>
+<text x="160" y="60" font-size="11" fill="#5b5e66">— 1 个具体 token</text>
+<!-- Row 2 MTP -->
+<text x="20" y="105" font-size="13" fill="#cc4a1b" font-weight="600">MTP</text>
+<rect x="80" y="90" width="50" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="105" y="110" text-anchor="middle" font-size="12">x_{t+1}</text>
+<rect x="135" y="90" width="50" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="160" y="110" text-anchor="middle" font-size="12">x_{t+2}</text>
+<rect x="190" y="90" width="50" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="215" y="110" text-anchor="middle" font-size="12">x_{t+3}</text>
+<rect x="245" y="90" width="50" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="270" y="110" text-anchor="middle" font-size="12">x_{t+4}</text>
+<text x="310" y="110" font-size="11" fill="#5b5e66">— k 个具体 token,k 个 head(短视野)</text>
+<!-- Row 3 FSP-BoW -->
+<text x="20" y="170" font-size="13" fill="#cc4a1b" font-weight="600">FSP-BoW</text>
+<rect x="80" y="150" width="50" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="105" y="170" text-anchor="middle" font-size="12">x_{t+1}</text>
+<g transform="translate(135,150)">
+  <rect width="240" height="30" fill="#fef3e9" stroke="#cc4a1b" stroke-dasharray="3 3"/>
+  <text x="120" y="20" text-anchor="middle" font-size="12">multi-hot ∈ {0,1}^V (可加 tf-idf)</text>
+</g>
+<text x="385" y="170" font-size="11" fill="#5b5e66">— 1 个 V 维向量,丢位置</text>
+<!-- Row 4 FSP-RevLM -->
+<text x="20" y="235" font-size="13" fill="#cc4a1b" font-weight="600">FSP-RevLM</text>
+<rect x="80" y="215" width="50" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="105" y="235" text-anchor="middle" font-size="12">x_{t+1}</text>
+<g transform="translate(135,215)">
+  <rect width="240" height="30" fill="#fef3e9" stroke="#cc4a1b"/>
+  <text x="120" y="20" text-anchor="middle" font-size="12">RevLM hidden ∈ ℝ^d (语义)</text>
+</g>
+<text x="385" y="235" font-size="11" fill="#5b5e66">— 1 个 d 维向量,自适应</text>
+</svg>
+<figcaption>四种目标的"形状"差异。NTP 是一个分类 logit;MTP 是 k 个分类 logit;BoW 是 V 维 multi-hot 上做 BCE;RevLM 是 d 维实值上做 ℓ2 distill。target 越靠下,信息越压缩、越偏语义、对位置越无感。</figcaption>
+</div>
+
+<h2 id="sec4">4. FSP-BoW: hand-crafted summary</h2>
+
+<p>FSP-BoW 是最简单的实现:在位置 <code>t</code>,统计未来窗口 <code>{x<sub>t+2</sub>, …, x<sub>t+τ</sub>}</code> 中出现的所有 token id,做成一个 V 维 multi-hot 向量。aux head 输出 V 维 logits,跟它做 reweighted BCE:</p>
+<div class="formula">ℓ<sub>a</sub> = −Σ<sub>i=1..V</sub> w(i) [ a<sub>i</sub> log σ(z<sub>i</sub>) + (1−a<sub>i</sub>) log(1−σ(z<sub>i</sub>)) ]</div>
+<p>权重 <code>w(i)</code> 用 <strong>tf-idf</strong>:罕见的内容词权重大,常见的虚词权重小 —— 不然 "the / , / 's" 这种 token 把 BCE 的信号埋了。</p>
+
+<h4>Worked example:τ = 12 的某段代码</h4>
+<p>假设当前位置 t,未来 12 个 token 是:</p>
+<pre>x_{t+2..t+13} = ["def", " sum", "(", "a", ",", " b", ")", ":", " return", " a", " +", " b"]</pre>
+<p>BoW 向量 <code>a</code> ∈ {0,1}<sup>V</sup>:在 vocab id 对应这 12 个 unique token 的位置上是 1,其余是 0(注意 <code>a</code>, <code>b</code> 各只出现 2 次,但 multi-hot 不计数,只标 0/1)。tf-idf 后,<code>def, return, +</code> 这种"语义重"的 token 拿大权重,<code>(, ,, :</code>拿小权重。</p>
+<p>aux head 看到 <code>x<sub>≤t</sub></code> 输出 V 维 logit,要在所有这 ~9 个位置上 sigmoid 接近 1、其余位置 sigmoid 接近 0。</p>
+
+<h4>反向论证:为什么不直接预测排序的 token 序列?</h4>
+<p>因为<strong>位置在远期是不可预测的</strong> —— 同样语义的代码可以是 <code>def add(x,y): return x+y</code>,排序错了 cross-entropy 直接爆炸。BoW 把位置抽掉,只保留"集合",这才让远期 supervision 变 trainable。τ 可以拉到 100(table 3),信号还在。</p>
+
+<h2 id="sec5">5. FSP-RevLM: learned summary via reverse LM</h2>
+
+<p>RevLM 是个独立训练的 transformer LM,但它喂的是 <strong>右到左</strong> 的序列。也就是说它在学:</p>
+<div class="formula">Q<sub>ψ</sub>(x<sub>t+1</sub> | x<sub>≥t+2</sub>) ← 给定后缀,预测它前面那个 token</div>
+<p>训完之后,RevLM 在位置 <code>t+2</code> 输出的 hidden state <code>g<sub>h</sub> ∘ g<sub>s</sub>(x<sub>≥t+2</sub>)</code> 自然就编码了"从 t+2 到结束这一整段后缀的语义压缩"。这就是 forward model 的 aux head 要拟合的目标:</p>
+<div class="formula">ℓ<sub>a</sub> = ‖ A<sub>φ</sub>(x<sub>≤t</sub>) − g<sub>h</sub>∘g<sub>s</sub>(x<sub>≥t+2</sub>) ‖<sub>2</sub><sup>2</sup></div>
+<p>注意它做的是 <strong>representation distillation</strong> —— 老师不是另一个 forward LM,而是结构对偶的 reverse LM。这跟 next-latent prediction (Teoh 2025) 有相似 flavor,但 next-latent 拿的是 forward 自己的未来 hidden state(self-distillation),FSP-RevLM 拿的是显式的 right-to-left teacher。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" width="100%">
+<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/></marker></defs>
+<text x="360" y="20" text-anchor="middle" font-size="13" font-weight="600">FSP-RevLM 训练 pipeline</text>
+
+<!-- forward LM -->
+<g>
+<text x="20" y="60" font-size="13" font-weight="600" fill="#2f6feb">Forward LM</text>
+<rect x="100" y="50" width="40" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="120" y="70" text-anchor="middle" font-size="11">x_1</text>
+<rect x="145" y="50" width="40" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="165" y="70" text-anchor="middle" font-size="11">x_2</text>
+<rect x="190" y="50" width="40" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="210" y="70" text-anchor="middle" font-size="11">…</text>
+<rect x="235" y="50" width="40" height="30" fill="#fef3e9" stroke="#cc4a1b" stroke-width="2"/>
+<text x="255" y="70" text-anchor="middle" font-size="11">x_t</text>
+<rect x="280" y="50" width="40" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="300" y="70" text-anchor="middle" font-size="11">x_{t+1}</text>
+<rect x="325" y="50" width="50" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="350" y="70" text-anchor="middle" font-size="11">x_{t+2}</text>
+<rect x="380" y="50" width="40" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="400" y="70" text-anchor="middle" font-size="11">…</text>
+<rect x="425" y="50" width="40" height="30" fill="#e9f0fe" stroke="#2f6feb"/>
+<text x="445" y="70" text-anchor="middle" font-size="11">x_T</text>
+<text x="115" y="100" font-size="11" fill="#5b5e66">prefix x_≤t</text>
+<line x1="100" y1="95" x2="275" y2="95" stroke="#2f6feb"/>
+</g>
+
+<!-- aux head output -->
+<rect x="180" y="135" width="160" height="36" rx="6" fill="#fff" stroke="#cc4a1b"/>
+<text x="260" y="158" text-anchor="middle" font-size="12">A_φ(x_≤t) ∈ ℝ^d</text>
+<line x1="255" y1="80" x2="255" y2="135" stroke="#5b5e66" marker-end="url(#ar2)"/>
+
+<!-- ell2 -->
+<text x="360" y="158" font-size="22" fill="#cc4a1b">⇄</text>
+<text x="360" y="178" text-anchor="middle" font-size="11" fill="#5b5e66">ℓ2 distill</text>
+
+<!-- Reverse LM -->
+<rect x="380" y="135" width="200" height="36" rx="6" fill="#fff" stroke="#1f7a4a"/>
+<text x="480" y="158" text-anchor="middle" font-size="12">g_h∘g_s(x_≥t+2) ∈ ℝ^d</text>
+
+<g>
+<text x="20" y="220" font-size="13" font-weight="600" fill="#1f7a4a">Reverse LM (右到左)</text>
+<rect x="425" y="200" width="40" height="30" fill="#e9fef3" stroke="#1f7a4a"/>
+<text x="445" y="220" text-anchor="middle" font-size="11">x_T</text>
+<rect x="380" y="200" width="40" height="30" fill="#e9fef3" stroke="#1f7a4a"/>
+<text x="400" y="220" text-anchor="middle" font-size="11">…</text>
+<rect x="325" y="200" width="50" height="30" fill="#e9fef3" stroke="#1f7a4a" stroke-width="2"/>
+<text x="350" y="220" text-anchor="middle" font-size="11">x_{t+2}</text>
+<rect x="280" y="200" width="40" height="30" fill="#e9fef3" stroke="#1f7a4a"/>
+<text x="300" y="220" text-anchor="middle" font-size="11">x_{t+3}</text>
+<rect x="235" y="200" width="40" height="30" fill="#e9fef3" stroke="#1f7a4a"/>
+<text x="255" y="220" text-anchor="middle" font-size="11">…</text>
+<text x="280" y="250" font-size="11" fill="#5b5e66">suffix x_≥t+2 (反序训)</text>
+</g>
+<line x1="350" y1="200" x2="480" y2="171" stroke="#1f7a4a" marker-end="url(#ar2)"/>
+
+<text x="40" y="270" font-size="11" fill="#5b5e66">关键:RevLM 与 forward 同尺寸、同步数训。它的 hidden state 提供 supervision,推理时不参与。</text>
+</svg>
+<figcaption>FSP-RevLM 的核心 pipeline。RevLM 在反向序列上独立预训练得到 hidden state,作为 forward model aux head 的拟合目标。这是一个 representation distillation,不是 logit distillation。</figcaption>
+</div>
+
+<h4>Worked example:跟踪一个具体位置</h4>
+<p>令一段序列长 T = 8192,选 t = 3000:</p>
+<ul>
+<li>Forward 路径:x<sub>≤3000</sub> → backbone f<sub>s</sub>(8B Llama3,d = 4096)→ 主 head 输出 logit∈ℝ<sup>V</sup> 预测 x<sub>3001</sub>;aux head <code>f<sub>ha</sub>′</code> 输出 ∈ ℝ<sup>4096</sup>。</li>
+<li>RevLM 路径:对同一序列做 reverse,在 reverse 序列里 x<sub>3002</sub> 是某个 prefix 的开头,RevLM 在那个位置的最后一层 hidden state 就是要拟合的 target。形状 ∈ ℝ<sup>4096</sup>。</li>
+<li>Loss:<code>‖aux − target‖²</code> 加到 NTP loss 上,coef 是固定的 1。</li>
+</ul>
+
+<h4>反向论证:为什么 reverse 训而不是 forward 自蒸馏?</h4>
+<p>如果用 forward 自己生成 target(像 next-latent prediction),target 还是带着 NTP 的 teacher-forcing 偏差;它习得的"未来"是被 ground-truth 引导出来的,可能仍然是 shortcut。RevLM 反向训完全独立 —— 它在 t+2 位置的 hidden state 已经"看过"完整 suffix,encode 的是<em>真实</em> suffix 的语义,不带 forward 方向的捷径。</p>
+
+<h2 id="sec6">6. 同一位置,四种目标 worked example</h2>
+
+<p>把同一句拿出来对比,最能看清四种 objective 的差异。</p>
+
+<p>假设序列是 (Python 注释):</p>
+<pre># compute the sum of the list and return it
+def total(lst): return sum(lst)</pre>
+<p>取 t 在 <code>def total(lst):</code> 的冒号位置(即 x<sub>t</sub> = <code>:</code>)。</p>
+
+<table>
+<thead><tr><th>方法</th><th>target</th><th>aux head 数</th><th>loss</th></tr></thead>
+<tbody>
+<tr><td>NTP</td><td>x<sub>t+1</sub> = <code>" return"</code></td><td>0</td><td>CE on V</td></tr>
+<tr><td>MTP (k=4)</td><td>x<sub>t+1..t+4</sub> = <code>" return", " sum", "(", "lst"</code></td><td>4</td><td>4× CE on V</td></tr>
+<tr><td>FSP-BoW (τ=12)</td><td>multi-hot 集合 {return, sum, (, lst, )}(忽略位置)</td><td>1</td><td>BCE on V</td></tr>
+<tr><td>FSP-RevLM</td><td>RevLM 在位置 t+2 的 hidden state ∈ ℝ<sup>4096</sup>,大约编码"这段是个返回 lst 求和的函数体"</td><td>1</td><td>ℓ2 on ℝ<sup>d</sup></td></tr>
+</tbody>
+</table>
+
+<p>注意从上到下,target 越来越脱离"具体哪个 token 出现在哪",越来越靠近"这一段的语义角色"。FSP-RevLM 那一行的 target 描述本身就有信息论意义:它压缩了 dim < V × τ 的 token 序列到 d=4096 维。</p>
+
+<h2 id="sec7">7. 合成实验:验证两个 thesis</h2>
+
+<h3>7.1 Path-Star Graph: 长视野 summary 重要</h3>
+<p>任务:输入是个 DAG 的邻接表 + start 节点 + end 节点;模型生成从 start 到 end 的完整路径。Bachmann & Nagarajan 的经典发现:NTP 学不会全程 plan,只学到"看 prefix 里 v<sub>i</sub> 的下一跳"的捷径。</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 220" width="100%">
+<text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600">Path-star 上的准确率(degree=2,seeds=5)</text>
+<!-- bars -->
+<g font-size="11">
+<text x="80" y="200" text-anchor="middle">NTP</text>
+<rect x="60" y="180" width="40" height="0" fill="#a8353e"/>
+<rect x="60" y="155" width="40" height="25" fill="#a8353e"/>
+<text x="80" y="148" text-anchor="middle">.45</text>
+
+<text x="180" y="200" text-anchor="middle">MTP</text>
+<rect x="160" y="120" width="40" height="60" fill="#cc4a1b"/>
+<text x="180" y="113" text-anchor="middle">.66</text>
+
+<text x="280" y="200" text-anchor="middle">MTP+2 head</text>
+<rect x="260" y="60" width="40" height="120" fill="#cc4a1b"/>
+<text x="280" y="53" text-anchor="middle">.89</text>
+
+<text x="380" y="200" text-anchor="middle">MTP+3 head</text>
+<rect x="360" y="32" width="40" height="148" fill="#cc4a1b"/>
+<text x="380" y="25" text-anchor="middle">.98</text>
+
+<text x="480" y="200" text-anchor="middle">FSP-BoW</text>
+<rect x="460" y="30" width="40" height="150" fill="#1f7a4a"/>
+<text x="480" y="23" text-anchor="middle">1.00</text>
+
+<text x="540" y="155" font-size="11" fill="#5b5e66">G(2,6)</text>
+</g>
+<!-- G(2,8) -->
+<text x="640" y="200" text-anchor="middle" font-size="11">G(2,8) MTP-4head: .48 ; FSP-BoW: 1.00</text>
+</svg>
+<figcaption>MTP 加 head 在 G(2,6) 还能撑;G(2,8) 即使 4 个 head 也卡死在 .48。FSP-BoW 把整段 path 的 BoW 当 supervision,直接 1.00。这就是"长视野 summary"压倒"加 head"的最直观证据。</figcaption>
+</div>
+
+<h3>7.2 Sibling Discovery: adaptive summary 重要</h3>
+<p>任务被改造成:序列由多个独立 component 拼接,每个 component 是 [S<sub>1</sub><sup>i</sup>, S<sub>2</sub><sup>i</sup>, S<sub>3</sub><sup>i</sup>, P<sup>i</sup>]。给定当前 component 的部分 prefix,模型要预测同 component 的 sibling —— 但<em>未来里有大段无关 component 的 token</em>。</p>
+
+<p>结果(收敛速度,越低越快):</p>
+<ul>
+<li><strong>FSP-BoW</strong>:components 数 ≤ 6 时优于 NTP,>6 时优势消失甚至变差 —— 因为 BoW 把无关 component 的 token 当 supervision,引入噪声。</li>
+<li><strong>FSP-RevLM</strong>:全程优于 NTP,因为 RevLM 自己学会 attend 到当前 component 内的 token(论文 figure 7 的 attention 可视化证明了这点 —— heads 表现出 intra-component 模式)。</li>
+</ul>
+
+<p>这是 "adaptive vs static summary" 的 cleanest 实验。</p>
+
+<h2 id="sec8">8. 真实 pretraining 结果</h2>
+
+<h3>8.1 8B / 1T tokens 主表</h3>
+
+<table>
+<thead><tr><th>Task</th><th>NTP</th><th>MTP</th><th>DS-MTP</th><th>FSP-RevLM</th></tr></thead>
+<tbody>
+<tr><td>ARC-Easy</td><td>0.718</td><td>0.736</td><td>0.617</td><td><strong class="ok">0.766</strong></td></tr>
+<tr><td>ARC-Challenge</td><td>0.531</td><td>0.552</td><td>0.426</td><td><strong class="ok">0.559</strong></td></tr>
+<tr><td>GSM8K</td><td><strong>0.716</strong></td><td>0.678</td><td>0.704</td><td>0.705</td></tr>
+<tr><td>MATH</td><td>0.342</td><td>0.309</td><td>0.335</td><td><strong class="ok">0.351</strong></td></tr>
+<tr><td>MBPP</td><td>0.657</td><td>0.672</td><td>0.678</td><td><strong class="ok">0.683</strong></td></tr>
+<tr><td>HumanEval+</td><td>0.478</td><td>0.541</td><td>0.526</td><td>0.541</td></tr>
+</tbody>
+</table>
+
+<p>解读:</p>
+<ul>
+<li><strong>FSP-RevLM 在 6 个 task 里 4 个最强,1 个并列</strong>。GSM8K 是唯一掉给 NTP 的(差 1.1pp,在 std error 内)。</li>
+<li>DS-MTP 在 8B 上 <em>反而崩了</em> —— ARC-Easy 0.617 比 NTP 还差 10pp。论文没正面解释,推测跟 DS-MTP 把 ground-truth 中间 token 喂给 aux head 有关,在小窗口 + 大模型上可能反而引入了和 main head 冲突的信号。</li>
+<li>MTP 在 GSM8K 上明显倒退(0.678 vs 0.716),说明<strong>非"未来感知"目标并非总能赢 NTP</strong>;FSP-RevLM 至少没退步。</li>
+</ul>
+
+<h3>8.2 future summary 的形式 ablation (8B, table 3)</h3>
+
+<table>
+<thead><tr><th>Method</th><th>MATH</th><th>GSM8K</th><th>ARC-Easy</th></tr></thead>
+<tbody>
+<tr><td>MTP (baseline)</td><td>0.309</td><td>0.678</td><td>0.736</td></tr>
+<tr><td>MTP-Skip τ=4 (random sampling)</td><td>0.277</td><td>0.639</td><td>0.722</td></tr>
+<tr><td>MTP-Skip τ=32</td><td class="no">0.271</td><td class="no">0.598</td><td class="no">0.564</td></tr>
+<tr><td>FSP-BoW τ=12</td><td>0.331</td><td>0.699</td><td>0.737</td></tr>
+<tr><td>FSP-BoW τ=100</td><td>0.331</td><td><strong>0.714</strong></td><td>0.662</td></tr>
+<tr><td>FSP-RevLM</td><td><strong>0.351</strong></td><td>0.705</td><td><strong>0.766</strong></td></tr>
+</tbody>
+</table>
+
+<p>解读:</p>
+<ul>
+<li><strong>"随机偏移采样未来"是死路</strong> —— MTP-Skip 全线劣于 MTP,τ 越大越差(可能因为 head 被噪声目标拉偏)。这是对 MuToR / L-MTP / TRELAWNEY 这类工作的直接打击。</li>
+<li><strong>BoW 真的 work</strong>。τ=12 → 100 在 GSM8K 上还涨,但 ARC-Easy 在 τ=100 时反而降到 0.662 —— BoW 在长窗口下开始把无关词背景当 signal 了,这正好印证 sibling discovery 那个 thesis。</li>
+<li>FSP-RevLM 全面最强,印证 adaptive summary 的优势。</li>
+</ul>
+
+<h3>8.3 Pass@K diversity</h3>
+<p>论文的一个迷人副产物:在 GSM8K / MATH 上,FSP-RevLM 的 pass@K 曲线随 K 上升幅度比 MTP 更陡 —— 也就是说 base model 的<strong>解的多样性</strong>更高。</p>
+<div class="fig">
+<svg viewBox="0 0 600 200" width="100%">
+<text x="300" y="20" text-anchor="middle" font-size="13" font-weight="600">Pass@K 曲线示意 (MATH)</text>
+<line x1="60" y1="160" x2="540" y2="160" stroke="#5b5e66"/>
+<line x1="60" y1="160" x2="60" y2="40" stroke="#5b5e66"/>
+<text x="60" y="180" text-anchor="middle" font-size="11">K=1</text>
+<text x="180" y="180" text-anchor="middle" font-size="11">4</text>
+<text x="300" y="180" text-anchor="middle" font-size="11">8</text>
+<text x="540" y="180" text-anchor="middle" font-size="11">16</text>
+<text x="40" y="160" text-anchor="end" font-size="11">.10</text>
+<text x="40" y="100" text-anchor="end" font-size="11">.25</text>
+<text x="40" y="50" text-anchor="end" font-size="11">.40</text>
+<!-- MTP: flatter -->
+<polyline points="60,140 180,118 300,108 540,98" stroke="#cc4a1b" fill="none" stroke-width="2"/>
+<text x="540" y="92" font-size="11" fill="#cc4a1b">MTP</text>
+<!-- FSP -->
+<polyline points="60,135 180,108 300,90 540,55" stroke="#1f7a4a" fill="none" stroke-width="2"/>
+<text x="540" y="49" font-size="11" fill="#1f7a4a">FSP-RevLM</text>
+</svg>
+<figcaption>FSP-RevLM 的 pass@16 显著高于 pass@1,说明 base model 的解空间更广。论文据此推测 RL post-training 可以从 FSP base 上拿到更高的天花板(Yue 2025 显示 RL 提升上限被 base coverage 框死)。</figcaption>
+</div>
+
+<h3>8.4 数据受限场景:FSP 优势放大</h3>
+<p>同 1T compute,但只用 50B unique tokens × 20 epochs。</p>
+<ul>
+<li>1 epoch 设定下:FSP-RevLM 略优,DS-MTP 落后。</li>
+<li>20 epoch (data-constrained) 设定下:<strong>所有 future-aware 方法 (MTP/DS-MTP/FSP) 全部 > NTP</strong> —— NTP 是 overfit 最快的那个。这跟 diffusion-LM 在 data-constrained 场景的表现是同方向的:更"约束式"的 supervision 在重复数据上 generalize 更好。</li>
+</ul>
+
+<h2 id="sec9">9. 与同类工作对比</h2>
+
+<table>
+<thead><tr><th>方法</th><th>未来 supervision 形式</th><th>aux head 数</th><th>关键差异</th></tr></thead>
+<tbody>
+<tr><td>MTP (Gloeckle 2024) <a href="14_MTP_Gloeckle_2404.19737.html">[note]</a></td><td>k 个固定偏移 token</td><td>k</td><td>FSP 的起点,但短视野</td></tr>
+<tr><td>DS-MTP (DeepSeek-V3)</td><td>k 个 token + 中间 GT 反馈</td><td>k</td><td>head 递归依赖,在 8B 上反而崩</td></tr>
+<tr><td>L-MTP (Liu 2025)</td><td>跳跃式非相邻 future token</td><td>k</td><td>启发式抽样,FSP 表 3 的 MTP-Skip 已证明这条路次于 BoW</td></tr>
+<tr><td>MuToR (Gerontopoulos 2025)</td><td>register tokens 预测随机偏移 token</td><td>无新 head(用 register)</td><td>同上,heuristic 抽样</td></tr>
+<tr><td>TRELAWNEY (Thankaraj 2025)</td><td>训练数据里插入 future window 块</td><td>无新 head</td><td>用数据增强代替 head;仍是 token 粒度</td></tr>
+<tr><td>NCP / Next-latent (Teoh 2025) <a href="12_NCP_2602.08984.html">[NCP note]</a></td><td>forward 自己未来位置的 hidden state</td><td>1</td><td>self-distill;FSP 用 reverse teacher 而非 forward</td></tr>
+<tr><td>SemFormer (Yin 2024)</td><td>planning token 预测 future autoencoder embedding</td><td>1 个,但仅在 planning 位</td><td>位置稀疏 + 用 autoencoder(L-to-R)而非 reverse LM</td></tr>
+<tr><td>BST (Hu 2024) / Twin Networks (Serdyuk 2017)</td><td>对齐 forward/reverse hidden state</td><td>—</td><td>FSP 是 distill,不是 weight-sharing 或 dual encoder</td></tr>
+<tr><td>Meet-in-the-Middle (Nguyen 2023)</td><td>forward/reverse 输出分布对齐</td><td>—</td><td>需要两个分布严格匹配;FSP 不要求</td></tr>
+<tr><td>ProphetNet (Qi 2020)</td><td>n-gram via shared self-attn</td><td>—</td><td>仍逐 token 监督 + 保留位置</td></tr>
+<tr><td><strong>FSP (本文)</strong></td><td>1 个 vector summary(BoW 或 RevLM hidden)</td><td><strong>1</strong></td><td>统一框架,可换 summary 形式;long horizon + adaptive</td></tr>
+</tbody>
+</table>
+
+<div class="nb"><strong>跟 NCP 的关系特别值得说</strong>:NCP/Next-latent prediction 也是把 token target 换成 hidden representation,但它的 teacher 是 forward 自己 —— 等于让模型对齐自己未来的 hidden state。这种 self-distill 仍然带 forward direction 的 teacher-forcing 偏差。FSP-RevLM 的 reverse teacher 在结构上摆脱了这种偏差,这是论文最强的结构性论点之一。</div>
+
+<h2 id="sec10">10. 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+<li><strong>RevLM 是 2× 训练成本</strong>。论文用"compute-rich, data-limited"justify 这件事,但实际部署里 doubling pretraining FLOPs 是巨大的代价。是否能用<em>更小的 RevLM teacher</em>(比如 forward 1/4 大小)拿到 80% 的收益?这是最显然的 follow-up。</li>
+<li><strong>3B vs 8B scaling</strong>:3B 上 DS-MTP 反而比 FSP-RevLM 强 —— 在 ARC、HumanEval+、MBPP 上 DS-MTP 都更高。FSP-RevLM 的优势是<em>跟着 scale 涨</em>。8B 之外会怎样?70B / 405B 是否会更显眼,还是会被新的 bottleneck 卡住?</li>
+<li><strong>BoW 的 τ 选择敏感</strong>:τ=12 在 ARC-Easy 是 0.737,τ=100 跌到 0.662。说明 hand-crafted summary 真的是要看 task / data 调的;FSP-RevLM 优势之一就是不用挑 τ(用整段 suffix)。</li>
+<li><strong>RevLM 学到了什么?</strong> Figure 7 给了 attention 可视化(intra-component subgroup),但没有 mechanistic 验证 hidden state 真的编码了"未来语义"而非"reverse direction 的 syntactic 残影"。linear probe / activation patching 是 paper 自己点名的 follow-up。</li>
+<li><strong>跟 RL post-training 的衔接</strong>:论文猜测 base model coverage 高 → RL 上限高,但没做实验证明。这是非常有 leverage 的实验,如果在 GSM8K 上 RL on FSP-base 真的拿到比 RL-on-NTP-base 更高的天花板,FSP 的实用价值就坐实了。</li>
+<li><strong>summary 形式还有什么没被尝试的?</strong> VQ code / clustering id / contrastive embedding(SimCLR-style 学未来一段的 representation)都可以塞进 FSP 框架里。论文只测了 BoW + RevLM 两点。</li>
+</ul>
+
+<h4>follow-up 实验清单</h4>
+<ol>
+<li>用 forward 1/4 size 的 RevLM 重做 FSP-RevLM,看 8B 上能保留多少 gain。</li>
+<li>对 RevLM hidden state 做 linear probe:能预测多少 future bag-of-words / future entity?</li>
+<li>RL on FSP-base vs RL on NTP-base,直接对比 post-training 上限。</li>
+<li>把 BoW 替换成 contrastive learning 的 future embedding,看是否能拿到 BoW 的鲁棒性 + RevLM 的 adaptive。</li>
+<li>组合 FSP + DS-MTP 的"slight teacher forcing":aux head 既看中间 GT 又预测 summary。</li>
+<li>在 long-context (32K+) 上的表现 —— RevLM 的优势在长依赖上应该更明显。</li>
+</ol>
+
+<h2 id="sec11">11. Memory points</h2>
+
+<div class="kv"><span class="pill">立场</span><strong>正确的未来 supervision 是 summary 而不是 token。</strong>预测 token 在远期是噪声(位置不可预测),summary(BoW 或 hidden state)绕开这点。</div>
+<div class="kv"><span class="pill">架构</span>FSP = 1 个 backbone + 1 个 main head (NTP) + 1 个 aux head (summary)。永远 1 个 aux head,不管未来窗口多长。</div>
+<div class="kv"><span class="pill">两种 summary</span>BoW = multi-hot ∈ {0,1}<sup>V</sup> + tf-idf reweighted BCE;RevLM = 反向 LM hidden state ∈ ℝ<sup>d</sup> + ℓ2 distill。</div>
+<div class="kv"><span class="pill">RevLM</span>反向 LM 跟 forward 同尺寸同步数训,推理时丢掉。代价 ≈ 2× pretraining FLOPs。</div>
+<div class="kv"><span class="pill">两个 thesis</span>(1) 长视野 summary 重要 → path-star 上 BoW 1.00 vs MTP-4head 0.48;(2) adaptive summary 重要 → sibling discovery 上 BoW 在 components>6 时失败,RevLM 全程胜。</div>
+<div class="kv"><span class="pill">8B 主结果</span>FSP-RevLM 在 ARC-Easy +5pp / MATH +0.9pp / MBPP +2.6pp 优于 NTP,4/6 任务最强。GSM8K 唯一略输 NTP。</div>
+<div class="kv"><span class="pill">反例 1</span>"随机偏移采样未来 token" (MTP-Skip / MuToR / L-MTP 这条路)在 8B 实验里全线劣于 vanilla MTP,τ 越大越差。</div>
+<div class="kv"><span class="pill">反例 2</span>DS-MTP 在 8B / 1T 上 ARC-Easy 崩到 0.617 (比 NTP 差 10pp),论文没解释,但说明 DS-MTP 的 GT 中间反馈在大模型上可能反作用。</div>
+<div class="kv"><span class="pill">scaling</span>FSP-RevLM 优势 3B → 8B 在变大;3B 上 DS-MTP 还更强。FSP 是吃 scale 的方法。</div>
+<div class="kv"><span class="pill">data-constrained</span>50B unique × 20 epochs 时,所有 future-aware 全 > NTP —— NTP 在重复数据上 overfit 最快。</div>
+<div class="kv"><span class="pill">diversity</span>FSP-RevLM 的 pass@K 曲线更陡 → base model 解空间更广 → RL post-training 上限更高(未直接验证)。</div>
+<div class="kv"><span class="pill">实现要点</span>aux head 仅 train-time;推理走纯 NTP head。BoW 用 tf-idf,τ ∈ {12, 100};RevLM 用 last layer 的 hidden state。</div>
+
+</main>
+</body>
+</html>

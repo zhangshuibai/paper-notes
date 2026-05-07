@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · L-MTP: Leap Multi-Token Prediction (2505.17505)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>L-MTP: Leap Multi-Token Prediction Beyond Adjacent Context</h1>
+<div class="meta">
+  Xiaohao Liu, Xiaobo Xia 等 · NUS / HIT / Tsinghua / CAS / CSU · NeurIPS 2025 · arXiv:2505.17505<br>
+  关键词: multi-token prediction · leap mechanism · self-speculative decoding · tree attention · long-range dependency
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把标准 MTP 的 <em>adjacent</em> 多 token 预测 (t+1, t+2, ..., t+n) 改成<strong>leap</strong> (t+1, t+3, t+5, ..., t+k(n−1)+1),逼模型跳过短程相关、看更远;配合 "looking backward" 的 self-speculative decoding 把跳过的位置从历史预测里捡回来。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">k=2, n=4</div><div class="l">默认 leap stride / heads</div></div>
+    <div class="stat"><div class="n">+22%</div><div class="l">在 Medusa 上换 L-MTP decoding 的相对加速</div></div>
+    <div class="stat"><div class="n">~4×</div><div class="l">配合 spec decoding 端到端最高加速</div></div>
+  </div>
+  <p><strong>立场:</strong>论文卖点是 "broader + faster";真正新意在 <em>训练目标的 leap 化</em> 和 <em>looking backward 解码</em> 两个组件。性能提升弱(常常和 MTP 持平 / 互有胜负),工程上更像"换一个 supervision pattern 顺带加 22% 速度"的小补丁,不是革命。也可参见同系列:<a href="14_MTP_Gloeckle_2404.19737.html">Gloeckle 2024 标准 MTP 精读</a>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:adjacent MTP 不够,为什么要 leap</a></li>
+    <li><a href="#sec2">背景速查 (NTP / MTP / 标准 self-spec)</a></li>
+    <li><a href="#sec3">L-MTP 训练目标:把 supervision 打散到 leap 位置</a></li>
+    <li><a href="#sec4">Looking backward 解码 + tree attention</a></li>
+    <li><a href="#sec5">理论:attenuation / consistency 与加速上界</a></li>
+    <li><a href="#sec6">实验:性能 / 加速 / acceptance / 数据规模</a></li>
+    <li><a href="#sec7">与同类工作对比 (Gloeckle / DeepSeek-V3 / MuToR / FSP)</a></li>
+    <li><a href="#sec8">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:adjacent MTP 不够,为什么要 leap</h2>
+
+<h3>1.1 历史脉络:从 NTP 到 MTP,再到 leap</h3>
+
+<p>语言模型主流目标一直是 <strong>NTP (next-token prediction)</strong>:每个 t 位置只学 p(x<sub>t+1</sub>|x≤t)。简单、一致,但有个老问题:它把所有"未来"压缩到下一个 token 上,模型自然倾向于<strong>最容易预测的局部相关</strong>(prefix → 紧邻 suffix),长程结构反而被边缘化。</p>
+
+<p>2020 年 ProphetNet (Qi 等) 提出 <em>n-step-ahead prediction</em>;2024 年 Gloeckle (本论文最直接的前作) 把它推到 LLM 预训练:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <!-- title -->
+    <text x="350" y="18" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">三种 prediction paradigm 在位置 t 同时预测什么</text>
+
+    <!-- positions row label -->
+    <text x="50" y="55" font-size="12" font-weight="600" fill="#5b5e66">位置:</text>
+    <g font-size="11" fill="#5b5e66" text-anchor="middle">
+      <text x="120" y="55">t</text>
+      <text x="180" y="55">t+1</text>
+      <text x="240" y="55">t+2</text>
+      <text x="300" y="55">t+3</text>
+      <text x="360" y="55">t+4</text>
+      <text x="420" y="55">t+5</text>
+      <text x="480" y="55">t+6</text>
+      <text x="540" y="55">t+7</text>
+    </g>
+    <!-- ticks -->
+    <g stroke="#bbb">
+      <line x1="120" y1="60" x2="120" y2="200"/>
+      <line x1="180" y1="60" x2="180" y2="200"/>
+      <line x1="240" y1="60" x2="240" y2="200"/>
+      <line x1="300" y1="60" x2="300" y2="200"/>
+      <line x1="360" y1="60" x2="360" y2="200"/>
+      <line x1="420" y1="60" x2="420" y2="200"/>
+      <line x1="480" y1="60" x2="480" y2="200"/>
+      <line x1="540" y1="60" x2="540" y2="200"/>
+    </g>
+
+    <!-- NTP row -->
+    <text x="50" y="90" font-size="12" font-weight="600" fill="#2f6feb">NTP</text>
+    <rect x="170" y="75" width="20" height="22" fill="#9aa6c4" rx="3"/>
+    <text x="180" y="91" text-anchor="middle" font-size="11" fill="#fff">★</text>
+
+    <!-- MTP row -->
+    <text x="50" y="130" font-size="12" font-weight="600" fill="#2f6feb">MTP</text>
+    <rect x="170" y="115" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="180" y="131" text-anchor="middle" font-size="11" fill="#fff">1</text>
+    <rect x="230" y="115" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="240" y="131" text-anchor="middle" font-size="11" fill="#fff">2</text>
+    <rect x="290" y="115" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="300" y="131" text-anchor="middle" font-size="11" fill="#fff">3</text>
+    <rect x="350" y="115" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="360" y="131" text-anchor="middle" font-size="11" fill="#fff">4</text>
+
+    <!-- L-MTP row (k=2) -->
+    <text x="50" y="180" font-size="12" font-weight="600" fill="#cc4a1b">L-MTP</text>
+    <text x="50" y="195" font-size="10" fill="#5b5e66">k=2</text>
+    <rect x="170" y="160" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="180" y="176" text-anchor="middle" font-size="11" fill="#fff">1</text>
+    <rect x="230" y="160" width="20" height="22" fill="#fff" stroke="#bbb" stroke-dasharray="2,2" rx="3"/>
+    <text x="240" y="176" text-anchor="middle" font-size="10" fill="#aaa">skip</text>
+    <rect x="290" y="160" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="300" y="176" text-anchor="middle" font-size="11" fill="#fff">2</text>
+    <rect x="350" y="160" width="20" height="22" fill="#fff" stroke="#bbb" stroke-dasharray="2,2" rx="3"/>
+    <text x="360" y="176" text-anchor="middle" font-size="10" fill="#aaa">skip</text>
+    <rect x="410" y="160" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="420" y="176" text-anchor="middle" font-size="11" fill="#fff">3</text>
+    <rect x="470" y="160" width="20" height="22" fill="#fff" stroke="#bbb" stroke-dasharray="2,2" rx="3"/>
+    <text x="480" y="176" text-anchor="middle" font-size="10" fill="#aaa">skip</text>
+    <rect x="530" y="160" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="540" y="176" text-anchor="middle" font-size="11" fill="#fff">4</text>
+
+    <!-- legend right -->
+    <text x="600" y="91" font-size="11" fill="#5b5e66">1 head</text>
+    <text x="600" y="131" font-size="11" fill="#5b5e66">4 heads, adjacent</text>
+    <text x="600" y="176" font-size="11" fill="#cc4a1b">4 heads, leap</text>
+  </svg>
+  <figcaption>给定 4 个 prediction head, MTP 监督的是 [t+1, t+2, t+3, t+4] —— 全部 adjacent;L-MTP (k=2) 监督的是 [t+1, t+3, t+5, t+7] —— 跳过中间。两者的 head 数和 forward 成本相同,差别只在<strong>每个 head 学的是哪个位置</strong>。</figcaption>
+</div>
+
+<h3>1.2 别的方案为什么不够</h3>
+
+<p>"看远一点"在 NLP 里早就被翻来覆去做过。L-MTP 的位置感得放在这张表里看才清楚:</p>
+
+<table>
+  <tr><th>路径</th><th>怎么"看远"</th><th>代价 / 局限</th></tr>
+  <tr><td>Long context (RoPE / ALiBi 扩展)</td><td>把窗口拉长到 1M token</td><td>不改变<strong>训练目标</strong>,模型仍然只学 t+1,远端用得上但不一定预测得准</td></tr>
+  <tr><td>n-gram / ProphetNet</td><td>预测下 n 个连续 n-gram</td><td>仍是 adjacent;短程相关被反复重学</td></tr>
+  <tr><td>标准 MTP (Gloeckle 2024)</td><td>n 个 head 各预测 t+1..t+n</td><td>第 1 head 学到的还是 next-token,长程能力靠"附加监督"<em>渗透</em>到 backbone</td></tr>
+  <tr><td>DeepSeek-V3 sequential MTP</td><td>n 个 head 链式预测,后一个 head 看前一个 head 的输出</td><td>每个 head 仍只跨 1 步;靠 chain depth 累积长程</td></tr>
+  <tr><td>MuToR (register tokens)</td><td>插入特殊 register token 让模型规划</td><td>改 input,不改 supervision pattern</td></tr>
+  <tr><td>FSP (Future Summary Prediction)</td><td>预测未来一段的 summary embedding</td><td>不是 token 级监督,需要额外 summary 模型</td></tr>
+  <tr><td><strong>L-MTP (本文)</strong></td><td>n 个 head 各预测 t+1, t+1+k, t+1+2k, ...</td><td>跳过最强信号(adjacent),<em>强迫</em>每个 head 学跨 stride 的依赖</td></tr>
+</table>
+
+<p>本质区分:绝大多数加速 / 长程方案都不动 supervision pattern。L-MTP 改的是<strong>每个 head 学什么位置</strong>这一最基础的设定。</p>
+
+<h3>1.3 为什么 "leap" 这事不平凡</h3>
+
+<p>"加大 stride 让 head 学远点"听上去 1 行代码就完事,但仔细想三个非平凡处:</p>
+
+<ol>
+  <li><strong>Combinatorial choice of leap pattern.</strong>固定 stride k? 学习的 stride? 随机 stride? 多 stride 混合?如果 head i 应该看 t+i 还是 t+f(i)? 论文给的答案是<strong>固定整数 stride k=2</strong>,但这是 design 选择,不是定理 — 后面 §3 会说为什么还是固定的合理。</li>
+  <li><strong>Training signal sparsity.</strong>原来 MTP 在每个 t 位置都监督 [t+1, t+2, t+3, t+4],4 个连续 ground truth;L-MTP 监督 [t+1, t+3, t+5, t+7],中间 t+2, t+4, t+6 没有<em>显式</em>监督。这些位置的 token 在哪儿被学? 答案:它们在 t−1, t−3 等位置上以"head 1, head 2..." 角色被监督过。即<strong>跨 t 滑动窗口拼起来才覆盖整个序列</strong>,这意味着每个具体 token 的训练信号密度比 adjacent MTP <em>稀疏</em>了 1/k。</li>
+  <li><strong>Inference 时的"洞"必须填上.</strong>预测出 [t+1, t+3, t+5, t+7] 是好的,但要输出连续序列还得有 t+2, t+4, t+6。论文的解法:这些洞在<em>上一个</em> decoding step (从 t−1 出发预测 t, t+2, t+4, t+6) 已经被预测出来了 — 所以 looking backward 重用历史预测。这个机制把"稀疏 supervision"和"密集输出"勉强对齐,但需要 tree attention 配合 verification 才能不破坏 lossless 性质。</li>
+</ol>
+
+<div class="nb">
+  <strong>关键洞察:</strong>L-MTP 的 supervision 在<em>位置维度</em>是稀疏的,但在<em>时间维度</em>(滑动 t)是密集的。看似简单的 stride,实际上把时间-位置 2D 监督平面从"对角带状"变成了"平行斜线"。这是论文真正改动的东西。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">NTP</span></td><td>next-token prediction:p(x<sub>t+1</sub>|x≤t),单 head</td></tr>
+  <tr><td><span class="term">MTP</span></td><td>multi-token prediction:n 个 head,每个预测 x<sub>t+i</sub>,i ∈ {1,...,n} adjacent</td></tr>
+  <tr><td><span class="term">L-MTP</span></td><td>本文 leap MTP:每个 head 预测 x<sub>t+k(i−1)+1</sub>,跨度 k 的 leap</td></tr>
+  <tr><td><span class="term">k (leap stride)</span></td><td>每两个相邻预测位置之间跳过的 token 数 + 1;k=1 退化为 MTP,k=2 默认</td></tr>
+  <tr><td><span class="term">n (heads)</span></td><td>总 head 数;最远预测位置为 t + k(n−1) + 1</td></tr>
+  <tr><td><span class="term">Self-speculative decoding</span></td><td>用模型自己的多 head 当 draft,再用同一模型的 next-token head 验证(无外部 draft)</td></tr>
+  <tr><td><span class="term">Tree attention</span></td><td>把多个候选 draft path 组织成树,用 mask 让每个位置只 attend 自己祖先,一次前向并行验证多条 path</td></tr>
+  <tr><td><span class="term">Looking backward</span></td><td>L-MTP 推理时,把当前 step 缺失的中间位置用<em>上一步</em>已预测过的同位置补上</td></tr>
+  <tr><td><span class="term">Acceptance length L</span></td><td>每个 speculation step 平均产出几个 token;越大越快</td></tr>
+  <tr><td><span class="term">Attenuation</span></td><td>论文定义的性质:p(x<sub>t+i</sub>|x≤t) 随 i 单调递减(预测越远越不确定)</td></tr>
+</table>
+
+<h3>2.2 标准 MTP + self-speculative decoding 复习</h3>
+<p>给定 backbone θ′ 出 hidden z,n 个 head θ<sub>i</sub> 各自独立投影到 vocab:</p>
+<div class="formula">p(x<sub>t+1...t+n</sub>|x≤t) = ∏<sub>i=1..n</sub> p(x<sub>t+i</sub>|z≤t; θ<sub>i</sub>) · p(z≤t|x≤t; θ′)</div>
+<p>推理流程 (lossless 版):</p>
+<ol>
+  <li><strong>Prediction</strong>:一次 forward 得到 n 个候选 token</li>
+  <li><strong>Verification</strong>:把这 n 个候选当作 prefix 再喂回 backbone,并行得到每个位置的 next-token 分布</li>
+  <li><strong>Acceptance</strong>:rejection sampling,直到第一个被拒绝;接受的 token 写入 KV cache,继续下一轮</li>
+</ol>
+<p>这套和 Leviathan 2023 的 spec decoding 等价 — 输出分布严格等同于 vanilla AR。</p>
+
+<hr>
+
+<h2 id="sec3">3 · L-MTP 训练目标:把 supervision 打散到 leap 位置</h2>
+
+<h3>3.1 目标函数</h3>
+
+<p>L-MTP 用<strong>两阶段</strong>训练:</p>
+
+<p><strong>Stage 1: Head warm-up.</strong>backbone + head 1 (=NTP head) 全冻结,只训新增的 head 2..n。监督来自<em>self-distillation</em>:用 base LLM 自己的输出作为 target distribution。</p>
+<div class="formula">L<sup>(1)</sup><sub>L-MTP</sub> = − Σ<sub>T</sub> log p(x<sub>[t+k(n−1)+1, ..., t+k+1]</sub> | z≤t; {θ<sub>i</sub>}<sub>i&gt;1</sub>)</div>
+
+<p><strong>Stage 2: Full model tuning.</strong>用 LoRA (rank 32) 解冻 backbone 一起训:</p>
+<div class="formula">L<sup>(2)</sup><sub>L-MTP</sub> = − Σ<sub>T</sub> [ log p(x<sub>t+1</sub>|x≤t; θ′,θ<sub>1</sub>) + β · log p(x<sub>[t+k(n−1)+1, ..., t+k+1]</sub>|x≤t; θ′,{θ<sub>i</sub>}<sub>i&gt;1</sub>) ]</div>
+<p>β 控制 leap heads 的权重。注意 head 1 永远是 NTP — 这一条<em>必须保留</em>,因为推理时它是 verifier。</p>
+
+<h3>3.2 一个具体的 Worked Example</h3>
+
+<p>设输入序列(token id)是:</p>
+<pre>x₁  x₂  x₃  x₄  x₅  x₆  x₇  x₈  x₉  x₁₀
+ ↑
+ t=4 (假设当前位置)</pre>
+
+<p>n=4, k=2 时,在位置 t=4,各 head 监督的目标分别是:</p>
+
+<table>
+  <tr><th>Head</th><th>目标位置 t+k(i−1)+1</th><th>具体 token</th><th>跨度 (距 t)</th></tr>
+  <tr><td>Head 1 (NTP)</td><td>t+1 = 5</td><td>x₅</td><td>+1</td></tr>
+  <tr><td>Head 2</td><td>t+k+1 = 7</td><td>x₇</td><td>+3</td></tr>
+  <tr><td>Head 3</td><td>t+2k+1 = 9</td><td>x₉</td><td>+5</td></tr>
+  <tr><td>Head 4</td><td>t+3k+1 = 11</td><td>x₁₁</td><td>+7</td></tr>
+</table>
+
+<p>对比标准 MTP (k=1):head 1..4 监督 x₅, x₆, x₇, x₈,跨度 +1..+4。</p>
+
+<p><strong>关键观察</strong>:L-MTP 在 t=4 时<em>没</em>监督 x₆, x₈, x₁₀。但是在 t=3 时,它会监督 x₄, x₆, x₈, x₁₀ — 所以 x₆ 仍然在某个 t 位置被学到了,只是<em>从更远的距离</em>(+3 而不是 +2)。这就是"稀疏 supervision 在时间上密集化"的具体含义。</p>
+
+<h3>3.3 为什么这样设计 (反向思考)</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Leap pattern 的设计选择空间</text>
+
+    <!-- option boxes -->
+    <rect x="20" y="40" width="320" height="100" rx="8" fill="#f3eee0" stroke="#888"/>
+    <text x="180" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">A. 固定 stride (本文)</text>
+    <text x="180" y="83" text-anchor="middle" font-size="11">positions = {t+1, t+3, t+5, t+7}</text>
+    <text x="180" y="104" text-anchor="middle" font-size="11" fill="#1f7a4a">+ 简单 / 推理时易做 looking backward</text>
+    <text x="180" y="124" text-anchor="middle" font-size="11" fill="#1f7a4a">+ tree attention mask 容易构造</text>
+
+    <rect x="360" y="40" width="320" height="100" rx="8" fill="#fff" stroke="#888" stroke-dasharray="3,2"/>
+    <text x="520" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">B. 学习 stride (per-position)</text>
+    <text x="520" y="83" text-anchor="middle" font-size="11">positions = f(context) → 学出来的 set</text>
+    <text x="520" y="104" text-anchor="middle" font-size="11" fill="#a8353e">− 推理时 head 不知道学到了哪里</text>
+    <text x="520" y="124" text-anchor="middle" font-size="11" fill="#a8353e">− verification 路径不固定 → 难重用</text>
+
+    <rect x="20" y="155" width="320" height="100" rx="8" fill="#fff" stroke="#888" stroke-dasharray="3,2"/>
+    <text x="180" y="177" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">C. 随机 stride (训练时采样)</text>
+    <text x="180" y="198" text-anchor="middle" font-size="11">每 batch 采一个 k ~ Uniform{1..K}</text>
+    <text x="180" y="219" text-anchor="middle" font-size="11" fill="#a8353e">− 推理时仍要选定 k</text>
+    <text x="180" y="239" text-anchor="middle" font-size="11" fill="#5b5e66">~ 论文未尝试,但 future work 提到 entropy-aware</text>
+
+    <rect x="360" y="155" width="320" height="100" rx="8" fill="#fff" stroke="#888" stroke-dasharray="3,2"/>
+    <text x="520" y="177" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">D. 多 stride 混合</text>
+    <text x="520" y="198" text-anchor="middle" font-size="11">heads 同时学 k=1, k=2, k=3</text>
+    <text x="520" y="219" text-anchor="middle" font-size="11" fill="#a8353e">− head 数翻倍, 训练开销大</text>
+    <text x="520" y="239" text-anchor="middle" font-size="11" fill="#5b5e66">~ 退化情况:k=1 时变 Hydra/Medusa</text>
+  </svg>
+  <figcaption>L-MTP 选 A 而非 B/C/D 的核心原因是<strong>推理可逆</strong>:固定 k 让每一步缺失的中间位置必然落在固定的"前 k−1 步"里,可以确定性地从历史预测里取回(§4.1)。学习 stride 会破坏这个对齐。</figcaption>
+</div>
+
+<p><strong>反向论证</strong>:如果 L-MTP 不保留 head 1 = NTP,而是把 4 个 head 都做 leap (比如 t+2, t+4, t+6, t+8),会怎样?</p>
+<ul>
+  <li>Verification 阶段没有"原速度"的 next-token 概率可比 → 无法做 rejection sampling → spec decoding 不再 lossless</li>
+  <li>第一个输出 token 必须依赖前一步的预测 — 引入 boot-strap 误差累积</li>
+</ul>
+<p>所以 head 1 = NTP 是<strong>架构上的硬约束</strong>。论文称为 "we keep the original NTP head for verification"。</p>
+
+<h3>3.4 训练目标可视化:位置 × 时间二维图</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 270" width="100%" style="max-width:680px">
+    <text x="350" y="18" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">"哪个 t 在监督哪个目标位置" 二维图 (n=4)</text>
+
+    <!-- Left: MTP -->
+    <text x="175" y="40" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">MTP (k=1) — 对角带状</text>
+    <g transform="translate(40,55)">
+      <!-- axes -->
+      <line x1="0" y1="180" x2="270" y2="180" stroke="#888"/>
+      <line x1="0" y1="0" x2="0" y2="180" stroke="#888"/>
+      <text x="135" y="200" text-anchor="middle" font-size="11" fill="#5b5e66">target position →</text>
+      <text x="-22" y="90" font-size="11" fill="#5b5e66" transform="rotate(-90 -22 90)">t (input)</text>
+      <!-- grid cells (rows: t=0..6, cols: pos 1..10) -->
+      <!-- t=0 supervises [1,2,3,4] -->
+      <rect x="0"   y="0"   width="25" height="25" fill="#cee5ff"/>
+      <rect x="25"  y="0"   width="25" height="25" fill="#cee5ff"/>
+      <rect x="50"  y="0"   width="25" height="25" fill="#cee5ff"/>
+      <rect x="75"  y="0"   width="25" height="25" fill="#cee5ff"/>
+      <!-- t=1: [2,3,4,5] -->
+      <rect x="25"  y="25"  width="25" height="25" fill="#9ec5ff"/>
+      <rect x="50"  y="25"  width="25" height="25" fill="#9ec5ff"/>
+      <rect x="75"  y="25"  width="25" height="25" fill="#9ec5ff"/>
+      <rect x="100" y="25"  width="25" height="25" fill="#9ec5ff"/>
+      <!-- t=2 -->
+      <rect x="50"  y="50"  width="25" height="25" fill="#7eb1ff"/>
+      <rect x="75"  y="50"  width="25" height="25" fill="#7eb1ff"/>
+      <rect x="100" y="50"  width="25" height="25" fill="#7eb1ff"/>
+      <rect x="125" y="50"  width="25" height="25" fill="#7eb1ff"/>
+      <!-- t=3 -->
+      <rect x="75"  y="75"  width="25" height="25" fill="#5996ff"/>
+      <rect x="100" y="75"  width="25" height="25" fill="#5996ff"/>
+      <rect x="125" y="75"  width="25" height="25" fill="#5996ff"/>
+      <rect x="150" y="75"  width="25" height="25" fill="#5996ff"/>
+      <!-- t=4 -->
+      <rect x="100" y="100" width="25" height="25" fill="#3b7ff5"/>
+      <rect x="125" y="100" width="25" height="25" fill="#3b7ff5"/>
+      <rect x="150" y="100" width="25" height="25" fill="#3b7ff5"/>
+      <rect x="175" y="100" width="25" height="25" fill="#3b7ff5"/>
+      <!-- t=5 -->
+      <rect x="125" y="125" width="25" height="25" fill="#1f6feb"/>
+      <rect x="150" y="125" width="25" height="25" fill="#1f6feb"/>
+      <rect x="175" y="125" width="25" height="25" fill="#1f6feb"/>
+      <rect x="200" y="125" width="25" height="25" fill="#1f6feb"/>
+      <!-- t=6 -->
+      <rect x="150" y="150" width="25" height="25" fill="#1058c7"/>
+      <rect x="175" y="150" width="25" height="25" fill="#1058c7"/>
+      <rect x="200" y="150" width="25" height="25" fill="#1058c7"/>
+      <rect x="225" y="150" width="25" height="25" fill="#1058c7"/>
+    </g>
+
+    <!-- Right: L-MTP -->
+    <text x="525" y="40" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">L-MTP (k=2) — 平行斜线</text>
+    <g transform="translate(390,55)">
+      <line x1="0" y1="180" x2="270" y2="180" stroke="#888"/>
+      <line x1="0" y1="0" x2="0" y2="180" stroke="#888"/>
+      <text x="135" y="200" text-anchor="middle" font-size="11" fill="#5b5e66">target position →</text>
+      <text x="-22" y="90" font-size="11" fill="#5b5e66" transform="rotate(-90 -22 90)">t (input)</text>
+      <!-- t=0: [1,3,5,7] -->
+      <rect x="0"   y="0"   width="25" height="25" fill="#fdcfa3"/>
+      <rect x="50"  y="0"   width="25" height="25" fill="#fdcfa3"/>
+      <rect x="100" y="0"   width="25" height="25" fill="#fdcfa3"/>
+      <rect x="150" y="0"   width="25" height="25" fill="#fdcfa3"/>
+      <!-- t=1: [2,4,6,8] -->
+      <rect x="25"  y="25"  width="25" height="25" fill="#fab684"/>
+      <rect x="75"  y="25"  width="25" height="25" fill="#fab684"/>
+      <rect x="125" y="25"  width="25" height="25" fill="#fab684"/>
+      <rect x="175" y="25"  width="25" height="25" fill="#fab684"/>
+      <!-- t=2: [3,5,7,9] -->
+      <rect x="50"  y="50"  width="25" height="25" fill="#f5a06a"/>
+      <rect x="100" y="50"  width="25" height="25" fill="#f5a06a"/>
+      <rect x="150" y="50"  width="25" height="25" fill="#f5a06a"/>
+      <rect x="200" y="50"  width="25" height="25" fill="#f5a06a"/>
+      <!-- t=3 -->
+      <rect x="75"  y="75"  width="25" height="25" fill="#e8814c"/>
+      <rect x="125" y="75"  width="25" height="25" fill="#e8814c"/>
+      <rect x="175" y="75"  width="25" height="25" fill="#e8814c"/>
+      <rect x="225" y="75"  width="25" height="25" fill="#e8814c"/>
+      <!-- t=4 -->
+      <rect x="100" y="100" width="25" height="25" fill="#cc4a1b"/>
+      <rect x="150" y="100" width="25" height="25" fill="#cc4a1b"/>
+      <rect x="200" y="100" width="25" height="25" fill="#cc4a1b"/>
+      <rect x="250" y="100" width="25" height="25" fill="#cc4a1b"/>
+      <!-- highlight diagonal "L-MTP at t=4 sees x9" -->
+      <rect x="100" y="100" width="25" height="25" fill="none" stroke="#1f7a4a" stroke-width="2.5"/>
+    </g>
+  </svg>
+  <figcaption>左:MTP 的 (t, target position) 监督在每行上是<strong>4 格连续</strong>;右:L-MTP 是 <strong>4 格隔 1 个</strong>。横向看任何一个目标位置都被多个 t 监督到 — 这就是为什么 token 不会"漏学"。绿框是 §3.2 的 worked example (t=4 监督 x₉)。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · Looking backward 解码 + tree attention</h2>
+
+<h3>4.1 推理时如何把"洞"补上</h3>
+
+<p>L-MTP 在 t 输出 [t+1, t+3, t+5, t+7]。要得到连续序列还需要 [t+2, t+4, t+6]。直接重新跑 forward 就回到 NTP 速度了。论文的关键技巧是<strong>looking backward</strong>:</p>
+
+<p>这些位置在 t−1 时<em>已经</em>被 head 们预测过了:从 t−1 出发,heads 监督的是 [t, t+2, t+4, t+6]。所以 [t+2, t+4, t+6] 的候选是上一步的"副产品",直接读 cache 即可。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <text x="350" y="18" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Looking backward: 把缺失中间位置从历史步取回</text>
+
+    <!-- positions axis -->
+    <text x="50" y="50" font-size="11" fill="#5b5e66">位置</text>
+    <g font-size="11" fill="#5b5e66" text-anchor="middle">
+      <text x="120" y="50">t−1</text>
+      <text x="180" y="50">t</text>
+      <text x="240" y="50">t+1</text>
+      <text x="300" y="50">t+2</text>
+      <text x="360" y="50">t+3</text>
+      <text x="420" y="50">t+4</text>
+      <text x="480" y="50">t+5</text>
+      <text x="540" y="50">t+6</text>
+      <text x="600" y="50">t+7</text>
+    </g>
+    <g stroke="#ddd"><line x1="120" y1="55" x2="120" y2="240"/>
+      <line x1="180" y1="55" x2="180" y2="240"/>
+      <line x1="240" y1="55" x2="240" y2="240"/>
+      <line x1="300" y1="55" x2="300" y2="240"/>
+      <line x1="360" y1="55" x2="360" y2="240"/>
+      <line x1="420" y1="55" x2="420" y2="240"/>
+      <line x1="480" y1="55" x2="480" y2="240"/>
+      <line x1="540" y1="55" x2="540" y2="240"/>
+      <line x1="600" y1="55" x2="600" y2="240"/>
+    </g>
+
+    <!-- step at t-1 (head outputs [t, t+2, t+4, t+6]) -->
+    <text x="50" y="95" font-size="12" fill="#5b5e66">step (t−1):</text>
+    <rect x="170" y="78" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="180" y="94" text-anchor="middle" font-size="11" fill="#fff">a</text>
+    <rect x="290" y="78" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="300" y="94" text-anchor="middle" font-size="11" fill="#fff">b</text>
+    <rect x="410" y="78" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="420" y="94" text-anchor="middle" font-size="11" fill="#fff">c</text>
+    <rect x="530" y="78" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="540" y="94" text-anchor="middle" font-size="11" fill="#fff">d</text>
+
+    <!-- step at t (head outputs [t+1, t+3, t+5, t+7]) -->
+    <text x="50" y="138" font-size="12" fill="#cc4a1b">step (t):</text>
+    <rect x="230" y="121" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="240" y="137" text-anchor="middle" font-size="11" fill="#fff">A</text>
+    <rect x="350" y="121" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="360" y="137" text-anchor="middle" font-size="11" fill="#fff">B</text>
+    <rect x="470" y="121" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="480" y="137" text-anchor="middle" font-size="11" fill="#fff">C</text>
+    <rect x="590" y="121" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="600" y="137" text-anchor="middle" font-size="11" fill="#fff">D</text>
+
+    <!-- merged sequence -->
+    <text x="50" y="200" font-size="12" font-weight="600" fill="#1f7a4a">合并:</text>
+    <rect x="170" y="183" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="180" y="199" text-anchor="middle" font-size="11" fill="#fff">a</text>
+    <rect x="230" y="183" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="240" y="199" text-anchor="middle" font-size="11" fill="#fff">A</text>
+    <rect x="290" y="183" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="300" y="199" text-anchor="middle" font-size="11" fill="#fff">b</text>
+    <rect x="350" y="183" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="360" y="199" text-anchor="middle" font-size="11" fill="#fff">B</text>
+    <rect x="410" y="183" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="420" y="199" text-anchor="middle" font-size="11" fill="#fff">c</text>
+    <rect x="470" y="183" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="480" y="199" text-anchor="middle" font-size="11" fill="#fff">C</text>
+    <rect x="530" y="183" width="20" height="22" fill="#9aa6c4" rx="3"/><text x="540" y="199" text-anchor="middle" font-size="11" fill="#fff">d</text>
+    <rect x="590" y="183" width="20" height="22" fill="#cc4a1b" rx="3"/><text x="600" y="199" text-anchor="middle" font-size="11" fill="#fff">D</text>
+
+    <!-- annotation -->
+    <text x="350" y="240" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">每个 step 输出 4 个 leap token, 与上一 step 的 4 个交错合并 → 长度 7 的连续候选 [t, t+1, ..., t+6]</text>
+    <text x="350" y="258" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">再经 verifier 验证一次决定接受到哪</text>
+  </svg>
+  <figcaption>step (t−1) 已经预测了偶数步 [t, t+2, t+4, t+6] (蓝);step (t) 预测奇数步 [t+1, t+3, t+5, t+7] (橙)。两组在<em>位置维度</em>无重叠,直接交错就得到 8 个连续位置的候选。注:第一步开始时不存在"上一步",所以 t=1 仍要从空起步。</figcaption>
+</div>
+
+<h3>4.2 Tree attention:让多个候选并行验证</h3>
+
+<p>但仅仅交错还不够。L-MTP 让每个 head 的输出可能是 top-k (比如每个 head 取 top 2 个候选 token),这就形成了一棵候选树。论文复用 Medusa / EAGLE 的 tree-attention mask:每个候选 token 只能 attend 到自己 path 上的祖先节点,这样 verifier 一次 forward 同时验证多条 path。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 320" width="100%" style="max-width:680px">
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Tree attention 验证 leap 候选 (示意 n=3, top-2 per head)</text>
+
+    <!-- root -->
+    <circle cx="350" cy="60" r="18" fill="#fff" stroke="#3a3b40"/>
+    <text x="350" y="65" text-anchor="middle" font-size="12">x_t</text>
+
+    <!-- level 1: head 1 (t+1) two candidates -->
+    <circle cx="240" cy="130" r="16" fill="#fdcfa3" stroke="#cc4a1b"/>
+    <text x="240" y="135" text-anchor="middle" font-size="11">A</text>
+    <circle cx="460" cy="130" r="16" fill="#fdcfa3" stroke="#cc4a1b"/>
+    <text x="460" y="135" text-anchor="middle" font-size="11">A'</text>
+    <line x1="345" y1="76" x2="245" y2="116" stroke="#888"/>
+    <line x1="355" y1="76" x2="455" y2="116" stroke="#888"/>
+
+    <!-- level 2: head 2 (t+3) — note skipping t+2! -->
+    <circle cx="170" cy="200" r="16" fill="#fab684" stroke="#cc4a1b"/>
+    <text x="170" y="205" text-anchor="middle" font-size="11">B₁</text>
+    <circle cx="310" cy="200" r="16" fill="#fab684" stroke="#cc4a1b"/>
+    <text x="310" y="205" text-anchor="middle" font-size="11">B₂</text>
+    <circle cx="390" cy="200" r="16" fill="#fab684" stroke="#cc4a1b"/>
+    <text x="390" y="205" text-anchor="middle" font-size="11">B'₁</text>
+    <circle cx="530" cy="200" r="16" fill="#fab684" stroke="#cc4a1b"/>
+    <text x="530" y="205" text-anchor="middle" font-size="11">B'₂</text>
+    <line x1="235" y1="146" x2="175" y2="186" stroke="#888"/>
+    <line x1="245" y1="146" x2="305" y2="186" stroke="#888"/>
+    <line x1="455" y1="146" x2="395" y2="186" stroke="#888"/>
+    <line x1="465" y1="146" x2="525" y2="186" stroke="#888"/>
+
+    <!-- level 3: head 3 (t+5) -->
+    <g font-size="10">
+      <circle cx="140" cy="270" r="14" fill="#f5a06a" stroke="#cc4a1b"/>
+      <text x="140" y="274" text-anchor="middle">C</text>
+      <circle cx="200" cy="270" r="14" fill="#f5a06a" stroke="#cc4a1b"/>
+      <text x="200" y="274" text-anchor="middle">C</text>
+      <circle cx="280" cy="270" r="14" fill="#f5a06a" stroke="#cc4a1b"/>
+      <text x="280" y="274" text-anchor="middle">C</text>
+      <circle cx="340" cy="270" r="14" fill="#f5a06a" stroke="#cc4a1b"/>
+      <text x="340" y="274" text-anchor="middle">C</text>
+      <circle cx="420" cy="270" r="14" fill="#f5a06a" stroke="#cc4a1b"/>
+      <text x="420" y="274" text-anchor="middle">C</text>
+      <circle cx="480" cy="270" r="14" fill="#f5a06a" stroke="#cc4a1b"/>
+      <text x="480" y="274" text-anchor="middle">C</text>
+      <circle cx="560" cy="270" r="14" fill="#f5a06a" stroke="#cc4a1b"/>
+      <text x="560" y="274" text-anchor="middle">C</text>
+      <circle cx="620" cy="270" r="14" fill="#f5a06a" stroke="#cc4a1b"/>
+      <text x="620" y="274" text-anchor="middle">C</text>
+    </g>
+    <line x1="170" y1="216" x2="145" y2="256" stroke="#aaa"/>
+    <line x1="170" y1="216" x2="195" y2="256" stroke="#aaa"/>
+    <line x1="310" y1="216" x2="285" y2="256" stroke="#aaa"/>
+    <line x1="310" y1="216" x2="335" y2="256" stroke="#aaa"/>
+    <line x1="390" y1="216" x2="425" y2="256" stroke="#aaa"/>
+    <line x1="390" y1="216" x2="475" y2="256" stroke="#aaa"/>
+    <line x1="530" y1="216" x2="555" y2="256" stroke="#aaa"/>
+    <line x1="530" y1="216" x2="615" y2="256" stroke="#aaa"/>
+
+    <!-- annotation -->
+    <text x="50" y="135" font-size="11" fill="#5b5e66">head 1 (t+1)</text>
+    <text x="50" y="205" font-size="11" fill="#5b5e66">head 2 (t+3)</text>
+    <text x="50" y="275" font-size="11" fill="#5b5e66">head 3 (t+5)</text>
+  </svg>
+  <figcaption>n=3, k=2,每个 head 取 top-2,生成 2³=8 条 path。Tree attention mask 让每个 path 上的 head-2 candidate 只看 head-1 自己 path 的 ancestor (而不是兄弟 path 的 candidate)。Verifier 一次 forward 算所有 path 的 next-token 概率,再做 rejection,选出最长被接受的 path。<strong>注意:</strong>head 2 监督的是 t+3 而不是 t+2,所以 verifier 验证时也要按 leap 位置查表。</figcaption>
+</div>
+
+<h3>4.3 直接拿 L-MTP decoding 套到现成 Medusa 模型</h3>
+
+<p>论文一个有意思的实验:Vicuna 7B/13B + Medusa(本身是 adjacent MTP)的模型,只把<em>解码策略</em>换成 L-MTP 的 looking backward,不重新训练 — 仍然能拿到 22% 相对加速 (1.83× → 2.32× on GSM8K, Vicuna 7B)。</p>
+
+<p>这说明 leap 解码本身就是一个独立的工程优化:即使 head 当初是按 adjacent 训的,把"look backward"的复用机制套上去也能省时间。也就是 paper 的"训练侧"和"推理侧"两个 contribution 在某种程度上可以解耦。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 理论:attenuation × consistency × 加速上界</h2>
+
+<h3>5.1 两个性质</h3>
+
+<p><strong>Definition 1 (Attenuation).</strong> 模型预测越远的 token,边际概率越低:p(x<sub>t+1</sub>|x≤t) > p(x<sub>t+2</sub>|x≤t) > ... — 因为 context x≤t 距离 x<sub>t+i</sub> 越远,信息量越少。</p>
+
+<p><strong>Assumption 2 (Consistency).</strong> 假设 E<sub>x≤t∼D</sub>[p(x<sub>t+i</sub>|x≤t)] = f(i),即在数据分布上平均后,这个边际概率只依赖于 horizon i,与具体 input 无关。论文假设 f(i) = exp(−γ(i−1)),γ ≥ 0 为衰减系数。</p>
+
+<h3>5.2 Acceptance length 期望</h3>
+
+<div class="formula">
+E[L]<sub>s</sub> = Σ<sub>m=1..n</sub> ∏<sub>i=1..m</sub> f(i)<br>
+E[L]<sub>l</sub> = Σ<sub>m=1..k(n−1)+1</sub> ∏<sub>i=1..m</sub> f(i + (i−1) mod k)
+</div>
+
+<p>下标 s 是标准 (sequential) MTP, l 是 leap。差别在于 leap 用了 t−1 步的 hidden state 来"补"中间位置(因此每隔 k 个位置 horizon 重置 → mod k)。</p>
+
+<h3>5.3 Theorem 3 — Less attenuation, more speed-up</h3>
+
+<blockquote>
+存在常数 C > 0,当 γn² ≤ C (即 γ = O(1/n²)) 时,渐进有 E[L]<sub>l</sub> > E[L]<sub>s</sub>。也就是 <strong>当模型 attenuation 不太严重</strong>,leap 总比 adjacent 期望长度更大。
+</blockquote>
+
+<h3>5.4 数值直觉</h3>
+
+<table>
+  <tr><th>γ</th><th>n</th><th>E[L]_s (MTP)</th><th>E[L]_l (L-MTP, k=2)</th><th>L-MTP 优势</th></tr>
+  <tr><td>0.01</td><td>4</td><td>~3.94</td><td>~6.85</td><td class="ok">远胜</td></tr>
+  <tr><td>0.05</td><td>4</td><td>~3.50</td><td>~5.50</td><td class="ok">明显</td></tr>
+  <tr><td>0.10</td><td>4</td><td>~2.85</td><td>~3.40</td><td>略优</td></tr>
+  <tr><td>0.30</td><td>4</td><td>~1.85</td><td>~1.55</td><td class="no">劣 (γ 太大)</td></tr>
+</table>
+
+<p><strong>物理直觉</strong>:γ 大 = 模型对未来很不确定 → 即使 leap 把 horizon 延长,接受概率也撑不住;γ 小 = 模型本身就有强长程能力 → leap 把"反正能预测"的远端位置直接拿来用,白赚。</p>
+
+<div class="nb">
+  <strong>反向警示:</strong>这条定理也意味着一个反直觉的事实 — <em>backbone 越强,L-MTP 相对 MTP 的优势越大;backbone 越弱,L-MTP 反而吃亏</em>。这与表 1 中 Gemma-12B (强) 上 L-MTP 大幅胜过 MTP、Qwen2.5-7B (中等) 上互有胜负的实验现象基本吻合。
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · 实验:性能 / 加速 / acceptance / 数据规模</h2>
+
+<h3>6.1 性能 (Table 1, 选载)</h3>
+
+<table>
+  <tr><th>Model</th><th>Strategy</th><th>GSM8K</th><th>HumanEval+</th><th>IFEval</th><th>Avg</th></tr>
+  <tr><td rowspan="3">Llama3.2-3B</td><td>NTP</td><td>3.71</td><td>17.68</td><td>20.74</td><td>25.52</td></tr>
+  <tr><td>MTP</td><td>3.87</td><td>18.29</td><td>18.59</td><td>25.46</td></tr>
+  <tr><td>L-MTP</td><td><strong>5.91</strong></td><td><strong>20.73</strong></td><td>20.38</td><td><strong>26.68</strong></td></tr>
+  <tr><td rowspan="3">Qwen2.5-7B</td><td>NTP</td><td>52.99</td><td>69.51</td><td>43.41</td><td>63.86</td></tr>
+  <tr><td>MTP</td><td>52.62</td><td>69.51</td><td>41.49</td><td>63.34</td></tr>
+  <tr><td>L-MTP</td><td><strong>56.03</strong></td><td><strong>71.95</strong></td><td><strong>44.12</strong></td><td><strong>64.16</strong></td></tr>
+  <tr><td rowspan="3">Gemma3-12B</td><td>NTP</td><td>13.42</td><td>56.10</td><td>29.38</td><td>46.87</td></tr>
+  <tr><td>MTP</td><td>5.61</td><td>54.27</td><td>30.46</td><td>45.17</td></tr>
+  <tr><td>L-MTP</td><td><strong>26.38</strong></td><td>55.49</td><td><strong>33.09</strong></td><td><strong>49.58</strong></td></tr>
+</table>
+
+<p><strong>解读:</strong>
+<br>① <em>L-MTP 在数学任务 (GSM8K) 上提升最显著</em>:Llama3.2 3.87→5.91, Gemma3-12B 5.61→26.38(后者 4.7×)。这与"长程依赖" 直觉相符 — 数学需要规划。
+<br>② <em>L-MTP 经常优于 NTP</em>,但 MTP 不一定。论文坦白 NTP 自己有时<em>劣于 base</em>(因为是用通用 instruction 数据微调,不是预训练),L-MTP 能"捞"回来 — 但 base 仍是天花板。
+<br>③ Avg 提升幅度大多 < 2 pt,在噪声范围内。<strong>性能不是论文最强的卖点</strong>,加速才是。</p>
+
+<h3>6.2 加速 (Figure 6 + Table 2)</h3>
+
+<p>self-speculative decoding 配合 L-MTP looking backward,在 GSM8K / MBPP / IFEval 上对 NTP 的加速比一般在 2–4×,且常常比 MTP 同设置高。</p>
+
+<table>
+  <tr><th>Model</th><th>Strategy</th><th>GSM8K</th><th>MBPP</th></tr>
+  <tr><td rowspan="2">Vicuna 7B</td><td>MTP (Medusa)</td><td>1.83×</td><td>1.97×</td></tr>
+  <tr><td>L-MTP (套用 leap decoding)</td><td><strong>2.32×</strong> (+27%)</td><td>2.01×</td></tr>
+  <tr><td rowspan="2">Vicuna 13B</td><td>MTP (Medusa)</td><td>2.24×</td><td>1.98×</td></tr>
+  <tr><td>L-MTP (套用)</td><td><strong>2.43×</strong> (+8%)</td><td>2.02×</td></tr>
+</table>
+
+<p>关键观察:<strong>解码侧 L-MTP 单独提供加速</strong>,而且不需要重新训练。"22% relative boosting" 这个论文摘要数字就是 GSM8K Vicuna 7B 的相对增长。</p>
+
+<h3>6.3 Per-position accuracy (RQ3, Figure 7)</h3>
+
+<p>论文测每个 head 的预测准确率。结果:</p>
+<ul>
+  <li>不论 MTP 还是 L-MTP, accuracy 随 horizon i 单调下降 — 验证 attenuation</li>
+  <li>L-MTP 的 head 2/3/4 准确率比 MTP 同 head 略低 (因为 horizon 更远),但 head 1 (NTP) 持平</li>
+  <li>下降曲线形状非常接近 exp(−γi) — 验证 consistency</li>
+</ul>
+
+<h3>6.4 Myopic generation (Figure 8)</h3>
+
+<p>论文挑了一个有点反 NTP 教科书的发现:<strong>scale 越大,head 2..n 的 prediction accuracy 越低</strong>。即"模型越大,越只关心紧邻"。论文管这叫 <em>myopia of NTP pre-training</em>。</p>
+<p>这是支持 leap 训练的重要证据 — adjacent MTP 不能纠正,而 L-MTP 强迫 head 看更远,应当能缓解。但论文没直接验证 "L-MTP 训出来的模型 myopia 减少了多少" 这个最该测的问题(只在 leap 设定下测到了 acc 模式与理论一致)。</p>
+
+<h3>6.5 Data scale (Figure 9)</h3>
+<ul>
+  <li>1K → 100K 数据,head 2..7 的 acc 单调上升,但 i 越大 acc 越低</li>
+  <li>数据增长不是线性 — 早期收益大,后期递减 → 暗示需要更复杂 head 架构 (Hydra / EAGLE) 才能进一步提升</li>
+</ul>
+
+<hr>
+
+<h2 id="sec7">7 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>核心机制</th><th>与 L-MTP 差别</th></tr>
+  <tr><td><strong>Gloeckle 2024 (标准 MTP)</strong> <a href="14_MTP_Gloeckle_2404.19737.html">[精读]</a></td><td>n 个 head 各预测 t+1..t+n adjacent</td><td>L-MTP 改 supervision pattern,head 数 / 架构相同</td></tr>
+  <tr><td>DeepSeek-V3 sequential MTP</td><td>n 个 head 链式;head i+1 看 head i 输出</td><td>L-MTP heads 并行不串行;但每 head 跨距更大</td></tr>
+  <tr><td>Medusa (Cai 2024)</td><td>n 个 FFN head + tree attention 验证</td><td>仍 adjacent;L-MTP 把它的解码改成 leap 加 +22%</td></tr>
+  <tr><td>EAGLE (Li 2024)</td><td>复用 hidden + 自回归 draft head</td><td>External-style,与 L-MTP 正交可结合</td></tr>
+  <tr><td>Hydra (Ankner 2024)</td><td>sequentially-dependent draft heads</td><td>head 之间有依赖,改善 acceptance;L-MTP 只改位置</td></tr>
+  <tr><td>MuToR (register tokens)</td><td>插入 [REG] token 让模型规划</td><td>动 input,L-MTP 动 supervision</td></tr>
+  <tr><td>FSP (Future Summary Prediction)</td><td>预测一段未来的 summary embedding</td><td>非 token 级目标,不易做 spec decoding</td></tr>
+  <tr><td>ProphetNet (Qi 2020)</td><td>n-stream decoder 预测 future n-gram</td><td>重在 seq2seq 预训练,无 spec decoding 视角</td></tr>
+</table>
+
+<div class="nb">
+  <strong>定位:</strong>L-MTP 是<em>对 Gloeckle MTP 的最小可行改动</em> — 不动 backbone, 不动 head 架构, 只改"head 2..n 学的目标位置 + 推理时的 token 拼接方式"。所以它和 EAGLE / Medusa / Hydra 这些 "改 head 架构以提高 acceptance" 的工作几乎完全正交,可以叠加。
+</div>
+
+<hr>
+
+<h2 id="sec8">8 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认 / 暴露的局限</h3>
+<ul>
+  <li><strong>性能改善噪声级</strong>:Avg 提升大多 < 2 pt,部分模型 (Qwen2.5-7B) 还是平负。所谓 "broader supervision → 更强模型" 这个口号没有兜住。</li>
+  <li><strong>γ 越大 L-MTP 越吃亏</strong> (定理 3),这与 myopia 实验互相矛盾的尴尬:scale 越大 myopia 越严重 → head 远端 acc 越低 → γ 越大 → L-MTP 越吃亏。论文用 "强模型受益更大" 解释,但底层数据(Figure 8 的 acc 下降斜率)更像 γ 单调上升。</li>
+  <li><strong>k 是固定常数</strong>。Future work 提议 entropy-aware adaptive k,但当前实验只跑 k=2。</li>
+  <li><strong>所有实验都是 LoRA fine-tune</strong>,不是预训练。Gloeckle 那篇的核心贡献是从头预训练才看见的好处,L-MTP 没有同等规模实验。</li>
+  <li><strong>第一个 step 没有 "look backward" 可用</strong>。Cold start 时退化成普通 MTP。</li>
+</ul>
+
+<h3>我的个人 take</h3>
+<ol>
+  <li><em>真正的贡献是解码侧</em>,不是训练侧。Vicuna-Medusa 直接套 leap decoding +22% 那个数字含金量最高 — 它说明 leap 的"复用上一步预测"思路是个独立有效的工程优化。</li>
+  <li><em>训练侧的故事不太自洽</em>。论文用 "long-range dependency" 做卖点,但每个具体 head 学的还是固定 horizon 的 adjacent 关系(只是远了点),并没有真正让模型"跳过中间步推理"。要做到后者得是 GSM8K 风格的 step-skipping,而不是 token-level 跳。</li>
+  <li>k=2 + n=4 这个组合让最远 horizon 是 t+7,本质上和 "n=8 adjacent MTP" 在覆盖范围上类似,但是<em>训练成本相同</em> (n=4 个 head)。这是个实在的 trade-off:同样 head 数下覆盖更广,代价是局部密度降低。</li>
+</ol>
+
+<h3>想验证的问题</h3>
+<ol>
+  <li>如果换成 <strong>k=2 但 n=8</strong> (覆盖到 t+15) vs <strong>k=4 n=4</strong> (覆盖到 t+13),哪种更优?论文没扫 k 和 n 的联合空间。</li>
+  <li>Theorem 3 假设 f(i) = exp(−γ(i−1))。<strong>真实 f 不一定指数衰减</strong>(Figure 7 看起来更像 sigmoid),这对定理结论有多大影响?</li>
+  <li>L-MTP 训完的模型,即使用 NTP 解码 (单 head),性能和 NTP 训的差距如何? — 即"leap 监督"是否真的让 backbone 学到更长程结构,还是只是 head 2..n 的事。</li>
+  <li>把 L-MTP 的 looking backward 套到 EAGLE-3 (而不是 Medusa) 上,加速能进一步加吗?EAGLE 本身 acceptance 已经很高,leap 的相对收益可能挤压。</li>
+  <li>RL post-training 场景下:论文 future work 提到结合 RL,但没有数据。leap supervision 对 reasoning trace 的连贯性 (尤其 chain-of-thought 中间步) 是否会有破坏作用?</li>
+  <li>最远 head 的 entropy 是否变高?若变高,sampling 阶段是否需要不同温度策略?</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> 把 MTP 的 head 监督位置从 [t+1..t+n] 改成 [t+1, t+1+k, t+1+2k, ...],其余基本不动<br>
+  <span class="pill">公式</span> 监督位置 = t + k(i−1) + 1, i ∈ [n];默认 k=2, n=4 → 最远 t+7<br>
+  <span class="pill">推理</span> Looking backward 把当前 step 缺失的中间位置从上一步预测里取回 → 拼成连续候选 → tree attention 验证<br>
+  <span class="pill">理论</span> 当 γ = O(1/n²) (低 attenuation) 时 L-MTP 期望 acceptance 长度 > MTP<br>
+  <span class="pill">数字</span> Medusa 上换 leap decoding +22% (1.83→2.32×); 训练版 GSM8K Gemma-12B 5.61→26.38<br>
+  <span class="pill">陷阱</span> 性能提升大多在噪声内;k 固定为 2;所有实验都是 LoRA 微调,不是预训练
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 配套论文 PDF 在 <code>/data/szhang967/papers/paper-notes/models/LMTP_2505.17505.pdf</code><br>
+  See also: <a href="14_MTP_Gloeckle_2404.19737.html">14_MTP_Gloeckle_2404.19737.html</a> (foundational MTP)
+</p>
+
+</main>
+</body>
+</html>

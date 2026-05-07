@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Multi-token Prediction (Gloeckle 2404.19737)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Better &amp; Faster LLMs via Multi-token Prediction</h1>
+<div class="meta">
+  Meta FAIR · Gloeckle, Idrissi, Rozière, Lopez-Paz, Synnaeve · ICML 2024 · arXiv:2404.19737<br>
+  关键词: MTP · multi-token prediction · self-speculative decoding · pretraining loss · sample efficiency
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 LLM 的预训练 loss 从"预测下一个 token"扩展成"用 n 个独立 head 同时预测下 n 个 token,共享一个 transformer trunk",训练时间不变、内存通过精心调度也不增,下游 code 显著变强,且 inference 时几个 head 直接拿来做 self-speculative decoding,3× 免费加速。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">+12% / +17%</div><div class="l">13B HumanEval / MBPP pass@1</div></div>
+    <div class="stat"><div class="n">3.0× / 6.4×</div><div class="l">code (4-token) / byte (8-byte) 推理加速</div></div>
+    <div class="stat"><div class="n">0 overhead</div><div class="l">训练时间 / wall clock</div></div>
+  </div>
+  <p><strong>立场:</strong>这是 MTP 谱系的<em>奠基</em>论文 — 后续 DeepSeek-V3、MiMo-V2 的 MTP head、Medusa 等都借鉴这套"shared trunk + n heads + 仔细调度反传"。生效门槛是<em>scale</em>(7B 以上)且偏向 generative/coding 任务。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:NTP 的内在缺陷与"预知未来"的诱惑</a></li>
+    <li><a href="#sec2">背景速查 (术语 / 标记)</a></li>
+    <li><a href="#sec3">方法: shared trunk + n 独立 heads</a></li>
+    <li><a href="#sec4">内存调度: 把 O(nV) 压回 O(V)</a></li>
+    <li><a href="#sec5">公式拆解 + 信息论解释</a></li>
+    <li><a href="#sec6">Worked Example: n=4 头一个具体位置</a></li>
+    <li><a href="#sec7">Self-Speculative Decoding: 顺手的 3× 加速</a></li>
+    <li><a href="#sec8">实验关键结果 (规模 / n 选择 / 多 epoch)</a></li>
+    <li><a href="#sec9">与同类工作对比 (NTP / Medusa / DS-MTP / TOP)</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:NTP 的内在缺陷与"预知未来"的诱惑</h2>
+
+<h3>1.1 历史脉络:NTP 是 LLM 的全部,但也是它的天花板</h3>
+<p>从 GPT-2 到 Llama,LLM 的预训练目标几乎只有一个:next-token prediction (NTP),即最小化 <code>−Σ log P(x_{t+1} | x_{1:t})</code>。这套范式简单、可并行(teacher forcing)、跟下游 autoregressive generation 形式上一致。它给我们带来了 GPT-3、Llama、Gemini。</p>
+
+<p>但论文一句话点穿它的<strong>结构性缺陷</strong>:</p>
+<blockquote>
+"State-of-the-art next-token predictors call for orders of magnitude more data than human children to arrive at the same level of fluency."
+</blockquote>
+
+<p>翻译:同样达到流利的语言水平,LLM 要烧掉比人类儿童多<em>几个数量级</em>的语料。这意味着 NTP 这把锤子把 sample efficiency 浪费得很厉害。问题在哪?论文给出三层诊断:</p>
+
+<ol>
+  <li><strong>Teacher forcing 锁死了"局部模式"</strong>:训练时模型每步都看到 ground-truth 的过去,只需要根据上一个 token 预测下一个;它学不到"我现在选了 A,几个 token 后会 derail 还是收敛"这种长程依赖的因果。</li>
+  <li><strong>所有 token loss 等权</strong>:语言里有"句子里的 the"和"代码里的函数名"这种<em>关键 choice point</em>,后者一错满盘皆输,但 cross-entropy 给它和 the 一样的权重。</li>
+  <li><strong>训练-推理分布不匹配 (exposure bias)</strong>:训练时永远看到 gold history,推理时只能看到自己生成的东西。误差累积没人管。</li>
+</ol>
+
+<h3>1.2 让模型"预知未来"会强迫它学到什么</h3>
+<p>设想一下:把训练目标从"预测 t+1"扩展成"同时预测 t+1, t+2, t+3, t+4",会发生什么?</p>
+
+<ul>
+  <li><strong>预测 t+2 必须先在 t 处对 t+1 的<em>选择</em>有把握</strong> — 否则 t+2 的分布就被 t+1 的不确定性彻底淹没。这相当于让模型在内部表征里<em>显式地</em>规划 t+1 是什么。</li>
+  <li>从信息论看,共享 trunk 必须把"对未来 n 步都有用"的信息压进 hidden state,而不只是"刚好能挑出 t+1"的局部特征。这<strong>反着推动 trunk 学全局结构</strong>。</li>
+  <li>对那些 NTP 觉得"无关紧要、随便挑一个就行"的 stylistic 位置,MTP 也不会浪费容量;但对 choice point,因为它的后果会出现在 t+2..t+n 中,这个位置在 loss 里被<em>多算几次</em>(论文 §5.1 算出来是 <code>n(n+1)/2</code> vs 普通点的 <code>n</code>)。</li>
+</ul>
+
+<p>所以 MTP 不是简单的"多预测几个未来 token";它是<strong>用 auxiliary task 把"长程一致性"从神经网络里榨出来</strong>。</p>
+
+<h3>1.3 别人的方案为什么不够</h3>
+
+<table>
+  <tr><th>替代方案</th><th>动了什么</th><th>致命缺陷</th></tr>
+  <tr><td>UniLM (Dong 2019)</td><td>BERT 风格 mask + 多种 attention</td><td><span class="no">只对 ~15% token 反传 — 大头数据浪费</span></td></tr>
+  <tr><td>UL2 / span corruption (Tay 2022)</td><td>encoder-decoder span 填空</td><td><span class="no">同上,15–25% token 实际反传;且不是纯 causal,部署不友好</span></td></tr>
+  <tr><td>XLNet (Yang 2019) permuted LM</td><td>随机 permute 序列</td><td><span class="no">置换太难重建,实际只对 15% 反传</span></td></tr>
+  <tr><td>Qi 2020 multi-token</td><td>多 token 预测,但 residual stream 复制 n 份</td><td><span class="no">参数 / 计算膨胀 n 倍,无法做 compute-matched 比较</span></td></tr>
+  <tr><td>Medusa (Cai 2024)</td><td>finetune 阶段加多 token head</td><td><span class="no">只为 inference 加速服务,不影响 base model 的能力</span></td></tr>
+  <tr><td><strong>MTP (本文)</strong></td><td>pretrain 时 n 个轻量 head 共享 trunk,所有 token 都反传</td><td><span class="ok">100% token 参与,compute-matched,base 能力提升</span></td></tr>
+</table>
+
+<div class="nb">
+<strong>关键差别:</strong> 之前的非 NTP 工作要么<em>降低 token 利用率</em>(BERT/UL2 等只反传一小部分),要么<em>只为 inference 加速</em>(Medusa 是 finetune 阶段塞进去的)。MTP 是第一个把"多 token 同时预测"作为 <strong>pretraining 主目标</strong>、且保持 compute-matched 与 100% token 反传的方案。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">NTP</span></td><td>Next-token prediction,标准 LLM 预训练 loss <code>L₁ = −Σ log P(x_{t+1} | x_{1:t})</code></td></tr>
+  <tr><td><span class="term">MTP</span></td><td>Multi-token prediction,扩展为 <code>L_n = −Σ Σ_{i=1..n} log P(x_{t+i} | x_{1:t})</code></td></tr>
+  <tr><td><span class="term">Shared trunk f_s</span></td><td>主 transformer 主干,从 context 产出隐藏表示 z_t</td></tr>
+  <tr><td><span class="term">Output head f_{h_i}</span></td><td>第 i 个独立预测头(轻量 transformer 层),负责预测 t+i</td></tr>
+  <tr><td><span class="term">Unembedding f_u</span></td><td>共享的反嵌入矩阵,把 hidden 投到 vocab logits</td></tr>
+  <tr><td><span class="term">Self-speculative decoding</span></td><td>用模型自己额外的 head 当 draft,用主 head 当 verifier 的 spec decoding 变体,无需额外 draft model</td></tr>
+  <tr><td><span class="term">Compute-matched</span></td><td>对比时保持总参数量 / 总 FLOPs 一致 — 加 n−1 个 head 就从 trunk 拿掉 n−1 层</td></tr>
+  <tr><td><span class="term">Induction head</span></td><td>Olsson 2022 提出的 in-context 复制能力的最小机制</td></tr>
+  <tr><td><span class="term">Choice point</span></td><td>语言生成中"高熵 / 后果重大"的关键位置(如函数名、推理步骤的论断)</td></tr>
+</table>
+
+<h3>2.2 NTP 的标准回顾</h3>
+<p>给定 token 序列 <code>x_1, x_2, ..., x_T</code>,模型由 transformer 主干 + 最后一层 unembedding 组成,产出每个位置的 vocab 分布。Loss 是所有位置的 cross-entropy 之和,反传一次,所有 token 都参与。这是 GPT 系训练的全部公式。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 方法:shared trunk + n 独立 heads</h2>
+
+<p>架构本身极简:<strong>一个 transformer 主干 f_s(占绝大多数参数),n 个并列的小 transformer head f_{h_1}..f_{h_n}(每个 1 层左右),共享 unembedding f_u</strong>。</p>
+
+<div class="formula">P_θ(x_{t+i} | x_{1:t}) = softmax(f_u(f_{h_i}(f_s(x_{1:t}))))</div>
+
+<p>注意三件事:</p>
+<ol>
+  <li><strong>n 个 head 是<em>并行</em>的,不是串行</strong>。第 i 个 head 不依赖第 i−1 个 head 的输出 — 它直接从 trunk 的 hidden state z_t 出发。</li>
+  <li><strong>head 之间不共享权重</strong>(否则它们就退化成同一个东西)。但 unembedding 是共享的(否则 vocab 大词表的 V × d 会复制 n 份,内存爆)。</li>
+  <li><strong>推理时默认<em>只用</em> head 1</strong>(next-token head)做 autoregressive,完全跟 NTP 部署兼容;额外的 head 是<em>可选的红利</em>。</li>
+</ol>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <!-- LEFT: NTP -->
+    <text x="160" y="20" text-anchor="middle" font-size="14" font-weight="600" fill="#5b5e66">(a) Next-token prediction</text>
+    <rect x="60" y="35" width="200" height="120" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="160" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Transformer trunk</text>
+    <text x="160" y="80" text-anchor="middle" font-size="11" fill="#3a3b40">L 层</text>
+    <text x="160" y="100" text-anchor="middle" font-size="11" fill="#3a3b40">输入 x_{1:t}</text>
+    <text x="160" y="120" text-anchor="middle" font-size="11" fill="#3a3b40">→ hidden z_t</text>
+    <line x1="160" y1="155" x2="160" y2="180" stroke="#666" marker-end="url(#arrM)"/>
+    <rect x="100" y="180" width="120" height="40" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="160" y="205" text-anchor="middle" font-size="12" fill="#cc4a1b">f_u (unembed)</text>
+    <line x1="160" y1="220" x2="160" y2="245" stroke="#666" marker-end="url(#arrM)"/>
+    <rect x="100" y="245" width="120" height="36" rx="8" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="160" y="268" text-anchor="middle" font-size="12" fill="#1f7a4a">P(x_{t+1} | ·)</text>
+    <text x="160" y="298" text-anchor="middle" font-size="11" fill="#5b5e66">单 head — 只学局部</text>
+
+    <!-- vertical divider -->
+    <line x1="370" y1="20" x2="370" y2="305" stroke="#ccc" stroke-dasharray="4,4"/>
+
+    <!-- RIGHT: MTP -->
+    <text x="555" y="20" text-anchor="middle" font-size="14" font-weight="600" fill="#5b5e66">(b) Multi-token prediction (n=4)</text>
+    <rect x="430" y="35" width="250" height="100" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="555" y="60" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Shared trunk f_s</text>
+    <text x="555" y="80" text-anchor="middle" font-size="11" fill="#3a3b40">L−(n−1) 层 (compute-matched)</text>
+    <text x="555" y="100" text-anchor="middle" font-size="11" fill="#3a3b40">输入 x_{1:t} → z_t ∈ ℝ^d</text>
+
+    <line x1="455" y1="135" x2="455" y2="160" stroke="#666" marker-end="url(#arrM)"/>
+    <line x1="510" y1="135" x2="510" y2="160" stroke="#666" marker-end="url(#arrM)"/>
+    <line x1="600" y1="135" x2="600" y2="160" stroke="#666" marker-end="url(#arrM)"/>
+    <line x1="655" y1="135" x2="655" y2="160" stroke="#666" marker-end="url(#arrM)"/>
+
+    <rect x="430" y="160" width="50" height="36" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="455" y="183" text-anchor="middle" font-size="11" fill="#cc4a1b">f_h1</text>
+    <rect x="485" y="160" width="50" height="36" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="510" y="183" text-anchor="middle" font-size="11" fill="#cc4a1b">f_h2</text>
+    <rect x="575" y="160" width="50" height="36" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="600" y="183" text-anchor="middle" font-size="11" fill="#cc4a1b">f_h3</text>
+    <rect x="630" y="160" width="50" height="36" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="655" y="183" text-anchor="middle" font-size="11" fill="#cc4a1b">f_h4</text>
+    <text x="555" y="155" text-anchor="middle" font-size="10" fill="#5b5e66">独立 head (各 1 层 transformer)</text>
+
+    <!-- shared unembed -->
+    <line x1="455" y1="196" x2="555" y2="218" stroke="#666"/>
+    <line x1="510" y1="196" x2="555" y2="218" stroke="#666"/>
+    <line x1="600" y1="196" x2="555" y2="218" stroke="#666"/>
+    <line x1="655" y1="196" x2="555" y2="218" stroke="#666"/>
+    <rect x="490" y="218" width="130" height="32" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="555" y="239" text-anchor="middle" font-size="11" fill="#cc4a1b">shared f_u</text>
+
+    <!-- outputs -->
+    <line x1="555" y1="250" x2="455" y2="270" stroke="#666"/>
+    <line x1="555" y1="250" x2="510" y2="270" stroke="#666"/>
+    <line x1="555" y1="250" x2="600" y2="270" stroke="#666"/>
+    <line x1="555" y1="250" x2="655" y2="270" stroke="#666"/>
+    <rect x="430" y="270" width="50" height="32" rx="6" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="455" y="290" text-anchor="middle" font-size="10" fill="#1f7a4a">P(x_{t+1})</text>
+    <rect x="485" y="270" width="50" height="32" rx="6" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="510" y="290" text-anchor="middle" font-size="10" fill="#1f7a4a">P(x_{t+2})</text>
+    <rect x="575" y="270" width="50" height="32" rx="6" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="600" y="290" text-anchor="middle" font-size="10" fill="#1f7a4a">P(x_{t+3})</text>
+    <rect x="630" y="270" width="50" height="32" rx="6" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="655" y="290" text-anchor="middle" font-size="10" fill="#1f7a4a">P(x_{t+4})</text>
+
+    <defs>
+      <marker id="arrM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>左:标准 NTP — 一个 head,学到的 hidden 只为下一 token 服务。右:n=4 MTP — 主干 trunk 把 z_t 同时喂给 4 个并行 head。每个 head 是 1 层 transformer + 共享 unembedding。注意 trunk 减少了 n−1=3 层以保持 compute-matched(对比 baseline 时 NTP 多 3 层 trunk,等价 FLOPs)。</figcaption>
+</div>
+
+<h3>3.1 为什么 head 之间不串行 / 不共享?</h3>
+<p>论文 Appendix B 比较了几种变体(causal head、anti-causal head、replicated unembed)。结论:本文这种"独立并行 head + shared unembed"在质量与内存间取得最佳平衡。</p>
+
+<ul>
+  <li><strong>串行 head 会让训练时一个 head 失败影响下一个 head</strong>(类似 RNN 的 BPTT 问题),且无法做内存调度优化。</li>
+  <li><strong>共享 head 参数</strong>就退化成 NTP — 因为 head_i 必须输出和 head_j 不同的分布(预测 t+i ≠ t+j),共享会让两个目标互相打架。</li>
+  <li><strong>独立 head + 共享 unembed</strong>:每个 head 只承担"把 trunk hidden 翻译成第 i 步未来分布"这件事,head 自己的参数小,大头还在 trunk 里 — trunk 才是被 n 个 loss 共同推动的对象。这就是 MTP 改善 base model 能力的核心。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec4">4 · 内存调度:把 O(nV) 压回 O(V)</h2>
+
+<p>n 个 head 同时算 logits 听起来内存就要爆 — vocab size V (~32k 或 100k+) 远大于 hidden d (~4k),所以 logits 张量 (n, batch, seq, V) 是显存大头。Naive 实现内存峰值 = O(nV + d)。</p>
+
+<p>论文的解法是<strong>顺序前向 + 顺序反向 + 在 trunk 累加梯度</strong>:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- trunk -->
+    <rect x="40" y="20" width="640" height="50" rx="8" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="360" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Step 0: Trunk forward → z_t (持有, ℝ^d)</text>
+    <text x="360" y="60" text-anchor="middle" font-size="11" fill="#3a3b40">仅 d 维 hidden 长期占内存</text>
+
+    <!-- 4 head boxes in time -->
+    <g font-size="11">
+      <!-- head 1 -->
+      <rect x="40" y="90" width="150" height="60" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="115" y="110" text-anchor="middle" font-weight="600" fill="#cc4a1b">Step 1: head 1</text>
+      <text x="115" y="126" text-anchor="middle">FW → logits (V)</text>
+      <text x="115" y="142" text-anchor="middle">BW → ∂L/∂z 累加</text>
+
+      <!-- head 2 -->
+      <rect x="200" y="90" width="150" height="60" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="275" y="110" text-anchor="middle" font-weight="600" fill="#cc4a1b">Step 2: head 2</text>
+      <text x="275" y="126" text-anchor="middle">FW → logits (V)</text>
+      <text x="275" y="142" text-anchor="middle">BW → 累加 ∂L/∂z</text>
+
+      <!-- head 3 -->
+      <rect x="360" y="90" width="150" height="60" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="435" y="110" text-anchor="middle" font-weight="600" fill="#cc4a1b">Step 3: head 3</text>
+      <text x="435" y="126" text-anchor="middle">FW → logits (V)</text>
+      <text x="435" y="142" text-anchor="middle">BW → 累加 ∂L/∂z</text>
+
+      <!-- head 4 -->
+      <rect x="520" y="90" width="150" height="60" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="595" y="110" text-anchor="middle" font-weight="600" fill="#cc4a1b">Step 4: head 4</text>
+      <text x="595" y="126" text-anchor="middle">FW → logits (V)</text>
+      <text x="595" y="142" text-anchor="middle">BW → 累加 ∂L/∂z</text>
+    </g>
+
+    <!-- arrows time flow -->
+    <line x1="190" y1="120" x2="200" y2="120" stroke="#666" marker-end="url(#arrI)"/>
+    <line x1="350" y1="120" x2="360" y2="120" stroke="#666" marker-end="url(#arrI)"/>
+    <line x1="510" y1="120" x2="520" y2="120" stroke="#666" marker-end="url(#arrI)"/>
+
+    <!-- key insight -->
+    <rect x="40" y="170" width="640" height="40" rx="8" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="360" y="195" text-anchor="middle" font-size="12" font-weight="600" fill="#a8353e">关键: 每个 step 完成后立即 free 掉 logits / activations,只保留 d 维 trunk 梯度累加</text>
+
+    <!-- step 5 trunk backward -->
+    <rect x="40" y="225" width="640" height="40" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="250" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Step 5: 用累加好的 ∂L_n/∂z 一次 trunk backward → 完成</text>
+
+    <defs>
+      <marker id="arrI" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Memory-efficient MTP 训练流程。整个过程峰值显存只比 NTP 多一个 head 的临时 logits(同样 O(V)),因为 head 是<em>一个一个</em>跑的,跑完立刻释放。Trunk 那侧只需要一个 d 维的梯度累加器。最后一次 trunk backward 用累加后的 ∂L_n/∂z 完成。Table S5 显示这跟 naive O(nV) 比,显存从爆显卡降到能跟 NTP 同 batch size 训练。</figcaption>
+</div>
+
+<h4>具体数据 (V=32k, d=4096, n=4)</h4>
+<ul>
+  <li>Naive 实现: 4 × 32k × 4 bytes × batch × seq = 巨大,batch 16 立即 OOM</li>
+  <li>本文调度: 同时只有 1 × 32k(在内存里),batch 可以保持 NTP 水平</li>
+  <li>论文 Table S5: <strong>training time 与 NTP 完全一致</strong>(顺序 head 没增加 wall-clock,因为 head 本身就轻量,GPU 算力没空跑别的)</li>
+</ul>
+
+<div class="nb">
+<strong>反向论证:</strong> 如果不做这个调度,n=4 MTP 实质上不能训 — 这就是为什么之前 Qi 2020 那种"复制 residual stream"的方案没火,它根本无法做 compute/memory-matched 比较。本文的工程优化是它能 scale 到 13B 的前提。
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · 公式拆解 + 信息论解释</h2>
+
+<h3>5.1 总 loss</h3>
+<div class="formula">L_n = −Σ_t Σ_{i=1..n} log P_θ(x_{t+i} | x_{1:t})</div>
+
+<p>注意是<strong>对每个位置 t 都算 n 个 head 的 loss</strong>,所以训练里反传次数 = T × n,但因为 head 轻量、内存调度好,wall-clock 不变。</p>
+
+<h3>5.2 因式分解(为什么不只是"平均 n 个 NTP loss")</h3>
+<p>论文的关键代数:</p>
+<div class="formula">
+P_θ(x_{t+n:t+1} | x_{1:t}) = P_θ(z_{1:t} | x_{1:t}) · Π_{i=1..n} P_θ(x_{t+i} | z_{1:t})
+</div>
+
+<p>这里有一个<em>独立性假设</em>:<strong>给定 trunk hidden z_t 后,n 个未来 token 互相条件独立</strong>。这是 MTP 跟"先预测 t+1 再用 t+1 条件预测 t+2"(后者就是 NTP 自回归 unrolling)的<em>本质不同</em>。</p>
+
+<p>这个假设强不强?它意味着 trunk 必须把"未来 n 步所有的<em>共有信息</em>"压进 z_t — 因为 head 之间不能再交流。这正是 MTP 给 trunk 的隐式压力,也是为什么 base model 能力会变强。</p>
+
+<h3>5.3 信息论解释 (论文 §5.2)</h3>
+<p>设 X = next token, Y = next-next token,context C 略去:</p>
+<div class="formula">
+H(X) = H(X|Y) + I(X; Y)<br>
+H(X) + H(Y) = H(X|Y) + 2·I(X; Y) + H(Y|X)
+</div>
+
+<p>论文的洞察:第二项 H(Y|X) 在<em>下一个</em>位置 t+1 还会出现一次(那时它就是新的 H(X)),所以<strong>跨位置看可以"丢掉"</strong>。剩下的等式说明:</p>
+
+<blockquote>
+2-token prediction 把 <strong>I(X;Y)</strong>(当前 token 与下一 token 的<em>互信息</em>)的权重提高了 2 倍。
+</blockquote>
+
+<p>物理直觉:I(X;Y) 度量的是"X 这步对 Y 的<em>影响</em>有多大" — 也就是 X 是不是 choice point。MTP 给 choice point 这种位置增加权重,而 stylistic 位置(I 接近 0)的权重不变。这跟 §1.2 直觉一致。</p>
+
+<h3>5.4 数值敏感性: choice point 实际拿到多少倍权重?</h3>
+<table>
+  <tr><th>n</th><th>普通点权重</th><th>choice point 权重</th><th>比值</th></tr>
+  <tr><td>1 (NTP)</td><td>1</td><td>1</td><td>1×</td></tr>
+  <tr><td>2</td><td>2</td><td>3</td><td>1.5×</td></tr>
+  <tr><td>4</td><td>4</td><td>10</td><td>2.5×</td></tr>
+  <tr><td>8</td><td>8</td><td>36</td><td>4.5×</td></tr>
+</table>
+<p>来自论文 Appendix L.3:choice point 的隐式权重 = n(n+1)/2,普通点 = n。所以 n=4 大概给关键决策位置 2.5× 的相对放大。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Worked Example: n=4 头一个具体位置</h2>
+
+<p>设场景:训练 7B code 模型,vocab 32k,hidden d=4096,n=4。当前训练序列片段:</p>
+<pre>def factorial(n):
+    if n == 0:
+        return </pre>
+
+<p>当前位置 t 对应到 token <code>"return "</code>(注意空格)。trunk 跑完前向得到 hidden <code>z_t ∈ ℝ⁴⁰⁹⁶</code>。这个 hidden 同时被 4 个 head 消费:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- input context -->
+    <rect x="20" y="15" width="680" height="36" rx="6" fill="#f3eee0" stroke="#888"/>
+    <text x="360" y="38" text-anchor="middle" font-size="12" fill="#3a3b40" font-family="monospace">context: ... if n == 0:\n        return </text>
+
+    <!-- trunk -->
+    <rect x="280" y="65" width="160" height="40" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="89" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Trunk → z_t ∈ ℝ⁴⁰⁹⁶</text>
+
+    <!-- 4 fanout arrows -->
+    <line x1="360" y1="105" x2="100" y2="135" stroke="#666" marker-end="url(#arrW)"/>
+    <line x1="360" y1="105" x2="265" y2="135" stroke="#666" marker-end="url(#arrW)"/>
+    <line x1="360" y1="105" x2="455" y2="135" stroke="#666" marker-end="url(#arrW)"/>
+    <line x1="360" y1="105" x2="620" y2="135" stroke="#666" marker-end="url(#arrW)"/>
+
+    <!-- head boxes -->
+    <g font-size="10.5" font-family="monospace">
+      <rect x="20" y="135" width="160" height="120" rx="8" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="153" text-anchor="middle" font-weight="600" fill="#cc4a1b">head 1 → t+1</text>
+      <text x="30" y="173">"1"     : 0.78 ✓</text>
+      <text x="30" y="190">"n"     : 0.09</text>
+      <text x="30" y="207">"None"  : 0.05</text>
+      <text x="30" y="224">"0"     : 0.04</text>
+      <text x="30" y="245" fill="#5b5e66" font-style="italic">target: "1"</text>
+
+      <rect x="190" y="135" width="160" height="120" rx="8" fill="#fff" stroke="#cc4a1b"/>
+      <text x="270" y="153" text-anchor="middle" font-weight="600" fill="#cc4a1b">head 2 → t+2</text>
+      <text x="200" y="173">"\n"    : 0.62 ✓</text>
+      <text x="200" y="190">" "     : 0.18</text>
+      <text x="200" y="207">"#"     : 0.07</text>
+      <text x="200" y="224">"\nelse": 0.05</text>
+      <text x="200" y="245" fill="#5b5e66" font-style="italic">target: "\n"</text>
+
+      <rect x="380" y="135" width="160" height="120" rx="8" fill="#fff" stroke="#cc4a1b"/>
+      <text x="460" y="153" text-anchor="middle" font-weight="600" fill="#cc4a1b">head 3 → t+3</text>
+      <text x="390" y="173">"    "  : 0.41</text>
+      <text x="390" y="190">"return": 0.22 ✓</text>
+      <text x="390" y="207">"def"   : 0.09</text>
+      <text x="390" y="224">"#"     : 0.05</text>
+      <text x="390" y="245" fill="#5b5e66" font-style="italic">target: "return"</text>
+
+      <rect x="550" y="135" width="160" height="120" rx="8" fill="#fff" stroke="#cc4a1b"/>
+      <text x="630" y="153" text-anchor="middle" font-weight="600" fill="#cc4a1b">head 4 → t+4</text>
+      <text x="560" y="173">" n"    : 0.27 ✓</text>
+      <text x="560" y="190">" 1"    : 0.14</text>
+      <text x="560" y="207">" None" : 0.10</text>
+      <text x="560" y="224">" "     : 0.08</text>
+      <text x="560" y="245" fill="#5b5e66" font-style="italic">target: " n"</text>
+    </g>
+
+    <defs>
+      <marker id="arrW" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>n=4 MTP 在 <code>"return "</code> 位置同时预测下 4 个 token。head 1 (next-token) 把 0.78 概率放到 <code>"1"</code> — 容易,只看 if 分支。head 4 (4 步后) 要预测 <code>" n"</code> — 这要求 trunk 在 z_t 里就编码了"我们正在写 <code>return 1\n    return n*factorial(n-1)</code>"这种<em>程序级别</em>的预期。head 4 的 loss 才是真正逼着 trunk 学习长程程序结构的力量。target 概率从 0.78 → 0.62 → 0.22 → 0.27 单调下降(预测越远越难),但即便 0.27 也远高于 1/32000 的随机水平,说明 trunk 学到了真东西。</figcaption>
+</div>
+
+<h3>6.1 这个例子里 choice point 的影子</h3>
+<p>位置 t 是 <code>"return "</code> 后,选哪个 token 是<strong>有 if 分支约束的局部决策</strong>(选 1 几乎确定)— 不是 choice point。但<strong>位置 t+3</strong> 才是真正的 choice point:写完第一行 return 后,要不要再写一个 return / if / else 是程序结构的关键岔路。head 4 的 loss 就把这个岔路的<em>判别信号</em>反传到 t 处的 trunk hidden,推动它编码"完整 factorial 函数模板"。</p>
+
+<h3>6.2 反向论证:为什么不只用 head 4?</h3>
+<p>试问:如果只训 head 4 (skip 1/2/3),会怎样?答:你失去了完整的"链条"。模型必须知道"先生成 X 再生成 Y"才能写出连贯输出 — 跳着只学第 4 步的 token 等于让模型只看每隔 4 个 token 的语料,信息量降到 1/4,且没法做 autoregressive inference。所以 1..n 的<em>组合</em>才是 MTP — 它是 NTP 的<em>超集</em>而非替代。</p>
+
+<hr>
+
+<h2 id="sec7">7 · Self-Speculative Decoding: 顺手的 3× 加速</h2>
+
+<p>这是论文最"商业气息"的副产品。训完一个 n=4 MTP 模型后,推理时:</p>
+
+<ol>
+  <li>主 head (head 1) 跑 1 步 → 候选 t+1 token</li>
+  <li>head 2/3/4 在<em>同一次 forward</em> 里也输出了 t+2/t+3/t+4 的 logits — <strong>免费的 3 个 draft token</strong></li>
+  <li>把这 4 个 token 喂回 trunk 做一次 forward(并行验证 4 个位置)</li>
+  <li>用 rejection sampling 决定接受到第几个</li>
+</ol>
+
+<p>这就是 Stern 2018 的 blockwise parallel decoding,也是 Medusa 的前身。MTP 的关键优势是:<strong>额外 head 是预训练时就训好的</strong>,acceptance rate 远高于"finetune 阶段塞 head"的 Medusa。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 200" width="100%" style="max-width:680px">
+    <!-- title -->
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#5b5e66">推理时的 self-speculative decoding (n=4)</text>
+
+    <!-- AR baseline row -->
+    <text x="50" y="60" font-size="11" fill="#5b5e66" text-anchor="end">AR (NTP):</text>
+    <g>
+      <rect x="60" y="46" width="50" height="28" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="85" y="65" text-anchor="middle" font-size="11">step1</text>
+      <rect x="115" y="46" width="50" height="28" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="140" y="65" text-anchor="middle" font-size="11">step2</text>
+      <rect x="170" y="46" width="50" height="28" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="195" y="65" text-anchor="middle" font-size="11">step3</text>
+      <rect x="225" y="46" width="50" height="28" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="250" y="65" text-anchor="middle" font-size="11">step4</text>
+      <rect x="280" y="46" width="50" height="28" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="305" y="65" text-anchor="middle" font-size="11">step5</text>
+      <text x="345" y="65" font-size="12" fill="#5b5e66">5 forwards → 5 tokens (1 token / forward)</text>
+    </g>
+
+    <!-- MTP self-spec row -->
+    <text x="50" y="115" font-size="11" fill="#cc4a1b" text-anchor="end">MTP self-spec:</text>
+    <g>
+      <!-- big propose box -->
+      <rect x="60" y="100" width="160" height="28" rx="4" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="140" y="119" text-anchor="middle" font-size="11" fill="#cc4a1b">forward 1 → 提议 t+1..t+4</text>
+      <!-- verify box -->
+      <rect x="225" y="100" width="160" height="28" rx="4" fill="#d4edda" stroke="#1f7a4a"/>
+      <text x="305" y="119" text-anchor="middle" font-size="11" fill="#1f7a4a">forward 2 → 并行验证 4 个</text>
+      <text x="395" y="119" font-size="12" fill="#5b5e66">2 forwards → 平均 2.5 接受 → ~3.0× (code)</text>
+    </g>
+
+    <!-- numbers -->
+    <rect x="60" y="150" width="600" height="36" rx="6" fill="#f3eee0" stroke="#888"/>
+    <text x="360" y="173" text-anchor="middle" font-size="12">code: 3.0× (2.5/3 接受率) · text: 2.7× · 8-byte 模型: <strong>6.4×</strong></text>
+  </svg>
+  <figcaption>Self-spec 流程:一次主 forward 同时给出 4 个候选 → 一次 trunk forward 并行验证。Speedup ≈ avg accepted tokens / 1 forward。<strong>关键:这个 speedup 是"训了 MTP 之后免费送的"</strong> — 不需要 draft model,不需要额外 finetune。即便你认为 MTP 对 base 能力提升不大,光这个推理 perk 就值得用。</figcaption>
+</div>
+
+<h3>7.1 跟 Medusa 的对比 — 这是 MTP 最辣的产品角度</h3>
+<table>
+  <tr><th></th><th>Medusa</th><th>MTP self-spec</th></tr>
+  <tr><td>额外 head 何时训</td><td>预训练完之后 finetune</td><td>预训练时就一起训</td></tr>
+  <tr><td>head 学习量</td><td>~10B token finetune,有限</td><td>1T token,与 trunk 联训</td></tr>
+  <tr><td>Acceptance rate</td><td>偏低 (~1.5–2 / 3)</td><td>2.5 / 3 (code)</td></tr>
+  <tr><td>对 base 能力</td><td>无影响(冻结)</td><td>提升 (§3 的实验)</td></tr>
+  <tr><td>实施门槛</td><td>给已有模型加</td><td>需从头预训</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 规模决定一切 (Figure 3)</h3>
+<p>这是论文最核心、最反直觉的结论:<strong>MTP 在小模型上甚至略 hurt baseline,只在 6.7B+ 才显著超越</strong>。</p>
+
+<table>
+  <tr><th>规模</th><th>MBPP pass@1 (n=4 vs n=1)</th><th>HumanEval pass@1 (n=4 vs n=1)</th></tr>
+  <tr><td>0.3B</td><td><span class="no">2 vs 4</span></td><td><span class="no">2 vs 5</span></td></tr>
+  <tr><td>1.3B</td><td>~ 持平</td><td>~ 持平</td></tr>
+  <tr><td>6.7B</td><td><span class="ok">+1.7%</span></td><td><span class="ok">+3.9%</span></td></tr>
+  <tr><td>13B</td><td><span class="ok">+4.5%</span> (24→26)</td><td><span class="ok">+12% 相对</span> (相对收益)</td></tr>
+</table>
+
+<div class="nb">
+<strong>解释:</strong> 小模型自己 trunk 容量都不够支撑 NTP 流畅度,再分一份给"预测未来"就压力过大。一旦 trunk 容量足够(7B+),它有"余裕"被 MTP 推动学习长程结构,从而 base 能力反弹超越 NTP。这是 emergent behavior 的一种。
+</div>
+
+<h3>8.2 最优 n (Table 1)</h3>
+<table>
+  <tr><th>n</th><th>MBPP@1</th><th>HumanEval@1</th><th>APPS/Intro@1</th></tr>
+  <tr><td>1 (baseline)</td><td>30.0</td><td>22.8</td><td>2.8</td></tr>
+  <tr><td>2</td><td>30.3</td><td>22.2</td><td>2.1</td></tr>
+  <tr><td><strong>4</strong></td><td><strong>33.8</strong></td><td><strong>24.0</strong></td><td>1.6</td></tr>
+  <tr><td>6</td><td>31.9</td><td>20.6</td><td>3.5</td></tr>
+  <tr><td>8</td><td>30.7</td><td>20.0</td><td>3.5</td></tr>
+</table>
+<p><strong>结论:</strong>n=4 (token-level) 几乎是普适甜点。byte-level 模型 n=8 才是甜点(byte 信息密度低,需要看更远)。</p>
+
+<h3>8.3 多 epoch 训练依然有效 (1T tokens, 4 epoch)</h3>
+<table>
+  <tr><th></th><th>MBPP@1</th><th>HumanEval@100</th></tr>
+  <tr><td>n=1, 1T (4 epoch)</td><td>40.7</td><td>83.0</td></tr>
+  <tr><td>n=4, 1T (4 epoch)</td><td>43.1 (+2.4)</td><td>86.2 (+3.2)</td></tr>
+</table>
+<p>说明 MTP 不是"早期训练 trick" — 重复看数据时 MTP 依然继续榨数据的价值。</p>
+
+<h3>8.4 Natural language: 取决于评测方式 (Figure 5/6)</h3>
+<ul>
+  <li><span class="no">Multiple-choice / NLL benchmark:</span> n=2 持平 baseline,n=4 略 regress(7B 规模)</li>
+  <li><span class="ok">Summarization (ROUGE-L):</span> n=2 / n=4 都比 NTP 好</li>
+  <li><span class="ok">GSM8K (200B token):</span> n=2 显著超 NTP;但 500B 后反转 — 数据量大时 NTP 追上来</li>
+</ul>
+<p><strong>解读:</strong>MTP 在<em>生成质量</em>上有优势,在<em>判别 / 似然</em>类任务上不一定有。这跟"MTP 让模型学到长程结构"的理论是<strong>一致</strong>的 — 长程结构对生成连贯性重要,对单点 likelihood 不重要。</p>
+
+<h3>8.5 Algorithmic reasoning (Figure 8)</h3>
+<p>多项式算术任务(F7[X]/(X^5),1–10 操作数):n=2/n=4 在 in-domain 与 OOD 都显著超 NTP。论文有一句猛话:</p>
+<blockquote>
+"Tripling the model size has a considerably smaller effect than replacing next-token prediction with multi-token prediction loss."
+</blockquote>
+<p>即:把 30M → 100M 模型的提升 <strong>不如</strong> NTP → MTP 的提升。这是 MTP 最猛的卖点之一。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>核心做法</th><th>跟本文的关系</th></tr>
+  <tr><td>NTP (GPT, Llama)</td><td>预测 t+1,单 head</td><td><strong>本文的 baseline</strong>,被超越在 code/reasoning</td></tr>
+  <tr><td>Stern 2018 blockwise</td><td>finetune 阶段加 linear 多 head</td><td>本文用 transformer head 替换 + pretrain 期联训</td></tr>
+  <tr><td>Medusa (Cai 2024)</td><td>finetune 阶段加 head, tree attention</td><td>spec decoding 角度互补;Medusa 不动 base</td></tr>
+  <tr><td>Qi 2020</td><td>多 token 预测,但 residual 复制 n 份</td><td>计算膨胀,无法 compute-matched;本文是"compute-matched 版本"</td></tr>
+  <tr><td>UL2 / span corruption</td><td>span 填空</td><td>15–25% token 反传,本文 100%</td></tr>
+  <tr><td>XLNet permuted LM</td><td>排列序列</td><td>实践中只 15% 反传</td></tr>
+  <tr><td><strong>DeepSeek-V3 MTP</strong></td><td>串行 head + 给 t+i 看 t+i−1 的 hidden</td><td>是本文的<em>变体</em>,DeepSeek 选择串行换更高质量</td></tr>
+  <tr><td><strong>MiMo-V2-Flash</strong> (<a href="04_MiMo-V2-Flash_2601.02780.html">见 04</a>)</td><td>生产部署 MTP head 用于 spec decoding</td><td>本文方法的<em>商业落地版</em>;MiMo 直接复用 MTP head 做 inference 加速</td></tr>
+  <tr><td><strong>TOP</strong> (<a href="10_TOP_2508.19228.html">见 10</a>)</td><td>预测<em>未来 token 集合的排序</em>,不再预测精确序列</td><td><strong>反命题</strong> — TOP 认为 MTP 让模型学"我说 X 之后会说什么"太死板,改成"未来 N 个 token 的相对排名"反而更鲁棒</td></tr>
+</table>
+
+<div class="nb">
+<strong>位置定位:</strong> 本文 (Gloeckle 2024) 是 MTP 这个谱系的<em>开山</em>。后续路线可粗分两支:① <strong>沿用且改进结构</strong>(DeepSeek-V3 串行版本、MiMo 工程版本); ② <strong>质疑核心假设</strong>(TOP 认为预测精确未来 token 是 NTP 的同样错误,应该转向 ranking/set prediction)。读者读完本文后可以读 TOP 的反命题、再读 MiMo-V2 的产品化,形成完整的 MTP 谱系图。
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认或暗示的局限</h3>
+<ul>
+  <li><strong>规模阈值高</strong>:&lt;3B 模型上 MTP 反而 hurt — 学术研究 / 资源有限的小模型不适用</li>
+  <li><strong>NLP multiple-choice benchmark 上 n=4 regress</strong> — MTP 偏向生成,不偏向 likelihood-as-eval 任务</li>
+  <li><strong>n 是 hyperparameter</strong>,不同任务最优值不同(code 4 / byte 8 / MATH-200B 是 2 / MATH-500B 是 1)</li>
+  <li><strong>因式分解假设 head 之间条件独立</strong>(给定 z_t)— 实际中 t+1 和 t+2 显然相关,这个假设可能让 head 的预测有点"模糊化"</li>
+  <li><strong>没研究 MTP × instruction tuning / RLHF</strong> 的 interaction — 现在所有 SOTA 模型都过 RLHF,MTP 在那个阶段是否依然有用?</li>
+</ul>
+
+<h3>我的疑问 (offline 阅读后想验证的)</h3>
+<ol>
+  <li>13B 是论文 ceiling,但 70B / 405B / MoE 上 MTP 收益是继续放大还是饱和?DeepSeek-V3 的成功说明<em>放大</em>,但论文里只跑到 13B。</li>
+  <li>"choice point 拿到 n(n+1)/2 倍权重"很优美,但有没有反例 — 比如 stylistic 但局部熵高(韵脚押韵之类)的位置会不会被错误升权?</li>
+  <li>self-spec acceptance 2.5/3 听起来惊人,但和模型 entropy 强相关 — 在 RLHF 后 entropy 显著下降的 model 上,MTP head 的预测分布是否还跟 main head 对齐?(参考 NeMo-RL × EAGLE-3 论文的 verifier-exact 讨论)</li>
+  <li>跟 DeepSeek-V3 MTP(串行)比,本文的"并行 head + 条件独立假设"在大模型上是否真的够好,还是 DeepSeek 的串行才是正确路径?这个 ablation 论文里没有。</li>
+  <li>TOP 的批评 — "预测精确未来 token 跟 NTP 同样有 exposure bias 问题" — 是否成立?MTP 里 t+4 的 head 训练时也是 teacher-forced 看 z_t (z_t 来自 ground-truth context),理论上确实没解决这个根本问题,只是把 bias 推远了 4 步。</li>
+  <li>n=4 的 4 个 head 总参数 + 1 个共享 unembed,部署时如果只用 head 1 就能扔掉其他 3 个 — 但实际生产中 self-spec 加速这么诱人,大家肯定都留着。这就让"compute-matched"的论断在 inference 端有点取巧:你训练时是 compute-matched,但 inference 时 4 个 head 都在内存里。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> NTP 是 sample-inefficient 的;MTP 用 n 头同预 + 共享 trunk + 仔细内存调度,把"预知未来"作为 pretrain 主目标,no time/memory overhead<br>
+  <span class="pill">公式</span> L_n = −Σ_t Σ_{i=1..n} log P(x_{t+i} | x_{1:t});条件独立假设把 trunk 推向学习长程结构<br>
+  <span class="pill">规模门槛</span> &lt;3B regress, 6.7B+ 起飞, 13B 给出 +12% HumanEval, +17% MBPP<br>
+  <span class="pill">免费红利</span> n−1 个 head 直接做 self-spec → 3.0× code, 6.4× byte<br>
+  <span class="pill">最优 n</span> token-level 4, byte-level 8;NLP multiple-choice 上 n=4 反而 regress<br>
+  <span class="pill">谱系</span> DeepSeek-V3 / MiMo-V2 是工程后继;TOP (10) 是反命题;Medusa 是只做 inference 的弱化版<br>
+  <span class="pill">关键洞察</span> Choice point 隐式权重 n(n+1)/2 vs 普通点 n — MTP 是<em>自动</em>的 token re-weighting
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 · 配套 PDF: <code>/data/szhang967/papers/paper-notes/models/MTP_Gloeckle_2404.19737.pdf</code><br>
+  关联: <a href="04_MiMo-V2-Flash_2601.02780.html">04 · MiMo-V2-Flash (MTP 工程化)</a> · <a href="10_TOP_2508.19228.html">10 · TOP (反命题)</a>
+</p>
+
+</main>
+
+</body>
+</html>
