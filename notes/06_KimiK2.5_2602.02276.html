@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Kimi K2.5: Visual Agentic Intelligence (2602.02276)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Kimi K2.5: Visual Agentic Intelligence</h1>
+<div class="meta">
+  Moonshot AI · Kimi Team · 2026-02-02 · arXiv:2602.02276<br>
+  关键词: multimodal · agentic · Agent Swarm · zero-vision SFT · joint multimodal RL · MoonViT-3D · PARL
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>K2.5 用<em>原生多模态联合训练</em> + <em>zero-vision SFT</em> + <em>joint multimodal RL</em> 让 vision 与 text 互相增强,再用 <em>Agent Swarm (PARL)</em> 把"长串 sequential tool-call"变成"orchestrator + 一群 frozen 专精 sub-agent 的并行执行",在 BrowseComp 拿到 78.4% (vs single-agent 60.6%) 同时提速 3–4.5×。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">15T</div><div class="l">vision-text 联合预训练 token</div></div>
+    <div class="stat"><div class="n">+17.8</div><div class="l">BrowseComp Swarm vs Single-Agent</div></div>
+    <div class="stat"><div class="n">4.5×</div><div class="l">WideSearch wall-clock 加速上限</div></div>
+  </div>
+  <p><strong>立场:</strong>这是一份"系统报告"而非单点 idea 论文。两条主线: (1) 把 vision 当作 text 的"训练泛化器"而不是后挂模块;(2) 把 multi-agent orchestration 从 prompt-engineering 提升为 RL 学出来的策略,用 critical-step 做 latency 优化指标。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 K2.5 必须做 Agent Swarm + 多模态联合优化</a></li>
+    <li><a href="#sec2">背景速查 (术语 / 公式 / 缩写)</a></li>
+    <li><a href="#sec3">原生多模态预训练: early fusion + low ratio</a></li>
+    <li><a href="#sec4">Zero-Vision SFT: 不喂 vision 数据也能激活 visual tool-use</a></li>
+    <li><a href="#sec5">Joint Multimodal RL: vision RL 反向增强 text</a></li>
+    <li><a href="#sec6">Agent Swarm × PARL: orchestrator 学出并行</a></li>
+    <li><a href="#sec7">Worked Example: 从一张网页截图到一份报告</a></li>
+    <li><a href="#sec8">实验关键结果 (only load-bearing)</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec11">Memory Points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 K2.5 必须做 Agent Swarm + 多模态联合优化</h2>
+
+<h3>1.1 历史脉络:从 VLM 拼接到原生多模态再到 agentic</h3>
+<p>2023–2024 主流路线把 vision 当作"后挂模块":先训一个纯文本 LLM,然后在<strong>训练后期</strong>注入 vision token (Qwen2-VL, LLaVA, Seed1.5-VL 都是 50%+ 的 vision ratio 集中在末段)。这种做法的 implicit 假设是:"语言能力是基底,vision 是 capability add-on。" K2.5 直接挑战了这个假设——他们做了一组 ablation (Table 1):在<em>固定总 token 预算</em>下,early fusion + 低 vision ratio (10%) 在 vision-knowledge / vision-reasoning / OCR / text 等所有指标上都打过 mid-fusion (20%) 和 late-fusion (50%)。</p>
+<p>另一条线是 agentic:从 ReAct → Toolformer → Kimi-Researcher (端到端 RL) → K2-Thinking (能跑数百 step 的 long-horizon)。但 K2-Thinking 撞上了一个新天花板:<strong>sequential 推理深度有限</strong>。一个 episode 几百 step,context 累积 →100k+ token,最后 model 注意力分散,reasoning 退化。</p>
+
+<h3>1.2 单 agent 为什么"够呛"——别的方案为什么不够</h3>
+<table>
+  <tr><th>路线</th><th>怎么做</th><th>限制</th></tr>
+  <tr><td>更长 context (Kimi K2-Thinking)</td><td>把 context 拉到 256k,sequential 多 step</td><td><span class="no">每 step linear scaling, latency 与 task 复杂度成 O(N)</span></td></tr>
+  <tr><td>Hide-Tool-Result / Discard-all (DeepSeek-V3.2)</td><td>溢出时<em>反应式</em>截断/丢弃 history</td><td><span class="no">丢失中间 reasoning,信息损失不可控</span></td></tr>
+  <tr><td>Static planner + workers (LangGraph 类)</td><td>用人工/prompt 写好 DAG</td><td><span class="no">不能根据问题特性动态决定要不要并行</span></td></tr>
+  <tr><td>End-to-end multi-agent RL</td><td>orchestrator + sub-agent 一起训</td><td><span class="no">credit assignment ambiguity + 训练不稳定</span></td></tr>
+  <tr><td>Vision SFT (manual CoT)</td><td>人工标注"看图 → tool 调用"轨迹</td><td><span class="no">多样性差,只覆盖 crop/rotate 这类原始操作</span></td></tr>
+  <tr><td><strong>K2.5 Agent Swarm + zero-vision SFT</strong> 👈</td><td>orchestrator 训,sub-agent freeze;text-only SFT 激活 vision tool-use</td><td><span class="ok">解耦 credit assignment + 借 text 数据多样性激活 vision</span></td></tr>
+</table>
+
+<h3>1.3 为什么这事不平凡</h3>
+<p>三个非显然的工程/理论难点:</p>
+<ul>
+  <li><strong>多模态 cold start.</strong> Pretrained VLM 在 SFT 前不会"看着图调 tool"。如果你按传统做法标 vision SFT 数据,既贵又窄(只能教模型 crop/rotate);K2.5 的反直觉发现是:<em>纯 text SFT 就够了</em>,只要 pretrain 阶段做了 joint vision-text。</li>
+  <li><strong>Multi-agent RL 的 reward 稀疏 + 非平稳.</strong> 一个 final answer 对错没法告诉你 sub-agent 哪个出问题。K2.5 的解法是 freeze sub-agent,只训 orchestrator,把 sub-agent 当成"黑盒环境"——这把多 agent 问题降级成单 agent (orchestrator) 的 RL。</li>
+  <li><strong>Latency 该怎么定义.</strong> 在并行 agent 系统里 total step ≠ wall-clock。论文借用 critical path 的概念,定义 <code>CriticalSteps = Σₜ (S_main^t + maxᵢ S_sub,i^t)</code>。这一指标天然惩罚"乱拆 sub-task"——如果你拆出 10 个 sub-agent 但最长那个还是 100 step,你 critical step 还是 100。</li>
+  <li><strong>Serial collapse 与 spurious parallelism.</strong> 如果只奖励 final outcome,RL 容易让 orchestrator 退化成"我自己干"(serial collapse);如果只奖励"开了几个 sub-agent",会变成乱开但不完成 (spurious parallelism)。需要 dual-reward 平衡。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 700 200" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- top: single agent -->
+    <text x="20" y="25" font-size="13" font-weight="bold" fill="#a8353e">Single Agent (sequential)</text>
+    <g>
+      <rect x="20" y="35" width="40" height="30" fill="#cc4a1b" opacity="0.7" rx="3"/>
+      <rect x="65" y="35" width="40" height="30" fill="#cc4a1b" opacity="0.7" rx="3"/>
+      <rect x="110" y="35" width="40" height="30" fill="#cc4a1b" opacity="0.7" rx="3"/>
+      <rect x="155" y="35" width="40" height="30" fill="#cc4a1b" opacity="0.7" rx="3"/>
+      <rect x="200" y="35" width="40" height="30" fill="#cc4a1b" opacity="0.7" rx="3"/>
+      <rect x="245" y="35" width="40" height="30" fill="#cc4a1b" opacity="0.7" rx="3"/>
+      <rect x="290" y="35" width="40" height="30" fill="#cc4a1b" opacity="0.7" rx="3"/>
+      <rect x="335" y="35" width="40" height="30" fill="#cc4a1b" opacity="0.7" rx="3"/>
+      <text x="40" y="55" font-size="10" fill="#fff" text-anchor="middle">s1</text>
+      <text x="85" y="55" font-size="10" fill="#fff" text-anchor="middle">s2</text>
+      <text x="130" y="55" font-size="10" fill="#fff" text-anchor="middle">s3</text>
+      <text x="175" y="55" font-size="10" fill="#fff" text-anchor="middle">s4</text>
+      <text x="220" y="55" font-size="10" fill="#fff" text-anchor="middle">s5</text>
+      <text x="265" y="55" font-size="10" fill="#fff" text-anchor="middle">s6</text>
+      <text x="310" y="55" font-size="10" fill="#fff" text-anchor="middle">s7</text>
+      <text x="355" y="55" font-size="10" fill="#fff" text-anchor="middle">s8</text>
+      <text x="395" y="55" font-size="11" fill="#a8353e">wall = 8</text>
+    </g>
+    <!-- bottom: agent swarm -->
+    <text x="20" y="100" font-size="13" font-weight="bold" fill="#1f7a4a">Agent Swarm (orchestrator + frozen sub-agents)</text>
+    <g>
+      <rect x="20" y="115" width="40" height="22" fill="#2f6feb" opacity="0.85" rx="3"/>
+      <text x="40" y="130" font-size="9" fill="#fff" text-anchor="middle">orch</text>
+      <line x1="60" y1="126" x2="80" y2="126" stroke="#5b5e66" marker-end="url(#arr)"/>
+      <!-- parallel sub-agents -->
+      <rect x="80" y="105" width="40" height="20" fill="#9aa6c4" rx="3"/>
+      <rect x="125" y="105" width="40" height="20" fill="#9aa6c4" rx="3"/>
+      <rect x="170" y="105" width="40" height="20" fill="#9aa6c4" rx="3"/>
+      <text x="100" y="119" font-size="9" fill="#fff" text-anchor="middle">A:web</text>
+      <text x="145" y="119" font-size="9" fill="#fff" text-anchor="middle">B:doc</text>
+      <text x="190" y="119" font-size="9" fill="#fff" text-anchor="middle">C:code</text>
+      <rect x="80" y="128" width="40" height="20" fill="#9aa6c4" rx="3"/>
+      <rect x="125" y="128" width="60" height="20" fill="#9aa6c4" rx="3"/>
+      <rect x="190" y="128" width="40" height="20" fill="#9aa6c4" rx="3"/>
+      <text x="100" y="142" font-size="9" fill="#fff" text-anchor="middle">a2</text>
+      <text x="155" y="142" font-size="9" fill="#fff" text-anchor="middle">b2 (max)</text>
+      <text x="210" y="142" font-size="9" fill="#fff" text-anchor="middle">c2</text>
+      <line x1="230" y1="135" x2="250" y2="135" stroke="#5b5e66" marker-end="url(#arr)"/>
+      <rect x="250" y="120" width="60" height="22" fill="#2f6feb" opacity="0.85" rx="3"/>
+      <text x="280" y="135" font-size="9" fill="#fff" text-anchor="middle">orch:agg</text>
+      <text x="320" y="135" font-size="11" fill="#1f7a4a">critical = 1 + 2 + 1 = 4</text>
+    </g>
+    <text x="20" y="185" font-size="11" fill="#5b5e66">同样工作量 8 step → 并行后 critical path 只 4 step (sub-agent B 是瓶颈)</text>
+  </svg>
+  <figcaption>对比图: 单 agent 把 8 个 step 串行跑;Agent Swarm 让 orchestrator 拆出 3 路并行 sub-agent (web 检索 / 文档读取 / 代码),critical step 由<strong>最慢的那一条 branch</strong>决定。这就是 K2.5 把 latency metric 从 total-step 改为 critical-step 的原因——奖励"<em>balanced</em> 拆分"而不是"无脑切片"。</figcaption>
+</div>
+
+<div class="nb">
+  <strong>核心 motivation 一句话:</strong>当 task 复杂度增加时,sequential 路径的 latency 是 O(N);并行 + 学出来的拆分策略可以把 latency 压到接近 O(max branch) ≈ O(√N) 甚至常数。但前提是 RL 必须能学出"什么时候并行才有意义"——这不是 prompt 模板能做到的事。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">MoonViT-3D</span></td><td>K2.5 的 vision encoder。NaViT 风格 patch packing,共享参数处理 image + video,4 帧组合做 spatiotemporal volume,4× temporal compression</td></tr>
+  <tr><td><span class="term">Native-resolution</span></td><td>不切 sub-image,把原图直接 patch + flatten,支持任意宽高比</td></tr>
+  <tr><td><span class="term">Zero-Vision SFT</span></td><td>纯 text SFT 数据(图像操作通过 IPython 的 PIL 等程序化操作 proxy),无人工 vision trajectory。竟然能激活 visual tool-use</td></tr>
+  <tr><td><span class="term">Joint Multimodal RL</span></td><td>RL 不按模态分 expert,而按"能力"(knowledge / reasoning / coding / agentic) 分,text 和 vision 同 batch 训</td></tr>
+  <tr><td><span class="term">Agent Swarm</span></td><td>K2.5 的多 agent framework: trainable orchestrator + frozen sub-agents</td></tr>
+  <tr><td><span class="term">PARL</span></td><td>Parallel-Agent RL,K2.5 训 orchestrator 的 RL 方法。仅 orchestrator 更新,sub-agent 是 environment</td></tr>
+  <tr><td><span class="term">Critical Steps</span></td><td>并行 episode 的 latency 指标 = Σₜ (S_main + maxᵢ S_sub,i),源自 critical-path scheduling</td></tr>
+  <tr><td><span class="term">Serial collapse</span></td><td>RL 局部最优:orchestrator 学到"全自己干"——这是要主动避免的退化</td></tr>
+  <tr><td><span class="term">Spurious parallelism</span></td><td>reward hacking:疯狂开 sub-agent 但都不完成。需要 r_finish 惩罚</td></tr>
+  <tr><td><span class="term">GRM</span></td><td>Generative Reward Model,让一个 LLM 生成 fine-grained rubric 评分,用于 open-ended task</td></tr>
+  <tr><td><span class="term">Toggle</span></td><td>K2.5 的 token-efficient RL 调度,Phase0 (限 budget) 和 Phase1 (放开) 交替,降低 25–30% 输出 token</td></tr>
+  <tr><td><span class="term">DEP</span></td><td>Decoupled Encoder Process: 训练时 vision encoder 与 backbone 解耦执行,把 multimodal 训练效率拉到 90% (相对纯 text)</td></tr>
+</table>
+
+<h3>2.2 K2.5 总览</h3>
+<ul>
+  <li><strong>Backbone</strong>: 继承 Kimi K2 (1.04T 参数 MoE,32B activated,384 experts/8 active),MuonClip optimizer + QK-Clip。</li>
+  <li><strong>Vision encoder</strong>: MoonViT-3D,从 SigLIP-SO-400M 起步,~1T token continual pretrain,纯 caption loss。</li>
+  <li><strong>Pretraining</strong>: ViT 预训 → joint pretrain 15T mixed → 长上下文 mid-train (32k → 262k via YaRN)。</li>
+  <li><strong>Post-training</strong>: zero-vision SFT → joint multimodal RL (含 PARL for swarm) → Toggle for token efficiency。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec3">3 · 原生多模态预训练: early fusion + low ratio</h2>
+
+<p>核心结论一句话: <strong>固定 total token 预算下,vision ratio 不重要;但 vision 数据"早进来"比"末段集中"好</strong>。这与"先把语言练好再加 vision"的传统直觉相反。</p>
+
+<table>
+  <tr><th>策略</th><th>vision ratio</th><th>vision 知识</th><th>vision 推理</th><th>OCR</th><th>text 知识</th><th>text 推理</th><th>code</th></tr>
+  <tr><td><strong>Early</strong></td><td>10:90</td><td><strong>25.8</strong></td><td><strong>43.8</strong></td><td><strong>65.7</strong></td><td><strong>45.5</strong></td><td><strong>58.5</strong></td><td><strong>24.8</strong></td></tr>
+  <tr><td>Mid</td><td>20:80</td><td>25.0</td><td>40.7</td><td>64.1</td><td>43.9</td><td>58.6</td><td>24.0</td></tr>
+  <tr><td>Late</td><td>50:50</td><td>24.2</td><td>39.0</td><td>61.5</td><td>43.1</td><td>57.8</td><td>24.0</td></tr>
+</table>
+
+<div class="fig">
+  <svg viewBox="0 0 680 220" width="100%" style="max-width:660px">
+    <!-- timeline -->
+    <text x="20" y="20" font-size="13" font-weight="bold">三种策略的 vision 数据投放时间线</text>
+    <!-- early -->
+    <text x="20" y="55" font-size="12" fill="#1f7a4a">Early (K2.5)</text>
+    <rect x="100" y="42" width="500" height="18" fill="#fff" stroke="#5b5e66"/>
+    <rect x="100" y="42" width="500" height="18" fill="url(#earlyGrad)"/>
+    <defs>
+      <linearGradient id="earlyGrad" x1="0" x2="1">
+        <stop offset="0" stop-color="#2f6feb" stop-opacity="0.3"/>
+        <stop offset="1" stop-color="#2f6feb" stop-opacity="0.4"/>
+      </linearGradient>
+      <linearGradient id="midGrad" x1="0" x2="1">
+        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+        <stop offset="0.5" stop-color="#cc4a1b" stop-opacity="0.5"/>
+        <stop offset="1" stop-color="#cc4a1b" stop-opacity="0.7"/>
+      </linearGradient>
+      <linearGradient id="lateGrad" x1="0" x2="1">
+        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+        <stop offset="0.7" stop-color="#fff" stop-opacity="0"/>
+        <stop offset="0.71" stop-color="#a8353e" stop-opacity="0.7"/>
+        <stop offset="1" stop-color="#a8353e" stop-opacity="0.9"/>
+      </linearGradient>
+    </defs>
+    <text x="610" y="55" font-size="11" fill="#1f7a4a">low &amp; long</text>
+    <!-- mid -->
+    <text x="20" y="100" font-size="12" fill="#cc4a1b">Mid</text>
+    <rect x="100" y="87" width="500" height="18" fill="#fff" stroke="#5b5e66"/>
+    <rect x="100" y="87" width="500" height="18" fill="url(#midGrad)"/>
+    <text x="610" y="100" font-size="11" fill="#cc4a1b">ramp up</text>
+    <!-- late -->
+    <text x="20" y="145" font-size="12" fill="#a8353e">Late (传统)</text>
+    <rect x="100" y="132" width="500" height="18" fill="#fff" stroke="#5b5e66"/>
+    <rect x="100" y="132" width="500" height="18" fill="url(#lateGrad)"/>
+    <text x="610" y="145" font-size="11" fill="#a8353e">spike</text>
+    <!-- legend -->
+    <text x="100" y="175" font-size="11" fill="#5b5e66">训练 step →</text>
+    <text x="100" y="195" font-size="11">深度 (蓝/橙/红) ∝ vision token 比例</text>
+    <text x="100" y="212" font-size="11" fill="#1f7a4a">关键: Early 在<strong>同等 vision token 量</strong>下,因为 vision-text 共训时长更久 → cross-modal alignment 更深</text>
+  </svg>
+  <figcaption>"低比例但持续"赢过"高比例但集中"。这是因为 cross-modal alignment 是<em>time-on-task</em> 性质的——vision token 与 text token 在同一 backbone 上 co-occur 的训练 step 数越多,跨模态表征越融合。Late fusion 只学到"贴标签",early fusion 学到"vision 是 text 的另一种 view"。</figcaption>
+</div>
+
+<h4>Worked example: 两条策略下 1B vision token 怎么花</h4>
+<p>设总 budget = 16T (1T vision + 15T text):</p>
+<ul>
+  <li><strong>Late 50:50</strong>: 前 14T 全 text → 最后 2T 1:1 混。Vision 与 text co-train step ≈ 2T 的步数。Vision 表征只在最末期学到与 text 的对齐。</li>
+  <li><strong>Early 10:90</strong>: 1T vision 散布在全部 10T 训练 step (每 1000 step 平均 100 个 vision token)。Vision 与 text co-train step ≈ 10T 的步数,5× 长。模型有 5× 多的机会让 vision feature 参与到 text 的 loss path 上。</li>
+</ul>
+
+<h4>反向论证</h4>
+<p>如果 K2.5 还是用 late fusion:zero-vision SFT 不会 work——下一节会看到 zero-vision SFT 之所以能"用纯 text 数据激活 vision tool-use",前提就是 pretrain 已经把 vision token 嵌入到 text 的 reasoning circuit 里。Early fusion 是 zero-vision SFT 的<strong>必要</strong>条件。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Zero-Vision SFT: 不喂 vision 数据也能激活 visual tool-use</h2>
+
+<p>这个发现是 K2.5 最反直觉的部分。</p>
+
+<h3>4.1 问题: vision agentic 的 cold start</h3>
+<p>Pretrained VLM 不会主动"看着图调 tool"——你不告诉它,它只会生成 caption。传统做法是手工标 vision SFT 数据,问题:</p>
+<ul>
+  <li>多样性差,只能教 crop / rotate / flip 这类原始操作</li>
+  <li>视觉推理被局限在简单图表</li>
+  <li>规模上去就要花大钱</li>
+</ul>
+
+<h3>4.2 K2.5 的 trick: 把 image 操作当成 IPython 任务</h3>
+<p>所有 image manipulation (例如"数图里有几只猫")都 proxy 成 <code>PIL/numpy/matplotlib</code> 程序操作。SFT 数据里全是<strong>纯文本对话</strong>:用户给问题(可能含图,可能纯文本),assistant 写 IPython 代码,代码里调 vision。这样 visual reasoning 被泛化成"程序控制 vision"。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- pipeline -->
+    <text x="20" y="20" font-size="13" font-weight="bold">Zero-Vision SFT 数据流</text>
+    <!-- pretrained model -->
+    <rect x="20" y="40" width="160" height="60" rx="8" fill="#e8efff" stroke="#2f6feb"/>
+    <text x="100" y="65" font-size="13" text-anchor="middle" fill="#2f6feb">K2.5 base</text>
+    <text x="100" y="83" font-size="11" text-anchor="middle" fill="#5b5e66">(joint pretrained)</text>
+    <text x="100" y="96" font-size="10" text-anchor="middle" fill="#5b5e66">已具 vision-text 对齐</text>
+
+    <line x1="180" y1="70" x2="220" y2="70" stroke="#5b5e66" marker-end="url(#arr2)"/>
+
+    <!-- text-only SFT -->
+    <rect x="220" y="40" width="200" height="60" rx="8" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="320" y="60" font-size="13" text-anchor="middle">Text-Only SFT</text>
+    <text x="320" y="78" font-size="11" text-anchor="middle" fill="#5b5e66">"用 IPython 处理图像"</text>
+    <text x="320" y="93" font-size="10" text-anchor="middle" fill="#5b5e66">PIL/numpy/matplotlib 调用</text>
+
+    <line x1="420" y1="70" x2="460" y2="70" stroke="#5b5e66" marker-end="url(#arr2)"/>
+
+    <rect x="460" y="40" width="200" height="60" rx="8" fill="#e6f5e8" stroke="#1f7a4a"/>
+    <text x="560" y="65" font-size="13" text-anchor="middle" fill="#1f7a4a">cold-start 模型</text>
+    <text x="560" y="83" font-size="11" text-anchor="middle" fill="#5b5e66">visual tool-use 已激活</text>
+
+    <!-- example below -->
+    <rect x="20" y="130" width="640" height="135" rx="8" fill="#f5f1e6" stroke="#e2dfd5"/>
+    <text x="30" y="150" font-size="12" font-weight="bold">SFT 样本(纯 text 但教会"看图"):</text>
+    <text x="30" y="170" font-size="11" font-family="monospace" fill="#2f6feb">User: "数一下这张图里有多少个红色圆点。"</text>
+    <text x="30" y="188" font-size="11" font-family="monospace" fill="#cc4a1b">Asst: &lt;think&gt;binarize R 通道 → connectedComponents → count&lt;/think&gt;</text>
+    <text x="30" y="205" font-size="11" font-family="monospace" fill="#cc4a1b">    &lt;tool_call&gt;</text>
+    <text x="40" y="221" font-size="11" font-family="monospace" fill="#cc4a1b">    img = PIL.Image.open(input.png); a = np.array(img)</text>
+    <text x="40" y="237" font-size="11" font-family="monospace" fill="#cc4a1b">    mask = (a[...,0]&gt;200) &amp; (a[...,1]&lt;80) &amp; (a[...,2]&lt;80)</text>
+    <text x="40" y="253" font-size="11" font-family="monospace" fill="#cc4a1b">    print(scipy.ndimage.label(mask)[1])  # → 17</text>
+    <text x="30" y="278" font-size="11" fill="#5b5e66">↑ 图被 model "看"了,但 SFT 数据里完全没有"how to look at pixel"的人工示范</text>
+  </svg>
+  <figcaption>SFT 数据全是 text-form,但里面教模型"如果要看图,就用程序操作"。Pretrain 阶段已经让 image embedding 与 text 对齐,所以模型在 inference 时见到真图也能用同样的 reasoning pattern—— pixel-level 操作如二值化、连通域、目标定位、OCR 都自然 generalize 出来。</figcaption>
+</div>
+
+<h3>4.3 为什么这能成立 — 反向论证</h3>
+<p>"为什么不直接做 text-vision SFT?"——论文的 ablation 显示 text-vision SFT 反而 worse。原因猜测:高质量 vision SFT 数据稀缺,会引入噪声;而 text 数据多样性巨大,SFT 后模型学到的是"<em>遇到任何 modality 都用 reasoning + tool 解决</em>"这种 general policy。Pretrained vision-text alignment 让这个 policy 自动迁移到含图输入。</p>
+
+<h4>Worked Example</h4>
+<p>训练时 prompt: <code>"图上数字之和是?"</code>(只是 text 描述任务)。Asst 答: 写 IPython 用 OCR 库识别 → sum。Inference 时 prompt: 真给一张图加 <code>"sum the numbers"</code> → 模型生成同样的 IPython 代码,这次代码 import 后真能去解析 image 数组。同一段 reasoning trace 在两个 modality 上都 work,因为 vision encoder 已经把图编成与 text 同空间的 token。</p>
+
+<hr>
+
+<h2 id="sec5">5 · Joint Multimodal RL: vision RL 反向增强 text</h2>
+
+<h3>5.1 Outcome-based Visual RL</h3>
+<p>Zero-vision SFT 解决了 cold start,但模型有时仍"忽略图像 input"。Outcome-based RL 用<strong>必须看图才能答对</strong>的任务把 vision 路径"逼出来":</p>
+<ul>
+  <li>Visual grounding & counting (定位 + 数数)</li>
+  <li>Chart / document understanding</li>
+  <li>Vision-critical STEM (经过 filter,只保留必须看图的题)</li>
+</ul>
+<p>每类任务有专属 reward: grounding 用 IoU-soft-match 的 F1, point 用 Gaussian-weighted 距离, polygon 用 mask IoU, OCR 用 normalized edit distance, counting 用 |pred - gt|。</p>
+
+<h3>5.2 反直觉发现: vision RL 同时让 text 变强</h3>
+<table>
+  <tr><th>Benchmark</th><th>Before vision RL</th><th>After vision RL</th><th>Δ</th></tr>
+  <tr><td>MMLU-Pro (text)</td><td>84.7</td><td>86.4</td><td><span class="ok">+1.7</span></td></tr>
+  <tr><td>GPQA-Diamond (text)</td><td>84.3</td><td>86.4</td><td><span class="ok">+2.1</span></td></tr>
+  <tr><td>LongBench v2 (text)</td><td>56.7</td><td>58.9</td><td><span class="ok">+2.2</span></td></tr>
+</table>
+<p>论文给的解释:vision RL 改进了"<em>structured information extraction</em>" 的 calibration——counting / OCR / grounding 这类任务奖励的是"精确的结构化抽取",这种能力反过来让 text reasoning 也更"严谨"(降低 hallucination 倾向)。</p>
+
+<h3>5.3 Joint RL 的组织: 按 ability 分,不按 modality 分</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 230" width="100%" style="max-width:680px">
+    <text x="20" y="20" font-size="13" font-weight="bold">Joint Multimodal RL 信号流</text>
+    <!-- domains as columns -->
+    <g>
+      <rect x="20" y="40" width="120" height="50" fill="#e8efff" stroke="#2f6feb" rx="6"/>
+      <text x="80" y="60" font-size="12" text-anchor="middle">Knowledge</text>
+      <text x="80" y="78" font-size="10" text-anchor="middle" fill="#5b5e66">text + image-QA</text>
+    </g>
+    <g>
+      <rect x="150" y="40" width="120" height="50" fill="#e8efff" stroke="#2f6feb" rx="6"/>
+      <text x="210" y="60" font-size="12" text-anchor="middle">Reasoning</text>
+      <text x="210" y="78" font-size="10" text-anchor="middle" fill="#5b5e66">math + chart</text>
+    </g>
+    <g>
+      <rect x="280" y="40" width="120" height="50" fill="#e8efff" stroke="#2f6feb" rx="6"/>
+      <text x="340" y="60" font-size="12" text-anchor="middle">Coding</text>
+      <text x="340" y="78" font-size="10" text-anchor="middle" fill="#5b5e66">SWE + img2code</text>
+    </g>
+    <g>
+      <rect x="410" y="40" width="120" height="50" fill="#e8efff" stroke="#2f6feb" rx="6"/>
+      <text x="470" y="60" font-size="12" text-anchor="middle">Agentic</text>
+      <text x="470" y="78" font-size="10" text-anchor="middle" fill="#5b5e66">browse + GUI</text>
+    </g>
+    <g>
+      <rect x="540" y="40" width="120" height="50" fill="#e8efff" stroke="#2f6feb" rx="6"/>
+      <text x="600" y="60" font-size="12" text-anchor="middle">Vision-only</text>
+      <text x="600" y="78" font-size="10" text-anchor="middle" fill="#5b5e66">grounding/OCR</text>
+    </g>
+    <!-- arrows down -->
+    <line x1="80" y1="90" x2="200" y2="130" stroke="#5b5e66"/>
+    <line x1="210" y1="90" x2="280" y2="130" stroke="#5b5e66"/>
+    <line x1="340" y1="90" x2="350" y2="130" stroke="#5b5e66"/>
+    <line x1="470" y1="90" x2="420" y2="130" stroke="#5b5e66"/>
+    <line x1="600" y1="90" x2="500" y2="130" stroke="#5b5e66"/>
+    <!-- shared policy -->
+    <rect x="200" y="130" width="300" height="40" fill="#fff7e0" stroke="#d2a32a" rx="6"/>
+    <text x="350" y="155" font-size="13" text-anchor="middle" font-weight="bold">πθ (shared policy, both modalities)</text>
+    <line x1="350" y1="170" x2="350" y2="195" stroke="#5b5e66" marker-end="url(#arr2)"/>
+    <text x="350" y="215" font-size="11" text-anchor="middle" fill="#1f7a4a">cross-modal capability transfer (vision → text & text → vision)</text>
+  </svg>
+  <figcaption>不像 Qwen-VL 等"按 modality 分专家",K2.5 按 capability 分 RL domain;每个 domain 同时收 text-only 和 multimodal 样本,GRM 也跨 modality 评分。这等于在 RL 阶段强制要求"如果你在 vision 上学到了 calibration,这个 calibration 必须也能用在 text 上"——一种隐式的 cross-modal regularization。</figcaption>
+</div>
+
+<h3>5.4 Policy 优化目标</h3>
+<p>K2.5 用的是 GRPO 的变体:</p>
+<div class="formula">
+L = E[ (1/N) Σⱼ Σᵢ Clip(πθ/πold, α, β) · (r(x,yⱼ) − r̄(x)) − τ · (log πθ/πold)² ]
+</div>
+<p>关键改动: <strong>token-level clipping</strong>——传统 PPO 是按 advantage 符号 clip,K2.5 直接对 log-ratio clip,无视 advantage 正负。设计目的:RL 训练时 rollout 用 inference 框架 (vLLM / SGLang),与训练框架精度有 drift,token-level clip 把 rollout/train 不一致的 token 直接 mask 掉,稳住 long-horizon agentic RL。</p>
+<p>Optimizer: MuonClip (K2 的标志性配方,带 QK-Clip 防 attention logit 爆炸)。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Agent Swarm × PARL: orchestrator 学出并行</h2>
+
+<h3>6.1 架构: trainable orchestrator + frozen sub-agents</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+
+    <!-- orchestrator -->
+    <rect x="270" y="20" width="180" height="60" rx="10" fill="#fff7e0" stroke="#d2a32a" stroke-width="2"/>
+    <text x="360" y="45" font-size="14" font-weight="bold" text-anchor="middle">Orchestrator πθ</text>
+    <text x="360" y="63" font-size="11" text-anchor="middle" fill="#5b5e66">trainable (the only one)</text>
+
+    <!-- gradient arrow -->
+    <text x="475" y="45" font-size="11" fill="#cc4a1b">∇ RL</text>
+
+    <!-- arrows down -->
+    <line x1="320" y1="80" x2="120" y2="120" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="350" y1="80" x2="280" y2="120" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="370" y1="80" x2="440" y2="120" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="400" y1="80" x2="600" y2="120" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+    <!-- sub-agents (frozen) -->
+    <g>
+      <rect x="40" y="125" width="160" height="50" rx="8" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="120" y="146" font-size="12" text-anchor="middle">SubAgent A: Web</text>
+      <text x="120" y="162" font-size="10" text-anchor="middle" fill="#5b5e66">frozen, browse + search</text>
+    </g>
+    <g>
+      <rect x="210" y="125" width="160" height="50" rx="8" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="290" y="146" font-size="12" text-anchor="middle">SubAgent B: Doc</text>
+      <text x="290" y="162" font-size="10" text-anchor="middle" fill="#5b5e66">frozen, long-doc reading</text>
+    </g>
+    <g>
+      <rect x="380" y="125" width="160" height="50" rx="8" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="460" y="146" font-size="12" text-anchor="middle">SubAgent C: Code</text>
+      <text x="460" y="162" font-size="10" text-anchor="middle" fill="#5b5e66">frozen, code exec</text>
+    </g>
+    <g>
+      <rect x="550" y="125" width="160" height="50" rx="8" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="630" y="146" font-size="12" text-anchor="middle">SubAgent D: GUI</text>
+      <text x="630" y="162" font-size="10" text-anchor="middle" fill="#5b5e66">frozen, computer-use</text>
+    </g>
+
+    <!-- environment -->
+    <text x="20" y="200" font-size="11" fill="#cc4a1b">↓ outputs treated as environment observation (no gradient flow back)</text>
+
+    <!-- aggregation -->
+    <rect x="200" y="230" width="320" height="50" rx="8" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="360" y="252" font-size="13" text-anchor="middle" font-weight="bold">Orchestrator (aggregate / replan)</text>
+    <text x="360" y="268" font-size="10" text-anchor="middle" fill="#5b5e66">受 PARL reward 训练: r_perf + λ₁·r_parallel + λ₂·r_finish</text>
+
+    <line x1="120" y1="180" x2="240" y2="225" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="290" y1="180" x2="320" y2="225" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="460" y1="180" x2="400" y2="225" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="630" y1="180" x2="480" y2="225" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+    <!-- final -->
+    <rect x="280" y="305" width="160" height="40" rx="8" fill="#e6f5e8" stroke="#1f7a4a"/>
+    <text x="360" y="330" font-size="12" text-anchor="middle">Final answer y</text>
+    <line x1="360" y1="280" x2="360" y2="305" stroke="#5b5e66" marker-end="url(#arr3)"/>
+  </svg>
+  <figcaption>Agent Swarm 架构。<strong>关键设计</strong>:只有 orchestrator 有梯度;sub-agent (从 intermediate policy checkpoint 取样,frozen) 输出被当作 environment observation。这样 RL 的 credit assignment 退化到单 agent 设定—— orchestrator 学的是"何时 spawn 谁、如何聚合"。</figcaption>
+</div>
+
+<h3>6.2 PARL Reward</h3>
+<div class="formula">
+r_PARL(x, y) = λ₁ · r_parallel + λ₂ · r_finish + r_perf(x, y)
+</div>
+<table>
+  <tr><th>项</th><th>含义</th><th>解决什么问题</th></tr>
+  <tr><td><code>r_perf</code></td><td>整体任务成功 + quality</td><td>主目标 (verifiable / GRM)</td></tr>
+  <tr><td><code>r_parallel</code></td><td>奖励 sub-agent 实例化</td><td><span class="no">serial collapse</span> — orchestrator 学到全自己干就给 0</td></tr>
+  <tr><td><code>r_finish</code></td><td>奖励 sub-agent 实际完成</td><td><span class="no">spurious parallelism</span> — 乱开一堆但都 fail 没有奖励</td></tr>
+</table>
+<p>λ₁, λ₂ 在训练过程中 anneal 到 0,这样 final policy 只对 r_perf 负责,辅助 reward 只是 exploration 引导。</p>
+
+<h3>6.3 Critical Steps 作为 latency 指标</h3>
+<div class="formula">
+CriticalSteps = Σₜ ( S_main^(t) + maxᵢ S_sub,i^(t) )
+</div>
+<p><strong>反向论证</strong>: 如果用 total steps 作为 cost, orchestrator 只要"少干活"就 win, 但这会退化到 single agent;如果用 wall-clock,parallel 内 max 反映瓶颈,但<em>不</em>惩罚"开 5 个 sub-agent 但其中 4 个无关"——max 一项替代了 sum,正好编码了"并行加速的价值是看最长那条 branch 缩了多少"。</p>
+
+<h3>6.4 Prompt construction: 不显式说要并行,只 shape task distribution</h3>
+<p>训练 prompt 故意构造成"<em>sequential 完不成</em>"的形式: wide search (并查多源)、deep search (多 reasoning branch)、long-context analysis、batch download。在 fixed step / tool-call budget 下,model 只有学并行才能拿到 reward。但 prompt 里<strong>从不</strong>写"please parallelize"——所有的并行决策都是 RL 自己探索出来的。</p>
+
+<h3>6.5 训练流程</h3>
+<ol>
+  <li>先用 small-size sub-agent 训 orchestrator (省算力,快速 explore)</li>
+  <li>切换到 large sub-agent (final 对齐部署配置)</li>
+  <li>动态调整 sub-agent vs orchestrator 的 inference instance 比例 (一些 step 多开 sub-agent worker,一些 step 多开 orchestrator)</li>
+</ol>
+
+<hr>
+
+<h2 id="sec7">7 · Worked Example: 从一张网页截图到一份报告</h2>
+
+<p>这是一个虚构但典型的 K2.5 Agent Swarm trace,贴近 WideSearch/BrowseComp 的真实分布。</p>
+
+<h4>用户输入</h4>
+<blockquote>给定截图: 一个 e-commerce 商品详情页 (含价格、规格、reviews、相关链接)。请帮我:(a) 比较该商品在亚马逊、ebay、淘宝的当前价格 (b) 总结 top-10 review 的优缺点 (c) 给出 BeautifulSoup 抓 reviews 的代码 (d) 整合成 markdown 报告。</blockquote>
+
+<div class="fig">
+  <svg viewBox="0 0 720 380" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+
+    <!-- step 0: orchestrator reads -->
+    <rect x="20" y="20" width="200" height="50" rx="6" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="120" y="42" font-size="12" text-anchor="middle">orchestrator: parse intent</text>
+    <text x="120" y="58" font-size="10" text-anchor="middle" fill="#5b5e66">看图 → 识别 SKU/title</text>
+
+    <line x1="220" y1="45" x2="260" y2="45" stroke="#5b5e66" marker-end="url(#arr4)"/>
+
+    <!-- step 1: decomposition -->
+    <rect x="260" y="20" width="200" height="50" rx="6" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="360" y="42" font-size="12" text-anchor="middle">decompose → 4 sub-tasks</text>
+    <text x="360" y="58" font-size="10" text-anchor="middle" fill="#5b5e66">a) price b) reviews c) code d) merge</text>
+
+    <line x1="360" y1="70" x2="360" y2="100" stroke="#5b5e66" marker-end="url(#arr4)"/>
+
+    <!-- parallel layer -->
+    <text x="20" y="115" font-size="12" font-weight="bold" fill="#1f7a4a">— parallel cohort 1 (critical = max 4 sub-steps) —</text>
+    <g>
+      <rect x="20" y="125" width="160" height="60" rx="6" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="100" y="145" font-size="11" text-anchor="middle" font-weight="bold">SubAgent A1: amazon</text>
+      <text x="100" y="160" font-size="10" text-anchor="middle" fill="#5b5e66">browse(query=SKU) → $X</text>
+      <text x="100" y="175" font-size="9" text-anchor="middle" fill="#cc4a1b">3 steps</text>
+    </g>
+    <g>
+      <rect x="195" y="125" width="160" height="60" rx="6" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="275" y="145" font-size="11" text-anchor="middle" font-weight="bold">SubAgent A2: ebay</text>
+      <text x="275" y="160" font-size="10" text-anchor="middle" fill="#5b5e66">browse(query=SKU) → $Y</text>
+      <text x="275" y="175" font-size="9" text-anchor="middle" fill="#cc4a1b">3 steps</text>
+    </g>
+    <g>
+      <rect x="370" y="125" width="160" height="60" rx="6" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="450" y="145" font-size="11" text-anchor="middle" font-weight="bold">SubAgent A3: taobao</text>
+      <text x="450" y="160" font-size="10" text-anchor="middle" fill="#5b5e66">browse → ¥Z</text>
+      <text x="450" y="175" font-size="9" text-anchor="middle" fill="#cc4a1b">4 steps (max)</text>
+    </g>
+    <g>
+      <rect x="545" y="125" width="160" height="60" rx="6" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="625" y="145" font-size="11" text-anchor="middle" font-weight="bold">SubAgent B: reviews</text>
+      <text x="625" y="160" font-size="10" text-anchor="middle" fill="#5b5e66">scrape + summarize</text>
+      <text x="625" y="175" font-size="9" text-anchor="middle" fill="#cc4a1b">4 steps</text>
+    </g>
+
+    <!-- aggregation -->
+    <line x1="100" y1="185" x2="280" y2="225" stroke="#5b5e66"/>
+    <line x1="275" y1="185" x2="320" y2="225" stroke="#5b5e66"/>
+    <line x1="450" y1="185" x2="380" y2="225" stroke="#5b5e66"/>
+    <line x1="625" y1="185" x2="440" y2="225" stroke="#5b5e66"/>
+
+    <rect x="240" y="225" width="240" height="50" rx="6" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="360" y="247" font-size="12" text-anchor="middle">orchestrator: aggregate (1 step)</text>
+    <text x="360" y="263" font-size="10" text-anchor="middle" fill="#5b5e66">价格表 + reviews 摘要进 context</text>
+
+    <!-- second cohort -->
+    <line x1="360" y1="275" x2="360" y2="295" stroke="#5b5e66" marker-end="url(#arr4)"/>
+    <text x="20" y="305" font-size="12" font-weight="bold" fill="#1f7a4a">— cohort 2 (critical = 2) —</text>
+    <g>
+      <rect x="200" y="315" width="320" height="50" rx="6" fill="#e8efff" stroke="#2f6feb"/>
+      <text x="360" y="337" font-size="11" text-anchor="middle" font-weight="bold">SubAgent C: write BeautifulSoup code</text>
+      <text x="360" y="353" font-size="10" text-anchor="middle" fill="#5b5e66">2 steps</text>
+    </g>
+  </svg>
+  <figcaption>K2.5 Swarm 一个具体 trace。Total work = 1 + (3+3+4+4) + 1 + 2 = 18 sub-steps;但 critical = 1 + 4 + 1 + 2 = <strong>8</strong>。Single agent 跑同一任务 ≈ 18 step;Swarm 拿到 ~2.25× wall-clock 加速。注意 orchestrator <em>没有显式被告知"taobao 那条 branch 可能慢"</em>—— RL 自己学会了在 cohort 1 把所有独立检索同时发起,因为 r_parallel 鼓励并行 + critical-step 惩罚最长 branch。</figcaption>
+</div>
+
+<h4>反向论证: 为什么 orchestrator 不把 c) 也放到 cohort 1?</h4>
+<p>因为 c) 的 prompt 输入 (BeautifulSoup 代码片段需要参考实际 review HTML 结构) 依赖于 cohort 1 中 B 的输出。RL 在训练时见过类似数据依赖图,学到"有依赖的任务要分 cohort"。这是 PARL 优于 prompt-engineered DAG 的地方:数据依赖关系是<em>学</em>出来的,不是写死的。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 多模态主线: 与 frontier 闭源模型并肩</h3>
+<table>
+  <tr><th>Benchmark</th><th>Kimi K2.5</th><th>Claude Opus 4.5</th><th>GPT-5.2</th><th>Gemini 3 Pro</th></tr>
+  <tr><td>HLE-Full</td><td>30.1</td><td>30.8</td><td><strong>34.5</strong></td><td><strong>37.5</strong></td></tr>
+  <tr><td>HLE w/ tools</td><td><strong>50.2</strong></td><td>43.2</td><td>45.5</td><td>45.8</td></tr>
+  <tr><td>AIME 2025</td><td>96.1</td><td>92.8</td><td><strong>100</strong></td><td>95.0</td></tr>
+  <tr><td>MathVision</td><td><strong>84.2</strong></td><td>77.1</td><td>83.0</td><td>86.1*</td></tr>
+  <tr><td>MathVista (mini)</td><td><strong>90.1</strong></td><td>80.2</td><td>82.8</td><td>89.8</td></tr>
+  <tr><td>OCRBench</td><td><strong>92.3</strong></td><td>86.5</td><td>80.7</td><td>90.3</td></tr>
+  <tr><td>InfoVQA</td><td><strong>92.6</strong></td><td>76.9</td><td>84.0</td><td>57.2</td></tr>
+  <tr><td>OSWorld-Verified</td><td>63.3</td><td><strong>66.3</strong></td><td>8.6</td><td>20.7</td></tr>
+</table>
+<p>读法: 在 OCR / chart / math-vision / computer-use 几个 task 上 K2.5 是开源里 SOTA, 与 Claude Opus 4.5 接近;tool-augmented HLE 反超所有人。 GPT-5.2 仍在 pure-text math 上更强。</p>
+
+<h3>8.2 Agent Swarm 增益</h3>
+<table>
+  <tr><th>Benchmark</th><th>K2.5 Swarm</th><th>K2.5 Single</th><th>Δ</th><th>Claude 4.5</th><th>GPT-5.2 Pro</th></tr>
+  <tr><td>BrowseComp</td><td><strong>78.4</strong></td><td>60.6</td><td><span class="ok">+17.8</span></td><td>37.0</td><td>77.9</td></tr>
+  <tr><td>WideSearch</td><td><strong>79.0</strong></td><td>72.7</td><td><span class="ok">+6.3</span></td><td>76.2</td><td>—</td></tr>
+  <tr><td>In-house Swarm</td><td><strong>58.3</strong></td><td>41.6</td><td><span class="ok">+16.7</span></td><td>45.8</td><td>—</td></tr>
+</table>
+<p>读法: Swarm 的增益<strong>随任务并行机会增加</strong>——In-house swarm bench 故意为并行设计,绝对增益最大。但 BrowseComp 增益也很大(+17.8),说明真实 deep-research 的并行机会被严重低估。</p>
+
+<h3>8.3 Latency: 3–4.5× 加速</h3>
+<p>WideSearch 上,target Item-F1 从 30% 升到 70%,single-agent 执行时间从 1.8× 暴涨到 7.0× (随 difficulty 线性增长);Swarm 维持在 0.6–1.6× 几乎平的曲线。Critical-step constraint 起效。</p>
+
+<h3>8.4 Token Efficiency (Toggle)</h3>
+<p>Toggle 让 K2.5 在不掉点(甚至升点)的情况下,平均输出 token 减 25–30%。但仍比 Gemini 3 Pro 用更多 token (例如 AIME 25k vs Gemini 15k);意味着 K2.5 推理仍偏冗长。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>系统</th><th>多模态训练</th><th>Vision SFT</th><th>Agent 路线</th><th>RL 学并行?</th></tr>
+  <tr><td><strong>K2.5</strong></td><td>early fusion + low ratio (15T joint)</td><td>zero-vision (text-only)</td><td>Agent Swarm + frozen sub-agent</td><td><span class="ok">是 (PARL)</span></td></tr>
+  <tr><td>Qwen3-VL-235B</td><td>vision-heavy late stage</td><td>multimodal SFT (人工标)</td><td>single-agent + tool</td><td><span class="no">否</span></td></tr>
+  <tr><td>GPT-4V / GPT-5.2</td><td>未公开,推测 late fusion</td><td>multimodal SFT</td><td>tool-use planner (private)</td><td><span class="no">未公开</span></td></tr>
+  <tr><td>Claude Opus 4.5</td><td>未公开</td><td>multimodal SFT</td><td>computer-use, 单 agent</td><td><span class="no">未公开</span></td></tr>
+  <tr><td>Gemini 3 Pro</td><td>多 modality 原生</td><td>multimodal SFT</td><td>single agent + tool</td><td><span class="no">未公开</span></td></tr>
+  <tr><td>Anthropic 多 agent (Research)</td><td>—</td><td>—</td><td>orchestrator + Claude sub-agent (prompt-engineered)</td><td><span class="no">否(prompt 静态)</span></td></tr>
+  <tr><td>LangGraph / AutoGen</td><td>—</td><td>—</td><td>静态 DAG 或 chat group</td><td><span class="no">否</span></td></tr>
+  <tr><td>Kimi-Researcher (前作)</td><td>text-only</td><td>text SFT</td><td>single agent end-to-end RL</td><td><span class="no">否</span></td></tr>
+</table>
+
+<p><strong>真正"独有"的两点:</strong></p>
+<ul>
+  <li>Zero-vision SFT。Qwen-VL / Seed1.5-VL / Gemini 都在"如何标更好的 vision SFT 数据"上下功夫;K2.5 直接说<em>不需要</em> vision SFT 数据(前提是 pretrain 做对了)。</li>
+  <li>PARL + Agent Swarm。Anthropic 的 multi-agent 是 prompt-engineering;LangGraph 的 DAG 是手工写;Kimi 的<em>orchestrator 用 RL 学</em>分解策略,且用 critical-step 作为 cost,这两点一起在文献里少见。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+  <li><strong>"open-source"语义打折.</strong> 论文称 "open-source", 但 release 的只是 post-trained checkpoint,数据 / RL infra / Unified Agentic Env 都未开放。研究 reproducibility 受限。</li>
+  <li><strong>Sub-agent freeze 是双刃.</strong> 解决了 credit assignment, 但 sub-agent 永远停在某个 intermediate checkpoint,不会随 orchestrator 一起进化。Final 版本 ceiling 由 sub-agent 决定。</li>
+  <li><strong>Critical-step 假设了 sub-agent 同步.</strong> 真实 cluster 上, sub-agent 启动时间 / 网络延迟 / GPU contention 让 wall-clock 与 critical-step 经常不匹配。论文给了"训练时调 inference 比例"的说法但没量化 deployment 表现。</li>
+  <li><strong>Vision RL 提升 text 的解释偏弱.</strong> "calibration" 是合理 hypothesis,但没有 ablation 排除 confound (例如 vision RL 阶段 reward model 也升级了)。MMLU-Pro 提 1.7 是显著但不是震撼。</li>
+  <li><strong>Token 仍偏长.</strong> 即便 Toggle 减了 25–30%,K2.5 的 AIME 平均输出 25k 仍是 Gemini 3 Pro (15k) 的 1.7×。这部分价值在 cost-sensitive 部署里会被打折。</li>
+  <li><strong>Agent Swarm 与 long-context model 是替代还是互补?</strong> 论文把 Swarm 定位成"主动 context management";但当 single agent 真的有 1M context,Swarm 的优势就只剩 latency。这个 boundary 没讲清。</li>
+</ul>
+
+<h4>想验证的问题</h4>
+<ol>
+  <li>Zero-vision SFT 在 vision-text alignment 较弱的开源 base (例如 Llama-Vision) 上是否还 work?如果 work,说明 "early fusion 是必要" 的判断错了。</li>
+  <li>把 PARL 用到比 K2.5 小 10× 的 model (例如 7B) 上, 还能学出 parallel decomposition 吗?是否 emergent capability 与 scale 强相关?</li>
+  <li>r_parallel 和 r_finish 的 anneal schedule 多敏感?如果不 anneal 到 0,会 reward-hack 到什么程度?</li>
+  <li>Critical-step 在 sub-agent 长尾分布 (有的 sub-agent 偶尔 hang) 下的 training stability 如何?</li>
+  <li>Agent Swarm 在<em>非</em>并行天然友好的 task 上(例如纯数学证明)是否会退化到 single agent?能否做这条 ablation?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec11">11 · Memory Points</h2>
+
+<div class="kv"><span class="pill">立场</span><strong>Vision 不是 add-on:</strong>固定 token budget 下,early fusion + 低 vision ratio 在所有 metric 上压过 late fusion。</div>
+<div class="kv"><span class="pill">反直觉</span><strong>Zero-vision SFT</strong>:纯 text SFT 数据(图像操作 proxy 成 IPython 程序)就能激活 visual tool-use。前提是 pretrain 做对了。</div>
+<div class="kv"><span class="pill">反直觉</span><strong>Vision RL → text 提升</strong>:MMLU-Pro 84.7 → 86.4, GPQA 84.3 → 86.4。 视觉 calibration 反向迁移到 text reasoning。</div>
+<div class="kv"><span class="pill">立场</span><strong>RL domain 按 ability 分而非 modality 分</strong>:knowledge / reasoning / coding / agentic 同时收 text + multimodal 样本,GRM 也跨模态。</div>
+<div class="kv"><span class="pill">架构</span><strong>Agent Swarm = trainable orchestrator + frozen sub-agents</strong>。Sub-agent 输出当 environment observation,credit assignment 退化为单 agent。</div>
+<div class="kv"><span class="pill">公式</span><strong>r_PARL = r_perf + λ₁ r_parallel + λ₂ r_finish</strong>。前者治 serial collapse,后者治 spurious parallelism;λ → 0。</div>
+<div class="kv"><span class="pill">指标</span><strong>CriticalSteps = Σₜ (S_main + maxᵢ S_sub,i)</strong>。借用 critical path 概念,奖励 balanced 拆分。</div>
+<div class="kv"><span class="pill">数据</span><strong>WideSearch 加速 3–4.5×</strong>; BrowseComp +17.8 (60.6 → 78.4)。</div>
+<div class="kv"><span class="pill">Optimizer</span><strong>token-level log-ratio clip + MuonClip</strong>。Mask 掉 rollout/train 不一致的 token,稳住 long-horizon agentic RL。</div>
+<div class="kv"><span class="pill">Trick</span><strong>Toggle</strong>: Phase0 限 budget / Phase1 放开,交替 m iter。Token 减 25–30%,精度几乎不变。</div>
+<div class="kv"><span class="pill">Trick</span><strong>DEP (Decoupled Encoder Process)</strong>:vision encoder 与 backbone 解耦执行三阶段,multimodal 训练效率 ≈ 90% 纯 text。</div>
+<div class="kv"><span class="pill">个人 take</span>报告价值 &gt; 算法新颖度。真正的杠杆是 (1) "用 text 数据 leverage vision capability" 的方法论 (2) PARL 把 multi-agent 拉回 single-agent RL 的工程化解法。</div>
+
+</main>
+</body>
+</html>

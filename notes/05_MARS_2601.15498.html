@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · MARS: Margin-Aware Speculative Verification (2601.15498)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>MARS: Unleashing the Power of Speculative Decoding via Margin-Aware Verification</h1>
+<div class="meta">
+  Song / Wang et al. (HKU · McGill · PKU · gradient · Alibaba · Mila) · 2026-04-11 · arXiv:2601.15498v2 · code: github.com/5SSjw/MARS<br>
+  关键词: speculative decoding · verification · logit margin · lossy SD · EAGLE-3 · plug-and-play
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>近 10 年 SD 的 drafter 改了又改,verification 几乎没动。MARS 指出 verification 的真正瓶颈是 <em>low-margin regime 的 wasteful rejection</em>,改用 logit-ratio (z₂/z₁) 做"放松判据"——top-2 命中且 ratio &gt; 0.9 时直接接受 draft——training-free,可叠加在任何 drafter 上。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">3.74×</div><div class="l">Vicuna-13B mean speedup<br>(EAGLE-3: 3.12×)</div></div>
+    <div class="stat"><div class="n">τ 5.64→7.20</div><div class="l">平均接受长度提升<br>(Vicuna-13B mean)</div></div>
+    <div class="stat"><div class="n">±0.18</div><div class="l">MT-Bench 质量偏差<br>(GPT-5 judge)</div></div>
+  </div>
+  <p><strong>立场:</strong>这不是又一个 drafter 论文,而是 verification rule 的<em>第一性原理</em>重写。本质是 lossy SD,但精心选定的"top-2 + 高 logit-ratio"放松带是<em>几乎免费</em>的——目标分布在那个区域本来就是 indifferent,接受 top-2 与接受 top-1 的 KL 差距小到可以忽略。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 verification rule 才是真瓶颈</a></li>
+    <li><a href="#sec2">背景速查:rejection sampling 复习</a></li>
+    <li><a href="#sec3">核心观察:logit ratio 而非 prob ratio</a></li>
+    <li><a href="#sec4">MARS 算法 + worked example</a></li>
+    <li><a href="#sec5">公式推导与 sensitivity 表</a></li>
+    <li><a href="#sec6">实验关键结果</a></li>
+    <li><a href="#sec7">与同类工作对比</a></li>
+    <li><a href="#sec8">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 verification rule 才是真瓶颈</h2>
+
+<h3>1.1 历史脉络:SD 这十年都在动 drafter,没人动 verifier</h3>
+<p>Speculative Decoding 自 2022–2023 (Leviathan, Chen et al.) 提出至今,几乎所有提速尝试都在 <strong>左半边</strong>——也就是 drafter:</p>
+<ul>
+  <li><strong>独立小模型</strong> (Vicuna-68M / SpD): 训一个完全独立的小 LLM 做 draft</li>
+  <li><strong>蒸馏</strong> (DistillSpec, SSD, Online SpecDec): 让 drafter 显式模仿 target 分布</li>
+  <li><strong>架构耦合</strong> (Medusa / Hydra): 给 target 加多 head 直接吐 k 个 token</li>
+  <li><strong>特征复用</strong> (EAGLE-1/2/3): 直接拿 target 的 hidden states 喂给一个 1-layer 的 draft head</li>
+  <li><strong>无 drafter</strong> (Lookahead / Jacobi / REST): 用 n-gram / 检索 / fixed-point iteration 替代</li>
+</ul>
+<p>这条线在 EAGLE-3 上几乎触顶: 接受长度 τ 已经 5–6, 接近 K+1 = 8 的理论上限。<strong>右半边的 verification rule 却几乎纹丝不动</strong>——大家都在用 Leviathan 2023 那套 rejection sampling: <code>accept w.p. min(1, p_target/p_draft)</code>, 一旦拒绝立刻 truncate 整个 draft 链。</p>
+<p>Verification 没人改的<em>原因</em>不是"它是最优的",而是"它有理论 lossless 保证"。修改 verification 等于放弃 lossless,大家不敢碰。</p>
+
+<h3>1.2 别的 verification-relax 方案为什么不够</h3>
+<p>其实有零星几篇尝试 lossy verification,但 MARS 把它们都批评了一遍:</p>
+
+<table>
+  <tr><th>方案</th><th>放松依据</th><th>问题</th></tr>
+  <tr><td>BiLD / Big-Little Decoder (Kim 2023)</td><td>当 draft 自己置信度高时跳过 target 验证</td><td><span class="no">看 draft confidence,不看 target — 完全本末倒置</span></td></tr>
+  <tr><td>Self-verify (Zhang EMNLP 2025)</td><td>用 context entropy 调阈值</td><td><span class="no">需要逐 batch 调,context-dependent;实现复杂</span></td></tr>
+  <tr><td>Judge Decoding (Bachmann ICLR 2025)</td><td>训一个 semantic judge 模型代替 token-match</td><td><span class="no">需训练 + 维护 auxiliary judge,失去 plug-and-play</span></td></tr>
+  <tr><td>LSD (Li 2025a)</td><td>语义对齐(可能基于嵌入相似度)</td><td><span class="no">同样需要额外结构 / 训练</span></td></tr>
+  <tr><td><strong>MARS</strong></td><td>target 自己的 top-1/top-2 logit ratio</td><td><span class="ok">training-free, 一行代码可加</span></td></tr>
+</table>
+
+<div class="nb">
+  论文用一句话刺中所有竞品:它们要么<em>看错了对象</em>(看 draft 不看 target),要么<em>用错了量</em>(prob 而非 logit, 见 §3),要么<em>引入额外学习</em>(judge / drafter online update)。MARS 选择了"完全无训练 + 看 target 自己的 logits"——最廉价的那个角落。
+</div>
+
+<h3>1.3 这事为什么不平凡:rejection sampling 的隐藏假设</h3>
+<p>标准 rejection sampling 的"lossless"光环来自一个隐含假设:</p>
+
+<blockquote>
+target 在每个 step 都有 <em>decisive</em> 的偏好——argmax 那个 token 比所有其他 token 重要得多。
+</blockquote>
+
+<p>但实际 LLM 推理时,大量 step 是<strong>语义平局</strong>状态:</p>
+<ul>
+  <li><code>"The weather is really __"</code> → "good" / "nice" / "lovely" / "fine" 几个候选 logits 几乎贴着</li>
+  <li><code>"so I will go for a __"</code> → "walk" / "stroll" 几乎等价</li>
+  <li>句末标点 / 空格 / 同义词 / 风格性副词,都属于这种 indifferent 区域</li>
+</ul>
+
+<p>在这种区域,target 的 argmax 是<em>采样噪声决定的</em>,换一个 seed 就会换一个 top-1。但 rejection sampling 把这个采样噪声当成"金标准"来惩罚 draft——只要 draft 没猜中那个具体的噪声实例就 reject 掉,触发 rollback,整个 draft 链被砍掉。</p>
+
+<p>论文用 Figure 1d 给了一个非常硬的数据: 在 logit-ratio &gt; 0.9 的低边际区域,EAGLE-3 的 draft 实际上有 <strong>53.5% (2590/4838)</strong> 是被 strict verification "冤枉"拒绝的——它们要么是 top-2,要么是和 top-1 几乎平局的 token。这些拒绝几乎不带来分布的实质改善,却付出了完整的 rollback 代价(后续 draft 全废 + target 重采)。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <!-- Title -->
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Standard rejection 的"冤拒"现象</text>
+    <!-- Token stream -->
+    <g font-size="11">
+      <rect x="20" y="50" width="80" height="40" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="60" y="74" text-anchor="middle">The weather</text>
+      <rect x="105" y="50" width="60" height="40" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="135" y="74" text-anchor="middle">is really</text>
+    </g>
+    <!-- Target distribution panel -->
+    <g>
+      <rect x="195" y="40" width="180" height="170" rx="8" fill="#fff" stroke="#888" stroke-dasharray="3,2"/>
+      <text x="285" y="58" text-anchor="middle" font-size="11" font-weight="600" fill="#5b5e66">Target 输出分布</text>
+      <!-- bars -->
+      <rect x="215" y="80" width="80" height="14" fill="#2f6feb"/>
+      <text x="220" y="91" font-size="10" fill="#fff">good 0.34</text>
+      <rect x="215" y="100" width="76" height="14" fill="#5996ff"/>
+      <text x="220" y="111" font-size="10" fill="#fff">nice 0.33</text>
+      <rect x="215" y="120" width="74" height="14" fill="#7eb1ff"/>
+      <text x="220" y="131" font-size="10" fill="#fff">lovely 0.31</text>
+      <rect x="215" y="140" width="6" height="14" fill="#ccc"/>
+      <text x="225" y="151" font-size="10" fill="#666">others 0.02</text>
+
+      <text x="285" y="180" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="600">→ low-margin regime</text>
+      <text x="285" y="195" text-anchor="middle" font-size="10" fill="#5b5e66">argmax 取决于采样噪声</text>
+    </g>
+
+    <!-- Draft proposal -->
+    <g>
+      <rect x="395" y="60" width="120" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="455" y="83" text-anchor="middle" font-size="11" fill="#856404">draft: "lovely"</text>
+    </g>
+    <!-- Standard branch -->
+    <g>
+      <line x1="455" y1="96" x2="540" y2="135" stroke="#888" stroke-width="1.5" marker-end="url(#arrM1)"/>
+      <text x="540" y="120" font-size="10" fill="#5b5e66">standard</text>
+      <rect x="525" y="140" width="160" height="60" rx="8" fill="#f8d7da" stroke="#a8353e"/>
+      <text x="605" y="158" text-anchor="middle" font-size="11" fill="#a8353e" font-weight="600">REJECT (若 sample 出 "good")</text>
+      <text x="605" y="174" text-anchor="middle" font-size="10" fill="#5b5e66">rollback 整链 draft</text>
+      <text x="605" y="190" text-anchor="middle" font-size="10" fill="#a8353e">代价: K-1 个 draft token 作废</text>
+    </g>
+    <!-- MARS branch -->
+    <g>
+      <line x1="455" y1="96" x2="540" y2="220" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#arrM1)"/>
+      <text x="525" y="220" font-size="10" fill="#cc4a1b" font-weight="600">MARS</text>
+      <rect x="525" y="225" width="160" height="50" rx="8" fill="#d4edda" stroke="#155724"/>
+      <text x="605" y="243" text-anchor="middle" font-size="11" fill="#155724" font-weight="600">ACCEPT "lovely"</text>
+      <text x="605" y="259" text-anchor="middle" font-size="10" fill="#5b5e66">draft 链继续, 收益 +1 token</text>
+    </g>
+
+    <defs>
+      <marker id="arrM1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>低边际区域的两种处理。Standard rejection 看到 sampled top-1 ≠ "lovely" 就 reject,代价是整条 draft 链作废,而生成质量几乎不变(因为 good/nice/lovely 在语义上等价)。MARS 检测到 z₂/z₁ &gt; 0.9 (target 自己也"无所谓"),直接接受 draft 提议,省掉一次 rollback。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Speculative Decoding (SD)</span></td><td>draft 一次提议 K 个 token,target 一次 forward 并行验证</td></tr>
+  <tr><td><span class="term">Rejection sampling (Leviathan)</span></td><td>以 min(1, p_t/p_s) 接受;拒绝时从 (p_t − p_s)+ 重采,数学上 lossless</td></tr>
+  <tr><td><span class="term">Acceptance length τ</span></td><td>每次 draft-verify 周期平均产出多少 token,理论上界 K+1</td></tr>
+  <tr><td><span class="term">Logit margin Δ</span></td><td>z_(1) − z_(2),top-1 与 top-2 的 raw logit 差</td></tr>
+  <tr><td><span class="term">Logit ratio r</span></td><td><strong>本文核心量</strong>: z_(2) / z_(1),∈ (0, 1]</td></tr>
+  <tr><td><span class="term">Low-margin regime</span></td><td>r → 1 (Δ → 0),target 对 top-1 vs top-2 几乎无偏好</td></tr>
+  <tr><td><span class="term">Lossless SD</span></td><td>输出分布严格等于直接从 target AR 采样</td></tr>
+  <tr><td><span class="term">Lossy SD</span></td><td>放弃严格分布等价,换更高吞吐 (MARS 属于这类)</td></tr>
+  <tr><td><span class="term">EAGLE-3</span></td><td>当前 SOTA drafter,target hidden state + 1-layer head</td></tr>
+  <tr><td><span class="term">Draft tree</span></td><td>多分支 draft 结构,target 用 tree-attention mask 一次验证多条候选路径</td></tr>
+</table>
+
+<h3>2.2 Leviathan rejection sampling 复习</h3>
+<p>给定上下文,target 算出 p_t,draft 给出提议 v̂ 和它当时的 p_s(v̂):</p>
+<ol>
+  <li>采均匀随机数 u ~ U[0,1]</li>
+  <li>若 u ≤ p_t(v̂) / p_s(v̂):接受 v̂</li>
+  <li>否则:从修正分布 (p_t − p_s)+ / norm 中重采一个 token,丢弃 draft 后续所有 token</li>
+</ol>
+<p>关键: 这个流程的输出分布<em>严格</em>等同于直接从 p_t 采样。这就是 SD 的"lossless"金身。</p>
+<p>在 greedy 模式 (T=0) 下退化为: draft = target 的 argmax 才接受。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 核心观察:为什么是 logit ratio 而不是 probability ratio</h2>
+
+<p>这一节是论文最有"insight"的一段。问题: 既然要量化"target 是否 indifferent",最自然的量是<strong>概率</strong>——p_(2) / p_(1) 接近 1 表示 indifferent。但论文坚持用 logit ratio z_(2)/z_(1) 做判据,理由有数学的也有经验的。</p>
+
+<h3>3.1 Softmax 的非线性放大</h3>
+
+<div class="formula">
+  p_(2) / p_(1) = exp(z_(2) − z_(1)) = exp(−Δ)
+</div>
+
+<p>关键问题: 同一个 logit margin Δ,在不同 logit 量级下映射到完全不同的 prob ratio。看个具体例子:</p>
+
+<table>
+  <tr><th>case</th><th>z_(1)</th><th>z_(2)</th><th>Δ</th><th>r = z_(2)/z_(1)</th><th>p_(2)/p_(1) = e^(−Δ)</th></tr>
+  <tr><td>A (low-magnitude)</td><td>2.0</td><td>1.8</td><td>0.2</td><td>0.90</td><td>0.819</td></tr>
+  <tr><td>B (mid-magnitude)</td><td>10.0</td><td>9.0</td><td>1.0</td><td>0.90</td><td>0.368</td></tr>
+  <tr><td>C (high-magnitude)</td><td>40.0</td><td>36.0</td><td>4.0</td><td>0.90</td><td>0.018</td></tr>
+</table>
+
+<p><strong>三个 case 的 logit ratio 都是 0.90</strong>(相同程度的"语义平局"),但 prob ratio 跨越了 50× 量级。如果用 prob ratio 做阈值,你会:</p>
+<ul>
+  <li>在 case A (低 magnitude) 上把所有都判 indifferent → 过度放松</li>
+  <li>在 case C (高 magnitude) 上几乎从不放松 → 错失大部分机会</li>
+</ul>
+
+<p>论文指出: <strong>Qwen3-8B 等 modern LLM 训练得 confident,top-1 logit 频繁达到 30–50 量级</strong>(Figure 4a)。在这个 regime 下,prob 因为 softmax 指数放大而 hyperinflated,<em>即使 z_(1) 和 z_(2) 几乎一样,p_(1) 仍能压倒 p_(2)</em>。所以 prob 是个被 calibration 污染的指标。</p>
+
+<h3>3.2 Logit ratio 的几何含义</h3>
+
+<p>从 Eq. 5 (论文里的) 可以重写阈值条件 r &gt; θ:</p>
+
+<div class="formula">
+  r = 1 − Δ / z_(1)  &nbsp;&nbsp;⇔&nbsp;&nbsp;  Δ &lt; (1 − θ) · z_(1)
+</div>
+
+<p>翻译: 用 logit ratio 等价于一个<strong>自适应 margin</strong>: 当 z_(1) 大 (model 很 confident),要求的 margin Δ 也大才能算 decisive。这是相对量纲的判据,不像绝对 margin Δ &lt; const 那样会被 calibration shift 整个移动。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 320" width="100%" style="max-width:680px">
+    <!-- Title -->
+    <text x="350" y="18" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Logit ratio vs Probability ratio: 三种 magnitude 下的对比 (paper Fig 1c 抽象)</text>
+
+    <!-- axes -->
+    <line x1="60" y1="280" x2="640" y2="280" stroke="#888"/>
+    <line x1="60" y1="50" x2="60" y2="280" stroke="#888"/>
+    <text x="350" y="305" text-anchor="middle" font-size="11" fill="#5b5e66">Logit Ratio  z_(2)/z_(1)  →</text>
+    <text x="22" y="170" font-size="11" fill="#5b5e66" transform="rotate(-90 22 170)">Probability Ratio p_(2)/p_(1)</text>
+
+    <!-- gridlines -->
+    <line x1="60" y1="50" x2="640" y2="50" stroke="#eee"/>
+    <line x1="60" y1="165" x2="640" y2="165" stroke="#eee"/>
+    <text x="50" y="55" font-size="10" text-anchor="end" fill="#888">1.0</text>
+    <text x="50" y="170" font-size="10" text-anchor="end" fill="#888">0.5</text>
+    <text x="50" y="284" font-size="10" text-anchor="end" fill="#888">0.0</text>
+
+    <!-- x ticks -->
+    <text x="60" y="295" font-size="10" text-anchor="middle" fill="#888">0</text>
+    <text x="350" y="295" font-size="10" text-anchor="middle" fill="#888">0.5</text>
+    <text x="640" y="295" font-size="10" text-anchor="middle" fill="#888">1.0</text>
+
+    <!-- threshold lines -->
+    <line x1="582" y1="50" x2="582" y2="280" stroke="#cc4a1b" stroke-dasharray="4,3"/>
+    <text x="610" y="45" font-size="10" fill="#cc4a1b">r=0.9 阈值</text>
+    <line x1="60" y1="73" x2="640" y2="73" stroke="#2f6feb" stroke-dasharray="4,3"/>
+    <text x="540" y="68" font-size="10" fill="#2f6feb">prob 0.9 阈值 (对照)</text>
+
+    <!-- Three "iso-r=0.9" sample points -->
+    <!-- low magnitude: high prob ratio at r=0.9 -->
+    <circle cx="582" cy="92" r="6" fill="#f4a261"/>
+    <text x="495" y="96" font-size="11" fill="#5b5e66">A: z=(2,1.8) → p_r ≈ 0.82</text>
+    <!-- mid magnitude -->
+    <circle cx="582" cy="200" r="6" fill="#e76f51"/>
+    <text x="495" y="204" font-size="11" fill="#5b5e66">B: z=(10,9) → p_r ≈ 0.37</text>
+    <!-- high magnitude: prob ratio collapses -->
+    <circle cx="582" cy="271" r="6" fill="#a8353e"/>
+    <text x="490" y="275" font-size="11" fill="#5b5e66">C: z=(40,36) → p_r ≈ 0.02</text>
+
+    <!-- iso-r=0.9 vertical means: 这三个点都该被算作 "indifferent" -->
+    <path d="M 582 92 Q 540 200 582 271" stroke="#cc4a1b" stroke-width="1" fill="none" stroke-dasharray="2,2"/>
+    <text x="160" y="135" font-size="11" fill="#cc4a1b" font-style="italic">↘ 三个点 logit ratio 都 = 0.9</text>
+    <text x="160" y="151" font-size="11" fill="#cc4a1b" font-style="italic">  本质上 "同等 indifferent"</text>
+    <text x="160" y="180" font-size="11" fill="#2f6feb" font-style="italic">↘ 但 prob ratio 从 0.82 跌到 0.02</text>
+    <text x="160" y="196" font-size="11" fill="#2f6feb" font-style="italic">  prob 阈值会漏掉 B 和 C</text>
+
+    <!-- Legend block -->
+    <rect x="65" y="220" width="240" height="55" rx="5" fill="#f3eee0" stroke="#888" stroke-dasharray="2,2"/>
+    <text x="75" y="237" font-size="10.5" fill="#3a3b40" font-weight="600">为什么用 logit ratio:</text>
+    <text x="75" y="252" font-size="10.5" fill="#3a3b40">同一"语义平局程度",</text>
+    <text x="75" y="266" font-size="10.5" fill="#3a3b40">prob ratio 被 magnitude 扭曲掉。</text>
+
+  </svg>
+  <figcaption>用三个具体的"打平局"case 解释为什么 prob ratio 不可靠。三个点在<strong>语义上同等 indifferent</strong>(z_(2) 仅比 z_(1) 低 10%),但因 logit magnitude 不同,prob ratio 跨越了 50×。这就是 paper Fig 1(c) 的核心: 红色 (relaxed) 点在 prob ratio 上分布在整个 [0, 1] 区间。</figcaption>
+</div>
+
+<h3>3.3 经验验证:logit 几乎全为正</h3>
+<p>论文 Figure 4a 给出 Qwen3-8B 的 top-1 logit 分布: <strong>0.0% 为负</strong>。这保证了 r = z_(2)/z_(1) 良定义且严格落在 (0, 1]。如果 z_(1) 可能为负,这个比值就会有符号陷阱(分母接近 0 或换号),那时 logit margin Δ 才是更稳的量。</p>
+
+<div class="nb">
+  这是个工程性强的细节: 大模型 logits 几乎都正,所以 ratio 这种"无标度"量可用;但小模型或某些 fine-tuned 模型未必,迁移时要重新检查 logit 分布。
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · MARS 算法 + worked example</h2>
+
+<h3>4.1 算法主体 (Algorithm 1 in paper)</h3>
+
+<p>对于 draft 链 V̂ = [v̂₁, ..., v̂_K],并行得到 target 在每个位置的 logits Z = [z₁, ..., z_K]。逐位置 i:</p>
+
+<table>
+  <tr><th>条件</th><th>动作</th><th>说明</th></tr>
+  <tr><td>v̂ᵢ = v_(1)</td><td>Accept v̂ᵢ</td><td>Exact Match: 标准 SD 也接受</td></tr>
+  <tr><td>v̂ᵢ = v_(2) AND rᵢ &gt; θ (=0.9)</td><td>Accept v̂ᵢ</td><td><strong>Adaptive Relaxation: MARS 新增的接受路径</strong></td></tr>
+  <tr><td>否则</td><td>Reject; 输出 v_(1); 终止本步</td><td>Correction: 用 target top-1 修正,丢弃 draft 后续</td></tr>
+</table>
+
+<p>注意几个工程细节:</p>
+<ul>
+  <li><strong>只看 top-1 / top-2</strong>: 不查 top-3 及之后,即使 v̂ = v_(3) 而 r_3 高也不放松。这是 deliberate 的——只接受最 conservative 的 tie-break。</li>
+  <li><strong>θ 全局固定 = 0.9</strong>: 不做 per-token / per-context 自适应,保持 plug-and-play 简洁性。</li>
+  <li><strong>Reject 时不再做 (p_t − p_s)+ 重采</strong>,而是直接用 v_(1)——本来就是 lossy 路径,不必装作 lossless。</li>
+  <li><strong>与 stochastic / greedy / tree 完全正交</strong>: top-1 / top-2 的概念在 chain / tree 都成立,接 EAGLE / Medusa / SpD 全可。</li>
+</ul>
+
+<h3>4.2 Worked example: 两步 verify,一接一拒</h3>
+
+<p>设 K=4,draft 链 V̂ = [<code>lovely</code>, <code>so</code>, <code>I</code>, <code>will</code>],context 是 <code>"The weather is really"</code>。target 一次 forward 给出每位置的 logits(已截 top-3 简化展示):</p>
+
+<table>
+  <tr><th>position</th><th>draft v̂</th><th>target top-1 (z_(1))</th><th>target top-2 (z_(2))</th><th>r = z_(2)/z_(1)</th><th>判定</th></tr>
+  <tr><td>1</td><td><code>lovely</code></td><td><code>good</code> (32.0)</td><td><code>lovely</code> (29.15)</td><td><strong>0.911</strong></td><td><span class="ok">v̂ = top-2, r &gt; 0.9 → Adaptive ACCEPT</span></td></tr>
+  <tr><td>2</td><td><code>so</code></td><td><code>so</code> (28.5)</td><td><code>and</code> (24.0)</td><td>0.842</td><td><span class="ok">v̂ = top-1 → Exact ACCEPT</span></td></tr>
+  <tr><td>3</td><td><code>I</code></td><td><code>I</code> (27.0)</td><td><code>we</code> (22.0)</td><td>0.815</td><td><span class="ok">v̂ = top-1 → Exact ACCEPT</span></td></tr>
+  <tr><td>4</td><td><code>will</code></td><td><code>want</code> (35.0)</td><td><code>need</code> (25.5)</td><td><strong>0.728</strong></td><td><span class="no">v̂ ≠ top-1/top-2 (will 排第 3+) → REJECT, 输出 want, 截断</span></td></tr>
+</table>
+
+<p>本 verify 周期产出: <code>[lovely, so, I, want]</code>,共 <strong>4 个 token</strong>(原 3 个 draft + 1 个 correction),τ = 4。</p>
+
+<p>对照: 标准 EAGLE-3 在 position 1 就因为 v̂ ≠ top-1 而拒绝,产出 <code>[good]</code>,τ = 1。<strong>MARS 在这个 example 上 τ 提升 4×</strong>。</p>
+
+<details>
+<summary>反向论证: 为什么不放松 top-3?</summary>
+<p>假设算法允许 "v̂ = v_(3) 且 z_(3)/z_(1) &gt; θ" 也接受。问题:</p>
+<ul>
+  <li>top-3 通常 logit 已经显著低于 top-1 / top-2,几乎不可能 r &gt; 0.9 (低边际)</li>
+  <li>但偶发的极平 case 下确实存在 → 接受会引入更多分布偏离</li>
+  <li>实际 EAGLE-3 draft tree 的 top-2 / top-3 候选,后排候选已经很 noisy</li>
+</ul>
+<p>论文选 top-2 是个 deliberate 的"<strong>最保守的 lossy</strong>": 只在 target 自己也认为 top-1/top-2 几乎平起平坐时,才相信 draft 提议的 top-2。这是一个有意控制 lossy 程度的设计。</p>
+</details>
+
+<h3>4.3 与 tree-based EAGLE-3 的兼容</h3>
+
+<p>EAGLE-3 用 draft tree, top_k=10, K=7。Tree 里每个节点都是一个候选 token,target 用 tree-attention mask 一次验证多条 path。MARS 在每个节点处独立判定:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <text x="360" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">EAGLE-3 draft tree × MARS verification (示意)</text>
+
+    <!-- root -->
+    <circle cx="360" cy="55" r="18" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="60" text-anchor="middle" font-size="11">ctx</text>
+
+    <!-- level 1: two branches -->
+    <line x1="360" y1="73" x2="220" y2="115" stroke="#888"/>
+    <line x1="360" y1="73" x2="500" y2="115" stroke="#888"/>
+
+    <circle cx="220" cy="125" r="16" fill="#d4edda" stroke="#155724"/>
+    <text x="220" y="129" text-anchor="middle" font-size="10">good</text>
+    <text x="220" y="148" text-anchor="middle" font-size="9" fill="#155724">top-1 ✓ Exact</text>
+
+    <circle cx="500" cy="125" r="16" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="500" y="129" text-anchor="middle" font-size="10">lovely</text>
+    <text x="500" y="148" text-anchor="middle" font-size="9" fill="#cc4a1b">top-2, r=0.91 ✓ Relax</text>
+
+    <!-- level 2 children of "good" -->
+    <line x1="220" y1="141" x2="140" y2="180" stroke="#888"/>
+    <line x1="220" y1="141" x2="280" y2="180" stroke="#888"/>
+    <circle cx="140" cy="190" r="16" fill="#d4edda" stroke="#155724"/>
+    <text x="140" y="194" text-anchor="middle" font-size="10">,</text>
+    <text x="140" y="212" text-anchor="middle" font-size="9" fill="#155724">top-1 ✓</text>
+
+    <circle cx="280" cy="190" r="16" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="280" y="194" text-anchor="middle" font-size="10">today</text>
+    <text x="280" y="212" text-anchor="middle" font-size="9" fill="#a8353e">top-3+ ✗ Reject</text>
+
+    <!-- level 2 children of "lovely" -->
+    <line x1="500" y1="141" x2="430" y2="180" stroke="#888"/>
+    <line x1="500" y1="141" x2="580" y2="180" stroke="#888"/>
+    <circle cx="430" cy="190" r="16" fill="#d4edda" stroke="#155724"/>
+    <text x="430" y="194" text-anchor="middle" font-size="10">day</text>
+    <text x="430" y="212" text-anchor="middle" font-size="9" fill="#155724">top-1 ✓</text>
+
+    <circle cx="580" cy="190" r="16" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="580" y="194" text-anchor="middle" font-size="10">evening</text>
+    <text x="580" y="212" text-anchor="middle" font-size="9" fill="#cc4a1b">top-2, r=0.93 ✓</text>
+
+    <!-- level 3 -->
+    <line x1="580" y1="206" x2="640" y2="240" stroke="#888"/>
+    <circle cx="650" cy="250" r="14" fill="#cce5ff" stroke="#004085" stroke-dasharray="2,2"/>
+    <text x="650" y="254" text-anchor="middle" font-size="9">...</text>
+
+    <!-- accepted path highlight -->
+    <path d="M 360 73 Q 430 100 500 115 L 500 125 Q 540 155 580 180 L 580 190 Q 615 215 650 240"
+          stroke="#cc4a1b" stroke-width="3" fill="none" stroke-dasharray="6,3"/>
+    <text x="600" y="120" font-size="10" fill="#cc4a1b" font-weight="600">↑ 接受路径</text>
+    <text x="600" y="135" font-size="10" fill="#cc4a1b" font-weight="600">  比 standard 长</text>
+  </svg>
+  <figcaption>Tree verification 时 MARS 在每个节点独立运行 top-1/top-2 检查。一旦某个节点 reject,该子树被剪掉,但<em>兄弟分支</em>不受影响。所以 tree 结构里 MARS 增益尤其显著: 标准模式下"all-or-nothing" 砍枝问题被 logit ratio 化解成"局部 indifferent 区域绿灯"。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · 公式推导与 sensitivity 分析</h2>
+
+<h3>5.1 自适应 margin 推导</h3>
+
+<div class="formula">
+  rᵢ = z_(2) / z_(1) &nbsp;&nbsp;⇒&nbsp;&nbsp; rᵢ &gt; θ ⇔ z_(1) − z_(2) &lt; (1 − θ)·z_(1)
+</div>
+
+<p>令 Δ = z_(1) − z_(2),则 r &gt; θ 等价于 <strong>Δ &lt; (1 − θ) · z_(1)</strong>。这表明:</p>
+<ul>
+  <li>θ = 0.9 时,要求 Δ &lt; 0.1 z_(1):放宽门槛是 z_(1) 的 10%。z_(1) 越大门槛越宽 (因为 prob 已被 softmax 撑开)。</li>
+  <li>θ → 1 时,门槛 → 0,退化为严格 lossless rejection。</li>
+  <li>θ → 0 时,门槛 = z_(1),即只要 z_(2) &gt; 0 就放过 → 几乎全 accept,极度 lossy。</li>
+</ul>
+
+<h3>5.2 物理直觉</h3>
+<p>把 (1 − θ) 想成"我能容忍多大的相对决策犹豫"。0.1 = 10% 的相对 logit gap 在 confidence 高的位置(z_(1) = 40)对应绝对 Δ = 4,即 e⁻⁴ ≈ 1.8% 的概率比——这种程度的优势在 RL / sampling 噪声下基本不稳定,所以"信"它没什么意义,放过是合算的。</p>
+
+<h3>5.3 Sensitivity 表 (对应 paper Fig 3 + Table 4)</h3>
+
+<table>
+  <tr><th>θ</th><th>放宽强度</th><th>HumanEval acc (Qwen3-8B)</th><th>WMT BLEU (Qwen3-8B)</th><th>Speedup</th></tr>
+  <tr><td>0.84</td><td>极宽</td><td>~0.78</td><td>28.70 (-1.0)</td><td>~3.2×</td></tr>
+  <tr><td>0.88</td><td>宽</td><td>~0.84</td><td>29.34</td><td>~3.1×</td></tr>
+  <tr><td><strong>0.90</strong> ★</td><td>默认</td><td><strong>0.88 (peak)</strong></td><td><strong>29.67</strong></td><td><strong>~3.05×</strong></td></tr>
+  <tr><td>0.92</td><td>紧</td><td>~0.86</td><td>29.59</td><td>~3.0×</td></tr>
+  <tr><td>0.96</td><td>很紧</td><td>~0.84</td><td>29.39</td><td>~2.85×</td></tr>
+</table>
+
+<p><strong>反直觉发现:</strong>accuracy 不是 θ 的单调函数。在 sampling (T=1) 下,过严格的 θ(高 θ)会触发<em>更多</em>rollback,而 rollback 用 (p_t − p_s)+ 重采时会引入<strong>tail noise</strong> (低概率 token 偶尔被采到)。这种 tail noise 反而拉低任务 acc。所以 θ 在 0.9 取得峰值是 quality + speed 双赢的甜点。</p>
+
+<div class="nb">
+  <strong>记忆点:</strong> θ 太大不光降速,还可能<em>降质</em>——这是论文最讲究的细节,反向论证了 strict-is-better 的直觉是错的。这点对设计任何 lossy SD 都有指导意义。
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · 实验关键结果</h2>
+
+<h3>6.1 主表 (Table 1, T=1, K=7)</h3>
+
+<table>
+  <tr><th>Model</th><th>EAGLE-3 mean speedup</th><th>MARS mean speedup</th><th>EAGLE-3 mean τ</th><th>MARS mean τ</th></tr>
+  <tr><td>Vicuna-13B</td><td>3.12×</td><td><strong>3.74×</strong> (+20%)</td><td>5.64</td><td>7.20 (上界 8)</td></tr>
+  <tr><td>LLaMA-3.1-8B</td><td>3.24×</td><td><strong>4.00×</strong> (+23%)</td><td>4.82</td><td>6.61</td></tr>
+  <tr><td>LLaMA-3.1-70B</td><td>4.40×</td><td><strong>4.76×</strong> (+8%)</td><td>5.66</td><td>6.39</td></tr>
+  <tr><td>Qwen3-8B</td><td>2.96×</td><td><strong>3.23×</strong> (+9%)</td><td>4.41</td><td>5.22</td></tr>
+  <tr><td>Qwen3-32B</td><td>3.01×</td><td><strong>3.49×</strong> (+16%)</td><td>4.21</td><td>5.23</td></tr>
+  <tr><td>Qwen3-235B-A22B</td><td>2.95×</td><td><strong>3.42×</strong> (+16%)</td><td>4.14</td><td>5.14</td></tr>
+</table>
+
+<p><strong>读表观察:</strong></p>
+<ul>
+  <li>所有 6 个 model 都 monotonic 提升,从 8B 到 235B 一致 → 不是某个 size 的 cherry-pick</li>
+  <li>τ 接近理论上限 K+1 = 8 (Vicuna 7.20)。这说明 MARS 在<em>这个 K</em>下几乎"耗尽"了 draft 链能给的 token</li>
+  <li>70B 增益最小 (+8%) — 推测是 70B 本身 logit 分布更 sharp,low-margin step 占比低</li>
+  <li>Qwen3 系列增益稳定在 9–16%,对应 modern Qwen3 训练较 confident → 可放宽空间相对小</li>
+</ul>
+
+<h3>6.2 框架解耦验证 (Table 5)</h3>
+
+<p>把 MARS 加到 vanilla SPD (Leviathan 那种 chain-based, 用 Qwen3-0.6B → 32B):</p>
+
+<table>
+  <tr><th>Pair</th><th>Bench</th><th>SPD speedup</th><th>SPD+MARS speedup</th></tr>
+  <tr><td>Qwen 0.6B → 32B</td><td>GSM8K</td><td>2.15×</td><td><strong>2.70×</strong></td></tr>
+  <tr><td>Qwen 0.6B → 32B</td><td>HumanEval</td><td>2.23×</td><td><strong>2.76×</strong></td></tr>
+  <tr><td>LLaMA 8B → 70B</td><td>HumanEval</td><td>3.15×</td><td><strong>4.36×</strong> (+38%)</td></tr>
+</table>
+
+<p>这是论文最有说服力的 robustness 证据: <strong>不依赖 EAGLE</strong>,任何 drafter 都受益。</p>
+
+<h3>6.3 质量保持 (Table 3, 4 + MT-Bench)</h3>
+
+<ul>
+  <li>CNN/DM ROUGE-L: MARS vs baseline 平均差 <strong>0.0008</strong> (e.g. 0.1935 vs 0.1943)</li>
+  <li>WMT19 BLEU: Qwen3-8B 29.67 vs baseline 29.71 (差 0.04)</li>
+  <li>MT-Bench (GPT-5 judge, 8 类): 5 个 model 平均偏差 ≤ 0.18 分 (10 分制),Qwen3-8B 反而<strong>提升</strong> 0.18 (7.41 → 7.59)</li>
+</ul>
+
+<p>这个"反而提升"在论文里没强调,但很有意思: lossy 反向带来质量提升的可能机制是,strict rejection 重采时引入的 tail-noise (上文 §5.3) 在 GPT-5 judge 看来是<em>风格/语义噪声</em>;放宽到 top-2 接受反而保持了流畅性。</p>
+
+<h3>6.4 K 的甜点是 9 (Table 2)</h3>
+
+<p>不是 K 越大越好。Qwen3-32B GSM8K:</p>
+<ul>
+  <li>K=6: 3.96×, τ=5.79</li>
+  <li>K=9: <strong>4.15×, τ=6.58</strong> (peak)</li>
+  <li>K=12: 4.09×, τ=6.87</li>
+  <li>K=15: 3.94×, τ=6.92 (饱和)</li>
+</ul>
+
+<p>原因和经典 SD 一样: K 增长后 drafter 自身开销线性上涨,而 τ 边际递减(尤其 MARS 接近 K+1 上限)。<strong>K=9 是 MARS 推荐值,比标准 SD 的 K=4-6 大一些</strong>(因为 MARS 把 τ 拉得更高)。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>方法</th><th>类型</th><th>动了什么</th><th>是否 lossless</th><th>是否 plug-and-play</th><th>本文与之差异</th></tr>
+  <tr><td>Leviathan SD</td><td>verification</td><td>定义了 rejection sampling</td><td>是</td><td>—(基线)</td><td>MARS 在 low-margin 区域放松</td></tr>
+  <tr><td>EAGLE-2/3</td><td>drafter</td><td>tree drafter, hidden state 复用</td><td>是</td><td>需训 head</td><td>正交,可叠加</td></tr>
+  <tr><td>Medusa</td><td>drafter</td><td>多 head + tree</td><td>是</td><td>需训 head</td><td>正交,可叠加</td></tr>
+  <tr><td>SpecInfer / SpecTr / Sequoia</td><td>tree verification</td><td>token tree + tree attention</td><td>是</td><td>实现复杂</td><td>正交,verify rule 可换 MARS</td></tr>
+  <tr><td>BiLD (Kim 2023)</td><td>lossy</td><td>看 draft confidence 跳过 verify</td><td>否</td><td>是</td><td><span class="no">看错对象</span> — MARS 看 target</td></tr>
+  <tr><td>Self-verify (Zhang 2025)</td><td>lossy</td><td>context-entropy 调阈值</td><td>否</td><td>较复杂</td><td>MARS 阈值全局固定,更简单</td></tr>
+  <tr><td>Judge Decoding (Bachmann)</td><td>lossy semantic</td><td>训语义 judge 模型</td><td>否</td><td><span class="no">否, 需训 judge</span></td><td>MARS training-free</td></tr>
+  <tr><td>LSD (Li 2025a)</td><td>lossy semantic</td><td>语义对齐</td><td>否</td><td><span class="no">否</span></td><td>同上</td></tr>
+  <tr><td><strong>MARS</strong></td><td><strong>lossy verification</strong></td><td>logit-ratio top-2 放松</td><td>否(可控)</td><td><span class="ok">是, 一行代码</span></td><td>本文</td></tr>
+</table>
+
+<p>"see also" 注释: <em>EAGLE 系列演化</em>(EAGLE-1 / 2 / 3 / DFlash)的笔记可以参考 <code>spec-rl/notes/02_EAGLE_evolution_DFlash.html</code>; <em>NVIDIA 把 EAGLE-3 嵌入到 RL rollout 里</em>的工程报告参考 <code>spec-rl/notes/01_NVIDIA_NeMoRL_EAGLE3.html</code>。MARS 与这两条线<strong>完全正交</strong>——它修改的是 verification 环节,EAGLE 系列改的是 drafter 环节,两者可叠加。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>Token-level 判据,没探索 phrase / span 级别</li>
+  <li>θ 全局固定;context-aware adaptation 可能更好</li>
+  <li>未实验 &gt; 235B 模型(资源限制)</li>
+</ul>
+
+<h3>我的额外质疑</h3>
+<ul>
+  <li><strong>"训练-推理分布漂移"风险</strong>: 如果一个下游模型用 MARS 跑生成,然后用这些 trace 做 SFT / DPO 数据,接受 top-2 会让训练数据带 systematic bias —— top-2 token 频率被人为抬高。RL rollout 场景尤其要小心(NVIDIA-NeMoRL 论文强调 verifier-exact 就是反这个的)</li>
+  <li><strong>θ = 0.9 在 small / fine-tuned 模型上未必稳</strong>: 论文只测了 8B+,模型小或经过 RLHF 后 logit 量级 shift,需要重新调阈值</li>
+  <li><strong>低 magnitude logit case</strong>: 如果 z_(1) 接近 0(论文 Fig 4a 显示 0% 负但 mode 在 ~5),r 会非常敏感于 z_(2) 的小扰动。bf16/fp16 量化误差是否会让 r 抖动?</li>
+  <li><strong>Tree 的 cascade 效应</strong>: 一条 path 上多个 top-2 接受会累积偏差。MARS 没分析"连续 k 次 relax"是否安全</li>
+  <li><strong>Greedy (T=0) 下的 acc deviations</strong> (Appendix B): 论文坦白 EAGLE-3 和 MARS 都有数值偏差,但没量化是 KV cache 还是 verification rule 贡献的</li>
+</ul>
+
+<h3>待验证问题</h3>
+<ol>
+  <li>MARS 在 long-CoT (32k+ token) 任务下,relaxation 的 cumulative drift 是否会触发推理"偏题"?论文最长 trace 是 GSM8K 几百 token</li>
+  <li>RL rollout 用 MARS 替代 EAGLE-3 的标准 rejection,会不会破坏 NeMoRL/ReSpec 的 "verifier-exact" 假设?如果用,需要改 GRPO loss 计算吗?</li>
+  <li>是否能把 logit-ratio relax 推广到"top-1 vs top-1+2 sum"或"top-k summed margin"等更细的形式?</li>
+  <li>低 batch (B=1) 和高 batch (B=64) 下 MARS 的 speedup 差异?(memory-bound vs compute-bound 的边界附近,verification overhead 占比变化)</li>
+  <li>MARS + FP8 推理: FP8 把 logit 重 quantize,r 的稳定性会怎样?</li>
+  <li>MoE 模型 (Qwen3-235B) 的 routing 噪声是否让 logits 更"平",进而 MARS 更受益?表 1 数据似乎支持这点</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> SD 的真瓶颈是 verification 在 low-margin regime 的 wasteful rejection,不是 drafter<br>
+  <span class="pill">公式</span> r = z_(2)/z_(1) &gt; θ ⇔ Δ &lt; (1−θ)·z_(1) (自适应 margin)<br>
+  <span class="pill">关键洞见</span> 用 logit 而非 prob 因为 softmax 会按 magnitude 非线性放大,prob 是被 calibration 污染的指标<br>
+  <span class="pill">阈值</span> θ = 0.9 全局固定;过严反而因 tail-noise 重采降质<br>
+  <span class="pill">规模</span> 8B → 235B 都 +9% to +23% over EAGLE-3, τ 接近上界 K+1<br>
+  <span class="pill">解耦</span> 与任意 drafter (SpD / Medusa / EAGLE-3 / tree) 正交,一行代码可加<br>
+  <span class="pill">陷阱</span> 严格 lossy 而非 lossless;rollout-as-training-data 场景需谨慎
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF 在 <code>/data/szhang967/papers/paper-notes/MARS_2601.15498.pdf</code><br>
+  see also: <code>spec-rl/notes/02_EAGLE_evolution_DFlash.html</code> (EAGLE 演化), <code>spec-rl/notes/01_NVIDIA_NeMoRL_EAGLE3.html</code> (RL × SD 系统集成)
+</p>
+
+</main>
+
+<script>
+  function setOp(id, op){ const el = document.getElementById(id); if(el) el.setAttribute('opacity', op); }
+</script>
+
+</body>
+</html>

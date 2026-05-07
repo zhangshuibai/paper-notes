@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · MiniMax-01 (2501.08313)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>MiniMax-01: Scaling Foundation Models with Lightning Attention</h1>
+<div class="meta">
+  MiniMax · 2025-01-14 · arXiv:2501.08313 · 456B MoE / 45.9B active / 32 experts<br>
+  关键词: lightning attention · linear attention · hybrid attention · MoE · LASP+ · 1M / 4M context · MFU 75%
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>第一次在商业级规模(456B / 45.9B active)落地 linear attention—— 7 层 lightning attention + 1 层 softmax attention 的 hybrid 架构 + 32-expert MoE,训练时 context 1M、推理外推到 4M tokens,在长文本上拉开 GPT-4o / Claude-3.5 一个数量级。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">456B / 45.9B</div><div class="l">total / active params</div></div>
+    <div class="stat"><div class="n">7 : 1</div><div class="l">lightning : softmax 比例</div></div>
+    <div class="stat"><div class="n">1M → 4M</div><div class="l">train / inference 长度</div></div>
+  </div>
+  <p><strong>立场:</strong>linear attention 不是替代品,是<em>主角加副驾</em>。纯 linear 在 retrieval 上垮,纯 softmax 在长文本上算不动;让 lightning 当主力 + 每 8 层放一个 softmax 当 retrieval 锚点,既拿到 O(n) scaling,又保住 in-context learning。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:context-length 撞上的那堵墙</a></li>
+    <li><a href="#sec2">背景速查 (linear attention 复习)</a></li>
+    <li><a href="#sec3">Lightning Attention 是什么</a></li>
+    <li><a href="#sec4">Hybrid 架构: 7+1 的设计</a></li>
+    <li><a href="#sec5">MoE 整合: 32 experts × top-2 + global router</a></li>
+    <li><a href="#sec6">Capacity 论证: 为什么 hybrid 反而比 softmax 好</a></li>
+    <li><a href="#sec7">系统优化: LASP+ / Varlen Ring / EP-ETP</a></li>
+    <li><a href="#sec8">长上下文训练 recipe</a></li>
+    <li><a href="#sec9">实验关键结果</a></li>
+    <li><a href="#sec10">与同类工作对比 (Mamba / RWKV / Mixtral)</a></li>
+    <li><a href="#sec11">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:context-length 撞上的那堵墙</h2>
+
+<h3>1.1 历史脉络</h3>
+<p>2024 年的 frontier model 大多停在 32K–256K context window。Gemini-1.5 Pro 把它顶到 1M 是个例外,但代价是<strong>极高的延时和 TPU 集群成本</strong>;开源生态(Llama-3.1, Qwen2.5, DeepSeek-V3, Mistral)集体没有突破 256K。</p>
+<p>问题不在算法上没人想长上下文 — 是在算力上算不动。Transformer 的 softmax attention 是 <code>O(n²d)</code>。把 context 从 32K 翻到 1M(32×),attention compute 涨 1024×。即使 H800 / B200 翻番,也跟不上 context 翻 8×。</p>
+<p>于是 prefilling 1M 个 token 就要花几百秒——本论文 Figure 2 给的硬数据:GPT-4o API 在 128K 上花约 70 秒,而 MiniMax-Text-01 在 1M 上只需 ~50 秒,在 256K 上 <strong>~10×</strong> 于其他大模型。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 600 230" width="100%" style="max-width:580px">
+    <!-- axes -->
+    <line x1="60" y1="190" x2="560" y2="190" stroke="#888"/>
+    <line x1="60" y1="20" x2="60" y2="190" stroke="#888"/>
+    <text x="310" y="220" text-anchor="middle" font-size="12" fill="#5b5e66">序列长度 N (log)</text>
+    <text x="20" y="100" font-size="12" fill="#5b5e66" transform="rotate(-90 20 100)">Compute / Memory</text>
+    <!-- softmax quadratic curve -->
+    <path d="M 80 188 Q 200 180 300 140 Q 400 75 520 25" stroke="#cc4a1b" stroke-width="2.5" fill="none"/>
+    <text x="510" y="40" font-size="12" fill="#cc4a1b" font-weight="600">softmax  O(N²d)</text>
+    <!-- linear -->
+    <path d="M 80 188 L 520 145" stroke="#2f6feb" stroke-width="2.5" fill="none"/>
+    <text x="430" y="135" font-size="12" fill="#2f6feb" font-weight="600">lightning  O(Nd²)</text>
+    <!-- hybrid -->
+    <path d="M 80 188 Q 250 180 380 160 Q 460 145 520 110" stroke="#1f7a4a" stroke-width="2.5" fill="none" stroke-dasharray="4,3"/>
+    <text x="430" y="100" font-size="12" fill="#1f7a4a" font-weight="600">hybrid (7:1)</text>
+    <!-- vertical lines for 32k / 256k / 1M -->
+    <g font-size="11" fill="#5b5e66">
+      <line x1="180" y1="30" x2="180" y2="190" stroke="#ddd" stroke-dasharray="2,2"/>
+      <text x="180" y="205" text-anchor="middle">32K</text>
+      <line x1="320" y1="30" x2="320" y2="190" stroke="#ddd" stroke-dasharray="2,2"/>
+      <text x="320" y="205" text-anchor="middle">256K</text>
+      <line x1="450" y1="30" x2="450" y2="190" stroke="#ddd" stroke-dasharray="2,2"/>
+      <text x="450" y="205" text-anchor="middle">1M</text>
+    </g>
+    <text x="310" y="15" text-anchor="middle" font-size="12" font-weight="600">三种 attention 在长上下文下的 compute 曲线</text>
+  </svg>
+  <figcaption>当 N 从 32K 跨到 1M 时,softmax 的 quadratic 项 (n / 6d) 已经吃掉 FLOPs 的 90%+,而 lightning 的 (1/2h) 项几乎不变。Hybrid 7:1 把 softmax 的 quadratic 成本除以 8,曲线在 1M 处仍是平的。</figcaption>
+</div>
+
+<h3>1.2 别的方案为什么"够呛"</h3>
+<p>从 2020 年起,业界提了一打"线性化 / 稀疏化 attention"的方案。每个都有理论吸引力,但<strong>没一个真扩到了百亿千亿规模</strong>。论文用一段话点评了对手:</p>
+
+<table>
+  <tr><th>方案家族</th><th>代表</th><th>为什么没扩</th></tr>
+  <tr><td>Sparse attention</td><td>Longformer, BigBird</td><td><span class="no">稀疏 pattern 在长 reasoning trace 上漏关键 token,且 kernel 难写</span></td></tr>
+  <tr><td>Sliding window</td><td>Mistral SWA</td><td><span class="no">窗口外 token 永远丢失,retrieval 极差;论文 Table 4 显示 win=1024 在 1B 上 NIAH 仅 53.9</span></td></tr>
+  <tr><td>State Space Model</td><td>Mamba, Mamba-2</td><td><span class="no">退化为固定状态; recurrent state 容量 O(d),retrieval 低于 hybrid</span></td></tr>
+  <tr><td>Linear RNN</td><td>RWKV, HGRN-2</td><td><span class="no">训练速度受 cumsum 拖累; HGRN2 23.3K TGS 远低于 lightning 33.4K</span></td></tr>
+  <tr><td>Linear attention</td><td>Performer, cosFormer</td><td><span class="no">causal mask 把 right-product 优势打掉,要 cumsum,实测打不过 FlashAttn-2</span></td></tr>
+  <tr><td>Long convolution</td><td>Hyena, M2</td><td><span class="no">FFT-based,序列稍短(数 K 内)就比 attention 还慢</span></td></tr>
+  <tr><td><strong>Lightning + Hybrid</strong> 👈</td><td>本文</td><td><span class="ok">tiling 把 cumsum 拆掉; hybrid 把 retrieval 留给 softmax</span></td></tr>
+</table>
+
+<div class="nb">
+  <strong>这是论文最锋利的论点。</strong>之前所有 linear-attention 工作都没解决"<em>causal cumsum 不并行</em>"这个根 bug,只能在 toy scale 上自夸 O(n);一旦扩到生产规模,FlashAttention-2 反而更快。Lightning attention 的 tiling 是<em>真</em>把它做并行的第一个工作。
+</div>
+
+<h3>1.3 为什么"扩到 456B / 1M"非平凡?</h3>
+<p>就算 lightning attention 在 7B / 8K 上能跑,要扩 65× model + 125× context,仍然有三道工程坎:</p>
+<ul>
+  <li><strong>Pure linear 在 retrieval 上垮。</strong>论文实测 (Figure 7):lightning attention 在 NIAH 上比 softmax 低很多。如果不掺 softmax,7B 模型在 in-context learning 任务上没法用。</li>
+  <li><strong>开源框架不支持。</strong>Megatron / DeepSpeed / FlashAttention 全是为 softmax 写的。要在 1500–2500 张 H800 上跑 hybrid,得自己写 LASP / varlen ring / 全套 CUDA kernel。</li>
+  <li><strong>MoE 的 all-to-all 通信</strong>遇上 1M context 的 sequence parallel 通信,会互相抢 NVLink 带宽。需要把 EP / ETP / EDP / CP 四种并行同时调度。</li>
+  <li><strong>Inference 的 prefix cache</strong>对 lightning attention 是新问题。Linear attention 的"缓存"是一个 d×d 的 KV state(不再是 token-level KV),怎么和 vLLM 的 paged KV 兼容?</li>
+</ul>
+<p>论文 4 / 5 的篇幅都在回答这堆"系统级"问题,所以这不仅是一个 architecture paper,更是一份完整的 production-grade tech report。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Softmax attention</span></td><td>标准 Transformer attention,O = softmax(QK⊤/√d)·V,causal mask 下 O(N²d)</td></tr>
+  <tr><td><span class="term">Linear attention</span></td><td>去掉 softmax,用 right-product trick: O = Q(K⊤V),causal 下需要 cumsum,O(Nd²)</td></tr>
+  <tr><td><span class="term">Lightning attention</span></td><td>Linear attention 的 I/O-aware 实现,用 tiling 把 cumsum 干掉(Qin et al. 2024b)</td></tr>
+  <tr><td><span class="term">Hybrid attention</span></td><td>Lightning + softmax 按 7:1 交替,本文核心架构</td></tr>
+  <tr><td><span class="term">TransNormer</span></td><td>Qin 等 2022 提的 NormAttention 块,lightning 实际算的就是它</td></tr>
+  <tr><td><span class="term">MoE / top-K routing</span></td><td>Mixture of Experts,每 token 选 top-k 个专家</td></tr>
+  <tr><td><span class="term">EP / ETP / EDP</span></td><td>Expert Parallel / Expert Tensor Parallel / Expert Data Parallel,本文为 MoE 自定义的三个 ProcessGroup</td></tr>
+  <tr><td><span class="term">CP</span></td><td>Context Parallel,把 sequence 维度切到不同 rank 上</td></tr>
+  <tr><td><span class="term">LASP / LASP+</span></td><td>Linear Attention Sequence Parallelism,本文把 LASP 的串行依赖改成并行</td></tr>
+  <tr><td><span class="term">Varlen ring attention</span></td><td>Ring attention 的 variable-length 版本,适配 data-packing</td></tr>
+  <tr><td><span class="term">RoPE</span></td><td>Rotary Position Embedding;本文只对 softmax 头的一半 dim 加 RoPE</td></tr>
+  <tr><td><span class="term">DeepNorm / PostNorm</span></td><td>把 LayerNorm 放在残差<em>之后</em>,深网络下表现优于 PreNorm</td></tr>
+  <tr><td><span class="term">RULER</span></td><td>NV 提的长上下文 retrieval/reasoning 13 任务套件,本文长文本主战场</td></tr>
+  <tr><td><span class="term">MFU</span></td><td>Model FLOPs Utilization,实际 FLOPs / 理论峰值</td></tr>
+</table>
+
+<h3>2.2 Linear attention 的 right-product 复习</h3>
+<p>Softmax attention 必须 <code>(QK⊤)V</code>:先算 N×N 的 attention matrix,再乘 V。Linear attention 把 softmax 拿掉后,矩阵乘法满足结合律,可以变成 <code>Q(K⊤V)</code>:</p>
+<div class="formula">O = Norm( Q · (K⊤V) )</div>
+<p>左边的 K⊤V ∈ ℝ<sup>d×d</sup>,跟 N 无关。所以总 FLOPs 是 <code>O(Nd²)</code> 而不是 <code>O(N²d)</code>。当 N >> d(比如 N=1M, d=128),后者比前者大 8000×。</p>
+<p>但有一个致命限制:在 causal 语言建模里,第 t 步只能看到前 t 个 token,即 K⊤V 是逐步累加的(<code>kv_t = kv_{t-1} + k_t v_t⊤</code>)。这个 cumsum 是<strong>串行</strong>的,GPU 上没法和 N 并行,所以"<em>O(Nd²) 比 O(N²d) 快</em>"在小 N 上反而被并行度吃掉。这就是 9 年来 linear attention 没在大模型里落地的根原因。</p>
+
+<hr>
+
+<h2 id="sec3">3 · Lightning Attention 是什么</h2>
+
+<h3>3.1 一句话核心</h3>
+<p>Lightning attention 用 <strong>tiling(分块)</strong> 把 causal cumsum 切成 "block 内 left-product" + "block 间 right-product" 两条路径,前者并行(因为 block 小),后者递推但只走一次。这是 FlashAttention 思路在 linear attention 上的对应物。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <!-- Title -->
+    <text x="360" y="20" text-anchor="middle" font-size="14" font-weight="600" fill="#1f2024">Lightning Attention 的 tiling 计算图</text>
+
+    <!-- Sequence divided into blocks -->
+    <g>
+      <rect x="40" y="50" width="120" height="40" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="100" y="75" text-anchor="middle" font-size="12">block 1 (B=256)</text>
+      <rect x="160" y="50" width="120" height="40" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="220" y="75" text-anchor="middle" font-size="12">block 2</text>
+      <rect x="280" y="50" width="120" height="40" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="340" y="75" text-anchor="middle" font-size="12">block 3</text>
+      <rect x="400" y="50" width="60" height="40" fill="#eee" stroke="#888"/>
+      <text x="430" y="75" text-anchor="middle" font-size="11" fill="#888">…</text>
+      <rect x="460" y="50" width="120" height="40" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="520" y="75" text-anchor="middle" font-size="12">block T</text>
+      <text x="350" y="40" text-anchor="middle" font-size="11" fill="#5b5e66">序列 Q, K, V 沿 N 维切成 T = N/B 块</text>
+    </g>
+
+    <!-- Two paths -->
+    <!-- Intra block path (parallel) -->
+    <g>
+      <rect x="40" y="120" width="540" height="70" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="310" y="143" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Intra-block (左乘): O_intra = [(Qₜ Kₜ⊤) ⊙ M] Vₜ</text>
+      <text x="310" y="162" text-anchor="middle" font-size="11" fill="#3a3b40">每块独立 → T 块完全并行;块内 B×B 小矩阵,causal mask M 在小矩阵上能展开</text>
+      <text x="310" y="180" text-anchor="middle" font-size="11" fill="#5b5e66">B=256 → 块内 attention 是 256×256,FlashAttn 风格 fused kernel</text>
+    </g>
+
+    <!-- arrow combine -->
+    <line x1="310" y1="190" x2="310" y2="220" stroke="#1f7a4a" stroke-width="2" marker-end="url(#arrL)"/>
+    <text x="335" y="210" font-size="11" fill="#1f7a4a">+</text>
+
+    <!-- Inter block path -->
+    <g>
+      <rect x="40" y="225" width="540" height="70" rx="8" fill="#d4edda" stroke="#1f7a4a"/>
+      <text x="310" y="248" text-anchor="middle" font-size="13" font-weight="600" fill="#1f7a4a">Inter-block (右乘): O_inter = Qₜ · KV_{&lt;t},  KV ∈ ℝ<tspan dy="-4" font-size="9">d×d</tspan><tspan dy="4"></tspan></text>
+      <text x="310" y="267" text-anchor="middle" font-size="11" fill="#3a3b40">递推维护 KV: KVₜ = KV_{t-1} + Kₜ⊤Vₜ,只走 T 步,而非 N 步</text>
+      <text x="310" y="285" text-anchor="middle" font-size="11" fill="#5b5e66">T = N/B = 4000(N=1M, B=256),迭代深度从 1M 降到 4K</text>
+    </g>
+
+    <defs>
+      <marker id="arrL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>关键 insight: Block 内用 left-product (传统 attention 计算),Block 间用 right-product (linear attention)。Block 内可并行 → 吃满 SM;Block 间只有 T = N/B 次串行更新 KV state(d×d),整体复杂度 O(Nd² + NBd),N >> d² 时近似 linear。</figcaption>
+</div>
+
+<h4>具体一点: 1M context 上的 lightning attention forward</h4>
+<p>设 N = 1,048,576, d = 128(head dim), B = 256(block size), h = 64 heads。一次 forward:</p>
+<ol>
+  <li><strong>分块</strong>:把 Q, K, V ∈ ℝ<sup>N×d</sup> 切成 T = 4096 块,每块 256×128</li>
+  <li><strong>初始化</strong> KV ∈ ℝ<sup>d×d</sup> = ℝ<sup>128×128</sup> = 0,在 SRAM 中常驻</li>
+  <li><strong>主循环</strong> for t = 1..4096:
+    <ul>
+      <li>从 HBM 加载 Q_t, K_t, V_t(每个 256×128 = 32KB,FP16)到 SRAM</li>
+      <li>O_intra = (Q_t K_t⊤ ⊙ M) V_t ⟶ B²d FLOPs ≈ 8M FLOPs</li>
+      <li>O_inter = Q_t · KV ⟶ Bd² FLOPs ≈ 4M FLOPs</li>
+      <li>O_t = O_intra + O_inter,写回 HBM</li>
+      <li>更新 KV += K_t⊤ V_t (d²B FLOPs)</li>
+    </ul>
+  </li>
+  <li>总 FLOPs ≈ N(Bd + d²) = 1M·(256·128 + 128²) ≈ 50G FLOPs/head</li>
+</ol>
+<p>对比 softmax attention 在 1M 上 ≈ N²d = 1M·1M·128 ≈ 130T FLOPs/head — <strong>差 2600 倍</strong>。这就是 Figure 2 里 1M prefilling 拉开的根。</p>
+
+<h3>3.2 反向论证:不做 tiling 会怎样?</h3>
+<p>如果直接用朴素 linear attention 公式 <code>kv_t = kv_{t-1} + k_t v_t⊤; o_t = q_t kv_t</code>,你会得到一个长度 N 的串行 dependency chain。GPU 即便有 1024 个 SM,每一步都要等上一步,实测 <strong>训练速度比 softmax(FlashAttn-2)还慢</strong>(论文 Figure 8 的 HGRN2 / Mamba2 数据印证)。Tiling 把 dependency chain 缩到 T = N/B 步,每步又能并行 B² 个内积,这才有 33.4K TGS 的吞吐。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Hybrid 架构:7 + 1 的设计</h2>
+
+<h3>4.1 整体结构</h3>
+<p>MiniMax-Text-01 总共 80 层,其中:</p>
+<ul>
+  <li>每 8 层一组,前 7 层是 lightning attention block,第 8 层是 softmax attention block(GQA, group=8, RoPE 半维)</li>
+  <li>每个 attention block 后接一个 MoE block (32 experts, top-2)</li>
+  <li>整体: <code>(LA · MoE) × 7 → (Softmax · MoE) × 1</code> 重复 10 次 → 80 层</li>
+  <li>Hidden dim 6144, attention head 64, head dim 128, FFN inner dim 9216</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <!-- 8 layer group -->
+    <text x="350" y="20" text-anchor="middle" font-size="14" font-weight="600">一个 8-layer group(共重复 10 组 = 80 层)</text>
+
+    <g>
+      <!-- 7 lightning blocks -->
+      <rect x="30" y="50" width="70" height="80" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="65" y="75" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">Lightning</text>
+      <text x="65" y="90" text-anchor="middle" font-size="11" fill="#2f6feb">Attn</text>
+      <text x="65" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">+ MoE</text>
+      <text x="65" y="122" text-anchor="middle" font-size="10" fill="#5b5e66">L1</text>
+
+      <rect x="105" y="50" width="70" height="80" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="140" y="78" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">LA + MoE</text>
+      <text x="140" y="122" text-anchor="middle" font-size="10" fill="#5b5e66">L2</text>
+
+      <rect x="180" y="50" width="70" height="80" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="215" y="78" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">LA + MoE</text>
+      <text x="215" y="122" text-anchor="middle" font-size="10" fill="#5b5e66">L3</text>
+
+      <text x="280" y="95" text-anchor="middle" font-size="14" fill="#5b5e66">…</text>
+
+      <rect x="305" y="50" width="70" height="80" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="340" y="78" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">LA + MoE</text>
+      <text x="340" y="122" text-anchor="middle" font-size="10" fill="#5b5e66">L7</text>
+
+      <!-- 1 softmax block -->
+      <rect x="395" y="50" width="80" height="80" rx="6" fill="#fff3cd" stroke="#cc4a1b" stroke-width="2"/>
+      <text x="435" y="75" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">Softmax</text>
+      <text x="435" y="90" text-anchor="middle" font-size="11" fill="#cc4a1b">GQA + RoPE½</text>
+      <text x="435" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">+ MoE</text>
+      <text x="435" y="122" text-anchor="middle" font-size="10" fill="#5b5e66">L8 ⭐</text>
+
+      <!-- arrows -->
+      <path d="M 100 90 L 105 90" stroke="#666" marker-end="url(#arrH)"/>
+      <path d="M 175 90 L 180 90" stroke="#666" marker-end="url(#arrH)"/>
+      <path d="M 250 90 L 270 90" stroke="#666" stroke-dasharray="3,2"/>
+      <path d="M 290 90 L 305 90" stroke="#666" marker-end="url(#arrH)"/>
+      <path d="M 375 90 L 395 90" stroke="#666" marker-end="url(#arrH)"/>
+
+      <!-- annotation right -->
+      <rect x="500" y="55" width="180" height="70" rx="6" fill="#f3eee0" stroke="#888"/>
+      <text x="590" y="78" text-anchor="middle" font-size="11" fill="#3a3b40">"retrieval anchor"</text>
+      <text x="590" y="96" text-anchor="middle" font-size="11" fill="#3a3b40">每 8 层显式做一次</text>
+      <text x="590" y="111" text-anchor="middle" font-size="11" fill="#3a3b40">global token interaction</text>
+    </g>
+
+    <!-- bottom: capacity argument -->
+    <rect x="30" y="160" width="640" height="60" rx="8" fill="#fff" stroke="#cc4a1b" stroke-dasharray="3,3"/>
+    <text x="350" y="183" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">为什么是 7+1 ?  Capacity 论证 (§6 详谈)</text>
+    <text x="350" y="201" text-anchor="middle" font-size="11" fill="#3a3b40">lightning state 容量 O(d²/h),softmax state 容量 O(d) — lightning 反而记得多</text>
+    <text x="350" y="215" text-anchor="middle" font-size="11" fill="#5b5e66">softmax 层用作"重置点 / global lookup",防止累积误差;7:1 是 NIAH 性能的实测最优</text>
+
+    <!-- bottom note -->
+    <text x="350" y="245" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">总参数 456B,每 token 激活 45.9B,context 1M 时单层峰值显存 ~ 80GB</text>
+    <text x="350" y="265" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">→ 8×80GB H800 单机做 INT8 推理</text>
+
+    <defs>
+      <marker id="arrH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>每个 8-layer 组里,7 个 lightning 层做高效长程信息混合,最后一个 softmax 层做"<em>retrieval anchor</em>"——确保模型每过 8 层都能精确回看任意位置。比例 7:1 是论文实测出来的(Table 4 / Figure 7):比例越高越快但 NIAH 越差。</figcaption>
+</div>
+
+<h3>4.2 RoPE 只对一半 dim 用</h3>
+<p>论文一个细节: softmax 层只对 head dim 的<strong>前 64 维</strong>(共 128)加 RoPE,后 64 维不加。这样长度外推时,前半携带"相对位置信息"会受 RoPE 抑制,后半保留"位置无关的内容信息",得到更平滑的外推曲线。RoPE base = 10000,后续 long-context 训练阶段拉到 5M / 10M(详见 §8)。</p>
+
+<h3>4.3 反向思考:为什么不 1:1 / 3:1 / 15:1?</h3>
+<p>论文做了 ablation(Table 4):</p>
+<ul>
+  <li><strong>15:1 / 全 lightning</strong> — NIAH 大幅下降,7B 上仅 ~80(softmax baseline 98)</li>
+  <li><strong>3:1</strong> — 速度优势变小,长上下文 attention 占比上升</li>
+  <li><strong>1:1(类 Jamba)</strong> — softmax 占比过半,1M 时 prefill 时间退化为 quadratic</li>
+  <li><strong>7:1 是甜点</strong> — 既保住 retrieval(NIAH 95.7,接近 softmax 的 98),速度又比 hybrid-window 1024 快 ~1.05× 而 NIAH 高 80%</li>
+</ul>
+
+<hr>
+
+<h2 id="sec5">5 · MoE 整合: 32 experts × top-2 + Global Router</h2>
+
+<h3>5.1 路由公式</h3>
+<div class="formula">h_t = Σᵢ Softmaxᵢ( TopK(x_t · W_g) ) · FFNᵢ(x_t)</div>
+<p>每 token 选 top-2 个 expert(K=2),取 softmax 加权。32 个 expert,每 expert FFN 内部 dim = 9216,每个约 14B 参数。所以总参数 32 × 14B + 共享部分 ≈ 456B,激活 2 × 14B + 共享 ≈ 45.9B。</p>
+
+<h3>5.2 Global Router (路由崩塌的修复)</h3>
+<p>标准 GShard auxiliary loss 在<strong>大集群 + 大 batch</strong>下会失灵:每个 EP group 看到的 token 分布都不一样,group A 的 expert 被打爆,group B 的 expert 闲着。论文加一步 <strong>allgather</strong>:在 dispatch 之前先全局同步每个 expert 已收到的 token 数,再做全局调度。这一步代价是 O(world_size · E) 个数,通信量极小但能把 token drop rate 砍到接近 0。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 270" width="100%" style="max-width:680px">
+    <text x="350" y="22" text-anchor="middle" font-size="14" font-weight="600">Global Router: 跨 EP group 同步 token 分布</text>
+
+    <!-- Without global router -->
+    <text x="180" y="50" text-anchor="middle" font-size="12" fill="#a8353e" font-weight="600">没有 global router</text>
+    <g>
+      <rect x="50" y="60" width="80" height="40" fill="#f8d7da" stroke="#a8353e"/>
+      <text x="90" y="85" text-anchor="middle" font-size="11">EP grp A</text>
+      <rect x="140" y="60" width="80" height="40" fill="#f8d7da" stroke="#a8353e"/>
+      <text x="180" y="85" text-anchor="middle" font-size="11">EP grp B</text>
+      <rect x="230" y="60" width="80" height="40" fill="#f8d7da" stroke="#a8353e"/>
+      <text x="270" y="85" text-anchor="middle" font-size="11">EP grp C</text>
+
+      <!-- expert utilization -->
+      <rect x="50" y="115" width="80" height="20" fill="#a8353e"/>
+      <text x="155" y="130" font-size="10" fill="#a8353e">overload</text>
+      <rect x="140" y="115" width="80" height="8" fill="#a8353e" opacity="0.4"/>
+      <text x="245" y="122" font-size="10" fill="#5b5e66">underused</text>
+      <rect x="230" y="115" width="80" height="35" fill="#a8353e"/>
+      <text x="320" y="135" font-size="10" fill="#a8353e">drop!</text>
+
+      <text x="180" y="170" text-anchor="middle" font-size="11" fill="#5b5e66">每组各算各的 → 部分 expert 爆,部分饿</text>
+    </g>
+
+    <!-- With global router -->
+    <text x="540" y="50" text-anchor="middle" font-size="12" fill="#1f7a4a" font-weight="600">加 global router</text>
+    <g>
+      <rect x="410" y="60" width="80" height="40" fill="#d4edda" stroke="#1f7a4a"/>
+      <text x="450" y="85" text-anchor="middle" font-size="11">EP grp A</text>
+      <rect x="500" y="60" width="80" height="40" fill="#d4edda" stroke="#1f7a4a"/>
+      <text x="540" y="85" text-anchor="middle" font-size="11">EP grp B</text>
+      <rect x="590" y="60" width="80" height="40" fill="#d4edda" stroke="#1f7a4a"/>
+      <text x="630" y="85" text-anchor="middle" font-size="11">EP grp C</text>
+
+      <!-- allgather arrow -->
+      <path d="M 410 80 Q 450 30 490 60" stroke="#2f6feb" stroke-width="1.5" fill="none" marker-end="url(#arrM)"/>
+      <path d="M 590 80 Q 540 30 510 60" stroke="#2f6feb" stroke-width="1.5" fill="none" marker-end="url(#arrM)"/>
+      <text x="540" y="22" text-anchor="middle" font-size="10" fill="#2f6feb">allgather token counts</text>
+
+      <!-- balanced expert util -->
+      <rect x="410" y="115" width="80" height="20" fill="#1f7a4a"/>
+      <rect x="500" y="115" width="80" height="20" fill="#1f7a4a"/>
+      <rect x="590" y="115" width="80" height="20" fill="#1f7a4a"/>
+
+      <text x="540" y="170" text-anchor="middle" font-size="11" fill="#5b5e66">先全局同步 → 整体均衡 → drop ↓</text>
+    </g>
+
+    <!-- bottom: aux loss -->
+    <rect x="30" y="195" width="640" height="60" rx="8" fill="#f3eee0" stroke="#888"/>
+    <text x="350" y="220" text-anchor="middle" font-size="12" font-weight="600" fill="#3a3b40">仍然保留 GShard auxiliary loss</text>
+    <text x="350" y="240" text-anchor="middle" font-size="11" fill="#5b5e66">L_aux = α · (1/E) Σᵢ fᵢ · mᵢ,系数 α=0.01,确保每个 expert 都有梯度通路</text>
+
+    <defs>
+      <marker id="arrM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#2f6feb"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Global router 是论文针对大规模 EP 的实操修复。Token-drop 策略下,如果 expert 满了就丢 token——dropped token 等于浪费的训练数据;global router 把单 step 的 drop rate 从 5–15% 降到 &lt;1%。</figcaption>
+</div>
+
+<h3>5.3 Worked example: 一个 token 的路由</h3>
+<p>设 input token x_t = "积分" 的 hidden h_t ∈ ℝ<sup>6144</sup>。Router 步骤:</p>
+<ol>
+  <li>logits = h_t · W_g, W_g ∈ ℝ<sup>6144×32</sup> → 32 个 score</li>
+  <li>例如 score = [..., expert_3: 4.2, expert_17: 3.8, expert_29: 3.5, ...]</li>
+  <li>top-2 选出 expert 3 和 17,softmax([4.2, 3.8]) = [0.60, 0.40]</li>
+  <li>FFN_3(h_t) ∈ ℝ<sup>6144</sup>, FFN_17(h_t) ∈ ℝ<sup>6144</sup></li>
+  <li>output = 0.60 · FFN_3(h_t) + 0.40 · FFN_17(h_t)</li>
+</ol>
+<p>整个 batch 的 ~30k token 同时做这个,每个 expert 期望承接 30k × 2 / 32 ≈ 1900 token;有了 capacity limit (e.g. 1.2× 期望) 后,超出的部分被丢。Global router 通过预先同步避免某个 expert 被打爆。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Capacity 论证: 为什么 hybrid 反而比纯 softmax 还好</h2>
+
+<p>这是论文最反直觉的发现之一。常识里 hybrid 应该是<em>权衡</em>(略差但更快),但 Table 4 / Table 5 显示 hybrid-lightning 在 NIAH / SCROLLS 上甚至<strong>比纯 softmax 还高</strong>。论文给了一个干净的 capacity 论证:</p>
+
+<h3>6.1 把 softmax 看成线性 RNN</h3>
+<p>令 q_t, k_j 为 query/key 行向量。Softmax attention 可以重写成递推:</p>
+<div class="formula">
+  s_t^j = s_t^{j-1} + exp(q_t k_j⊤/√d)<br>
+  o_t^j = (s_t^{j-1}/s_t^j) o_t^{j-1} + (1 − s_t^{j-1}/s_t^j) v_j
+</div>
+<p>注意每个时间步 t 都要从 j=1 开始重算一遍 → 论文称这叫 "Going Through a Book"。这是为什么 softmax 在 retrieval 上强:它对每个 query<em>整本书重读一遍</em>,信息不会丢。</p>
+
+<p>但仔细看:t 时刻保存的状态 (s_t, o_t) 都是 d 维向量 → <strong>recurrent state 容量 = O(d)</strong>。</p>
+
+<h3>6.2 Lightning attention 的状态</h3>
+<p>而 lightning attention 的状态是 KV ∈ ℝ<sup>d×d/h</sup>(每个 head),容量 <strong>O(d²/h)</strong>。在 d=128, h=64 时,d²/h = 256,而 d=128 → lightning 的状态容量是 softmax 的 2×。</p>
+
+<table>
+  <tr><th>机制</th><th>recurrent state 大小</th><th>每 query 是否重算</th><th>retrieval 优势</th></tr>
+  <tr><td>Softmax attention</td><td>O(d) = 128</td><td>是 (整本书重读)</td><td>精确但容量小</td></tr>
+  <tr><td>Lightning attention</td><td>O(d²/h) = 256</td><td>否 (一次性 sum)</td><td>容量大但易遗忘细节</td></tr>
+  <tr><td><strong>Hybrid 7+1</strong></td><td>两者结合</td><td>每 8 层重读一次</td><td><span class="ok">两个优势叠加</span></td></tr>
+</table>
+
+<p>所以 hybrid 不是 trade-off,而是 <em>"大容量 streaming + 周期性精确重读"</em> 的组合。这解释了为什么 NIAH 上 hybrid 反而能超 pure softmax:lightning 那 7 层先把信息<em>压缩</em>进高容量状态,softmax 那 1 层再做精确 lookup,等于两次 representation 的协同。</p>
+
+<div class="nb">
+  <strong>记忆点:</strong>"linear attention 容量小于 softmax" 是错的——只对 RWKV / Mamba 这种 state 维度 = d 的方案成立。Lightning attention 的 state 是 d²/h,实际容量更大。
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · 系统优化: LASP+ / Varlen Ring / EP-ETP</h2>
+
+<p>这一节是论文最"工程"的部分。能在 1500–2500 张 H800 上把 hybrid + MoE 跑到 75% MFU,几乎全靠这三件事:</p>
+
+<h3>7.1 LASP+: 把序列并行串行依赖打掉</h3>
+<p>原版 LASP (Sun 2024) 在 lightning attention 的 sequence parallel 模式下,需要 CP rank 之间用 send-recv 串行传 KV state——rank 0 算完 → 发给 rank 1 → rank 1 算完 → 发给 rank 2……一条链。这是因为 KV cumsum 必须按序累加。</p>
+<p>LASP+ 的发现:每个 rank<strong>本地</strong>可以先算自己片段的 KV 局部前缀和(无依赖),再用一次 <strong>AllGather</strong> 把所有局部前缀和广播,各 rank 再独立组装出全局前缀和。把"链式 send-recv N 步"压成"一次 AllGather + 局部计算"。</p>
+<p>论文实测:LASP+ 把 N 节点的速度从 1× 提到 1/N_pcn × 原 LASP 速度(基本恢复线性加速比)。</p>
+
+<h3>7.2 Varlen Ring Attention: 让 data-packing 不浪费</h3>
+<p>训练时把多条样本沿 sequence 维拼起来(data-packing),避免 padding 浪费。但传统 ring attention 假设单条等长样本,套用 data-packing 会让 attention 跨样本混淆,或要重度 padding。</p>
+<p>Varlen ring attention 在每个 ring step 中用 <strong>variable-length causal mask</strong> 标记每条样本的边界 offset,让 attention 只在样本内部计算,跨样本部分被 mask 掉。配合 ring 通信,每个 CP rank 看到的 KV 跨 rank 滚动,整段 1M 长 packed sequence 直接训练,无任何 padding。</p>
+
+<h3>7.3 EP-ETP Overlap: 把 a2a 通信藏起来</h3>
+<p>MoE 的 all-to-all (a2a) 通信和 ETP 的 allgather/reduce-scatter 在不同 ProcessGroup 上,可以同时跑。论文把 token chunk 成 N 组,组间错开调度,让一组的 a2a 和另一组的 expert compute 并发。配合 EP-ETP 双层并行,把 MoE 通信开销从 baseline 减半。</p>
+
+<h3>7.4 一句话: 为什么 MFU 能到 75%</h3>
+<p>三件事叠加:</p>
+<ul>
+  <li>LASP+ 让 sequence parallel 几乎无通信瓶颈</li>
+  <li>Varlen ring 让 data-packing 不浪费</li>
+  <li>EP-ETP overlap 让 MoE 的 a2a 隐藏</li>
+</ul>
+<p>剩下的就是 lightning attention kernel 本身的高 SM 利用率(B=256 块对应 WGMMA 256×256 指令的 sweet spot)。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 长上下文训练 recipe</h2>
+
+<p>论文最被工业界关注的部分: 怎么把 8K 训出来的模型扩到 1M / 4M。三阶段渐进训练:</p>
+
+<table>
+  <tr><th>阶段</th><th>目标长度</th><th>RoPE base</th><th>tokens</th><th>Short / Med / Long 比例</th></tr>
+  <tr><td>1 (初训)</td><td>8K</td><td>10K</td><td>~10T</td><td>—</td></tr>
+  <tr><td>2</td><td>128K</td><td>5M</td><td>300B</td><td>30 / 70 / 0</td></tr>
+  <tr><td>3</td><td>512K</td><td>10M</td><td>32B</td><td>35 / 35 / 30</td></tr>
+  <tr><td>4</td><td>1M</td><td>10M</td><td>26B</td><td>30 / 30 / 40</td></tr>
+  <tr><td>推理</td><td>4M (extrapolate)</td><td>10M</td><td>—</td><td>—</td></tr>
+</table>
+
+<p>关键 trick:</p>
+<ul>
+  <li><strong>RoPE base 调整</strong>:从 10K 拉到 5M 再 10M,确保长距离 token 的位置编码不撞退化区</li>
+  <li><strong>Linear 插值</strong>切换数据混合,而不是阶跃,避免训练发散</li>
+  <li><strong>NIAH 不够测</strong>:NIAH 在 128K step 就饱和到 1.0 了。后续阶段用 MR-NIAH(多轮 needles)和 RULER 13 任务持续监控</li>
+  <li><strong>4M 外推</strong>靠的是 RoPE 半维 + lightning attention 的位置无关特性,无需任何额外训练</li>
+</ul>
+
+<hr>
+
+<h2 id="sec9">9 · 实验关键结果</h2>
+
+<h3>9.1 学术 benchmark (短文本)</h3>
+<p>MMLU 88.5 / MMLU-Pro 75.7 / MATH 77.4 / HumanEval 86.9 / GPQA 54.4 — 与 GPT-4o (11-20)、Claude-3.5-Sonnet 同档,部分超 DeepSeek-V3。属于"<em>不输</em>"级别,而不是"碾压"。</p>
+
+<h3>9.2 长上下文 RULER (核心战场)</h3>
+<table>
+  <tr><th>Context</th><th>GPT-4o</th><th>Claude-3.5-Sonnet</th><th>Gemini-2.0-Flash</th><th>Gemini-1.5-Pro</th><th>MiniMax-Text-01</th></tr>
+  <tr><td>32k</td><td>0.888</td><td>0.950</td><td>0.957</td><td>0.958</td><td>0.954</td></tr>
+  <tr><td>64k</td><td>0.884</td><td>0.952</td><td>0.937</td><td>0.938</td><td>0.943</td></tr>
+  <tr><td>128k</td><td>—</td><td>0.938</td><td>0.860</td><td>0.917</td><td><strong>0.947</strong></td></tr>
+  <tr><td>256k</td><td>—</td><td>—</td><td>0.797</td><td>0.916</td><td><strong>0.945</strong></td></tr>
+  <tr><td>512k</td><td>—</td><td>—</td><td>0.709</td><td>0.861</td><td><strong>0.928</strong></td></tr>
+  <tr><td>1M</td><td>—</td><td>—</td><td>—</td><td>0.850</td><td><strong>0.910</strong></td></tr>
+</table>
+<p>看 1M 列: Gemini-1.5-Pro 0.85,MiniMax 0.91。<strong>这是论文最有说服力的数字</strong>——之前只有 Gemini 能跑 1M,现在开源拿到了 +6 个点。</p>
+
+<h3>9.3 LongBench-V2 (推理 + 长文本)</h3>
+<p>w/ CoT 设置: MiniMax 56.5 vs GPT-4o 51.4,Long 子集 47.2 vs 43.5。在长 + 复杂推理交叉场景下显著领先。</p>
+
+<h3>9.4 MTOB (Long In-Context Learning)</h3>
+<p>这个 benchmark 让模型只能从 context 里的语法书 + 375 个例子学一门小语种 (Kalamang)。MiniMax 在 eng→kalam ChrF 半本书 +44.7 / 全本书 ~50,delta 全部超 GPT-4o / Claude / Gemini。说明 long-context 不只是 retrieval,而是真能做 in-context learning。</p>
+
+<h3>9.5 Prefill latency (Figure 2)</h3>
+<p>1M context: MiniMax-Text-01 H800 ~50s,Llama-3-70B H800 OOM(都跑不了)。256K: GPT-4o API ~70s,MiniMax ~5s。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>核心机制</th><th>规模</th><th>本文与之差异</th></tr>
+  <tr><td>Mamba / Mamba-2</td><td>SSM,state O(d)</td><td>≤ 7B</td><td>容量小,retrieval 弱;本文用 hybrid 解决,且 lightning state O(d²/h) 容量大于 Mamba</td></tr>
+  <tr><td>RWKV-7</td><td>Linear RNN</td><td>≤ 14B</td><td>训练 cumsum 串行,大 batch 慢;本文 tiling 解决并行问题</td></tr>
+  <tr><td>Jamba (AI21)</td><td>Mamba + Transformer hybrid 1:7</td><td>52B (12B active)</td><td>主体是 Mamba,本文主体是 lightning(更高容量);本文规模大 9×</td></tr>
+  <tr><td>Mistral SWA</td><td>Sliding window 4096</td><td>≤ 22B</td><td>窗口外丢信息;本文 lightning 不丢</td></tr>
+  <tr><td>Mixtral 8×22B</td><td>纯 softmax + MoE</td><td>141B / 39B active</td><td>无 lightning,context 32K 上限;本文 1M</td></tr>
+  <tr><td>DeepSeek-V3</td><td>纯 softmax + MLA + MoE</td><td>671B / 37B active</td><td>用 MLA 压 KV cache 但仍 quadratic;本文是<em>真</em> linear</td></tr>
+  <tr><td>Gemini-1.5-Pro</td><td>未公开,可能 SSM hybrid</td><td>未知</td><td>1M 商业版;本文是首个开源 1M</td></tr>
+  <tr><td><strong>MiniMax-01</strong></td><td>Lightning hybrid 7:1 + 32-expert MoE</td><td>456B / 45.9B</td><td>第一个商业级 linear-attention LLM</td></tr>
+</table>
+
+<div class="nb">
+  关注点提示: <strong>Jamba 是最近的对比对象</strong>。Jamba 的 1:7(softmax 多)反过来,因为它主体是 Mamba(状态容量小,需要 softmax 多帮),而 MiniMax 的 lightning 容量足够大,所以 7:1(lightning 多)。两者反映了不同 linear backbone 的容量差异决定了 hybrid 比例。
+</div>
+
+<hr>
+
+<h2 id="sec11">11 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认 / 隐含的局限</h3>
+<ul>
+  <li>4M 外推靠的是"vanilla NIAH 还能找到 needle",并不等于 4M 真正的<em>推理能力</em>;论文没在 4M 上跑 RULER,实际 4M 长上下文质量未知</li>
+  <li>Lightning attention 在 retrieval 上的劣势依赖 softmax 层补救,如果未来场景需要 12 层一组(更长 chunk)的 lookup,7:1 不一定够</li>
+  <li>RULER 13 任务包含 MK-NIAH 等合成任务,真实长文档(代码库、法律文书)的复杂依赖未必体现</li>
+  <li>456B / 45.9B active 仍然需要 8×80G H800 单机做 INT8 推理,推理成本不便宜</li>
+  <li>训练框架几乎全是自研(LASP+ / varlen ring / EP-ETP / 全套 CUDA kernel),社区复制门槛高</li>
+</ul>
+
+<h3>个人 take</h3>
+<ul>
+  <li>这是<strong>linear attention 的 ImageNet moment</strong>——之前都是 toy demo,这次是 frontier-scale + 公开权重。生态会跟上,2025 年内应能看到更多 hybrid 模型(实际后来 Llama-4 / Qwen3-VL 都跟进了 linear/hybrid)</li>
+  <li>"7:1 ratio"是<em>当前最优实践</em>,但具体取决于 lightning state 容量。换 backbone(比如 Mamba-2)就要重新 sweep</li>
+  <li>论文在<strong>系统工程上的贡献被低估了</strong>。LASP+ + Varlen ring + EP-ETP 这一套是 1M context 训练的<em>必要条件</em>,而非锦上添花</li>
+  <li>Capacity 论证(state O(d²/h) > O(d))是简洁优美的,可能是 hybrid > pure softmax 反直觉现象的根源</li>
+  <li>Long-context 已经从"<em>能不能塞进去</em>"变成"<em>能不能在长文本里推理</em>"的问题。RULER / LongBench-V2 / MTOB 三件套是新的标杆</li>
+</ul>
+
+<h3>我的疑问 (落地后想验证)</h3>
+<ol>
+  <li>Lightning attention 的 KV state 是 d×d/h ≈ 256 维 — 在长 reasoning(o1 / R1 风格)上,这个容量是否足够缓存中间推理步骤?</li>
+  <li>RoPE 半维的设计在 4M 外推时有没有出现频率混叠?为什么没在论文里看到 4M RULER 数字?</li>
+  <li>Lightning attention 的 prefix cache 怎么和 vLLM 的 paged KV 对齐?KV state 是 dense d×d 的,无法按 page 切分</li>
+  <li>32 experts × top-2 这个 K 值是否最优?DeepSeek-V3 的 256 experts × top-8 路径走向是否更好?</li>
+  <li>Hybrid 7:1 在 reasoning RL post-training 里会怎样?如果 reward signal 强烈奖励"精确召回",训练会不会把 lightning 层"逼成" softmax?</li>
+  <li>ETP 增加了 expert 维的 tensor parallel,但这要求 expert weight 切分,与 ZeRO-3 怎么协调没讲清楚</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> linear attention 不是替代,是<em>主角</em>;每 8 层留 1 个 softmax 当 retrieval anchor<br>
+  <span class="pill">公式</span> Lightning: O = [(QK⊤)⊙M]V (intra-block 左乘) + Q·(K⊤V) (inter-block 右乘),tiling B=256<br>
+  <span class="pill">规模</span> 456B / 45.9B active,32 expert × top-2,80 layer,head dim 128, hidden 6144<br>
+  <span class="pill">容量</span> Lightning state O(d²/h)=256 > softmax state O(d)=128 → hybrid 不是 trade-off 是叠加<br>
+  <span class="pill">系统</span> LASP+ 把 sequence parallel 串行依赖改并行;Varlen ring 让 1M data-packing 无 padding<br>
+  <span class="pill">长度</span> 三阶段训练 8K→128K→512K→1M,RoPE base 10K→5M→10M;推理外推 4M<br>
+  <span class="pill">数据</span> RULER 1M 0.91 vs Gemini-1.5-Pro 0.85;prefill 1M 仅 ~50s on 8×H800
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 配套论文 PDF 在 <code>/data/szhang967/papers/paper-notes/MiniMax01_2501.08313.pdf</code>
+</p>
+
+</main>
+
+</body>
+</html>

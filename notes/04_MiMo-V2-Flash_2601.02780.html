@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · MiMo-V2-Flash (2601.02780)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>MiMo-V2-Flash Technical Report</h1>
+<div class="meta">
+  Xiaomi LLM-Core · 2026-01-08 · arXiv:2601.02780<br>
+  关键词: 309B/15B MoE · 5:1 Hybrid SWA-GA · 128 SWA window · MTP × 3 · 27T pre-train · 256K context · MOPD post-training
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>用 5:1 的 SWA(W=128) 与 global attention 混合架构 + 256/8 fine-grained MoE + 多层 MTP 自蒸馏 draft,做出一个推理/agentic 双修的 309B (15B activated) 开源模型,性能逼平 DeepSeek-V3.2 / Kimi-K2,而总参数只是它们的 1/2~1/3。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">~6×</div><div class="l">长上下文 KV cache 缩减</div></div>
+    <div class="stat"><div class="n">3.6</div><div class="l">MTP-3 acceptance length</div></div>
+    <div class="stat"><div class="n">2.6×</div><div class="l">decode 实测加速</div></div>
+  </div>
+  <p><strong>立场:</strong>不是单点突破,是<em>系统级整合</em>——架构(hybrid SWA + sink bias)、训练(FP8 + MTP 副 loss)、后训练(Multi-Teacher On-Policy Distillation)、推理(MTP 自 spec decoding)四件事配合得很紧。读这篇等于围观一个"现代 production MoE"的全栈。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么这一代 MoE 都奔向 hybrid attention</a></li>
+    <li><a href="#sec2">背景速查 (术语 / 架构数字 / 基础公式)</a></li>
+    <li><a href="#sec3">架构 1: 5:1 Hybrid SWA + Global Attention</a></li>
+    <li><a href="#sec4">Attention Sink Bias: 让 W=128 不掉点的关键</a></li>
+    <li><a href="#sec5">架构 2: 256 专家细粒度 MoE</a></li>
+    <li><a href="#sec6">架构 3: 轻量 MTP — 同时是训练 aux 和 draft</a></li>
+    <li><a href="#sec7">预训练: 27T tokens 三阶段 + FP8</a></li>
+    <li><a href="#sec8">后训练: MOPD (Multi-Teacher On-Policy Distillation)</a></li>
+    <li><a href="#sec9">RL 基础设施: R3 / Data Scheduler / Toolbox</a></li>
+    <li><a href="#sec10">MTP 推理加速实测</a></li>
+    <li><a href="#sec11">与同类工作对比 (DeepSeek-V3 / Qwen3 / MiniMax-M1)</a></li>
+    <li><a href="#sec12">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么这一代 MoE 都奔向 hybrid attention</h2>
+
+<h3>1.1 历史脉络:全 softmax 在长上下文时代的"两个崩塌"</h3>
+<p>2017 vanilla Transformer 之后,前 5 年 attention 的"全连接 softmax"几乎被默认是<em>不可触碰的圣物</em>。但到了 reasoning + agentic 时代(2024 起),两件事让 full softmax 不可持续:</p>
+
+<ul>
+  <li><strong>序列长度爆炸。</strong>从 chat 时代的 2k–8k 到 reasoning 时代的 32k–256k,有些 agentic loop 一轮要喂 100k+ tokens。Attention 的 O(L²) 计算 + 线性增长的 KV cache,让 decode 时<strong>带宽</strong>(读 KV)而非计算成为新瓶颈。</li>
+  <li><strong>MoE 让模型变扁。</strong>MoE 把 FFN 拆成 256 个 expert 只激活 8 个,模型计算量被削到 1/N,attention 计算量在<em>相对占比</em>上反而越来越大。在 MiMo-V2-Flash 这种 309B/15B 设定下,decode 时 attention 占 step 时间的大头。</li>
+</ul>
+
+<p>所以 2024–2026 这一波 MoE 几乎集体押注"sub-quadratic attention":</p>
+<ul>
+  <li>DeepSeek-V3.2 走 <strong>sparse attention</strong> (NSA / DSA 类) — 改 score 函数</li>
+  <li>MiniMax-01 / M1 走 <strong>lightning attention</strong> (linear attention 7:1 mix) — 改算子</li>
+  <li>Gemma 2/3, gpt-oss, Qwen3-Next, MiMo-V2-Flash 走 <strong>SWA + Global hybrid</strong> — 保留 softmax 不变,只是把大多数层的 attention 范围切到 W token 内</li>
+</ul>
+
+<p>Hybrid SWA 这条路最"保守"——softmax 计算公式不动,kernel 不用重写,只是 mask 形状变了——但工程友好度最高。MiMo-V2-Flash 押的就是这条。</p>
+
+<h3>1.2 别的方案为什么"够呛"</h3>
+
+<table>
+  <tr><th>方案</th><th>核心改动</th><th>代价 / 风险</th></tr>
+  <tr><td>Full softmax (Llama, Kimi-K2)</td><td>不动</td><td><span class="no">long context 下 KV cache 与 attention compute 双双爆炸,decode 严重 memory-bound</span></td></tr>
+  <tr><td>Linear / Lightning attention (MiniMax-M1)</td><td>把 softmax 换成 kernel feature map</td><td><span class="no">要重写 kernel;长 retrieval 性能下降明显;模型质量难追平</span></td></tr>
+  <tr><td>Sparse / NSA / DSA (DeepSeek-V3.2)</td><td>选 top-k key 做 sparse softmax</td><td><span class="no">routing 复杂,paper 显示长 context 推理 (GSM-Infinite) 在 64–128k 显著退化</span></td></tr>
+  <tr><td>Mamba / SSM</td><td>不用 attention</td><td><span class="no">长 retrieval 是已知短板,ICL 偏弱</span></td></tr>
+  <tr><td><strong>SWA + Global hybrid (本文)</strong></td><td>大多数层只看 W=128,少数层做 global</td><td><span class="ok">softmax 原地 reuse,KV cache 缩 ~6×,长 context 性能由 GA 层兜底</span></td></tr>
+</table>
+
+<div class="nb">
+  <strong>MiMo-V2-Flash 的论文里有一张说服力很强的 GSM-Infinite Hard 表(Table 6)</strong>:DeepSeek-V3.2 在 16K 拿 50.4,但 128K 只剩 25.7 — 几乎腰斩;MiMo-V2-Flash 从 37.7 跌到 29.0 —— 起点低但<strong>退化幅度小得多</strong>。这反过来说明 hybrid SWA 在长 context reasoning 上比 sparse attention 更鲁棒。
+</div>
+
+<h3>1.3 但"hybrid SWA 不平凡"在哪</h3>
+
+<p>看 Gemma 3 报告会发现一个反复出现的警告:<strong>SWA 的 window size 和 SWA:GA ratio 一旦激进,长 context 性能会严重塌方</strong>。Gemma 3 用 W=1024, ratio 5:1 才敢声明"性能不掉"。</p>
+
+<p>MiMo-V2-Flash 的<em>胆子</em>:</p>
+
+<ul>
+  <li>把 W 从 1024 压到 <strong>128</strong> — 缩了 8 倍</li>
+  <li>SWA:GA 仍然保持 5:1</li>
+  <li>但能在 256K context 上 NIAH-Multi 拿 96.7%</li>
+</ul>
+
+<p>能这么做的关键是<strong>引入 attention sink bias</strong>(从 gpt-oss 学来),它给每个 head 一个可学习的"沉没"通道,允许 token 在没有合适 key 时把注意力倒进 sink 而不是被迫均摊到所有 key。论文 ablation(Table 2)显示去掉 sink bias 这套架构是塌的——这正是论文最关键的"non-trivial"点。</p>
+
+<p>同时,W=128 给出的是一种<strong>"分工压力"</strong>:SWA 层<em>没有能力</em>处理远距离信息,被迫只做 local;远距离 dependency 必须由 9 个 GA 层(占总层数 ~19%)统一吸收。论文称之为 "clearer division of labor"——这是个有点诗意但工程上确实成立的解释:模型不再有"两边都不专"的层。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">SWA</span></td><td>Sliding Window Attention,每个 token 只能 attend 到前 W 个 token (W=128 here)</td></tr>
+  <tr><td><span class="term">GA</span></td><td>Global Attention,标准 causal full attention</td></tr>
+  <tr><td><span class="term">Hybrid SWA:GA = 5:1</span></td><td>每 6 层里 5 层 SWA + 1 层 GA,交错堆叠</td></tr>
+  <tr><td><span class="term">Attention sink</span></td><td>给每个 head 一个可学习偏置 sink ∈ ℝ,加到 softmax 分母,使 token 可以"什么都不 attend"</td></tr>
+  <tr><td><span class="term">MoE 256/8</span></td><td>每个 MoE 层 256 个 routed expert,top-8 激活,无 shared expert</td></tr>
+  <tr><td><span class="term">GQA 64/8 (or 64/4)</span></td><td>Grouped Query Attention: 64 个 Q head 共享 8 (或 4) 个 KV head</td></tr>
+  <tr><td><span class="term">MTP</span></td><td>Multi-Token Prediction: 训练时让模型同时预测下 1, 2, 3 个 token,推理时复用为 draft</td></tr>
+  <tr><td><span class="term">MOPD</span></td><td>Multi-Teacher On-Policy Distillation, 本文新提出的后训练范式</td></tr>
+  <tr><td><span class="term">R3</span></td><td>Rollout Routing Replay: 在 RL training step 上复用 rollout step 选过的 expert,解决 MoE rollout/train numerical mismatch</td></tr>
+  <tr><td><span class="term">Acceptance length α</span></td><td>spec decoding 一次平均接受的 token 数 (1 + 接受的 draft 数)</td></tr>
+  <tr><td><span class="term">Reverse KL</span></td><td>KL(π_student || π_teacher),student 在自己的分布上算 KL,鼓励 mode-seeking</td></tr>
+</table>
+
+<h3>2.2 标准回忆: SWA 的 mask 长什么样</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 240" width="100%" style="max-width:680px">
+    <text x="350" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Causal mask vs SWA mask (W=4 示意, 8 token)</text>
+    <!-- Full causal mask -->
+    <text x="120" y="45" text-anchor="middle" font-size="12" fill="#2f6feb" font-weight="600">Full Causal (GA)</text>
+    <g transform="translate(40,55)">
+      <!-- 8x8 grid -->
+      <g font-size="9" fill="#3a3b40">
+        <text x="-15" y="14">q0</text><text x="-15" y="34">q1</text><text x="-15" y="54">q2</text><text x="-15" y="74">q3</text>
+        <text x="-15" y="94">q4</text><text x="-15" y="114">q5</text><text x="-15" y="134">q6</text><text x="-15" y="154">q7</text>
+      </g>
+      <g>
+        <!-- row 0: only k0 attended -->
+        <rect x="0" y="2" width="20" height="20" fill="#3b7ff5"/>
+        <!-- row 1 -->
+        <rect x="0" y="22" width="20" height="20" fill="#3b7ff5"/><rect x="20" y="22" width="20" height="20" fill="#3b7ff5"/>
+        <!-- row 2 -->
+        <rect x="0" y="42" width="20" height="20" fill="#3b7ff5"/><rect x="20" y="42" width="20" height="20" fill="#3b7ff5"/><rect x="40" y="42" width="20" height="20" fill="#3b7ff5"/>
+        <!-- row 3 -->
+        <rect x="0" y="62" width="20" height="20" fill="#3b7ff5"/><rect x="20" y="62" width="20" height="20" fill="#3b7ff5"/><rect x="40" y="62" width="20" height="20" fill="#3b7ff5"/><rect x="60" y="62" width="20" height="20" fill="#3b7ff5"/>
+        <!-- row 4 -->
+        <rect x="0" y="82" width="20" height="20" fill="#3b7ff5"/><rect x="20" y="82" width="20" height="20" fill="#3b7ff5"/><rect x="40" y="82" width="20" height="20" fill="#3b7ff5"/><rect x="60" y="82" width="20" height="20" fill="#3b7ff5"/><rect x="80" y="82" width="20" height="20" fill="#3b7ff5"/>
+        <!-- row 5 -->
+        <rect x="0" y="102" width="20" height="20" fill="#3b7ff5"/><rect x="20" y="102" width="20" height="20" fill="#3b7ff5"/><rect x="40" y="102" width="20" height="20" fill="#3b7ff5"/><rect x="60" y="102" width="20" height="20" fill="#3b7ff5"/><rect x="80" y="102" width="20" height="20" fill="#3b7ff5"/><rect x="100" y="102" width="20" height="20" fill="#3b7ff5"/>
+        <!-- row 6 -->
+        <rect x="0" y="122" width="20" height="20" fill="#3b7ff5"/><rect x="20" y="122" width="20" height="20" fill="#3b7ff5"/><rect x="40" y="122" width="20" height="20" fill="#3b7ff5"/><rect x="60" y="122" width="20" height="20" fill="#3b7ff5"/><rect x="80" y="122" width="20" height="20" fill="#3b7ff5"/><rect x="100" y="122" width="20" height="20" fill="#3b7ff5"/><rect x="120" y="122" width="20" height="20" fill="#3b7ff5"/>
+        <!-- row 7 -->
+        <rect x="0" y="142" width="20" height="20" fill="#3b7ff5"/><rect x="20" y="142" width="20" height="20" fill="#3b7ff5"/><rect x="40" y="142" width="20" height="20" fill="#3b7ff5"/><rect x="60" y="142" width="20" height="20" fill="#3b7ff5"/><rect x="80" y="142" width="20" height="20" fill="#3b7ff5"/><rect x="100" y="142" width="20" height="20" fill="#3b7ff5"/><rect x="120" y="142" width="20" height="20" fill="#3b7ff5"/><rect x="140" y="142" width="20" height="20" fill="#3b7ff5"/>
+        <!-- grid lines -->
+        <g stroke="#fff" stroke-width="0.5">
+          <line x1="0" y1="22" x2="160" y2="22"/><line x1="0" y1="42" x2="160" y2="42"/>
+          <line x1="0" y1="62" x2="160" y2="62"/><line x1="0" y1="82" x2="160" y2="82"/>
+          <line x1="0" y1="102" x2="160" y2="102"/><line x1="0" y1="122" x2="160" y2="122"/>
+          <line x1="0" y1="142" x2="160" y2="142"/>
+          <line x1="20" y1="2" x2="20" y2="162"/><line x1="40" y1="2" x2="40" y2="162"/>
+          <line x1="60" y1="2" x2="60" y2="162"/><line x1="80" y1="2" x2="80" y2="162"/>
+          <line x1="100" y1="2" x2="100" y2="162"/><line x1="120" y1="2" x2="120" y2="162"/>
+          <line x1="140" y1="2" x2="140" y2="162"/>
+        </g>
+      </g>
+      <text x="80" y="190" text-anchor="middle" font-size="11" fill="#5b5e66">attended slots = O(L²/2)</text>
+    </g>
+
+    <!-- SWA mask -->
+    <text x="500" y="45" text-anchor="middle" font-size="12" fill="#cc4a1b" font-weight="600">SWA W=4 (本文 W=128)</text>
+    <g transform="translate(420,55)">
+      <g font-size="9" fill="#3a3b40">
+        <text x="-15" y="14">q0</text><text x="-15" y="34">q1</text><text x="-15" y="54">q2</text><text x="-15" y="74">q3</text>
+        <text x="-15" y="94">q4</text><text x="-15" y="114">q5</text><text x="-15" y="134">q6</text><text x="-15" y="154">q7</text>
+      </g>
+      <g>
+        <rect x="0" y="2" width="20" height="20" fill="#cc4a1b"/>
+        <rect x="0" y="22" width="20" height="20" fill="#cc4a1b"/><rect x="20" y="22" width="20" height="20" fill="#cc4a1b"/>
+        <rect x="0" y="42" width="20" height="20" fill="#cc4a1b"/><rect x="20" y="42" width="20" height="20" fill="#cc4a1b"/><rect x="40" y="42" width="20" height="20" fill="#cc4a1b"/>
+        <rect x="0" y="62" width="20" height="20" fill="#cc4a1b"/><rect x="20" y="62" width="20" height="20" fill="#cc4a1b"/><rect x="40" y="62" width="20" height="20" fill="#cc4a1b"/><rect x="60" y="62" width="20" height="20" fill="#cc4a1b"/>
+        <!-- row 4: only k1..k4 -->
+        <rect x="20" y="82" width="20" height="20" fill="#cc4a1b"/><rect x="40" y="82" width="20" height="20" fill="#cc4a1b"/><rect x="60" y="82" width="20" height="20" fill="#cc4a1b"/><rect x="80" y="82" width="20" height="20" fill="#cc4a1b"/>
+        <rect x="40" y="102" width="20" height="20" fill="#cc4a1b"/><rect x="60" y="102" width="20" height="20" fill="#cc4a1b"/><rect x="80" y="102" width="20" height="20" fill="#cc4a1b"/><rect x="100" y="102" width="20" height="20" fill="#cc4a1b"/>
+        <rect x="60" y="122" width="20" height="20" fill="#cc4a1b"/><rect x="80" y="122" width="20" height="20" fill="#cc4a1b"/><rect x="100" y="122" width="20" height="20" fill="#cc4a1b"/><rect x="120" y="122" width="20" height="20" fill="#cc4a1b"/>
+        <rect x="80" y="142" width="20" height="20" fill="#cc4a1b"/><rect x="100" y="142" width="20" height="20" fill="#cc4a1b"/><rect x="120" y="142" width="20" height="20" fill="#cc4a1b"/><rect x="140" y="142" width="20" height="20" fill="#cc4a1b"/>
+        <g stroke="#fff" stroke-width="0.5">
+          <line x1="0" y1="22" x2="160" y2="22"/><line x1="0" y1="42" x2="160" y2="42"/>
+          <line x1="0" y1="62" x2="160" y2="62"/><line x1="0" y1="82" x2="160" y2="82"/>
+          <line x1="0" y1="102" x2="160" y2="102"/><line x1="0" y1="122" x2="160" y2="122"/>
+          <line x1="0" y1="142" x2="160" y2="142"/>
+          <line x1="20" y1="2" x2="20" y2="162"/><line x1="40" y1="2" x2="40" y2="162"/>
+          <line x1="60" y1="2" x2="60" y2="162"/><line x1="80" y1="2" x2="80" y2="162"/>
+          <line x1="100" y1="2" x2="100" y2="162"/><line x1="120" y1="2" x2="120" y2="162"/>
+          <line x1="140" y1="2" x2="140" y2="162"/>
+        </g>
+      </g>
+      <text x="80" y="190" text-anchor="middle" font-size="11" fill="#5b5e66">attended slots = O(L·W) ≈ 128·L</text>
+    </g>
+  </svg>
+  <figcaption>左: 完整 causal mask, attention 每个 q 看完整前缀,KV cache 必须保留全部历史 token。右: SWA 只看前 W 个 token,KV cache <strong>逻辑上只保留最近 W 个 KV slot</strong>。MiMo-V2-Flash 中 39 层 SWA 各自只保留 128 KV / token, 9 层 GA 仍保留全部。混合后整体 KV cache ~ 6× 缩小。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · 架构 1: 5:1 Hybrid SWA + Global Attention</h2>
+
+<h3>3.1 架构总览</h3>
+
+<p>整个 backbone 共 48 层:</p>
+<ul>
+  <li><strong>第 1 层(特殊):</strong>Global Attention + dense FFN(不是 MoE),起到 "stabilize early representation" 的作用</li>
+  <li><strong>第 2–48 层:</strong>组成 8 个 Hybrid Block。每个 block = 5 个 SWA 层 + 1 个 GA 层,所有 FFN 都是 sparse MoE</li>
+</ul>
+<p>合计: <strong>39 SWA + 9 GA = 48 层</strong> (其中 GA = 1 dense + 8 在每 block 末尾)。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <text x="360" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">MiMo-V2-Flash 48-layer 堆叠 (前向方向 →)</text>
+
+    <!-- Layer 1 special -->
+    <rect x="20" y="50" width="50" height="40" rx="4" fill="#fce4d6" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="45" y="70" text-anchor="middle" font-size="9" fill="#cc4a1b">L1</text>
+    <text x="45" y="82" text-anchor="middle" font-size="8" fill="#cc4a1b">GA+dense</text>
+
+    <!-- Block 1 -->
+    <g>
+      <rect x="80" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="91" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="103" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="114" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="126" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="137" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="149" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="160" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="172" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="183" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="195" y="50" width="22" height="40" rx="3" fill="#fff3cd"/><text x="206" y="74" text-anchor="middle" font-size="9" fill="#cc4a1b">GA</text>
+      <text x="148" y="105" text-anchor="middle" font-size="9" fill="#5b5e66">Hybrid Block #1 (5×SWA + 1×GA)</text>
+    </g>
+
+    <!-- ... (denoted by dots) -->
+    <text x="240" y="75" font-size="20" fill="#5b5e66">···</text>
+
+    <!-- Block 8 -->
+    <g transform="translate(280,0)">
+      <rect x="0" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="11" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="23" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="34" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="46" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="57" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="69" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="80" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="92" y="50" width="22" height="40" rx="3" fill="#cce5ff"/><text x="103" y="74" text-anchor="middle" font-size="9" fill="#1058c7">SWA</text>
+      <rect x="115" y="50" width="22" height="40" rx="3" fill="#fff3cd"/><text x="126" y="74" text-anchor="middle" font-size="9" fill="#cc4a1b">GA</text>
+      <text x="68" y="105" text-anchor="middle" font-size="9" fill="#5b5e66">Hybrid Block #8</text>
+    </g>
+
+    <!-- LM head -->
+    <rect x="430" y="50" width="50" height="40" rx="4" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="455" y="74" text-anchor="middle" font-size="10" fill="#2f6feb">LM head</text>
+
+    <!-- MTP block on top -->
+    <rect x="500" y="40" width="200" height="60" rx="6" fill="#fef9e6" stroke="#d2a32a" stroke-width="1.5"/>
+    <text x="600" y="60" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">MTP × K (K=3 inference)</text>
+    <text x="600" y="76" text-anchor="middle" font-size="9.5" fill="#3a3b40">SWA + dense FFN, 0.33B/head</text>
+    <text x="600" y="90" text-anchor="middle" font-size="9.5" fill="#3a3b40">从 last hidden 自回归预测</text>
+
+    <!-- arrows -->
+    <line x1="480" y1="70" x2="500" y2="70" stroke="#666" stroke-width="1.5" marker-end="url(#a1)"/>
+
+    <!-- Stats -->
+    <g transform="translate(20,140)">
+      <rect x="0" y="0" width="680" height="120" rx="8" fill="#f3eee0" stroke="#888" stroke-dasharray="3,2"/>
+      <text x="340" y="22" text-anchor="middle" font-size="12" font-weight="600" fill="#3a3b40">数字一览</text>
+
+      <text x="20" y="44" font-size="11" fill="#3a3b40"><tspan font-weight="600">总参数:</tspan> 309B</text>
+      <text x="180" y="44" font-size="11" fill="#3a3b40"><tspan font-weight="600">激活/token:</tspan> 15B</text>
+      <text x="340" y="44" font-size="11" fill="#3a3b40"><tspan font-weight="600">hidden:</tspan> 4096</text>
+      <text x="480" y="44" font-size="11" fill="#3a3b40"><tspan font-weight="600">MoE:</tspan> 256 experts / top-8</text>
+
+      <text x="20" y="64" font-size="11" fill="#3a3b40"><tspan font-weight="600">SWA Q/KV:</tspan> 64/8 heads, head_dim 192/128</text>
+      <text x="340" y="64" font-size="11" fill="#3a3b40"><tspan font-weight="600">GA Q/KV:</tspan> 64/4 heads</text>
+
+      <text x="20" y="84" font-size="11" fill="#3a3b40"><tspan font-weight="600">SWA window:</tspan> 128</text>
+      <text x="180" y="84" font-size="11" fill="#3a3b40"><tspan font-weight="600">SWA:GA ratio:</tspan> 5:1</text>
+      <text x="340" y="84" font-size="11" fill="#3a3b40"><tspan font-weight="600">RoPE base:</tspan> SWA 10K, GA 5M</text>
+
+      <text x="20" y="104" font-size="11" fill="#3a3b40"><tspan font-weight="600">expert intermediate:</tspan> 2048</text>
+      <text x="200" y="104" font-size="11" fill="#3a3b40"><tspan font-weight="600">no shared experts</tspan></text>
+      <text x="380" y="104" font-size="11" fill="#3a3b40"><tspan font-weight="600">FP8 mixed-precision (类 DSv3)</tspan></text>
+    </g>
+
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>整体堆叠示意。蓝色 = SWA(W=128, KV cache 紧凑), 橙色 = GA(全 attention, 仍保留 256K KV)。<strong>第 1 层 + 每 6 层有 1 个 GA</strong> 来吸收远距离依赖,其余 SWA 层只做 local mixing。</figcaption>
+</div>
+
+<h3>3.2 数字感受 — KV cache 真的省了多少?</h3>
+<p>设序列长 L=256K, head_dim_v=128, num_kv_heads=8 (取 SWA 设置), 每 KV slot in fp8 ≈ 1 byte/element。</p>
+
+<div class="formula">
+KV per layer per token = 2 (K+V) × 128 × 8 × 1 byte = 2KB
+</div>
+
+<table>
+  <tr><th>方案</th><th>每 token KV cache (256K seq, fp8)</th></tr>
+  <tr><td>All GA, 48 层</td><td>2KB × 48 × 256K = <strong>24 GB</strong></td></tr>
+  <tr><td>Hybrid (39 SWA × 128 + 9 GA × 256K)</td><td>2KB × 39 × 128 + 2KB × 9 × 256K = 10MB + <strong>4.5 GB</strong></td></tr>
+</table>
+<p>缩减 <strong>~5.3×</strong>(论文宣称 ~6×, 略乐观)。SWA 层贡献几乎可忽略 — KV 主要由 9 个 GA 层占。</p>
+
+<h3>3.3 反向论证: 为什么 W=128 比 W=512 反而好?</h3>
+<p>论文 Table 3 实测:</p>
+<ul>
+  <li>W=128 + sink: GSM-Infinite 17.3, NoLiMa 51.2, MRCR 34.4</li>
+  <li>W=512 + sink: GSM-Infinite 17.2, NoLiMa <strong>38.5</strong>, MRCR <strong>19.6</strong></li>
+</ul>
+
+<p>反直觉。论文给出的解释:<strong>"clearer division of labor"</strong>。W=128 时 SWA 层物理上无法处理远距离依赖,模型被迫把"远距离任务"全部交给 GA 层。W=512 时 SWA 层<em>偶尔也能</em>看到 256–512 距离的 token,变得"半懂不懂",最终两类层都没专精。</p>
+
+<p>这听起来像后验解释,但和稀疏专家网络中"specialization"的现象学是一致的——给一个 expert 能力上限,反而能逼出更清晰的角色。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Attention Sink Bias: 让 W=128 不掉点的关键</h2>
+
+<h3>4.1 公式</h3>
+
+<p>原版 attention:</p>
+<div class="formula">a_ij = q_i · k_j<sup>⊤</sup> / √d ;   s_ij = softmax_j(a_ij)</div>
+
+<p>加 sink bias 之后:</p>
+
+<div class="formula">
+s_ij = exp(a_ij − m_i) / [exp(sink − m_i) + Σ_j' exp(a_ij' − m_i)]
+<br>m_i = max(max_j a_ij, sink)
+</div>
+
+<p>每个 head 一个标量 <code>sink ∈ ℝ</code>(可学习)。注意 <strong>sink 项加在分母里,但<em>不</em>对应任何 value</strong>——也就是说,如果 sink 很大,所有 s_ij 一起被压小,等效于"这个 token 的 attention 总和 < 1",可以"什么都不看"。</p>
+
+<h3>4.2 直觉:为什么 SWA 离不开 sink</h3>
+
+<p>SWA 的天然缺陷:窗口 W=128 内,如果当前 token 的 query<em>没有任何</em>真正相关的 key,标准 softmax 会强制把 attention 均摊到这 128 个 key 上。模型没有"我什么都不需要"的选项。</p>
+
+<p>这在 long-context 场景非常致命: token 间距离一旦 > W,模型完全应该"忽略"窗口内的旧 key,但 softmax 不允许。</p>
+
+<p>Sink bias 提供了一个"逃生通道":<strong>当 q_i · k_j 都很弱时,sink 项主导分母,所有 s_ij ≈ 0,output ≈ 0</strong>(value 加权和接近 0 向量)。模型可以学习"把消息留给残差/下一层处理"。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Softmax 分配示意 (3 个 key, 1 个 query)</text>
+
+    <!-- Without sink -->
+    <text x="175" y="45" text-anchor="middle" font-size="12" fill="#a8353e" font-weight="600">不带 sink: 必须全部分配</text>
+    <g transform="translate(50,55)">
+      <rect x="0" y="0" width="80" height="40" fill="#3b7ff5"/>
+      <text x="40" y="25" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">0.40</text>
+      <text x="40" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">k1 (相关)</text>
+
+      <rect x="80" y="0" width="80" height="40" fill="#9ec5ff"/>
+      <text x="120" y="25" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">0.30</text>
+      <text x="120" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">k2 (噪音)</text>
+
+      <rect x="160" y="0" width="80" height="40" fill="#9ec5ff"/>
+      <text x="200" y="25" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">0.30</text>
+      <text x="200" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">k3 (噪音)</text>
+
+      <text x="120" y="85" text-anchor="middle" font-size="11" fill="#a8353e">→ 60% attention 倒进噪音</text>
+    </g>
+
+    <!-- With sink -->
+    <text x="525" y="45" text-anchor="middle" font-size="12" fill="#1f7a4a" font-weight="600">带 sink: 可以"留白"</text>
+    <g transform="translate(390,55)">
+      <rect x="0" y="0" width="80" height="40" fill="#3b7ff5"/>
+      <text x="40" y="25" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">0.20</text>
+      <text x="40" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">k1 (相关)</text>
+
+      <rect x="80" y="0" width="80" height="40" fill="#cce5ff"/>
+      <text x="120" y="25" text-anchor="middle" font-size="13" fill="#3a3b40">0.05</text>
+      <text x="120" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">k2</text>
+
+      <rect x="160" y="0" width="80" height="40" fill="#cce5ff"/>
+      <text x="200" y="25" text-anchor="middle" font-size="13" fill="#3a3b40">0.05</text>
+      <text x="200" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">k3</text>
+
+      <rect x="240" y="0" width="80" height="40" fill="#1f7a4a" opacity="0.7"/>
+      <text x="280" y="25" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">0.70</text>
+      <text x="280" y="60" text-anchor="middle" font-size="10" fill="#1f7a4a">sink (虚拟)</text>
+
+      <text x="160" y="85" text-anchor="middle" font-size="11" fill="#1f7a4a">→ 70% 流到 sink, 等效"无 attention"</text>
+    </g>
+
+    <!-- Bottom annotation -->
+    <text x="350" y="160" text-anchor="middle" font-size="12" fill="#3a3b40" font-style="italic">关键: sink 不对应任何 value,所以"流向 sink 的 attention" 物理上是 attention 输出 ≈ 0 向量</text>
+
+    <text x="350" y="195" text-anchor="middle" font-size="11" fill="#5b5e66">论文 Table 2: 去掉 sink, hybrid SWA 的 MMLU 从 58.3 掉到 54.9, 比 all-GA 还差</text>
+  </svg>
+  <figcaption>Sink bias 的直观效果。它本质上是给 softmax 分母加一个不对应 value 的"虚拟 logit"。当所有 real key 都不够好时,attention 总质量被 sink 吸收 → 输出接近 0 → 残差路径主导这一层。这是 W=128 这种激进窗口能保住性能的关键。</figcaption>
+</div>
+
+<h3>4.3 Worked example</h3>
+<p>设某 head 在第 5000 个 token 上,query q 在 W=128 窗口内的 128 个 key 上得到 logits 全部都在 0~2 之间(没有强信号),sink 学到 = 4。</p>
+
+<ul>
+  <li>m_i = max(max(0~2), 4) = 4</li>
+  <li>分子项: exp(a_ij − 4) ≤ exp(-2) ≈ 0.135 (每项)</li>
+  <li>sink 项: exp(4 − 4) = 1</li>
+  <li>分母 ≈ 1 + 128 × 0.135 ≈ 18.3</li>
+  <li>每个 s_ij ≤ 0.135 / 18.3 ≈ <strong>0.0074</strong>;128 个加起来 ≈ 0.945,但 sink "吃" 0.055</li>
+</ul>
+
+<p>看起来吃得不多,但实测里 sink 学到的值随 head 不同从 0 到 6 都有。sink 大的 head 显示出"有事就用,没事关掉"的开关性质——这是 attention sink 论文(Xiao et al. 2023)早期观察到的现象的"显式参数化"。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 架构 2: 256 专家细粒度 MoE</h2>
+
+<h3>5.1 设计选择</h3>
+
+<table>
+  <tr><th>项</th><th>MiMo-V2-Flash</th><th>DeepSeek-V3</th><th>Qwen3-MoE</th><th>Mixtral 8x22B</th></tr>
+  <tr><td>Total experts</td><td>256</td><td>256 + 1 shared</td><td>128</td><td>8</td></tr>
+  <tr><td>Activated/token</td><td>8</td><td>8 + 1 shared</td><td>8</td><td>2</td></tr>
+  <tr><td>Shared expert</td><td>无</td><td>有 (1)</td><td>无</td><td>无</td></tr>
+  <tr><td>Expert intermediate</td><td>2048</td><td>2048</td><td>2560</td><td>16384</td></tr>
+  <tr><td>Total params</td><td>309B</td><td>671B</td><td>235B</td><td>141B</td></tr>
+  <tr><td>Active params</td><td>15B</td><td>37B</td><td>22B</td><td>39B</td></tr>
+</table>
+
+<p><strong>MiMo-V2-Flash 没有 shared expert</strong> —— 这跟 DeepSeek 系列正好相反。Shared expert 的本意是"all-token 共有的基础能力",但实测中容易让模型把通用知识塞给 shared,稀释 routed expert 的特化。MiMo 选择不要这层"安全垫",彻底 rely on 256 个 routed expert。</p>
+
+<h3>5.2 Auxiliary loss & expert bias</h3>
+
+<p>MiMo-V2-Flash 用两层平衡机制:</p>
+
+<ol>
+  <li><strong>Sequence auxiliary loss</strong>(系数 1e-5):标准 load-balance loss</li>
+  <li><strong>Expert bias update</strong>(0.001 in stage 1/2, 1e-5 in stage 3):每个 expert 一个动态 bias 加到 routing score 上,根据负载实时调整。和 DeepSeek-V3 的 auxiliary-loss-free balancing 是同一个 trick。</li>
+</ol>
+
+<h3>5.3 SFT 期间的"num-zeros 监控"</h3>
+
+<p>论文有个有意思的工程发现 — <strong>SFT 阶段最稳定的训练健康指标不是 loss,而是 zero-gradient 参数比例</strong>:</p>
+
+<ul>
+  <li>num-zeros 上升 → expert 负载失衡(部分 expert 被路由 0 token,梯度全为 0)</li>
+  <li>num-zeros 下降 → 模型在过拟合(梯度 dense 到处都在更新,通常意味着 catastrophic memorization)</li>
+</ul>
+
+<p>调它的两个 lever:expert bias update rate 和 AdamW ε。这种"看似 trivial 的 SFT 工程"在 MoE 上经常决定后续 RL 能不能跑起来。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 架构 3: 轻量 MTP — 同时是训练 aux 和 draft</h2>
+
+<h3>6.1 MTP 是什么</h3>
+
+<p>Multi-Token Prediction (Gloeckle et al. 2024):标准 LM 训练只预测下 1 个 token,MTP 让模型同时预测下 1, 2, ..., K 个 token。每个未来位置一个独立的 head,共享主干 hidden states。</p>
+
+<h3>6.2 本文的设计取舍</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <!-- Backbone last layer -->
+    <rect x="20" y="20" width="680" height="40" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Main backbone (48 layers, last hidden h_t ∈ ℝ^4096)</text>
+
+    <!-- Embedding layer (tied) -->
+    <rect x="20" y="80" width="680" height="30" rx="4" fill="#f3eee0" stroke="#888" stroke-dasharray="3,2"/>
+    <text x="360" y="100" text-anchor="middle" font-size="11" fill="#5b5e66">Embedding (tied with main model)</text>
+
+    <!-- 3 MTP heads -->
+    <g transform="translate(40,130)">
+      <!-- head 1 -->
+      <rect x="0" y="0" width="200" height="120" rx="8" fill="#fef9e6" stroke="#d2a32a" stroke-width="1.5"/>
+      <text x="100" y="22" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">MTP head 1 (0.33B)</text>
+
+      <rect x="20" y="32" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="48" text-anchor="middle" font-size="10" fill="#3a3b40">Linear ([h_t; emb(t+1)])</text>
+
+      <rect x="20" y="58" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="74" text-anchor="middle" font-size="10" fill="#3a3b40">SWA (W=128) + GQA 64/8</text>
+
+      <rect x="20" y="84" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="100" text-anchor="middle" font-size="10" fill="#3a3b40">dense FFN (no MoE)</text>
+
+      <text x="100" y="138" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ predict t+2</text>
+    </g>
+
+    <g transform="translate(260,130)">
+      <rect x="0" y="0" width="200" height="120" rx="8" fill="#fef9e6" stroke="#d2a32a" stroke-width="1.5"/>
+      <text x="100" y="22" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">MTP head 2 (0.33B)</text>
+      <rect x="20" y="32" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="48" text-anchor="middle" font-size="10" fill="#3a3b40">输入: head1 hidden + emb(t+2)</text>
+      <rect x="20" y="58" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="74" text-anchor="middle" font-size="10" fill="#3a3b40">SWA + GQA</text>
+      <rect x="20" y="84" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="100" text-anchor="middle" font-size="10" fill="#3a3b40">dense FFN</text>
+      <text x="100" y="138" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ predict t+3</text>
+    </g>
+
+    <g transform="translate(480,130)">
+      <rect x="0" y="0" width="200" height="120" rx="8" fill="#fef9e6" stroke="#d2a32a" stroke-width="1.5"/>
+      <text x="100" y="22" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">MTP head 3 (0.33B)</text>
+      <rect x="20" y="32" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="48" text-anchor="middle" font-size="10" fill="#3a3b40">输入: head2 hidden + emb(t+3)</text>
+      <rect x="20" y="58" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="74" text-anchor="middle" font-size="10" fill="#3a3b40">SWA + GQA</text>
+      <rect x="20" y="84" width="160" height="22" rx="3" fill="#fff" stroke="#cc4a1b"/>
+      <text x="100" y="100" text-anchor="middle" font-size="10" fill="#3a3b40">dense FFN</text>
+      <text x="100" y="138" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ predict t+4</text>
+    </g>
+
+    <!-- arrows from main hidden -->
+    <line x1="140" y1="60" x2="140" y2="125" stroke="#666" stroke-width="1.5" marker-end="url(#a2)"/>
+    <line x1="360" y1="60" x2="360" y2="125" stroke="#666" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#a2)"/>
+    <line x1="580" y1="60" x2="580" y2="125" stroke="#666" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#a2)"/>
+
+    <!-- arrow chain -->
+    <line x1="240" y1="190" x2="260" y2="190" stroke="#cc4a1b" stroke-width="2" marker-end="url(#a2)"/>
+    <line x1="460" y1="190" x2="480" y2="190" stroke="#cc4a1b" stroke-width="2" marker-end="url(#a2)"/>
+
+    <!-- tied LM head -->
+    <rect x="200" y="280" width="320" height="30" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="300" text-anchor="middle" font-size="11" fill="#2f6feb">tied LM head (与主模型共享)</text>
+
+    <line x1="140" y1="250" x2="200" y2="290" stroke="#888" stroke-width="1" marker-end="url(#a2)"/>
+    <line x1="360" y1="250" x2="360" y2="280" stroke="#888" stroke-width="1" marker-end="url(#a2)"/>
+    <line x1="580" y1="250" x2="520" y2="290" stroke="#888" stroke-width="1" marker-end="url(#a2)"/>
+
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>3 个 MTP head 链式自回归。每个 head 只 0.33B,刻意做轻:dense FFN(不是 MoE 避免 routing 开销)+ SWA(不是 GA 避免大 KV cache)+ tied embedding/LM head。pre-train 期间只挂 1 个 head 加 aux loss;post-train 阶段把 head 复制 K=3 次同时联合训练。</figcaption>
+</div>
+
+<h3>6.3 关键工程取舍</h3>
+
+<table>
+  <tr><th>选择</th><th>理由</th></tr>
+  <tr><td>Dense FFN, not MoE</td><td>K 个 head 都用 MoE 会让 draft 比 backbone 还重 — 完全违背 lightweight 目标</td></tr>
+  <tr><td>SWA, not GA</td><td>draft KV cache 不能比主模型还大 — SWA 让 KV 几乎不增长</td></tr>
+  <tr><td>Tied embedding & LM head</td><td>0 额外参数 + 让 draft 与主模型词表对齐</td></tr>
+  <tr><td>Pre-train 只 1 head</td><td>预训练时 K head 训练成本随 K 线性增加,不划算;只用 aux loss 拿 1 head 的"训练加成"</td></tr>
+  <tr><td>Post-train 复制成 K=3</td><td>这阶段计算便宜,3 head 联合训练能让链式 draft 稳定</td></tr>
+</table>
+
+<h3>6.4 worked example: 一次 spec decoding step</h3>
+
+<p>设当前已生成 token 序列 <code>"3 + 4 = "</code>,token id 序列 [..., 91]:</p>
+
+<ol>
+  <li>主模型 forward 一步,得 last hidden h_t ∈ ℝ⁴⁰⁹⁶,主模型自身预测下 1 token = "7" (作为已采样的 t+1)</li>
+  <li>MTP head 1 输入 [h_t, emb("7")],SWA + dense FFN → predict t+2 = " " (空格,概率 0.95)</li>
+  <li>MTP head 2 接 head 1 的 hidden + emb(" ") → predict t+3 = "答案" (概率 0.31, 不算很高)</li>
+  <li>MTP head 3 接 head 2 的 hidden + emb("答案") → predict t+4 = "是" (概率 0.40)</li>
+  <li>主模型在下一次 forward 时,把 [t+1, t+2, t+3, t+4] 一次输入,得到每个位置的真实 logits</li>
+  <li>对 t+2/t+3/t+4 逐个 rejection sample:接受 t+2 概率 ≈ 0.95(几乎肯定),接受 t+3 概率 = min(1, p_main("答案")/0.31) — 假设 p_main = 0.10,接受概率 0.32,采样到拒绝就停</li>
+  <li>本步合计产出 1 (主) + 1 (t+2 接受) + 0 (t+3 拒绝, 重采) = 3 个 token,acceptance length α = 3</li>
+</ol>
+
+<p>注意 MTP 的 spec decoding 与 EAGLE-3 的本质区别:<strong>MTP 是"模型自带的"</strong>,不需要单独训练一个外部 draft 模型;EAGLE-3 是 add-on draft head,要做单独的 distillation。MTP 等于把 spec decoding 内化进 pre-training。</p>
+
+<h3>6.5 实测数字 (论文 Figure 7 + Table 10)</h3>
+<ul>
+  <li>WebDev (低 entropy): α = <strong>3.6</strong> — 3 个 head 都接受意味着每步 4 token</li>
+  <li>MMLU-Pro (高 entropy): α ≈ 2.9</li>
+  <li>实测 decoding speedup: bs=64, α=3.8, <strong>2.67×</strong>;bs=96, α=3.8, <strong>2.70×</strong></li>
+</ul>
+<p>Acceptance length 与 next-token entropy 的拟合: <code>α = 4(1 − 0.58·entropy^0.58)</code>,R²=0.995 — 这个拟合相当干净,说明 MTP 的 acceptance 几乎完全由模型自己的 prediction 信心决定,与具体任务的"难度"无关,只与 entropy 相关。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 预训练: 27T tokens 三阶段 + FP8</h2>
+
+<h3>7.1 三阶段 schedule</h3>
+<table>
+  <tr><th>Stage</th><th>Tokens</th><th>Context</th><th>侧重</th></tr>
+  <tr><td>Stage 1 (Pre-train)</td><td>0–22T</td><td>32K</td><td>通用 web/书/代码,打基础</td></tr>
+  <tr><td>Stage 2 (Mid-train)</td><td>22–26T</td><td>32K</td><td>upsample code + ~5% 合成 reasoning data</td></tr>
+  <tr><td>Stage 3 (Context Ext)</td><td>26–27T</td><td>32K → <strong>256K</strong></td><td>upsample 长依赖数据,RoPE base of GA: 640K → 5M</td></tr>
+</table>
+
+<h3>7.2 Learning rate schedule</h3>
+<ul>
+  <li>Stage 1: linear warmup 0 → 3.2e-4 (over 50B tokens) → constant 3.2e-4 for 12T → cosine decay to 1.0e-4 over 10T</li>
+  <li>Stage 2: 1.0e-4 → cosine decay to 3.0e-5 over 4T</li>
+  <li>Stage 3: 3.0e-5 → cosine decay to 1.0e-5</li>
+  <li>Batch size: warmup to 2048 over first 500B, hold; Stage 3 用 256</li>
+</ul>
+
+<h3>7.3 MTP loss weight 调度</h3>
+<p>MTP aux loss 占比有意识地 anneal:Stage 1 = 0.3, Stage 2/3 = 0.1。直觉是早期需要靠 MTP 的"前瞻信号"提升表征质量,后期主任务已经够强,MTP 转为"配角"。</p>
+
+<h3>7.4 Pre-train 数据细节(论文披露不多)</h3>
+<p>训练语料:web pages + 书 + 学术论文 + code + math + STEM。重点:</p>
+<ul>
+  <li>"deliberate shift toward data exhibiting <strong>long-range dependencies</strong>" — 长篇 web 文档 + 仓库级代码 + PR/issue/commit 历史</li>
+  <li>合成 reasoning data ~5% 在 mid-train 引入(没说细节,大概是 CoT 风格的数据合成)</li>
+  <li>没有公开数据混合比例,也没有 quality filter 细节</li>
+</ul>
+
+<h3>7.5 FP8 mixed-precision</h3>
+<p>主体 FP8(类似 DeepSeek-V3),但保留:</p>
+<ul>
+  <li><strong>BF16:</strong> attention output projection, embedding, output head</li>
+  <li><strong>FP32:</strong> MoE router parameter</li>
+</ul>
+<p>这套 FP8/BF16/FP32 的精度切割是当前 MoE 训练的"通用方案",DeepSeek-V3 之后基本是 production 标配。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 后训练: MOPD (Multi-Teacher On-Policy Distillation)</h2>
+
+<p>这是论文最有"研究气"的部分。</p>
+
+<h3>8.1 问题:capability imbalance + learning inefficiency</h3>
+
+<p>标准做法是"先 SFT 然后 RLHF",或者跑多个独立 RL 然后参数合并。两条路都有问题:</p>
+
+<ul>
+  <li><strong>See-saw 效应:</strong>提一项掉一项(数学好了写作差了)</li>
+  <li><strong>合并参数损能力:</strong>weight averaging / TIES 这类 model merging 在 frontier 模型上保留率不高</li>
+  <li><strong>静态 distillation 数据 → 分布漂移:</strong>teacher 的 trajectory 不是 student 自己生成的,exposure bias 严重</li>
+</ul>
+
+<h3>8.2 MOPD 三阶段</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <text x="360" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">MOPD 流水线</text>
+
+    <!-- Stage 1: SFT -->
+    <rect x="20" y="40" width="180" height="80" rx="8" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="110" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Stage 1: SFT</text>
+    <text x="110" y="82" text-anchor="middle" font-size="11" fill="#3a3b40">通用 instruction following</text>
+    <text x="110" y="102" text-anchor="middle" font-size="11" fill="#3a3b40">millions samples × thinking/non</text>
+
+    <line x1="200" y1="80" x2="240" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#a3)"/>
+
+    <!-- Stage 2: Domain RL -->
+    <rect x="240" y="40" width="220" height="80" rx="8" fill="#fff3cd" stroke="#d2a32a" stroke-width="1.5"/>
+    <text x="350" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Stage 2: Domain RL/SFT</text>
+    <text x="350" y="80" text-anchor="middle" font-size="11" fill="#3a3b40">独立训练 N 个 teacher:</text>
+    <text x="350" y="96" text-anchor="middle" font-size="10" fill="#3a3b40">code / math / search / safety / ...</text>
+    <text x="350" y="111" text-anchor="middle" font-size="10" fill="#3a3b40">每个 domain 单独 reward + RL</text>
+
+    <line x1="460" y1="80" x2="500" y2="80" stroke="#666" stroke-width="1.5" marker-end="url(#a3)"/>
+
+    <!-- Stage 3 box: MOPD -->
+    <rect x="500" y="40" width="200" height="80" rx="8" fill="#fce4d6" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="600" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Stage 3: MOPD</text>
+    <text x="600" y="80" text-anchor="middle" font-size="11" fill="#3a3b40">student 自己 rollout</text>
+    <text x="600" y="96" text-anchor="middle" font-size="11" fill="#3a3b40">+ token-level KL reward</text>
+    <text x="600" y="111" text-anchor="middle" font-size="11" fill="#3a3b40">+ outcome reward</text>
+
+    <!-- Detail of stage 3 -->
+    <rect x="40" y="160" width="660" height="180" rx="8" fill="#fef9e6" stroke="#d2a32a" stroke-dasharray="4,3"/>
+    <text x="370" y="182" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Stage 3 一步 RL update 的数据流</text>
+
+    <!-- student rollout -->
+    <rect x="60" y="200" width="120" height="50" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="120" y="220" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">Student π_θ</text>
+    <text x="120" y="238" text-anchor="middle" font-size="10" fill="#3a3b40">rollout: x → y_1...y_T</text>
+
+    <!-- arrow -->
+    <line x1="180" y1="225" x2="220" y2="225" stroke="#666" stroke-width="1.5" marker-end="url(#a3)"/>
+
+    <!-- domain teacher -->
+    <rect x="220" y="200" width="180" height="50" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="310" y="220" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">Domain teacher π^domain</text>
+    <text x="310" y="238" text-anchor="middle" font-size="10" fill="#3a3b40">forward on student's y</text>
+
+    <line x1="400" y1="225" x2="440" y2="225" stroke="#666" stroke-width="1.5" marker-end="url(#a3)"/>
+
+    <!-- token-level reward -->
+    <rect x="440" y="200" width="240" height="50" rx="6" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="560" y="220" text-anchor="middle" font-size="11" font-weight="600" fill="#a8353e">token-level reward (Eq. 8)</text>
+    <text x="560" y="238" text-anchor="middle" font-size="10" fill="#3a3b40">Â_t = log(π_T(y_t)/π_θ(y_t)) + α·Â_ORM</text>
+
+    <!-- bottom row -->
+    <text x="370" y="280" text-anchor="middle" font-size="11" fill="#3a3b40">每个 token y_t 拿到 dense reward, 用 truncated importance sampling 修正 train/inference gap</text>
+    <text x="370" y="300" text-anchor="middle" font-size="11" fill="#3a3b40">→ 标准 policy gradient 更新 student,teacher 永远保持冻结</text>
+    <text x="370" y="324" text-anchor="middle" font-size="11" font-style="italic" fill="#cc4a1b">本质: 把 reverse KL 蒸馏改写成 RL form,享受 on-policy 稳定性 + token-level signal 密度</text>
+
+    <defs>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>三阶段流水线。<strong>核心创新在 Stage 3</strong>: student 在<em>自己的分布上</em>采样(避免 exposure bias),同时收两类信号 — token-level 的 reverse KL 信号(来自 domain teacher logits)和 outcome-level 的 ORM 信号(GRPO 风格)。等价于一个"teacher-as-shaped-reward"的 GRPO。</figcaption>
+</div>
+
+<h3>8.3 Loss 推导</h3>
+
+<p>从 reverse KL 出发(Eq. 5):</p>
+<div class="formula">L_rev-KL = -E_{x, y_t ~ π_θ} [ log( π_T(y_t|x,y&lt;t) / π_θ(y_t|x,y&lt;t) ) ]</div>
+
+<p>对 θ 求梯度(Eq. 6,REINFORCE-like):</p>
+<div class="formula">
+∇L = -E [ log(π_T/π_θ) · ∇log π_θ(y_t) ]
+</div>
+
+<p>把 log(π_T/π_θ) 当作"<strong>per-token advantage</strong>"。再加上 train/inference distribution mismatch correction(因为 inference 用 μ_θ 采样,training optimize π_θ),得到 surrogate(Eq. 7-8):</p>
+
+<div class="formula">
+L_MOPD = -E_{x, y ~ μ_θ} [ (1/|y|) Σ_t w_t · Â_MOPD,t · log π_θ(y_t) ]<br>
+w_t = sg[π_θ/μ_θ]   if  ε_low ≤ π_θ/μ_θ ≤ ε_high   else 0<br>
+Â_MOPD,t = sg[ log(π_T(y_t) / π_θ(y_t)) ] + α · Â_ORM
+</div>
+
+<p>三件事融合在一个 loss 里:</p>
+<ol>
+  <li><strong>w_t</strong>: importance sampling 的 truncation,过滤 train/inference mismatch 异常大的 token (gpt-oss / Zhao 2025 套路)</li>
+  <li><strong>log(π_T/π_θ)</strong>: 蒸馏信号,token-level dense</li>
+  <li><strong>α · Â_ORM</strong>: 经典 outcome reward (GRPO 算的 advantage)</li>
+</ol>
+
+<h3>8.4 实测效果 (论文 Table 7)</h3>
+
+<table>
+  <tr><th>Benchmark</th><th>Student before MOPD</th><th>Best teacher</th><th>Student after MOPD</th><th>Δ</th></tr>
+  <tr><td>AIME 2025</td><td>89.3</td><td>93.9 (RL)</td><td>94.1</td><td><span class="ok">+0.2 vs teacher</span></td></tr>
+  <tr><td>HMMT 2025</td><td>76.9</td><td>82.6 (RL)</td><td>84.4</td><td><span class="ok">+1.8</span></td></tr>
+  <tr><td>LiveCodeBench</td><td>77.5</td><td>82.6 (RL)</td><td>83.2</td><td><span class="ok">+0.6</span></td></tr>
+  <tr><td>SWE-Bench Verified</td><td>67.8</td><td>74.2 (RL)</td><td>73.4</td><td>−0.8</td></tr>
+  <tr><td>τ²-Bench</td><td>75.9</td><td>79.6 (RL)</td><td>80.3</td><td><span class="ok">+0.7</span></td></tr>
+  <tr><td>BrowseComp</td><td>42.5</td><td>51.7 (SFT)</td><td>45.4</td><td>−6.3</td></tr>
+  <tr><td>Arena-Hard (Hard)</td><td>50.0</td><td>50.0 (Self)</td><td>54.1</td><td><span class="ok">+4.1</span></td></tr>
+  <tr><td>Arena-Hard (Creative)</td><td>90.1</td><td>90.1 (Self)</td><td>86.2</td><td>−3.9</td></tr>
+</table>
+
+<p>大部分项 student 能匹敌甚至略超 best teacher;但 BrowseComp 和 creative writing 出现明显 regression — 论文承认 MOPD 不是 silver bullet。我个人解读:<strong>MOPD 适合"有可验证 reward 的 hard skill 域",对开放式生成 / 长 horizon search 仍然不稳</strong>。</p>
+
+<hr>
+
+<h2 id="sec9">9 · RL 基础设施: R3 / Data Scheduler / Toolbox</h2>
+
+<h3>9.1 Rollout Routing Replay (R3) — 解决 MoE rollout/train mismatch</h3>
+
+<p>MoE 训练的一个老问题:rollout 用 SGLang(inference engine, FP8 计算可能不严格 deterministic),training 用 Megatron-LM,两边对同一个 token 算出的 router score 不完全一致 → expert 选择不一致 → π_θ(y_t) 在 training/inference 不同 → importance sampling 假设崩塌 → RL 训不稳。</p>
+
+<p>R3 的解法很直接:<strong>training 时强制使用 rollout 时记录下的同一份 expert routing 决策</strong>。这意味着 routing 不再是 training 的一部分 — 它被"freeze"在 rollout 决策上。开销的关键在压 routing log 的存储/通信成本。</p>
+
+<h3>9.2 Data Scheduler — 解决 long-tail straggler</h3>
+
+<p>RL rollout 经常出现"绝大多数轨迹 1k tokens 内结束,少数 32k 不收"的长尾分布。同步等会让 GPU 空转。本文方案:</p>
+<ul>
+  <li><strong>partial rollout</strong>:把超长轨迹分多 step 处理,每 step 限制 partial sample 比例避免 staleness 过大</li>
+  <li><strong>staleness-aware truncated importance sampling</strong>:partial 轨迹横跨多个 policy 版本,用 truncated IS 修正</li>
+  <li><strong>priority-based scheduling</strong>:按 data source 配比 + 历史 pass rate 动态分配新 prompt 到空闲 GPU</li>
+</ul>
+
+<h3>9.3 Toolbox — 解决 agentic RL 的 tool 资源争用</h3>
+
+<ul>
+  <li>centralized resource allocator,enforce QPS 限制</li>
+  <li>用 Ray actor pool 避免 cold start</li>
+  <li>environment pre-warming + sequence-level async reward</li>
+</ul>
+
+<p>这一节细节不多,但传达的信号是 agentic RL 的瓶颈早就不是 GPU 算力,而是<strong>外部 tool 的资源调度</strong>。</p>
+
+<hr>
+
+<h2 id="sec10">10 · MTP 推理加速实测</h2>
+
+<h3>10.1 Acceptance ↔ Entropy 拟合</h3>
+<p>论文 Figure 7 的拟合公式:</p>
+<div class="formula">α = 4 · (1 − 0.58 · H<sup>0.58</sup>),  R² = 0.995</div>
+<p>其中 H = next-token cross-entropy(模型自己的预测信心)。</p>
+
+<table>
+  <tr><th>Entropy H</th><th>α (3 MTP layers)</th></tr>
+  <tr><td>0.05 (低不确定, e.g. WebDev)</td><td>~3.6</td></tr>
+  <tr><td>0.10</td><td>~3.4</td></tr>
+  <tr><td>0.20</td><td>~3.1</td></tr>
+  <tr><td>0.30 (高不确定, e.g. MMLU-Pro)</td><td>~2.9</td></tr>
+</table>
+
+<h3>10.2 Decoding speedup (论文 Table 10)</h3>
+
+<table>
+  <tr><th>Batch size (per node)</th><th>α=2.8</th><th>α=3.2</th><th>α=3.6</th><th>α=3.8</th></tr>
+  <tr><td>32</td><td>1.86×</td><td>2.12×</td><td>2.39×</td><td>2.52×</td></tr>
+  <tr><td>64</td><td>1.97×</td><td>2.25×</td><td>2.53×</td><td>2.67×</td></tr>
+  <tr><td>96</td><td>1.99×</td><td>2.28×</td><td>2.56×</td><td><strong>2.70×</strong></td></tr>
+  <tr><td>128</td><td>1.82×</td><td>2.07×</td><td>2.33×</td><td>2.46×</td></tr>
+</table>
+
+<p>16K input, 1K output。<strong>bs=96 是甜点</strong> — 太小没填满 SM,太大 attention KV I/O 成瓶颈。</p>
+
+<div class="nb">
+  <strong>注意</strong>: 这个 speedup 是<em>纯 decoding</em> 加速,不含 prefill。在 RL rollout 这种"prompt 短 + 输出超长"的场景,decoding 占绝对大头,所以端到端基本能拿到接近 2× 的加速。但在"长 prompt + 短输出"场景(如 RAG)spec decoding 优势会被 prefill 稀释。
+</div>
+
+<hr>
+
+<h2 id="sec11">11 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>模型</th><th>Total / Active</th><th>Attention</th><th>MTP / Spec</th><th>特别之处</th></tr>
+  <tr><td><strong>MiMo-V2-Flash</strong></td><td>309B / 15B</td><td>Hybrid SWA W=128, 5:1 + sink</td><td>3-layer MTP, α≈3.6</td><td>MOPD 后训练 + R3 routing replay</td></tr>
+  <tr><td>DeepSeek-V3 / V3.2</td><td>671B / 37B</td><td>Full GA (V3); DSA sparse (V3.2)</td><td>1-layer MTP</td><td>MLA 替代 GQA, 1 shared expert</td></tr>
+  <tr><td>Kimi-K2 (Thinking)</td><td>1043B / 32B</td><td>Full GA</td><td>无</td><td>大模型纯 RL post-train</td></tr>
+  <tr><td>Qwen3-MoE</td><td>235B / 22B</td><td>Full GA + Native MTP (next 系列)</td><td>有</td><td>128 expert, top-8</td></tr>
+  <tr><td>MiniMax-M1</td><td>456B / 45.9B</td><td>Lightning + Full 7:1</td><td>无</td><td>linear attention 主导</td></tr>
+  <tr><td>Gemma 3</td><td>27B dense</td><td>SWA W=1024, 5:1 + GA</td><td>无</td><td>SWA 但 W 大得多</td></tr>
+  <tr><td>gpt-oss-120B</td><td>120B / 5.1B</td><td>SWA + sink bias</td><td>无</td><td>本文 sink 来源</td></tr>
+</table>
+
+<h3>11.1 几条关键差异化</h3>
+<ul>
+  <li>vs <strong>DeepSeek-V3.2</strong>: DSv3.2 用 Dense Sparse Attention (DSA) 替代 GA, 长 context retrieval 性能差(Table 6 长 context 严重塌方);MiMo 走 SWA 保留全 softmax 语义,长 context 反而更鲁棒</li>
+  <li>vs <strong>Qwen3-MoE</strong>: 都是 256 routed (近似), 但 MiMo 没有 shared expert,且 SWA 比 Qwen3 激进得多</li>
+  <li>vs <strong>MiniMax-M1</strong>: linear attention 路线在 long retrieval 仍偏弱,MiMo hybrid 是更安全的路</li>
+  <li>vs <strong>Gemma 3</strong>: Gemma W=1024,MiMo 直接押 W=128 + sink — 同样 5:1 的 ratio 下,KV cache 8× 缩减</li>
+</ul>
+
+<hr>
+
+<h2 id="sec12">12 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>架构探索"preliminary",没系统 sweep 不同 ratio / window size 的组合</li>
+  <li>仍逊于最强 closed model (Gemini 3 Pro, GPT-5 High) — knowledge capacity 是 SimpleQA 上 20.6 vs Kimi-K2-Base 35.3 的明显短板</li>
+  <li>MOPD 的 teacher 训练成本不算在内,实际管线计算量比传统 RL 大</li>
+</ul>
+
+<h3>我的疑问</h3>
+<ol>
+  <li><strong>W=128 极限究竟在哪?</strong>论文只 sweep 了 128 vs 512。W=64 / 32 加 sink 可能依然能 work,这意味着 KV 还能再缩。</li>
+  <li><strong>Sink bias 学到什么?</strong>论文没分析每个 head 学到的 sink 值分布。GA 层的 sink 是不是接近 0(因为 GA 不需要 escape valve)?</li>
+  <li><strong>MOPD 在 BrowseComp / creative writing 上掉点</strong> — 是不是 token-level reverse KL 在长序列复杂任务上 over-regularize 了?把 KL 换成 forward KL 或 JS 会不会更好?</li>
+  <li><strong>R3 是不是过度保守?</strong>training 时强制用 rollout 的 expert routing,等于让 router 不再被 RL gradient 影响。这是不是变相冻结了 routing 的演化?</li>
+  <li><strong>3-layer MTP 的内存代价</strong>:K=3 时每个 head 0.33B,推理时还要维护 3 套独立的 SWA KV cache。在长 context 下,这块 KV 会不会再次成为瓶颈?</li>
+  <li><strong>27T tokens 数据细节非常 sparse</strong> — 没说预训练数据混合比例,没说 quality filter。复现性接近 0。</li>
+  <li><strong>SWE-Bench Verified 73.4% 实测有 reward hacking</strong>(Appendix B 提到),论文没披露去除 hacking 后的真实分数。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> hybrid SWA(W=128) + sink bias 是当下 MoE 长 context 的"安全甜点",比 sparse / linear 更鲁棒<br>
+  <span class="pill">公式</span> α = 4(1 − 0.58·H<sup>0.58</sup>) — MTP acceptance 由 entropy 决定,与任务无关<br>
+  <span class="pill">数字</span> 309B/15B, 5:1 SWA:GA, W=128, 256 expert/top-8, 27T tokens, 256K context, 3 MTP layers<br>
+  <span class="pill">非平凡</span> 没有 sink bias, 这套架构会塌(MMLU 58.3 → 54.9)<br>
+  <span class="pill">后训练</span> MOPD = on-policy reverse KL 蒸馏 + ORM,把多个 RL teacher 的能力整合到一个 student<br>
+  <span class="pill">基础设施</span> R3 (routing replay) 解 MoE RL 的 train/inference mismatch<br>
+  <span class="pill">陷阱</span> MOPD 在 creative writing / BrowseComp 上仍掉点,不是 silver bullet<br>
+  <span class="pill">省钱</span> KV cache 缩 ~5–6×, decode 实测 ~2.6×, 端到端 generation 受益巨大
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 · 配套论文 PDF: <code>/data/szhang967/papers/paper-notes/MiMo-V2-Flash_2601.02780.pdf</code>
+</p>
+
+</main>
+</body>
+</html>

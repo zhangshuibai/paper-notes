@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · MiniMax-M1 (2506.13585)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>MiniMax-M1: Scaling Test-Time Compute Efficiently with Lightning Attention</h1>
+<div class="meta">
+  MiniMax · 2025-06-16 · arXiv:2506.13585 · 开源 reasoning model<br>
+  关键词: hybrid attention · lightning attention · MoE · CISPO · GRPO · test-time compute · 1M context · long-CoT
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 MiniMax-Text-01 的 hybrid lightning + softmax 架构搬到 reasoning 范式,通过 CISPO(clip IS-weight 而非 token)+ FP32 LM head + 阶梯 length 扩展,在 512 H800 + 三周内炼出一个 native 1M context、80K thinking budget 的开源大 reasoning model;长 CoT 长度的 FLOPs 比 DeepSeek-R1 少 50%(64K)/75%(100K)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">456B / 45.9B</div><div class="l">total / activated 参数</div></div>
+    <div class="stat"><div class="n">1M ↦ 80K</div><div class="l">输入 / 输出长度</div></div>
+    <div class="stat"><div class="n">$534K</div><div class="l">RL 全程租用成本(3 周, 512×H800)</div></div>
+  </div>
+  <p><strong>立场:</strong>不是新算法论文,是<em>体系报告</em>——证明 hybrid lightning + linear-attention 架构可以撑起 frontier 级 long-CoT RL,而且因为 attention 是线性的,test-time scaling 比 softmax 模型经济得多。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 reasoning 模型需要换 attention</a></li>
+    <li><a href="#sec2">背景速查 (术语 / 公式 / 缩写)</a></li>
+    <li><a href="#sec3">Hybrid Lightning Attention 架构</a></li>
+    <li><a href="#sec4">CISPO 算法:为什么不要 clip token</a></li>
+    <li><a href="#sec5">RL 工程坑: 精度 / Adam / 重复检测</a></li>
+    <li><a href="#sec6">阶梯 length 扩展: 40K → 80K</a></li>
+    <li><a href="#sec7">数据 & curriculum: 可验证 + 不可验证</a></li>
+    <li><a href="#sec8">关键 benchmark 解读</a></li>
+    <li><a href="#sec9">与同类 reasoning model 对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+  <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">See also: <code>02_MiniMax01_2501.08313.html</code> — 关于 MiniMax-Text-01 的 base 架构与 lightning attention 推导细节。</p>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 reasoning 模型必须换 attention</h2>
+
+<h3>1.1 历史脉络:test-time compute 这条新 scaling 维</h3>
+<p>2024 年下半年起,LLM 社区出现了两条并行的 scaling 路线:</p>
+<ul>
+  <li><strong>训练时 scaling</strong>(老路): 更多参数 + 更多数据,以 Chinchilla 律为标。</li>
+  <li><strong>推理时 scaling</strong>(新路): 让模型在生成阶段"多想几步",以 CoT / reflection / search 为标。代表作 OpenAI o1, DeepSeek-R1, Kimi-1.5, Seed-Thinking-v1.5, QwQ。</li>
+</ul>
+<p>新路的特征是 <em>response 长度爆炸</em>: 一个 AIME 题的 reasoning trace 从 ~500 tokens 涨到 20,000–100,000 tokens。论文中列的实测:在 RL 训练里 AIME 平均 response 从 12K 涨到 22K 仍未饱和,LiveCodeBench 同样冲到 22K。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 620 230" width="100%" style="max-width:600px">
+    <defs>
+      <marker id="aRR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+    <line x1="60" y1="200" x2="600" y2="200" stroke="#888"/>
+    <line x1="60" y1="20" x2="60" y2="200" stroke="#888"/>
+    <text x="330" y="220" text-anchor="middle" font-size="12" fill="#5b5e66">Generation length (#tokens)</text>
+    <text x="20" y="120" font-size="12" fill="#5b5e66" transform="rotate(-90 20 120)">FLOPs (相对)</text>
+    <!-- DeepSeek-R1 curve (quadratic-ish) -->
+    <path d="M 60 198 Q 200 175 330 130 T 600 25" stroke="#cc4a1b" stroke-width="2.5" fill="none"/>
+    <text x="540" y="40" font-size="11" fill="#cc4a1b" font-weight="600">DeepSeek-R1 (softmax, ∝L²)</text>
+    <!-- Qwen3 curve (similar) -->
+    <path d="M 60 198 Q 200 180 330 145 T 600 60" stroke="#b07a3d" stroke-width="2" fill="none" stroke-dasharray="4,2"/>
+    <text x="540" y="75" font-size="11" fill="#b07a3d">Qwen3-235B</text>
+    <!-- M1 curve (near-linear) -->
+    <path d="M 60 198 L 600 140" stroke="#2f6feb" stroke-width="2.5" fill="none"/>
+    <text x="540" y="135" font-size="11" fill="#2f6feb" font-weight="600">MiniMax-M1 (hybrid lightning, ~∝L)</text>
+    <!-- annotations -->
+    <line x1="380" y1="200" x2="380" y2="40" stroke="#888" stroke-dasharray="3,3"/>
+    <text x="385" y="35" font-size="10" fill="#5b5e66">64K</text>
+    <line x1="510" y1="200" x2="510" y2="20" stroke="#888" stroke-dasharray="3,3"/>
+    <text x="515" y="15" font-size="10" fill="#5b5e66">100K</text>
+    <text x="385" y="160" font-size="10" fill="#cc4a1b" font-weight="600">M1 ≈ 50% R1</text>
+    <text x="515" y="115" font-size="10" fill="#cc4a1b" font-weight="600">M1 ≈ 25% R1</text>
+    <text x="330" y="13" text-anchor="middle" font-size="13" font-weight="600">FLOPs vs Generation Length</text>
+  </svg>
+  <figcaption>核心图(对应论文 Figure 1 右半部分): softmax attention 在 long-CoT 区段是二次,linear/lightning 是线性。100K 时 M1 只用 R1 的 1/4 FLOPs。<strong>这条曲线就是整篇论文的"商业模式"</strong>——要把 test-time scaling 这条路走远,必须给 attention 换发动机。</figcaption>
+</div>
+
+<h3>1.2 别的方案为什么"够呛"</h3>
+<p>"减少 long-CoT 计算"这个目标可以从多个角度切:</p>
+<table>
+  <tr><th>路径</th><th>代表</th><th>问题</th></tr>
+  <tr><td>更短的 CoT</td><td>压缩 reasoning chain (LLMLingua 类)</td><td><span class="no">直接降低 reasoning 质量,与 test-time scaling 思想相反</span></td></tr>
+  <tr><td>Sparse attention</td><td>Longformer, NSA, MoBA</td><td><span class="no">长 CoT 里"哪些 token 重要"事先未知,sparse pattern 难选</span></td></tr>
+  <tr><td>State Space Model</td><td>Mamba, Hunyuan-T1</td><td><span class="no">大规模 reasoning RL 没有 open-source 验证;Hunyuan-T1 闭源细节不公开</span></td></tr>
+  <tr><td>Linear attention 纯架构</td><td>RWKV, Performer, Retnet</td><td><span class="no">long-range recall 比 softmax 弱,RAG/agent 场景吃亏</span></td></tr>
+  <tr><td><strong>Hybrid lightning + softmax</strong> 👈</td><td>MiniMax-Text-01 / M1</td><td><span class="ok">大部分层 O(L), 少数 softmax 层补 recall;已在 base 模型上验证</span></td></tr>
+</table>
+
+<p>论文的"立场"很清楚: <strong>已经有一个 1M-context 的 hybrid base (MiniMax-Text-01) 可用,RL 派生 reasoning 版本就是顺势而为</strong>。但顺势而为不等于平凡——下一节展开。</p>
+
+<h3>1.3 但为什么"hybrid + RL"非平凡?</h3>
+<p>Inference 时 hybrid lightning 已经被 MiniMax-Text-01 跑通了,但 RL post-training 是另一码事:</p>
+<ul>
+  <li><strong>Linear attention 的训练 / 推理 kernel 必须严格一致</strong> — 任何精度漂移都直接破坏 RL 的 importance sampling 修正,使 reward 不增。在 dense softmax 模型上没出现的"LM head 高幅激活 → FP16 溢出"问题在 hybrid 上凸显。</li>
+  <li><strong>Long-CoT 的 token-level loss 与 GRPO clipping 撞车</strong> — reasoning 关键词("Wait", "However", "Recheck")在 base 上概率本来就低,IS ratio 自然大,被 PPO/GRPO 的 clip 一刀砍掉,等于<em>掐死了反思能力的萌芽</em>。</li>
+  <li><strong>不同 lightning 层的 decay rate 不同 → 浅层学局部、深层学远端</strong> — context 从 32K 一步扩到 1M 会造成"早期层跟不上后期层"的 gradient explosion。</li>
+  <li><strong>RL 出 80K 长度 = 一条 trajectory 拖慢整批 rollout</strong> — 每个 rollout step 受最长 trace 拖累。Pattern collapse / 重复 token 的早期检测变成 systems 必修课。</li>
+  <li><strong>负样本越长越多</strong> — RL 训练里 generation 一旦顶到 80K 上限,负 advantage 在尾部累积,token-level loss 让尾部 gradient 失衡,模型生成质量崩溃。</li>
+</ul>
+
+<div class="nb">
+  <strong>论文的核心贡献矩阵其实就是这五道工程坑的对应解。</strong>所以读 M1 不要去找一个漂亮的"新算法"——它的价值是<em>把这五条坑的修补方案凑齐,使得 hybrid lightning RL 第一次在开源 reasoning model 上跑通了三周</em>。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Lightning attention</span></td><td>linear attention 的 I/O-aware kernel,把 attention 计算从 O(L²d) 降到 O(Ld²),适合长序列</td></tr>
+  <tr><td><span class="term">Hybrid attention</span></td><td>每 7 个 lightning block 后插 1 个 softmax block(transnormer 配方)</td></tr>
+  <tr><td><span class="term">Test-time compute</span></td><td>推理阶段花的 FLOPs;增加它(让模型多想)能换更高 accuracy</td></tr>
+  <tr><td><span class="term">Long CoT</span></td><td>带反思 / 回溯的长链 reasoning,通常 10K–80K tokens</td></tr>
+  <tr><td><span class="term">Thinking budget</span></td><td>RL 训练时给模型"想"的 token 上限。M1 有 40K / 80K 两版</td></tr>
+  <tr><td><span class="term">CISPO</span></td><td>Clipped IS-weight Policy Optimization (本文新算法)</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>Group Relative Policy Optimization (DeepSeekMath),无 value model 的 PPO 变体</td></tr>
+  <tr><td><span class="term">DAPO</span></td><td>字节的 RL 算法,Decoupled Asymmetric clipping</td></tr>
+  <tr><td><span class="term">IS weight</span></td><td>importance sampling ratio r = π_θ / π_θold,用于离 policy 梯度修正</td></tr>
+  <tr><td><span class="term">SynLogic</span></td><td>MiniMax 内部的 logic puzzle 自动生成框架(41 任务)</td></tr>
+  <tr><td><span class="term">GenRM</span></td><td>generative reward model,LLM 当评分器</td></tr>
+  <tr><td><span class="term">Zero-RL</span></td><td>不做 SFT,直接从 base model 上 RL(R1-Zero 命名法)</td></tr>
+</table>
+
+<h3>2.2 PPO / GRPO 的 token-clipping 复习</h3>
+<div class="formula">J<sub>PPO</sub> = E[ min( r·Â, clip(r, 1−ε, 1+ε)·Â ) − β·KL(π||π_ref) ]</div>
+<p>关键点:这个 min/clip 一旦触发,就把<em>整个 token</em>的梯度置零(乘以0)。当 base model 对某个反思 token 概率极低,θ_new 想把概率从 0.001 抬到 0.05 时 r=50,远超 1+ε(典型 0.2),clip 之后这个 token 不再贡献梯度——RL 永远学不会用这个词。</p>
+
+<h3>2.3 GRPO 的 group advantage</h3>
+<div class="formula">Â_i = (R_i − mean(R)) / std(R)</div>
+<p>每个 prompt 采 G(e.g. 16)条 response,advantage = 自己的 reward 在组内的 z-score。优点: 不需要 value model;缺点: 当某个 prompt 里所有 response 都对/都错时 std=0,Â 退化。</p>
+
+<hr>
+
+<h2 id="sec3">3 · Hybrid Lightning Attention 架构</h2>
+
+<h3>3.1 拼接配方:每 7 个 lightning + 1 个 softmax</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 220" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="aH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+    <text x="360" y="20" text-anchor="middle" font-size="13" font-weight="600">M1 单个"super-block": 7 × lightning + 1 × softmax</text>
+    <!-- 7 lightning blocks -->
+    <g>
+      <rect x="20" y="50" width="64" height="100" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="52" y="105" text-anchor="middle" font-size="11" fill="#2f6feb">L1</text>
+      <text x="52" y="120" text-anchor="middle" font-size="9" fill="#5b5e66">linear</text>
+      <rect x="92" y="50" width="64" height="100" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="124" y="105" text-anchor="middle" font-size="11" fill="#2f6feb">L2</text>
+      <rect x="164" y="50" width="64" height="100" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="196" y="105" text-anchor="middle" font-size="11" fill="#2f6feb">L3</text>
+      <rect x="236" y="50" width="64" height="100" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="268" y="105" text-anchor="middle" font-size="11" fill="#2f6feb">L4</text>
+      <rect x="308" y="50" width="64" height="100" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="340" y="105" text-anchor="middle" font-size="11" fill="#2f6feb">L5</text>
+      <rect x="380" y="50" width="64" height="100" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="412" y="105" text-anchor="middle" font-size="11" fill="#2f6feb">L6</text>
+      <rect x="452" y="50" width="64" height="100" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="484" y="105" text-anchor="middle" font-size="11" fill="#2f6feb">L7</text>
+    </g>
+    <!-- softmax block -->
+    <rect x="540" y="40" width="76" height="120" rx="8" fill="#fff3cd" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="578" y="98" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">S1</text>
+    <text x="578" y="116" text-anchor="middle" font-size="10" fill="#5b5e66">softmax</text>
+    <text x="578" y="130" text-anchor="middle" font-size="10" fill="#5b5e66">(O(L²d))</text>
+    <!-- repeat -->
+    <rect x="640" y="50" width="60" height="100" rx="6" fill="#fff" stroke="#888" stroke-dasharray="3,3"/>
+    <text x="670" y="105" text-anchor="middle" font-size="11" fill="#5b5e66">…</text>
+    <text x="670" y="125" text-anchor="middle" font-size="9" fill="#5b5e66">repeat</text>
+    <!-- annotation arrow -->
+    <text x="270" y="175" text-anchor="middle" font-size="11" fill="#2f6feb">7 个 lightning attention 层 (主力, 线性复杂度)</text>
+    <text x="270" y="190" text-anchor="middle" font-size="10" fill="#5b5e66">QKV → kernel φ → 累加 state → O(Ld²)</text>
+    <text x="578" y="175" text-anchor="middle" font-size="11" fill="#cc4a1b">补 recall</text>
+    <text x="578" y="190" text-anchor="middle" font-size="10" fill="#5b5e66">long-range</text>
+    <!-- bottom note -->
+    <text x="360" y="215" text-anchor="middle" font-size="11" fill="#3a3b40" font-style="italic">每 8 层中 7 层是线性 — 长上下文 FLOPs 几乎正比于 L,而非 L²</text>
+  </svg>
+  <figcaption>架构概览。直觉: 大部分位置用 linear attention 维持长 context 的 throughput,只在少数 softmax 层做"全局精修"以保 recall。这种 hybrid 在 1M context 上能省至少一个数量级的 FLOPs,同时不显著掉点。</figcaption>
+</div>
+
+<h4>具体一点:推理 100K context 时,FLOPs 怎么走?</h4>
+<p>设 d=4096(typical),L=100,000:</p>
+<ul>
+  <li>纯 softmax (R1): attention FLOPs ∝ L² · d ≈ 10¹⁰ · 4096 ≈ 4 × 10¹³ per layer</li>
+  <li>Lightning: ∝ L · d² ≈ 10⁵ · 1.7×10⁷ ≈ 1.7 × 10¹² per layer (慢约 ~1/24)</li>
+  <li>Hybrid M1 (7:1): 总 attention FLOPs ≈ 7/8 × lightning + 1/8 × softmax ≈ 主导项是 softmax 那 1/8</li>
+  <li>归一化后,M1 vs R1 的整体 attention 计算量约是 1/8 + 小项 ≈ 论文报告的 25%(还包含 MLP 等不变项)</li>
+</ul>
+
+<details>
+<summary>展开: lightning attention 的核心公式 (复习)</summary>
+<p>Linear attention 把 softmax(QKᵀ)V 换成 (φ(Q)φ(K)ᵀ)V,利用结合律改成 φ(Q)·(φ(K)ᵀV)。此时<strong>φ(K)ᵀV ∈ ℝ^(d×d) 是一个 state,可逐 token 累加</strong>,使整个序列的 attention 变成线性 RNN。Lightning attention 在此基础上做 chunked + I/O 优化,使其在 GPU 上真正快起来(参见 02_MiniMax01)。</p>
+<div class="formula">y_t = φ(q_t) · ( Σ<sub>s≤t</sub> φ(k_s) ⊗ v_s ) / ( φ(q_t) · Σ<sub>s≤t</sub> φ(k_s) )</div>
+</details>
+
+<h3>3.2 为什么这样设计 (反向论证)</h3>
+<p>"全 lightning 行不行?" — 不行。早期 linear attention(RWKV、Performer)在 needle-in-haystack 类 long-range recall 任务上明显不如 softmax。Hybrid 把 1/8 的层"还给" softmax 是<em>用 1/8 的 long-range 精度换 7/8 的速度</em>。</p>
+<p>"为什么是 7:1 而不是 3:1 或 15:1?" — 论文(其实是 base 的 MiniMax-01)的实验结果。比例越高越快但 recall 越差,7:1 是 sweet spot。</p>
+
+<hr>
+
+<h2 id="sec4">4 · CISPO 算法: clip IS-weight, 不要 clip token</h2>
+
+<h3>4.1 问题: GRPO 在 hybrid 上为什么"扼杀反思"</h3>
+<p>RL 想让模型学会用 "Wait", "However", "Recheck" 这类反思 token——它们在 reasoning trace 里是"思路 fork"的标志。问题是:</p>
+<ol>
+  <li>Base model (continual pretraining 后) 对 "Wait" 这种 token 概率往往是 1e-4 数量级</li>
+  <li>采样得到的 trajectory 里,新 policy 对 "Wait" 的概率可能升到 0.01,r = 0.01/1e-4 = 100</li>
+  <li>PPO/GRPO 的 clip(r, 0.8, 1.2) 立刻把这个 token 的梯度置零</li>
+  <li>下一轮 off-policy update(论文用 16 轮),这个 token 仍然不学 → <strong>反思能力永远涨不起来</strong></li>
+</ol>
+<p>这在 dense + softmax 模型上影响小,但在 hybrid 架构上特别明显——论文给出的解释:hybrid 模型 base 阶段的 token 概率分布更"尖",低概率反思词更稀缺。</p>
+
+<h3>4.2 CISPO 的设计:把 clip 从 token 上挪到 IS-weight</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="aC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+    <text x="360" y="20" text-anchor="middle" font-size="13" font-weight="600">PPO/GRPO vs CISPO 在 r=50 反思 token 上的对比</text>
+    <!-- left: GRPO -->
+    <rect x="30" y="40" width="300" height="220" rx="10" fill="#fff" stroke="#cc4a1b"/>
+    <text x="180" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">GRPO/PPO 的 clip</text>
+    <text x="180" y="84" text-anchor="middle" font-size="11" fill="#5b5e66">min(r·Â, clip(r,1−ε,1+ε)·Â)</text>
+    <!-- token row -->
+    <g>
+      <rect x="55" y="105" width="40" height="34" rx="5" fill="#d4edda" stroke="#155724"/>
+      <text x="75" y="126" text-anchor="middle" font-size="11">eq</text>
+      <text x="75" y="156" text-anchor="middle" font-size="9" fill="#5b5e66">r=1.05</text>
+      <text x="75" y="170" text-anchor="middle" font-size="9" fill="#155724">grad ✓</text>
+
+      <rect x="105" y="105" width="40" height="34" rx="5" fill="#d4edda" stroke="#155724"/>
+      <text x="125" y="126" text-anchor="middle" font-size="11">to</text>
+      <text x="125" y="156" text-anchor="middle" font-size="9" fill="#5b5e66">r=0.98</text>
+      <text x="125" y="170" text-anchor="middle" font-size="9" fill="#155724">grad ✓</text>
+
+      <rect x="155" y="105" width="60" height="34" rx="5" fill="#f8d7da" stroke="#a8353e" stroke-width="2"/>
+      <text x="185" y="126" text-anchor="middle" font-size="11" fill="#a8353e" font-weight="700">Wait</text>
+      <text x="185" y="156" text-anchor="middle" font-size="9" fill="#5b5e66">r=50</text>
+      <text x="185" y="170" text-anchor="middle" font-size="9" fill="#a8353e" font-weight="700">grad ✗ (clip)</text>
+
+      <rect x="225" y="105" width="40" height="34" rx="5" fill="#d4edda" stroke="#155724"/>
+      <text x="245" y="126" text-anchor="middle" font-size="11">…</text>
+      <text x="245" y="156" text-anchor="middle" font-size="9" fill="#5b5e66">r≈1</text>
+      <text x="245" y="170" text-anchor="middle" font-size="9" fill="#155724">grad ✓</text>
+    </g>
+    <text x="180" y="200" text-anchor="middle" font-size="11" fill="#a8353e" font-style="italic">反思 token 永远拿不到梯度</text>
+    <text x="180" y="220" text-anchor="middle" font-size="11" fill="#a8353e">→ 模型学不会反思</text>
+    <text x="180" y="245" text-anchor="middle" font-size="10" fill="#5b5e66">"clip 把整个 token 一刀砍掉"</text>
+
+    <!-- right: CISPO -->
+    <rect x="390" y="40" width="300" height="220" rx="10" fill="#fff" stroke="#2f6feb"/>
+    <text x="540" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">CISPO 的 clip</text>
+    <text x="540" y="84" text-anchor="middle" font-size="11" fill="#5b5e66">sg(clip(r,_,1+ε)) · Â · ∇ log π</text>
+    <g>
+      <rect x="415" y="105" width="40" height="34" rx="5" fill="#d4edda" stroke="#155724"/>
+      <text x="435" y="126" text-anchor="middle" font-size="11">eq</text>
+      <text x="435" y="156" text-anchor="middle" font-size="9" fill="#5b5e66">r̂=1.05</text>
+      <text x="435" y="170" text-anchor="middle" font-size="9" fill="#155724">grad ✓</text>
+
+      <rect x="465" y="105" width="40" height="34" rx="5" fill="#d4edda" stroke="#155724"/>
+      <text x="485" y="126" text-anchor="middle" font-size="11">to</text>
+      <text x="485" y="156" text-anchor="middle" font-size="9" fill="#5b5e66">r̂=0.98</text>
+      <text x="485" y="170" text-anchor="middle" font-size="9" fill="#155724">grad ✓</text>
+
+      <rect x="515" y="105" width="60" height="34" rx="5" fill="#cfe2ff" stroke="#0843a0" stroke-width="2"/>
+      <text x="545" y="126" text-anchor="middle" font-size="11" fill="#0843a0" font-weight="700">Wait</text>
+      <text x="545" y="156" text-anchor="middle" font-size="9" fill="#5b5e66">r̂=clip→1.2</text>
+      <text x="545" y="170" text-anchor="middle" font-size="9" fill="#0843a0" font-weight="700">grad ✓ (有限)</text>
+
+      <rect x="585" y="105" width="40" height="34" rx="5" fill="#d4edda" stroke="#155724"/>
+      <text x="605" y="126" text-anchor="middle" font-size="11">…</text>
+      <text x="605" y="156" text-anchor="middle" font-size="9" fill="#5b5e66">r̂≈1</text>
+      <text x="605" y="170" text-anchor="middle" font-size="9" fill="#155724">grad ✓</text>
+    </g>
+    <text x="540" y="200" text-anchor="middle" font-size="11" fill="#0843a0" font-style="italic">反思 token 仍贡献梯度</text>
+    <text x="540" y="220" text-anchor="middle" font-size="11" fill="#0843a0">权重被 clip 但不为 0</text>
+    <text x="540" y="245" text-anchor="middle" font-size="10" fill="#5b5e66">"clip 限大小, 不限存在"</text>
+  </svg>
+  <figcaption>关键差别:GRPO 的 clip 是<em>开关</em>(置 0 或保留),CISPO 的 clip 是<em>限幅</em>(把 weight 上限拉回 1+ε,但梯度仍流动)。在反思 token 这种 r 极大的位置上,这一点决定了模型能不能学会 "Wait" / "However" 这类关键转折。</figcaption>
+</div>
+
+<h3>4.3 公式</h3>
+<div class="formula">J<sub>CISPO</sub> = E[ (1/Σ|o_i|) Σᵢ Σₜ sg(r̂<sub>i,t</sub>) · Â<sub>i,t</sub> · log π<sub>θ</sub>(o<sub>i,t</sub>) ]</div>
+<div class="formula">r̂<sub>i,t</sub> = clip(r<sub>i,t</sub>, 1−ε<sub>low</sub><sup>IS</sup>, 1+ε<sub>high</sub><sup>IS</sup>)</div>
+
+<p>区别 PPO 公式的三处:</p>
+<ol>
+  <li><strong>用 REINFORCE 形式而非 surrogate min/clip</strong>: 对 log π 直接求梯度,r̂ 只作系数</li>
+  <li><strong>对 r̂ 套 stop-gradient</strong>: 防止 clip 边界处的梯度奇异</li>
+  <li><strong>论文实践中只设 ε_high,不设 ε_low</strong>(把 ε_low 设巨大让它名存实亡): 因为 reasoning RL 的关键是<em>给低概率 token 抬升机会</em>,而不是限制下降</li>
+</ol>
+<p>没有 KL penalty,也没有 trust region 约束(与 DAPO 类似)。dynamic sampling 和 length penalty 来自 DAPO。</p>
+
+<h3>4.4 worked example: 一个 AIME 题的 RL update</h3>
+<p>设 prompt = "证明 √2 是无理数",采 G=16 条 response。其中第 7 条在中段出现 token "Wait" 启动反思,最终答对,reward=1。</p>
+<ol>
+  <li>group reward {R_i}: 大约 9 条对(R=1)、7 条错(R=0)</li>
+  <li>第 7 条 advantage Â₇ = (1 − 0.56)/std ≈ +0.88</li>
+  <li>"Wait" token 上 base π_θold("Wait")=0.0008, π_θ_new("Wait")=0.04, 故 r=50</li>
+  <li>GRPO: clip(50, 0.8, 1.2)=1.2 → 与 r·Â=44 取 min → 取 1.2·Â=1.06,但因 Â>0 且 r>1+ε,trust-region 触发,梯度=0(GRPO 实际行为)</li>
+  <li>CISPO: r̂ = clip(50, _, 1.2) = 1.2,sg 后乘 Â=0.88,贡献到 ∇ log π → "Wait" 概率被推高</li>
+</ol>
+
+<h3>4.5 实测数据</h3>
+<p>论文 Figure 2 的 Qwen2.5-32B-base 控制实验:</p>
+<table>
+  <tr><th></th><th>步数到达 50% AIME</th><th>最终 AIME (4000 step)</th></tr>
+  <tr><td>GRPO</td><td>~3500</td><td>~50%</td></tr>
+  <tr><td>DAPO</td><td>~2500</td><td>~57%</td></tr>
+  <tr><td><strong>CISPO</strong></td><td><strong>~1250 (50% of DAPO)</strong></td><td><strong>~62%</strong></td></tr>
+</table>
+<p>"用 50% 步数追平 DAPO" — 这就是 abstract 里的 "2× speedup"。</p>
+
+<hr>
+
+<h2 id="sec5">5 · RL 工程坑及解</h2>
+
+<h3>5.1 训练 / 推理 kernel 精度漂移 (FP32 LM head)</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 220" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="aP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+    <!-- left: before -->
+    <text x="170" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Before fix: corr ≈ 0.987</text>
+    <line x1="40" y1="180" x2="300" y2="180" stroke="#888"/>
+    <line x1="40" y1="40" x2="40" y2="180" stroke="#888"/>
+    <line x1="40" y1="180" x2="300" y2="40" stroke="#888" stroke-dasharray="3,3"/>
+    <!-- noisy points -->
+    <g fill="#cc4a1b" opacity="0.65">
+      <circle cx="80" cy="160" r="2"/><circle cx="100" cy="155" r="2"/><circle cx="120" cy="130" r="2"/>
+      <circle cx="140" cy="120" r="2"/><circle cx="160" cy="115" r="2"/><circle cx="180" cy="80" r="2"/>
+      <circle cx="200" cy="105" r="2"/><circle cx="220" cy="85" r="2"/><circle cx="240" cy="60" r="2"/>
+      <circle cx="260" cy="55" r="2"/>
+      <!-- outliers -->
+      <circle cx="120" cy="80" r="3" fill="#a8353e"/>
+      <circle cx="180" cy="155" r="3" fill="#a8353e"/>
+      <circle cx="220" cy="160" r="3" fill="#a8353e"/>
+      <circle cx="80" cy="100" r="3" fill="#a8353e"/>
+    </g>
+    <text x="170" y="200" text-anchor="middle" font-size="10" fill="#5b5e66">inference prob</text>
+    <text x="20" y="110" font-size="10" fill="#5b5e66" transform="rotate(-90 20 110)">training prob</text>
+
+    <!-- right: after -->
+    <text x="540" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#1f7a4a">After fix (FP32 LM head): corr ≈ 0.997</text>
+    <line x1="410" y1="180" x2="670" y2="180" stroke="#888"/>
+    <line x1="410" y1="40" x2="410" y2="180" stroke="#888"/>
+    <line x1="410" y1="180" x2="670" y2="40" stroke="#888" stroke-dasharray="3,3"/>
+    <g fill="#1f7a4a" opacity="0.7">
+      <circle cx="450" cy="160" r="2"/><circle cx="470" cy="153" r="2"/><circle cx="490" cy="135" r="2"/>
+      <circle cx="510" cy="125" r="2"/><circle cx="530" cy="110" r="2"/><circle cx="550" cy="100" r="2"/>
+      <circle cx="570" cy="85" r="2"/><circle cx="590" cy="75" r="2"/><circle cx="610" cy="65" r="2"/>
+      <circle cx="630" cy="55" r="2"/><circle cx="650" cy="45" r="2"/>
+    </g>
+    <text x="540" y="200" text-anchor="middle" font-size="10" fill="#5b5e66">inference prob</text>
+
+    <!-- arrow -->
+    <line x1="305" y1="110" x2="395" y2="110" stroke="#666" stroke-width="2" marker-end="url(#aP)"/>
+    <text x="350" y="100" text-anchor="middle" font-size="10" fill="#5b5e66">FP32</text>
+  </svg>
+  <figcaption>训练 / 推理两套 kernel 对同一 token 的概率应该完全一致 (y=x),但在 hybrid 架构上 LM head 出现高幅激活,FP16 溢出导致点云"散开"。把 LM head 升 FP32 之后,corr 从 0.987 升到 0.997——就这一步让 reward 在 RL 训练里能涨。</figcaption>
+</div>
+
+<p><strong>worked example:</strong> 假设某 token logit 在 LM head 输出 [4.2, 28.3, 5.1, ...]。FP16 的 max ≈ 65504,28.3 还在范围内但 softmax(exp(28.3))=2 × 10¹² 已超 FP16,导致 inference kernel 中数值溢出,training kernel(混精度通常对 logits 转 FP32)却没溢出 → 同一 token 两份概率分别是 0.94 和 0.78,r = 0.78/0.94 = 0.83 不再是 1.0,IS 修正彻底失效。</p>
+
+<h3>5.2 AdamW 参数</h3>
+<table>
+  <tr><th>参数</th><th>VeRL 默认</th><th>M1 用</th><th>原因</th></tr>
+  <tr><td>β₁</td><td>0.9</td><td>0.9</td><td>不变</td></tr>
+  <tr><td>β₂</td><td>0.999</td><td><strong>0.95</strong></td><td>相邻 iter 的 gradient 弱相关,长 EMA 反而有害</td></tr>
+  <tr><td>eps</td><td>1e-8</td><td><strong>1e-15</strong></td><td>梯度量级 1e-18 ~ 1e-5,默认 eps 直接吞掉所有小梯度</td></tr>
+</table>
+
+<h3>5.3 重复检测早停</h3>
+<p>简单 string match 抓不住"换词重复"。论文用 token 概率作为信号:<strong>连续 3000 个 token 都 prob > 0.99 → 立刻截断</strong>。直觉: 一旦掉进 repetition mode,模型对每个新 token 都极其确定(因为它在抄前面的)。这条规则同时保护稳定性和省 generation cost。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 阶梯 length 扩展: 40K → 80K 的工程</h2>
+
+<div class="fig">
+  <svg viewBox="0 0 720 220" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="aS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+    <text x="360" y="20" text-anchor="middle" font-size="13" font-weight="600">Stage-wise window expansion: 40K → 48K → 56K → 64K → 72K → 80K</text>
+    <!-- stages -->
+    <g>
+      <rect x="30" y="50" width="80" height="40" fill="#cee5ff" stroke="#2f6feb"/>
+      <text x="70" y="75" text-anchor="middle" font-size="12" font-weight="600">40K</text>
+      <line x1="110" y1="70" x2="140" y2="70" stroke="#666" marker-end="url(#aS)"/>
+      <rect x="140" y="50" width="80" height="40" fill="#bbd5fa" stroke="#2f6feb"/>
+      <text x="180" y="75" text-anchor="middle" font-size="12" font-weight="600">48K</text>
+      <line x1="220" y1="70" x2="250" y2="70" stroke="#666" marker-end="url(#aS)"/>
+      <rect x="250" y="50" width="80" height="40" fill="#a3c5f5" stroke="#2f6feb"/>
+      <text x="290" y="75" text-anchor="middle" font-size="12" font-weight="600">56K</text>
+      <line x1="330" y1="70" x2="360" y2="70" stroke="#666" marker-end="url(#aS)"/>
+      <rect x="360" y="50" width="80" height="40" fill="#88b3ef" stroke="#2f6feb"/>
+      <text x="400" y="75" text-anchor="middle" font-size="12" font-weight="600">64K</text>
+      <line x1="440" y1="70" x2="470" y2="70" stroke="#666" marker-end="url(#aS)"/>
+      <rect x="470" y="50" width="80" height="40" fill="#69a0ea" stroke="#2f6feb"/>
+      <text x="510" y="75" text-anchor="middle" font-size="12" font-weight="600">72K</text>
+      <line x1="550" y1="70" x2="580" y2="70" stroke="#666" marker-end="url(#aS)"/>
+      <rect x="580" y="50" width="80" height="40" fill="#3b7ff5" stroke="#1058c7"/>
+      <text x="620" y="75" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">80K</text>
+    </g>
+    <!-- transition triggers -->
+    <text x="360" y="120" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">每段切换的触发条件:</text>
+    <text x="360" y="138" text-anchor="middle" font-size="11" fill="#3a3b40">① perplexity 在当前长度收敛  ② 99-percentile 输出长度 ≈ 当前 window</text>
+    <!-- problem and fix -->
+    <rect x="30" y="160" width="630" height="50" rx="8" fill="#fff8e8" stroke="#d2a32a"/>
+    <text x="345" y="180" text-anchor="middle" font-size="11" fill="#3a3b40" font-weight="600">观测: 后段 sequence "garbled" → 负样本顶到 window cap → 尾部负 gradient 失衡</text>
+    <text x="345" y="198" text-anchor="middle" font-size="11" fill="#3a3b40">解: 早停 + sample-level loss + 调低 grad clip 与 ε_high</text>
+  </svg>
+  <figcaption>不能直接从 40K 跳到 80K—— 模型在 window 切换的尾段出现 pattern collapse。论文用六段阶梯,每段等 perplexity 稳定后再放宽。这条 recipe 与 base model 的 long-context 扩展逻辑同构,只是从 next-token loss 换成了 RL reward 信号。</figcaption>
+</div>
+
+<h3>6.1 为什么扩到 80K 比扩到 1M 难</h3>
+<p>RL 阶段每条 trajectory 都要"想完",window 上限决定了:(a)单条 rollout latency, (b) negative sample 在 window 边界的累积。Long-context base 训练只对 cross-entropy 负责,RL 还要对 reward + advantage 累积负责,而后者对长尾分布更敏感。这就是为什么 base 1M 已经没问题、但 RL 把 thinking budget 从 40K 推到 80K 还要小心翼翼。</p>
+
+<h3>6.2 Worked example: 一条会崩溃的 trajectory</h3>
+<ol>
+  <li>Window=72K,prompt 是一个难数学题</li>
+  <li>Trace 写到 65K 还没解出来 → reward 几乎肯定 0(负 advantage)</li>
+  <li>token-level loss 把 65K 个 token 的负 gradient 平均累积</li>
+  <li>而 positive trajectory 通常 25K 就结束了 — 短得多,梯度量级远小</li>
+  <li>Net effect: 模型尾部 25K–72K 段被超量负向更新,生成质量塌陷,出现 garbled 文本</li>
+</ol>
+<p>三条解药:重复检测早停切掉胡乱长样本;sample-level normalization 让短/长 traj 权重对等;调小 grad clip 和 ε_high 进一步稳定。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 数据 & curriculum: verifiable + non-verifiable 混合</h2>
+
+<table>
+  <tr><th>类别</th><th>规模</th><th>奖励</th></tr>
+  <tr><td>数学竞赛</td><td>~50K (pass@10 ∈ (0, 0.9))</td><td>rule-based 答案匹配</td></tr>
+  <tr><td>逻辑(SynLogic 41 任务)</td><td>~53K</td><td>规则验证</td></tr>
+  <tr><td>竞争编程</td><td>30K</td><td>test case 通过率</td></tr>
+  <tr><td>软件工程 (SWE-like)</td><td>"几千"高质</td><td>容器沙箱执行,pass/fail</td></tr>
+  <tr><td>STEM/factual (含模糊答案)</td><td>~25K(混合)</td><td>GenRM 五级评分</td></tr>
+  <tr><td>开放域(写作 / instr-follow)</td><td>同上</td><td>pairwise reference 比较 ±1/0/-1</td></tr>
+</table>
+
+<h3>7.1 Curriculum: verifiable 先,general 后</h3>
+<p>启动阶段只喂可验证任务 → 模型学会"严格 step-by-step"。中段开始混入 general → 学会"在不可验证场景里自适应"。这与 R1 的两阶段 RL 思路一致,但 M1 把这种过渡做得更平滑(动态加权)。</p>
+
+<h3>7.2 GenRM 长度偏好的在线监控</h3>
+<p>非可验证任务的最大坑:GenRM 喜欢长答案 → policy 学到的不是"想得好"而是"写得多"。论文:</p>
+<ul>
+  <li>预先离线减弱(数据多样性 / 对抗样本)— <em>不够</em></li>
+  <li>RL 训练期间持续监控 length-vs-reward 关联 → 一旦发现"长且无质量提升",触发 GenRM 重训(recalibration)</li>
+  <li>同步开 reward shaping / value clipping / normalization 三件套兜底</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">8 · 关键 benchmark 结果解读</h2>
+
+<table>
+  <tr><th>类别 / Benchmark</th><th>M1-80k</th><th>DeepSeek-R1-0528</th><th>Qwen3-235B</th><th>OpenAI o3</th><th>解读</th></tr>
+  <tr><td>AIME 2024</td><td>86.0</td><td><strong>91.4</strong></td><td>85.7</td><td>91.6</td><td>纯数学略输 R1-0528</td></tr>
+  <tr><td>LiveCodeBench</td><td>65.0</td><td><strong>73.1</strong></td><td>65.9</td><td>75.8</td><td>普通编程同 Qwen3</td></tr>
+  <tr><td><strong>SWE-bench Verified</strong></td><td>56.0</td><td>57.6</td><td>34.4</td><td><strong>69.1</strong></td><td>开源仅次 R1-0528,远超 Qwen3</td></tr>
+  <tr><td><strong>TAU-bench airline</strong></td><td><strong>62.0</strong></td><td>53.5</td><td>34.7</td><td>52.0</td><td>超越 o3、Gemini-2.5 Pro</td></tr>
+  <tr><td><strong>OpenAI-MRCR (128K)</strong></td><td><strong>73.4</strong></td><td>51.5</td><td>27.7</td><td>56.5</td><td>超越 o3、Claude 4 Opus</td></tr>
+  <tr><td>OpenAI-MRCR (1M)</td><td>56.2</td><td>—</td><td>—</td><td>—</td><td>开源唯一能跑 1M 的</td></tr>
+  <tr><td>LongBench-v2</td><td>61.5</td><td>52.1</td><td>50.1</td><td>58.8</td><td>长上下文综合最强开源</td></tr>
+</table>
+
+<div class="nb">
+  <strong>读法提示:</strong>M1 的"故事"不是"刷新 AIME",而是 <em>real-world long-context + agentic</em> 三个维度上反超闭源 o3/Claude4。SWE-bench、TAU-bench、MRCR 才是它的主战场——这三个都是<em>需要 1M context + 长 reasoning</em>才能赢的场景。
+</div>
+
+<h3>8.1 RL Scaling 曲线</h3>
+<p>论文 Figure 4 给出 4000 step 的训练轨迹:</p>
+<ul>
+  <li>AIME 2024: 68% → 80%+,response 12K → 22K(都还在涨)</li>
+  <li>AIME 2025: 50% → 78%,response 14K → 28K</li>
+  <li>LiveCodeBench v5: 55% → 70%,response 14K → 22K</li>
+</ul>
+<p>"<strong>response 长度和 accuracy 强相关</strong>"是论文最强的实证: 模型自己学会了"想得长 = 想得对",而 RL 只提供了 reward,没要求长度。这是 test-time compute scaling 思想在 RL 训练里的直接证据。</p>
+
+<h3>8.2 80K vs 40K</h3>
+<p>同一 base + 同一 RL recipe,只是 thinking budget 翻倍:</p>
+<ul>
+  <li>AIME 2024: 83.3 → 86.0 (+2.7)</li>
+  <li>AIME 2025: 74.6 → 76.9 (+2.3)</li>
+  <li>LiveCodeBench: 62.3 → 65.0 (+2.7)</li>
+  <li>ZebraLogic: 80.1 → 86.8 (+6.7) 长 logic 增益最大</li>
+</ul>
+<p>边际收益不大但稳定,且每一项都是<em>难任务上更明显</em>。换言之:<strong>thinking budget 加倍,M1 把它实实在在地用了出来</strong>——这是 lightning attention 的"商业模式"在 ROI 层面成立的最终证明。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类 reasoning model 对比</h2>
+
+<table>
+  <tr><th>模型</th><th>架构</th><th>RL 算法</th><th>Max Output</th><th>Max Input</th><th>开源?</th></tr>
+  <tr><td>OpenAI o1 / o3</td><td>未知 (估 dense softmax)</td><td>未知</td><td>100K</td><td>200K</td><td><span class="no">否</span></td></tr>
+  <tr><td>Claude 4 Opus</td><td>未知</td><td>未知</td><td>32K</td><td>200K</td><td><span class="no">否</span></td></tr>
+  <tr><td>Gemini 2.5 Pro</td><td>未知 (有 1M 入口)</td><td>未知</td><td>64K</td><td>1M</td><td><span class="no">否</span></td></tr>
+  <tr><td>DeepSeek-R1 / R1-0528</td><td>MoE + softmax</td><td>GRPO</td><td>64K</td><td>128K</td><td><span class="ok">是</span></td></tr>
+  <tr><td>Qwen3-235B-A22B</td><td>MoE + softmax</td><td>未公开细节</td><td>32K</td><td>128K</td><td><span class="ok">是</span></td></tr>
+  <tr><td>QwQ-32B</td><td>dense + softmax</td><td>类 GRPO</td><td>32K</td><td>32K</td><td><span class="ok">是</span></td></tr>
+  <tr><td>Hunyuan-T1</td><td>Mamba (SSM)</td><td>未公开</td><td>~</td><td>~</td><td><span class="no">否</span></td></tr>
+  <tr><td><strong>MiniMax-M1-80k</strong></td><td><strong>Hybrid lightning + softmax MoE</strong></td><td><strong>CISPO</strong></td><td><strong>80K</strong></td><td><strong>1M</strong></td><td><span class="ok"><strong>是</strong></span></td></tr>
+  <tr><td>GPT-OSS 20B / 120B</td><td>MoE softmax</td><td>未公开</td><td>~32K</td><td>128K</td><td><span class="ok">是</span></td></tr>
+</table>
+
+<div class="nb">
+  M1 在这张表里独占两栏:<strong>"linear-attention 类的 reasoning model" + "context 上限 = 1M"</strong>。前者意味着 long-CoT FLOPs 优势,后者意味着 agentic / RAG 场景几乎无 ceiling。代价是数学/编程纯比拼上输 R1-0528——但这是 cherry-pick 比较,M1 的赛道是另一条。
+</div>
+
+<h3>9.1 与 R1-0528 的"角色对调"</h3>
+<p>R1-0528 走"短(32K input/64K output)+ 深"路线: 数学 / 编程极强,适合做 reasoning 引擎核。M1 走"长(1M/80K)+ 广"路线: 适合做 agent backbone(长记忆 + 工具调用)。这两类其实不是替代,是分工。</p>
+
+<h3>9.2 与 GPT-OSS / QwQ 的差异</h3>
+<p>GPT-OSS 和 QwQ 是"小一两个数量级"的 reasoning model(20B–32B 级别),适合 single-GPU。M1 是 frontier scale (456B total)——开源 reasoning 模型里目前的"上限"。架构上 M1 是唯一同时押注 hybrid linear + 大规模 RL 的开源工作。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>纯数学竞赛和 LiveCodeBench 仍输 R1-0528;dense recall 类任务上 hybrid 损失了一点点</li>
+  <li>GenRM 长度偏好需要在线监控,工程复杂度不低</li>
+  <li>Hybrid 架构的 kernel 兼容性 / FP16 精度问题需要专门修复(LM head 升 FP32),不像 dense softmax 那么"开箱即用"</li>
+  <li>456B / 45.9B 活跃参数对端侧不友好,产业界使用门槛高</li>
+</ul>
+
+<h3>我的疑问</h3>
+<ol>
+  <li>CISPO 对 reasoning RL 的 advantage 在 dense softmax 模型上是否同样大? 论文只在 Qwen2.5-32B 上验证了一次。如果 dense 也有 2× speedup,那 CISPO 可能就是新的 RL 默认。</li>
+  <li>"Wait/However 等反思 token r 极大,被 clip 砍掉" — 这一现象的本质,究竟是 hybrid 架构特有,还是 base model 训练分布的副作用? 如果是后者,SFT 阶段加点反思样本可能就化解了。</li>
+  <li>1M context 的 RL 训练实测效率论文未给。80K thinking budget 已经做到了,但 1M context 的 RL rollout 是否真的可承受? 抑或 1M 只是 inference 的能力,RL 训练只到 80K?</li>
+  <li>M1 的 lightning attention 在 RL rollout 中的内存优势如何量化? 论文主打 FLOPs 优势,但内存 (KV cache) 才是大模型 inference 的真正瓶颈。线性注意力的 state 是 d×d,与 L 无关,这在 80K trace 下应该是巨大的内存优势,但论文没强调。</li>
+  <li>SWE-bench 的 sandbox RL pipeline 实现细节论文偏少,但这部分是<em>真正难复现</em>的。开源时这部分代码会一起放吗?</li>
+  <li>$534K 的 RL 成本是否包括 base 的 continual pretraining (7.5T tokens)? 如果不算,总成本可能数倍于此,真实 ROI 需重新算。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> Hybrid lightning + RL 把 test-time scaling 这条路的 FLOPs 经济性兑现了一次<br>
+  <span class="pill">公式</span> CISPO: sg(clip(r, _, 1+ε)) · Â · ∇ log π — clip 限幅, 不杀 token<br>
+  <span class="pill">数字</span> 1M input / 80K output / 456B 总参 / 45.9B 活跃 / 25% R1 FLOPs @100K<br>
+  <span class="pill">陷阱</span> Hybrid 模型 LM head 必须 FP32, 否则 train/infer corr 0.987 → reward 不涨<br>
+  <span class="pill">扩展</span> 阶梯 length 40K→48K→…→80K, 切换看 PPL 收敛 + 99-percentile<br>
+  <span class="pill">主场</span> SWE-bench / TAU-bench / MRCR — 长 context + agentic 才是 M1 的赛道
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 · 配套论文 PDF: <code>/data/szhang967/papers/paper-notes/MiniMaxM1_2506.13585.pdf</code><br>
+  See also: <code>02_MiniMax01_2501.08313.html</code> (base 架构 / lightning attention 推导)
+</p>
+
+</main>
+
+<script>
+  // 本文图示均为静态结构图,不需要播放控制。保留 setOp 便于扩展。
+  function setOp(id, op){ var el=document.getElementById(id); if(el) el.setAttribute('opacity', op); }
+</script>
+
+</body>
+</html>

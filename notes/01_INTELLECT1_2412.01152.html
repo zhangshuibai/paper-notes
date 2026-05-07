@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · INTELLECT-1 (2412.01152)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>INTELLECT-1: Training a 10B Model Across 3 Continents</h1>
+<div class="meta">
+  Prime Intellect · Sami Jaghouar et al. · 2024-12-02 · arXiv:2412.01152<br>
+  关键词: decentralized training · DiLoCo · OpenDiLoCo · ElasticDeviceMesh · int8 all-reduce · FSDP2 · fault tolerance
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> 用 DiLoCo + int8 ring-all-reduce + 弹性 process group, 把 10B Llama-3-类模型横跨 5 国 3 大洲、最多 14 个动态进出的节点训练 1T tokens, 通信带宽相比标准 data parallel 砍掉 <strong>400×</strong>, 全球 MFU 仍达 36%。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">400×</div><div class="l">通信带宽缩减 (vs 标准 DP)</div></div>
+    <div class="stat"><div class="n">36–41%</div><div class="l">MFU (跨洲 / 美国内)</div></div>
+    <div class="stat"><div class="n">38 min : 2–10 min</div><div class="l">本地计算 : all-reduce 比例</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是一份<em>系统工程报告</em>, 不是新算法。亮点不在 DiLoCo 本身, 而是在 "公共互联网 + 不可靠节点 + 单机 8×H100" 这种从未被严肃认真处理的环境下, 把训练真正跑出来的工程实现 (PRIME framework + ElasticDeviceMesh)。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机: 为什么要去中心化, 以及为什么这件事很难</a></li>
+    <li><a href="#sec2">背景速查 (术语 / DiLoCo / FSDP)</a></li>
+    <li><a href="#sec3">DiLoCo 的内外两层优化器拆解</a></li>
+    <li><a href="#sec4">Int8 Ring-All-Reduce: 把通信量砍 4×</a></li>
+    <li><a href="#sec5">ElasticDeviceMesh: 双层并行的拓扑</a></li>
+    <li><a href="#sec6">容错系统: heartbeat / deathrattle / TSP 拓扑</a></li>
+    <li><a href="#sec7">带宽数学: 为什么标准 DP 在公网必死</a></li>
+    <li><a href="#sec8">实战数据: MFU / all-reduce 时延 / 节点动态</a></li>
+    <li><a href="#sec9">与 Megatron-LM / FSDP / 中心化 RLHF 栈对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机: 为什么去中心化, 以及为什么这事不平凡</h2>
+
+<h3>1.1 历史脉络: 从单卡到 InfiniBand 的一路爬坡</h3>
+<p>过去十年大模型训练的所有"加速史"本质都是<strong>把通信塞进越来越快的内网</strong>:</p>
+<ul>
+  <li><strong>2017 之前</strong>: 单机多卡, NVLink (300 GB/s), 通信几乎免费。</li>
+  <li><strong>2018–2020</strong>: 多机数据并行 + AllReduce。InfiniBand HDR (200 Gb/s) → NDR (400 Gb/s) → 现在的 <strong>3.2 Tb/s</strong>。Megatron-LM、DeepSpeed、FSDP 这套栈的设计前提都是"网内带宽接近 NVLink"。</li>
+  <li><strong>2022 起</strong>: Tensor + Pipeline + Data 三维并行, 跨机通信粒度更细 (每 layer / 每 microbatch 一次), 进一步绑定到内网。</li>
+  <li><strong>2023–2024</strong>: 训练集群规模到 32k GPU, 但全部来自<em>同一家公司、同一个数据中心、同一根光纤</em>。</li>
+</ul>
+
+<p>这条爬坡曲线带来一个隐含假设: <strong>"训练 = 高带宽内网"</strong>, 强到没人会去问"如果带宽掉一千倍呢?"</p>
+
+<p>2024 年开源社区开始反问这个假设, 因为:</p>
+<ul>
+  <li>前沿模型训练成本飙到 $100M+, 只有 5 家公司付得起。</li>
+  <li>开源生态有大量散落的 H100 节点 (Hugging Face, Together, Arcee, 个人捐赠者), 但没有一根 IB 把它们连起来。</li>
+  <li>DiLoCo (Douillard 2024) + OpenDiLoCo (Jaghouar 2024) 在算法层证明: 不需要每步同步, 模型也能收敛。</li>
+</ul>
+
+<p>INTELLECT-1 是把这条算法路线<em>真正在野外跑出来</em>的第一个 10B 规模实验: 5 国 3 洲, 30 家算力贡献方, 14 个并发节点, 1T tokens。</p>
+
+<h3>1.2 别的方案为什么"够呛"</h3>
+
+<table>
+  <tr><th>方案</th><th>跨洲带宽够不够</th><th>动态节点</th><th>致命问题</th></tr>
+  <tr><td>标准 Data Parallel (PyTorch DDP)</td><td><span class="no">远远不够</span> — 每步都要 all-reduce 整个 gradient (10B 模型 = 20 GB / step in fp16)</td><td>不支持</td><td>500 Mb/s 链路上, 一次 all-reduce 要数十分钟; 计算时间 1 分钟。<strong>通信比 ≈ 50:1</strong>。</td></tr>
+  <tr><td>FSDP (Fully Sharded DP)</td><td><span class="no">更糟</span> — 每个 layer 都要 all-gather 参数, 比 DDP 通信还频繁</td><td>不支持</td><td>诞生就是为了挤压 NVLink 带宽; 公网上是反向优化。</td></tr>
+  <tr><td>Pipeline Parallelism (GPipe / 1F1B)</td><td><span class="no">不行</span> — 每个 microbatch 在 stage 间传 activation</td><td>极难</td><td>P2P 带宽延迟敏感; 跨洲 100ms 延迟会让 pipeline bubble 爆炸。</td></tr>
+  <tr><td>Tensor Parallelism (Megatron)</td><td><span class="no">完全不行</span></td><td>不支持</td><td>每个 matmul 都要 all-reduce 中间结果, 必须 NVLink 级别。</td></tr>
+  <tr><td>Federated Learning (FedAvg)</td><td><span class="ok">够</span> — 通信非常稀疏</td><td>支持</td><td>设计给 non-IID + 隐私场景; 收敛速度慢 2–5×, <strong>不适合从零预训练</strong>。</td></tr>
+  <tr><td>Async SGD (Hogwild! / Hivemind)</td><td><span class="ok">够</span></td><td>支持</td><td>梯度 staleness 在 10B 规模上会显著伤收敛; 实际只有 MoE / embedding 这类容易并行化的层用得起。</td></tr>
+  <tr><td><strong>DiLoCo (本文)</strong></td><td><span class="ok">够</span> — 每 H=100–500 步同步一次</td><td><span class="ok">支持</span> (本文新增)</td><td>需要内/外两层 optimizer + 大量 CPU 内存放伪梯度</td></tr>
+</table>
+
+<div class="nb">
+  <strong>核心 trade-off:</strong> 算法层减少同步频率 (DiLoCo 的 H 步) + 系统层每次同步还要尽可能便宜 (int8 量化 + bandwidth-aware 拓扑) + 工程层容忍随时掉线节点 (heartbeat + 弹性 process group)。本论文 = 这三层<em>同时</em>解决。
+</div>
+
+<h3>1.3 为什么"naive sync 跨洲不可能" — 算一笔账</h3>
+
+<p>来一个具体的数字推演, 体会一下问题的尺度:</p>
+
+<ul>
+  <li>10B 参数, fp16 权重 = 20 GB; bf16 gradient 也是 20 GB。</li>
+  <li>标准 DDP: <strong>每个训练 step</strong> 都要做一次 all-reduce, 通信量 ≈ 2×(N−1)/N × 20 GB ≈ 40 GB (N=节点数, ring all-reduce 数学)。</li>
+  <li>跨洲带宽: 论文实测 <strong>500 Mb/s 到 4 Gb/s</strong>。取中位 1 Gb/s。</li>
+  <li>40 GB = 320 Gbit, 单链路 1 Gb/s → <strong>320 秒</strong>一次同步。</li>
+  <li>10B 模型在 8×H100 上一次 forward+backward 约 <strong>1 秒</strong>。</li>
+  <li>通信:计算 = 320:1。<strong>GPU 99.7% 时间在等网络</strong>。</li>
+</ul>
+
+<p>对比内网 (3.2 Tb/s):</p>
+<ul>
+  <li>40 GB / 3.2 Tb/s ≈ 0.1 秒, 通信:计算 = 0.1:1 → 还能 overlap。</li>
+</ul>
+
+<p><strong>三个数量级的带宽差异直接让 DDP 在公网"不可行", 不是慢, 是根本跑不动。</strong></p>
+
+<p>DiLoCo 的关键算法贡献: 把同步频率从"每 step"降到"每 H=100 step", 通信量从 40 GB/step 降到 40 GB / 100 step = 0.4 GB/step。再叠加 int8 量化 4× = 0.1 GB/step, 这就是论文宣称的 <strong>400× 通信带宽缩减</strong>。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <!-- Title -->
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">中心化 vs 去中心化训练拓扑</text>
+
+    <!-- LEFT: Centralized -->
+    <text x="170" y="50" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">中心化 (Megatron / FSDP)</text>
+    <text x="170" y="66" text-anchor="middle" font-size="10" fill="#5b5e66">单一数据中心, IB 3.2 Tb/s</text>
+
+    <!-- DC frame -->
+    <rect x="40" y="80" width="260" height="170" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-dasharray="4,3"/>
+    <text x="50" y="98" font-size="10" fill="#2f6feb">Data Center</text>
+
+    <!-- 9 nodes in DC -->
+    <g fill="#2f6feb">
+      <circle cx="80" cy="130" r="10"/><circle cx="170" cy="130" r="10"/><circle cx="260" cy="130" r="10"/>
+      <circle cx="80" cy="180" r="10"/><circle cx="170" cy="180" r="10"/><circle cx="260" cy="180" r="10"/>
+      <circle cx="80" cy="230" r="10"/><circle cx="170" cy="230" r="10"/><circle cx="260" cy="230" r="10"/>
+    </g>
+    <!-- thick fast lines (a few) -->
+    <g stroke="#2f6feb" stroke-width="2" opacity="0.6">
+      <line x1="80" y1="130" x2="170" y2="130"/><line x1="170" y1="130" x2="260" y2="130"/>
+      <line x1="80" y1="180" x2="170" y2="180"/><line x1="170" y1="180" x2="260" y2="180"/>
+      <line x1="80" y1="230" x2="170" y2="230"/><line x1="170" y1="230" x2="260" y2="230"/>
+      <line x1="80" y1="130" x2="80" y2="180"/><line x1="80" y1="180" x2="80" y2="230"/>
+      <line x1="170" y1="130" x2="170" y2="180"/><line x1="170" y1="180" x2="170" y2="230"/>
+      <line x1="260" y1="130" x2="260" y2="180"/><line x1="260" y1="180" x2="260" y2="230"/>
+    </g>
+    <text x="170" y="265" text-anchor="middle" font-size="10" fill="#2f6feb">每 step all-reduce, &lt;100 ms</text>
+
+    <!-- RIGHT: Decentralized -->
+    <text x="530" y="50" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">去中心化 (INTELLECT-1)</text>
+    <text x="530" y="66" text-anchor="middle" font-size="10" fill="#5b5e66">8 个数据中心, 公网 0.5–4 Gb/s</text>
+
+    <!-- 5 separated DCs as small frames -->
+    <rect x="380" y="85" width="60" height="40" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <circle cx="395" cy="105" r="6" fill="#cc4a1b"/><circle cx="415" cy="105" r="6" fill="#cc4a1b"/>
+    <text x="410" y="142" font-size="9" fill="#5b5e66">USA-W</text>
+
+    <rect x="475" y="85" width="60" height="40" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <circle cx="490" cy="105" r="6" fill="#cc4a1b"/><circle cx="510" cy="105" r="6" fill="#cc4a1b"/>
+    <text x="505" y="142" font-size="9" fill="#5b5e66">USA-E</text>
+
+    <rect x="570" y="85" width="60" height="40" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <circle cx="585" cy="105" r="6" fill="#cc4a1b"/><circle cx="605" cy="105" r="6" fill="#cc4a1b"/>
+    <text x="600" y="142" font-size="9" fill="#5b5e66">EU</text>
+
+    <rect x="380" y="170" width="60" height="40" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <circle cx="395" cy="190" r="6" fill="#cc4a1b"/><circle cx="415" cy="190" r="6" fill="#cc4a1b"/>
+    <text x="410" y="226" font-size="9" fill="#5b5e66">Asia</text>
+
+    <rect x="475" y="170" width="60" height="40" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <circle cx="490" cy="190" r="6" fill="#cc4a1b"/><circle cx="510" cy="190" r="6" fill="#cc4a1b"/>
+    <text x="505" y="226" font-size="9" fill="#5b5e66">EU-2</text>
+
+    <rect x="570" y="170" width="60" height="40" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <circle cx="585" cy="190" r="6" fill="#cc4a1b"/><circle cx="605" cy="190" r="6" fill="#cc4a1b"/>
+    <text x="600" y="226" font-size="9" fill="#5b5e66">USA-2</text>
+
+    <!-- thin slow lines forming ring -->
+    <g stroke="#cc4a1b" stroke-width="1" stroke-dasharray="3,2" opacity="0.7" fill="none">
+      <path d="M 440 105 L 475 105"/><path d="M 535 105 L 570 105"/>
+      <path d="M 600 125 L 600 170"/><path d="M 570 190 L 535 190"/>
+      <path d="M 475 190 L 440 190"/><path d="M 410 170 L 410 125"/>
+    </g>
+    <text x="530" y="265" text-anchor="middle" font-size="10" fill="#cc4a1b">每 H=100 step 同步一次, 2–10 min</text>
+  </svg>
+  <figcaption>左: 中心化训练所有节点在同一个 DC, IB 网内每 step 都同步, 通信 &lt; 100 ms 量级。右: INTELLECT-1 的拓扑, 节点散布在 8 个独立 DC, 用 Tailscale VPN 连成一个 ring, 每条链路 0.5–4 Gb/s, 是内网带宽的 1/1000。要让训练 viable 必须降低同步频率 + 压缩通信量 + 容错动态变化。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">DiLoCo</span></td><td>Distributed Low-Communication training (Douillard 2024)。Local SGD 的现代版: 每个 worker 跑 H 个 inner step (AdamW), 然后用 outer optimizer (Nesterov) 同步一次。</td></tr>
+  <tr><td><span class="term">OpenDiLoCo</span></td><td>本团队 2024 年的开源复现 (Jaghouar et al.), 在 1B 规模上验证 DiLoCo 跨洲可行。INTELLECT-1 是它的 10× 放大版本。</td></tr>
+  <tr><td><span class="term">PRIME</span></td><td>本论文的训练框架名, 含 ElasticDeviceMesh + int8 all-reduce + fault tolerance。</td></tr>
+  <tr><td><span class="term">ElasticDeviceMesh</span></td><td>PyTorch DeviceMesh 的弹性变体: 节点数<em>动态可变</em>, 同时管理 intra-node FSDP 组和 inter-node DiLoCo 组。</td></tr>
+  <tr><td><span class="term">Pseudo-gradient</span></td><td>DiLoCo 里跨节点同步的<em>不是</em>普通梯度, 而是 H 步内 inner optimizer 累积出来的参数变化量 Δθ = θ⁽ᵗ⁻¹⁾ − θᵢ⁽ᵗ⁾。</td></tr>
+  <tr><td><span class="term">Inner / Outer optimizer</span></td><td>Inner = 每个 worker 本地的 AdamW (跑 H 步); Outer = 跨 worker 同步用的 Nesterov SGD (每 H 步跑 1 步)。</td></tr>
+  <tr><td><span class="term">FSDP / FSDP2</span></td><td>Fully Sharded Data Parallel, PyTorch 的内存高效分片方案。FSDP2 是新一代 (DTensor based)。本文用 FSDP2 处理<em>节点内</em>。</td></tr>
+  <tr><td><span class="term">Ring All-Reduce</span></td><td>所有节点排成环, 每节点只与左右邻居通信, 总通信量 2(N−1)/N × |G|, 是公网上对带宽利用最友好的 collective。</td></tr>
+  <tr><td><span class="term">Heartbeat / deathrattle</span></td><td>本文的容错机制: 每个节点每 2s 向 master KV store 发心跳, 6s 无心跳即视为故障; 优雅退出时主动发"死亡声明"加速移除。</td></tr>
+  <tr><td><span class="term">Hivemind</span></td><td>Ryabinin 团队 (Together AI) 的去中心化训练库, 早期 baseline。</td></tr>
+  <tr><td><span class="term">Tailscale</span></td><td>基于 WireGuard 的 mesh VPN, 本文用它给所有节点建立私网 (Gloo collective 库要求节点处于同一私网)。</td></tr>
+  <tr><td><span class="term">MFU</span></td><td>Model FLOPS Utilization = 实际 throughput / 理论 peak FLOPS。论文报 36–41%。</td></tr>
+</table>
+
+<h3>2.2 DiLoCo 算法回顾</h3>
+<p>DiLoCo 把训练分成两层:</p>
+<div class="formula">
+  for outer step t = 1...T:<br>
+  &nbsp;&nbsp;for worker i = 1...k (并行):<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;θᵢ ← θ⁽ᵗ⁻¹⁾<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;for inner step h = 1...H:<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;θᵢ ← AdamW(θᵢ, ∇L(xᵢ, θᵢ))<br>
+  &nbsp;&nbsp;Δ⁽ᵗ⁾ ← (1/k) Σᵢ (θ⁽ᵗ⁻¹⁾ − θᵢ)  &nbsp;&nbsp;# pseudo-gradient<br>
+  &nbsp;&nbsp;θ⁽ᵗ⁾ ← Nesterov(θ⁽ᵗ⁻¹⁾, Δ⁽ᵗ⁾)
+</div>
+<p>关键洞察: <strong>Inner SGD 走得越远, outer 同步越像一个"路径平均"而不是"梯度平均"</strong>, 这一现象在 Local SGD (Stich 2019) 里有理论保证。代价: 在 batch 总量相同时, DiLoCo 比 DDP 的 sample efficiency 低一点点 (论文不展开, OpenDiLoCo 报 < 5%); 收益: 通信频率降到 1/H。</p>
+
+<hr>
+
+<h2 id="sec3">3 · DiLoCo 的内外两层优化器拆解</h2>
+
+<h3>3.1 数据流 — 一个具体 outer step 的轨迹</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 360" width="100%" style="max-width:680px">
+    <!-- Title -->
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">DiLoCo: 一个 outer step 的数据流</text>
+
+    <!-- Initial weight -->
+    <rect x="280" y="40" width="140" height="36" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="350" y="62" text-anchor="middle" font-size="12" fill="#2f6feb">θ⁽ᵗ⁻¹⁾ (CPU + GPU)</text>
+
+    <!-- Distribute to workers -->
+    <line x1="320" y1="76" x2="120" y2="105" stroke="#666" marker-end="url(#arrA)"/>
+    <line x1="350" y1="76" x2="350" y2="105" stroke="#666" marker-end="url(#arrA)"/>
+    <line x1="380" y1="76" x2="580" y2="105" stroke="#666" marker-end="url(#arrA)"/>
+
+    <!-- Three workers running inner H=100 steps -->
+    <g>
+      <rect x="40" y="110" width="160" height="100" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="120" y="130" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Worker 0 (USA)</text>
+      <text x="120" y="148" text-anchor="middle" font-size="10" fill="#3a3b40">θ₀ ← θ⁽ᵗ⁻¹⁾</text>
+      <text x="120" y="165" text-anchor="middle" font-size="10" fill="#3a3b40">100× AdamW step</text>
+      <text x="120" y="180" text-anchor="middle" font-size="10" fill="#3a3b40">on shard D₀</text>
+      <text x="120" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ θ₀⁽ᵗ⁾</text>
+    </g>
+    <g>
+      <rect x="270" y="110" width="160" height="100" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="350" y="130" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Worker 1 (EU)</text>
+      <text x="350" y="148" text-anchor="middle" font-size="10" fill="#3a3b40">θ₁ ← θ⁽ᵗ⁻¹⁾</text>
+      <text x="350" y="165" text-anchor="middle" font-size="10" fill="#3a3b40">100× AdamW step</text>
+      <text x="350" y="180" text-anchor="middle" font-size="10" fill="#3a3b40">on shard D₁</text>
+      <text x="350" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ θ₁⁽ᵗ⁾</text>
+    </g>
+    <g>
+      <rect x="500" y="110" width="160" height="100" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="580" y="130" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Worker 2 (Asia)</text>
+      <text x="580" y="148" text-anchor="middle" font-size="10" fill="#3a3b40">θ₂ ← θ⁽ᵗ⁻¹⁾</text>
+      <text x="580" y="165" text-anchor="middle" font-size="10" fill="#3a3b40">100× AdamW step</text>
+      <text x="580" y="180" text-anchor="middle" font-size="10" fill="#3a3b40">on shard D₂</text>
+      <text x="580" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ θ₂⁽ᵗ⁾</text>
+    </g>
+
+    <!-- bracket: 38 minutes of computation -->
+    <line x1="40" y1="220" x2="660" y2="220" stroke="#5b5e66" stroke-width="0.7"/>
+    <text x="350" y="234" text-anchor="middle" font-size="11" fill="#5b5e66">┃ 这一段大约 38 分钟, GPU 100% 在算 inner step ┃</text>
+
+    <!-- pseudo-grad -->
+    <g>
+      <rect x="100" y="248" width="500" height="38" rx="6" fill="#fff" stroke="#a8353e" stroke-dasharray="3,2"/>
+      <text x="350" y="270" text-anchor="middle" font-size="12" fill="#a8353e">每 worker 计算 Δᵢ = θ⁽ᵗ⁻¹⁾ − θᵢ⁽ᵗ⁾ &nbsp; (在 CPU 上, 不占 GPU 显存)</text>
+    </g>
+
+    <line x1="350" y1="286" x2="350" y2="305" stroke="#666" marker-end="url(#arrA)"/>
+
+    <!-- All-reduce -->
+    <rect x="160" y="305" width="380" height="38" rx="6" fill="#f8d7da" stroke="#a8353e" stroke-width="1.5"/>
+    <text x="350" y="320" text-anchor="middle" font-size="12" font-weight="600" fill="#a8353e">int8 ring all-reduce (跨洲, 2–10 min)</text>
+    <text x="350" y="336" text-anchor="middle" font-size="10" fill="#5b5e66">Δ⁽ᵗ⁾ = (1/k) Σ Δᵢ → Nesterov(θ⁽ᵗ⁻¹⁾, Δ⁽ᵗ⁾) → θ⁽ᵗ⁾</text>
+
+    <defs>
+      <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>一个 outer step 包含三阶段: ① 分发 θ⁽ᵗ⁻¹⁾ 给所有 worker (实际 CPU 上一直保留, 不需要传); ② 各 worker 跑 100 步本地 AdamW, 互不通信 — 这是 38 分钟的"自由飞行"; ③ 计算 pseudo-gradient Δᵢ 并 int8 量化 all-reduce, 在 outer optimizer 上做一步 Nesterov。注意: pseudo-gradient 的计算和外层优化都在 <strong>CPU</strong> 上完成, GPU 显存不增加。</figcaption>
+</div>
+
+<h3>3.2 Worked example: 跟踪一个具体的参数张量</h3>
+
+<p>设第 5 层的 attention output projection W ∈ ℝ⁴⁰⁹⁶ˣ⁴⁰⁹⁶, fp32 大小 = 64 MB。</p>
+
+<ol>
+  <li><strong>t=0 起点:</strong> 所有节点的 W 完全相同 (来自上一次 outer step 的同步, 或初始化)。</li>
+  <li><strong>Inner step 1 (worker 0, USA):</strong> 一个 batch 在 GPU 上跑 forward+backward, AdamW 更新 W → W' (差异 ~1e-5 量级)。</li>
+  <li><strong>Inner step 2..100 (worker 0):</strong> 继续, 每步差异累积。100 步后 W 与 t=0 的版本差异 ~1e-3 量级。其他 worker 在用<em>不同的数据 shard</em>做同样的事, 所以 100 步后 3 个 worker 的 W 已经显著分叉。</li>
+  <li><strong>Inner 完成 → CPU offload:</strong> Worker 0 计算 Δ₀ = W₀⁽⁰⁾ − W₀⁽¹⁰⁰⁾ ∈ ℝ⁴⁰⁹⁶ˣ⁴⁰⁹⁶, 这就是 pseudo-gradient。值的分布: 大致零均值, std ~1e-3。</li>
+  <li><strong>Int8 量化:</strong> 计算 µ ≈ 0, σ ≈ 1.2e-3。range = [−7.2e-3, 7.2e-3], 256 个 bucket, 每个 bucket 宽 ~5.6e-5。Δ₀ 量化成 uint8, 大小变成 16 MB (4× 缩减)。</li>
+  <li><strong>Ring all-reduce:</strong> 3 个 worker 的 Δ 在环上传一圈, 累加成 Δ̄ = (Δ₀ + Δ₁ + Δ₂) / 3 (累加在 fp32 中做, 仅传输 int8)。</li>
+  <li><strong>CPU 上 outer step:</strong> Nesterov 优化器把 Δ̄ 应用到 θ⁽ᵗ⁻¹⁾。本文用的超参: outer LR = 0.7, momentum = 0.9。</li>
+  <li><strong>θ⁽ᵗ⁾ 同步回 GPU:</strong> 所有 worker 复制更新后的 W 进入下一个 outer step。</li>
+</ol>
+
+<h3>3.3 反向论证: 为什么 outer LR = 0.7 这么大?</h3>
+<p>普通 SGD/Adam 的 LR 一般 1e-4 数量级, 这里 outer LR = 0.7 看起来像疯了。直觉:</p>
+<ul>
+  <li>Inner optimizer (AdamW) 已经在<em>参数空间</em>移动了相当大的距离 (100 步累积)。</li>
+  <li>Pseudo-gradient Δᵢ 不是一阶导数, 而是<strong>"如果只用我这个 shard, 100 步走多远"</strong>的位移向量。</li>
+  <li>Outer optimizer 的工作是<strong>"在多个 shard 走出来的位移之间做加权平均"</strong>, 想让最终效果接近"跑完 100 步全数据"。</li>
+  <li>0.7 接近 1.0 表示: 平均下来直接覆盖几乎全部位移。Nesterov 的 momentum=0.9 让多次 outer step 之间的方向有连贯性。</li>
+</ul>
+<p>把 outer LR 设成 1e-4 是错的: 那相当于把 100 步本地训练的成果<em>稀释 10000 倍</em>, 模型几乎不动。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Int8 Ring-All-Reduce: 把通信量再砍 4×</h2>
+
+<h3>4.1 量化策略 (uniform with clipping)</h3>
+<ol>
+  <li>对每个 tensor 分别算 µ 和 σ。</li>
+  <li>裁剪范围 = [µ − 6σ, µ + 6σ] (覆盖 ~99.9999% 数据点, 假设近高斯)。</li>
+  <li>把这个范围均匀分成 <strong>256 个 bucket</strong> (uint8 的码空间)。</li>
+  <li>codebook 值 = 每个 bucket 内数据的平均值 (而不是 bucket 中点)。</li>
+</ol>
+
+<p>这是 Hivemind (Ryabinin 2020) 的方案。<em>"取平均而非中点"</em>这个细节让量化误差最小化 — 它本质是把每个 bucket 的离散化误差降到该 bucket 的方差。</p>
+
+<h3>4.2 关键工程细节: 量化只用于传输, 累加保 fp32</h3>
+
+<p>论文反复强调:</p>
+<blockquote>(Q(a) + Q(b)) ≠ Q(a + b)</blockquote>
+<p>这是个简单但容易踩的坑: 如果你在量化空间里直接加, 误差会随节点数线性放大。<strong>正确做法</strong>: 接收方收到 int8 → 立即解量化回 fp32 → 在 fp32 上累加 → 发送前再量化。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Int8 Ring All-Reduce (3 节点, 流水线化)</text>
+
+    <!-- Three nodes in a ring -->
+    <circle cx="150" cy="160" r="40" fill="#e3f2fd" stroke="#2f6feb" stroke-width="2"/>
+    <text x="150" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Node A</text>
+    <text x="150" y="172" text-anchor="middle" font-size="10" fill="#5b5e66">fp32 acc</text>
+
+    <circle cx="550" cy="160" r="40" fill="#e3f2fd" stroke="#2f6feb" stroke-width="2"/>
+    <text x="550" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Node B</text>
+    <text x="550" y="172" text-anchor="middle" font-size="10" fill="#5b5e66">fp32 acc</text>
+
+    <circle cx="350" cy="240" r="40" fill="#e3f2fd" stroke="#2f6feb" stroke-width="2"/>
+    <text x="350" y="236" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Node C</text>
+    <text x="350" y="252" text-anchor="middle" font-size="10" fill="#5b5e66">fp32 acc</text>
+
+    <!-- Edges with int8 labels -->
+    <path d="M 190 160 Q 350 100 510 160" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#arrI)"/>
+    <text x="350" y="105" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">int8 chunk (4× 小)</text>
+    <text x="350" y="120" text-anchor="middle" font-size="9" fill="#5b5e66">payload 16 MB / 64 MB fp32</text>
+
+    <path d="M 525 195 Q 450 240 388 232" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#arrI)"/>
+    <text x="490" y="240" font-size="11" fill="#cc4a1b">int8</text>
+
+    <path d="M 312 232 Q 245 240 175 195" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#arrI)"/>
+    <text x="220" y="240" font-size="11" fill="#cc4a1b">int8</text>
+
+    <!-- inset box: per-node pipeline -->
+    <rect x="40" y="40" width="620" height="60" rx="8" fill="#fff" stroke="#888" stroke-dasharray="4,3"/>
+    <text x="350" y="58" text-anchor="middle" font-size="11" font-weight="600" fill="#3a3b40">每节点流水线 (overlap, C++ 多线程):</text>
+    <text x="350" y="76" text-anchor="middle" font-size="10" fill="#5b5e66">recv int8 → dequant fp32 → fp32 += local Δ → quant int8 → send</text>
+    <text x="350" y="92" text-anchor="middle" font-size="10" fill="#5b5e66">PyTorch 实现慢 60×, 自写 C++ 才能跟上 4 Gb/s 网卡</text>
+
+    <defs>
+      <marker id="arrI" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Int8 only on the wire。每条边传输 int8 chunk (4× payload 缩减), 但<em>每个节点内部</em>始终在 fp32 上累加, 避免量化误差累积。流水线化 (quant / dequant / 网络发送 三段重叠) 是把 PyTorch 朴素实现从 60× 慢加速到 wire-speed 的关键。</figcaption>
+</div>
+
+<h3>4.3 数字示例</h3>
+<p>10B 模型, fp32 pseudo-gradient = 40 GB。</p>
+<ul>
+  <li>Naive fp32 all-reduce, 14 节点 ring: 通信量 = 2×13/14 × 40 GB ≈ 74 GB</li>
+  <li>Int8 量化后: 74 GB / 4 = 18.5 GB</li>
+  <li>跨洲 1 Gb/s 链路: 18.5 GB × 8 / 1 Gb/s ≈ <strong>148 秒</strong></li>
+  <li>实测 median: USA 内 103 秒, USA+EU 382 秒, Global 469 秒 — 与上述带宽预算量级一致, 跨洲多花的时间主要来自网络抖动 (figure 4 的长尾)。</li>
+</ul>
+
+<h3>4.4 为什么对 pseudo-gradient 量化"更安全"</h3>
+<p>权重量化 (LLM.int8 等) 在大规模训练中已知会因 outlier 累积问题伤模型质量 (Dettmers 2022, Kumar 2024)。论文的论点:</p>
+<blockquote>
+  我们量化的不是<em>权重</em>而是<em>权重的差分 Δθ</em>。差分是"两个时间点权重的相对变化", outlier 在差分上比在绝对值上小得多, 量化噪声不会随训练进程系统性累积 — 每个 outer step 都是从同步点开始的"新差分"。
+</blockquote>
+<p>这个论点经验上 OK, 但论文承认<em>没有形式化证明</em>。1T tokens 的实验是事实证据。</p>
+
+<hr>
+
+<h2 id="sec5">5 · ElasticDeviceMesh: 双层并行的拓扑</h2>
+
+<p>关键工程问题: 一个节点内部 (8×H100) 想用 FSDP2 切分 10B 模型 (单卡放不下); 节点之间又要用 DiLoCo。这两套并行体系如何<em>共存</em>?</p>
+
+<h3>5.1 双重 rank 设计</h3>
+<p>每个 GPU 进程有<em>两个</em>身份:</p>
+<ul>
+  <li><code>local_rank</code>: 在自己节点内的位置 (0..M-1, M=节点内卡数, 通常 8)。FSDP 用它做 intra-node all-gather/reduce-scatter。</li>
+  <li><code>global_rank</code>: 在所有节点间这一类 shard 的位置 (0..N-1, N=节点数)。DiLoCo 用它做 inter-node all-reduce。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">ElasticDeviceMesh: Intra-node FSDP × Inter-node DiLoCo</text>
+
+    <!-- 3 nodes (columns), each with 4 ranks -->
+    <g>
+      <rect x="40" y="60" width="180" height="180" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="130" y="80" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Node 0 (USA)</text>
+      <rect x="55" y="95" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="130" y="115" text-anchor="middle" font-size="11">local_rank=0  shard 0</text>
+      <rect x="55" y="130" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="130" y="150" text-anchor="middle" font-size="11">local_rank=1  shard 1</text>
+      <rect x="55" y="165" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="130" y="185" text-anchor="middle" font-size="11">local_rank=2  shard 2</text>
+      <rect x="55" y="200" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="130" y="220" text-anchor="middle" font-size="11">local_rank=3  shard 3</text>
+    </g>
+    <g>
+      <rect x="260" y="60" width="180" height="180" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="350" y="80" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Node 1 (EU)</text>
+      <rect x="275" y="95" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="350" y="115" text-anchor="middle" font-size="11">local_rank=0  shard 0</text>
+      <rect x="275" y="130" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="350" y="150" text-anchor="middle" font-size="11">local_rank=1  shard 1</text>
+      <rect x="275" y="165" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="350" y="185" text-anchor="middle" font-size="11">local_rank=2  shard 2</text>
+      <rect x="275" y="200" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="350" y="220" text-anchor="middle" font-size="11">local_rank=3  shard 3</text>
+    </g>
+    <g>
+      <rect x="480" y="60" width="180" height="180" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="570" y="80" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Node 2 (Asia)</text>
+      <rect x="495" y="95" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="570" y="115" text-anchor="middle" font-size="11">local_rank=0  shard 0</text>
+      <rect x="495" y="130" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="570" y="150" text-anchor="middle" font-size="11">local_rank=1  shard 1</text>
+      <rect x="495" y="165" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="570" y="185" text-anchor="middle" font-size="11">local_rank=2  shard 2</text>
+      <rect x="495" y="200" width="150" height="30" rx="5" fill="#fff" stroke="#888"/><text x="570" y="220" text-anchor="middle" font-size="11">local_rank=3  shard 3</text>
+    </g>
+
+    <!-- intra-node FSDP arrows (vertical) -->
+    <g stroke="#2f6feb" stroke-width="1.5" opacity="0.5">
+      <path d="M 130 95 Q 30 165 130 230" fill="none" marker-end="url(#arrG)"/>
+      <path d="M 350 95 Q 250 165 350 230" fill="none" marker-end="url(#arrG)"/>
+      <path d="M 570 95 Q 470 165 570 230" fill="none" marker-end="url(#arrG)"/>
+    </g>
+    <text x="20" y="160" font-size="10" fill="#2f6feb" font-weight="600" transform="rotate(-90 20 160)">FSDP NVLink</text>
+
+    <!-- inter-node DiLoCo arrows (horizontal, only same shard) -->
+    <g stroke="#cc4a1b" stroke-width="2" stroke-dasharray="4,3">
+      <line x1="205" y1="110" x2="275" y2="110" marker-end="url(#arrR)"/>
+      <line x1="425" y1="110" x2="495" y2="110" marker-end="url(#arrR)"/>
+      <line x1="205" y1="145" x2="275" y2="145" marker-end="url(#arrR)"/>
+      <line x1="425" y1="145" x2="495" y2="145" marker-end="url(#arrR)"/>
+      <line x1="205" y1="180" x2="275" y2="180" marker-end="url(#arrR)"/>
+      <line x1="425" y1="180" x2="495" y2="180" marker-end="url(#arrR)"/>
+      <line x1="205" y1="215" x2="275" y2="215" marker-end="url(#arrR)"/>
+      <line x1="425" y1="215" x2="495" y2="215" marker-end="url(#arrR)"/>
+    </g>
+    <text x="350" y="265" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">DiLoCo: 只有<em>同 shard</em>的 rank 在跨节点通信 (4 个独立 ring)</text>
+
+    <defs>
+      <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#2f6feb"/>
+      </marker>
+      <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>双层 mesh: 节点内部 FSDP 把模型切成 4 个 shard, 用 NVLink 高速通信 (蓝色); 节点之间, <strong>只有持有同一个 shard 的 rank 才互相通信</strong>, 形成 4 个独立的跨洲 ring (红色虚线)。这样既保住 FSDP 的显存优势, 又让 DiLoCo 的跨节点通信不需要 reshard 整个模型。</figcaption>
+</div>
+
+<h3>5.2 工程结果</h3>
+<ul>
+  <li>FSDP2 让单节点能放 10B 模型 (单卡 H100 80GB 放不下完整模型, 必须 shard)。</li>
+  <li>跨节点同步只需传输自己持有的 shard 部分, 而非整个模型 — 通信量 / 节点数。</li>
+  <li>每个 shard 各自跑独立的 ring all-reduce, 互不阻塞。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · 容错系统: heartbeat / deathrattle / TSP 拓扑</h2>
+
+<h3>6.1 Three failure modes 及对应机制</h3>
+
+<table>
+  <tr><th>事件</th><th>检测方式</th><th>处理</th></tr>
+  <tr><td>新节点想加入</td><td>主动注册到 master KV store</td><td>P2P 下载 checkpoint (blocking, 30–60 min) → 加入下一个 outer step</td></tr>
+  <tr><td>节点优雅退出</td><td>"Deathrattle" 信号到 master KV</td><td>立即从 process group 移除, 不等 timeout</td></tr>
+  <tr><td>节点崩溃</td><td>2s 心跳, 6s 无响应即视为故障</td><td>剔除 → all-reduce 重试时排除该节点</td></tr>
+  <tr><td>All-reduce 中节点掉</td><td>collective op 超时</td><td>retry, exclude failed peer; 极端情况下从 checkpoint 恢复</td></tr>
+</table>
+
+<div class="fig">
+  <svg viewBox="0 0 700 320" width="100%" style="max-width:680px">
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">PRIME Fault-Tolerance State Machine</text>
+
+    <!-- Master KV in center -->
+    <rect x="280" y="130" width="140" height="60" rx="10" fill="#fff3cd" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="350" y="155" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Master KV Store</text>
+    <text x="350" y="173" text-anchor="middle" font-size="10" fill="#5b5e66">node registry + heartbeats</text>
+
+    <!-- Active nodes -->
+    <g id="ftNodes">
+      <circle id="n1" cx="100" cy="80" r="25" fill="#d4edda" stroke="#1f7a4a"/>
+      <text x="100" y="85" text-anchor="middle" font-size="11" fill="#1f7a4a">N1</text>
+      <text x="100" y="120" text-anchor="middle" font-size="9" fill="#5b5e66">USA</text>
+
+      <circle id="n2" cx="600" cy="80" r="25" fill="#d4edda" stroke="#1f7a4a"/>
+      <text x="600" y="85" text-anchor="middle" font-size="11" fill="#1f7a4a">N2</text>
+      <text x="600" y="120" text-anchor="middle" font-size="9" fill="#5b5e66">EU</text>
+
+      <circle id="n3" cx="100" cy="240" r="25" fill="#d4edda" stroke="#1f7a4a"/>
+      <text x="100" y="245" text-anchor="middle" font-size="11" fill="#1f7a4a">N3</text>
+      <text x="100" y="280" text-anchor="middle" font-size="9" fill="#5b5e66">Asia</text>
+
+      <circle id="n4" cx="600" cy="240" r="25" fill="#f8d7da" stroke="#a8353e" stroke-dasharray="3,2"/>
+      <text x="600" y="245" text-anchor="middle" font-size="11" fill="#a8353e">N4✗</text>
+      <text x="600" y="280" text-anchor="middle" font-size="9" fill="#a8353e">crashed</text>
+
+      <circle id="n5" cx="350" cy="290" r="25" fill="#cce5ff" stroke="#2f6feb" stroke-dasharray="3,2"/>
+      <text x="350" y="295" text-anchor="middle" font-size="11" fill="#2f6feb">N5+</text>
+      <text x="350" y="320" text-anchor="middle" font-size="9" fill="#2f6feb">joining</text>
+    </g>
+
+    <!-- heartbeats (dashed lines to KV) -->
+    <line x1="125" y1="95" x2="280" y2="145" stroke="#1f7a4a" stroke-dasharray="2,2"/>
+    <text x="195" y="115" font-size="9" fill="#1f7a4a">heartbeat 2s</text>
+    <line x1="575" y1="95" x2="420" y2="145" stroke="#1f7a4a" stroke-dasharray="2,2"/>
+    <line x1="125" y1="225" x2="280" y2="180" stroke="#1f7a4a" stroke-dasharray="2,2"/>
+
+    <!-- failed - red X with timeout note -->
+    <line x1="575" y1="225" x2="420" y2="180" stroke="#a8353e" stroke-width="1.5" opacity="0.4"/>
+    <text x="535" y="200" font-size="9" fill="#a8353e">no heartbeat &gt;6s → evict</text>
+
+    <!-- joining new node -->
+    <path d="M 350 265 Q 350 220 350 195" stroke="#2f6feb" stroke-dasharray="3,2" marker-end="url(#arrJ)"/>
+    <text x="375" y="240" font-size="9" fill="#2f6feb">register, request CP</text>
+
+    <!-- P2P checkpoint from N1 to N5 -->
+    <path d="M 125 95 Q 220 200 327 280" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#arrJ)"/>
+    <text x="180" y="170" font-size="10" fill="#cc4a1b" font-weight="600">P2P checkpoint (30-60 min)</text>
+
+    <defs>
+      <marker id="arrJ" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>容错系统全图。每个 active node 每 2 秒向 master KV store 发心跳 (绿色虚线), 6 秒无响应即视为崩溃 (右下 N4)。新节点 (N5) 加入需先到 KV 注册, 然后从任意 active peer P2P 下载 checkpoint, 30–60 分钟后在下一个 outer step 加入 ring。优雅退出会主动发 "deathrattle" 立即触发移除 (省去等心跳超时)。</figcaption>
+</div>
+
+<h3>6.2 Bandwidth-aware ring topology (Hamiltonian TSP variant)</h3>
+<p>Ring all-reduce 性能由<strong>环上最弱链路</strong>决定 (因为是 sequential)。论文用一个后台进程持续测量 pairwise 带宽, 每次 outer step 前重新计算最优环序:</p>
+
+<div class="formula">
+  max<sub>C ∈ Hamiltonian cycles</sub> &nbsp; min<sub>(u,v) ∈ C</sub> &nbsp; w(u, v)
+</div>
+
+<p>这是 max-min Hamiltonian cycle, NP-hard 但节点数 ≤ 14, 暴力枚举 14! ≈ 87B 太多, 但配合剪枝 (DP on subsets) 几秒内能解。</p>
+
+<h3>6.3 Worked example: blocking vs non-blocking checkpoint</h3>
+<p>论文同时实现了 non-blocking (新节点训练继续, 后台拉 checkpoint) 和 blocking (训练暂停, 同步拉) 两种新节点 onboard 策略。</p>
+
+<table>
+  <tr><th>策略</th><th>cluster utilization</th><th>稳定性</th><th>实际选择</th></tr>
+  <tr><td>Non-blocking</td><td>高 (训练不停)</td><td>新加入者初始几步出现 loss spike</td><td><span class="no">弃用</span></td></tr>
+  <tr><td>Blocking</td><td>低 (整个集群停 30–60 min)</td><td>完美同步</td><td><span class="ok">采用</span></td></tr>
+</table>
+<p>论点: 因为 onboard 频率低 (几天一次), blocking 总损失不到 1% 训练时间, 换来稳定性更划算。这是<strong>系统设计中"理论最优 ≠ 工程最优"的典型例子</strong>。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 带宽数学: 为什么标准 DP 在公网必死</h2>
+
+<h3>7.1 关键比例</h3>
+<div class="formula">
+  R = T_comm / T_compute
+</div>
+<p>当 R &lt; 0.1, GPU 大部分时间在算 (compute-bound, MFU 高); R &gt; 1 GPU 大部分时间等网 (network-bound, MFU 暴跌)。</p>
+
+<h3>7.2 三种配置的预算</h3>
+<table>
+  <tr><th>配置</th><th>同步频率</th><th>每次同步通信量</th><th>带宽</th><th>T_comm</th><th>T_compute (100 step)</th><th>R</th></tr>
+  <tr><td>DDP, 内网</td><td>每 step</td><td>40 GB</td><td>3.2 Tb/s</td><td>0.1s × 100 = 10s</td><td>~38 min</td><td><span class="ok">0.004</span></td></tr>
+  <tr><td>DDP, 公网</td><td>每 step</td><td>40 GB</td><td>1 Gb/s</td><td>320s × 100 = 9 hr</td><td>~38 min</td><td><span class="no">14</span></td></tr>
+  <tr><td>DiLoCo + fp32, 公网</td><td>每 100 step</td><td>40 GB</td><td>1 Gb/s</td><td>320s = 5.3 min</td><td>~38 min</td><td><span class="ok">0.14</span></td></tr>
+  <tr><td><strong>DiLoCo + int8, 公网</strong></td><td>每 100 step</td><td>10 GB</td><td>1 Gb/s</td><td>80s ≈ <strong>实测 100s</strong></td><td>~38 min</td><td><span class="ok">0.04</span></td></tr>
+</table>
+
+<p>结论: <strong>DiLoCo 的 100 步同步频率把 R 从 14 降到 0.14 (100×); int8 量化再降一档到 0.04 (4×)。两者共同把 GPU 从"99% 在等网"扭成"95% 在算"。</strong></p>
+
+<div class="nb">
+  <strong>"400× 通信缩减"</strong>这个广告语其实是 100 (DiLoCo H=100) × 4 (int8) = 400 的乘法。但只看通信量是 400× — 由于 DiLoCo 收敛比 DDP 慢一点点, "等价 token 数下" 真实节省略小。论文没量化这个 gap, OpenDiLoCo 报 < 5%。
+</div>
+
+<hr>
+
+<h2 id="sec8">8 · 实战数据</h2>
+
+<h3>8.1 三种地理拓扑的 MFU (Table 2 复刻)</h3>
+<table>
+  <tr><th>拓扑</th><th>MFU</th><th>Inner step time</th><th>Median all-reduce</th><th>Compute util</th></tr>
+  <tr><td>Baseline (无通信)</td><td>43.3%</td><td>38 min</td><td>—</td><td>100%</td></tr>
+  <tr><td>USA-only</td><td>41.4%</td><td>38 min</td><td>103 s</td><td>95.7%</td></tr>
+  <tr><td>USA + EU (跨大西洋)</td><td>37.1%</td><td>38 min</td><td>382 s</td><td>85.6%</td></tr>
+  <tr><td>Global (USA + EU + Asia)</td><td>36.0%</td><td>38 min</td><td>469 s</td><td>83.0%</td></tr>
+</table>
+<p><strong>读法:</strong> Inner step time 不变是因为它在节点内, 与跨洲网络无关。差距全在 all-reduce: 美国内 ~100s, 全球 ~470s, 4–5× 差距。MFU 从 43.3 → 36.0 损失只有 ~7 个百分点, 几乎全部由通信占比解释。</p>
+
+<h3>8.2 网络抖动 — 长尾比中位更头疼</h3>
+<p>Figure 4 显示 USA-only 的 all-reduce 时间相对集中 (80–180s), 但 Global 时长尾极重 (median 469s 但极端 1400s+)。这意味着<strong>训练总时间被最坏情况拖累</strong>, 不是被平均拖累。这就是为什么动态 TSP 拓扑优化 (§6.2) 重要 — 砍掉最弱链路。</p>
+
+<h3>8.3 节点动态 (Figure 5)</h3>
+<ul>
+  <li>训练从 4 节点开始, 逐步增长到 14 节点。</li>
+  <li>过程中节点频繁加入/退出 (每天数次)。</li>
+  <li>失败模式: 一次同时丢 4/12 节点, 训练不稳定 → 从 checkpoint 恢复。</li>
+</ul>
+
+<h3>8.4 最终模型质量 (Table 3 摘要)</h3>
+<p>10B INTELLECT-1 训 1T tokens, 与同期开源 baseline:</p>
+<table>
+  <tr><th>Model</th><th>Size</th><th>Tokens</th><th>MMLU</th><th>HellaSwag</th><th>ARC-C</th><th>GSM8K</th></tr>
+  <tr><td>INTELLECT-1</td><td>10B</td><td>1T</td><td>37.5</td><td>72.3</td><td>52.1</td><td>8.1</td></tr>
+  <tr><td>MPT-7B</td><td>7B</td><td>1T</td><td>26.8</td><td>77.4</td><td>46.7</td><td>8.3</td></tr>
+  <tr><td>LLaMA-7B</td><td>7B</td><td>1T</td><td>35.1</td><td>78.2</td><td>50.4</td><td>9.7</td></tr>
+  <tr><td>LLaMA2-7B</td><td>7B</td><td>2T</td><td>45.3</td><td>78.6</td><td>54.1</td><td>13.5</td></tr>
+</table>
+<p><strong>读法:</strong> INTELLECT-1 的 MMLU 略高于 LLaMA-7B (1T tokens 同等量级), 但落后于 LLaMA2-7B (2T tokens)。HellaSwag/ARC 略低 — 与基础 baseline 接近, 这是论文的核心声明: <strong>"去中心化训练得到的模型与同等规模 + 同等 token 数的中心化训练 comparable"</strong>。这不是 SOTA 论文, 是<strong>可行性 demonstration</strong>。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>定位</th><th>关键差异</th></tr>
+  <tr><td>Megatron-LM (NVIDIA)</td><td>中心化, TP+PP+DP, 最大化 IB 带宽</td><td>无法跑公网; 设计前提就是 1+ Tb/s 内网。INTELLECT-1 在它做不到的环境下补位。</td></tr>
+  <tr><td>FSDP / FSDP2 (PyTorch)</td><td>中心化, 显存高效</td><td>每 layer all-gather, 公网爆炸。INTELLECT-1 把 FSDP 限定在<em>单节点内</em>使用。</td></tr>
+  <tr><td>DeepSpeed ZeRO</td><td>中心化, 显存优化</td><td>同 FSDP, 跨节点通信密集。</td></tr>
+  <tr><td>Hivemind (Together AI / Ryabinin)</td><td>去中心化, async SGD + decentralized averaging</td><td>更早的工作, 原生支持公网, 但没在 10B 规模做严肃预训练; INTELLECT-1 复用了它的 int8 量化策略。</td></tr>
+  <tr><td>DiLoCo (Google DeepMind)</td><td>算法层 — 内外两层 optimizer</td><td>论文层面证明可行 (1B 规模), 但没有开源生产级实现 + 没解决 fault tolerance。</td></tr>
+  <tr><td>OpenDiLoCo (Prime Intellect, 2024)</td><td>本团队上一篇, DiLoCo 开源复现</td><td>本论文是它的 10× 放大 + 容错系统。</td></tr>
+  <tr><td>RLHF / RLOO 中心化栈 (NeMo-RL, OpenRLHF)</td><td>不同问题域 — 后训练而非预训练</td><td>RL post-training 对通信容忍更高 (rollout 占大头), 但还没有公开尝试公网 RL post-training 的工作。INTELLECT-1 之后这是自然延伸。</td></tr>
+  <tr><td>Federated Learning (FedAvg)</td><td>同样减少同步, 但用于客户端 ML</td><td>FL 假设 non-IID + 隐私; INTELLECT-1 是 IID + 公开训练。算法本质 (LocalSGD) 是同一家族。</td></tr>
+  <tr><td><strong>INTELLECT-1 (本文)</strong></td><td>10B 规模、公网、动态节点的<em>系统集成</em></td><td>不是新算法, 是把 DiLoCo + Hivemind 量化 + FSDP + 自研容错栈缝合到 production。</td></tr>
+</table>
+
+<div class="nb">
+  <strong>关注点提示:</strong> Megatron / FSDP / DeepSpeed 是<em>内网生态</em>, INTELLECT-1 是<em>公网生态</em>。这两个生态的工程设计目标几乎是镜像反着的: 内网追求"通信密度极致", 公网追求"通信稀疏极致"。把内网工具直接搬到公网会全军覆没, 反之亦然。
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认或我看到的局限</h3>
+<ul>
+  <li>10B 规模仍小; 真正的前沿模型 ~400B。DiLoCo 在 100B+ 是否仍 viable, 论文没数据 (但仿真层面没有明显障碍)。</li>
+  <li>Tailscale (WireGuard VPN) 自己成了瓶颈 — 论文 §2.5 说"intercontinental data transfer 时被 Tailscale 拖累", 后续用自研 PCCL 直接走 public IP。</li>
+  <li>Outer optimizer 的超参 (LR=0.7, momentum=0.9) 没做大量消融, 在更大规模可能要重调。</li>
+  <li>"400× 通信缩减"实质是 100×4, 但 DiLoCo 的<em>有效</em>通信缩减 (考虑收敛慢) 没量化。</li>
+  <li>极端故障 (一次掉 4/12 节点) 仍要 checkpoint 回滚 — 真正的"continuous training under failure" 没解决。</li>
+  <li>Blocking checkpoint onboard 30–60 min 全集群停止, 在更大集群上是个开关阻塞问题。</li>
+  <li>Asia 节点的 all-reduce 中位 469s, p99 超过 1400s — 长尾决定上限, 实际上 Asia 节点拖累整个集群。</li>
+</ul>
+
+<h3>我的疑问 (落地后想验证)</h3>
+<ol>
+  <li>H=100 是个超参, 不同规模 / 不同数据 mix 下最优 H 怎么选? 论文说"up to 500" 但实际用 100, 没消融。</li>
+  <li>Pseudo-gradient 量化的 [µ−6σ, µ+6σ] 裁剪假设近高斯, 但 transformer 在 outlier 显著的 layer (LayerNorm, embedding) 是否需要 per-tensor 不同 σ multiplier?</li>
+  <li>Outer optimizer 用 Nesterov, 不用 Adam — 直觉是 outer step 数太少 Adam 的 second moment 估计不准。但有人试过 Adam outer 吗?</li>
+  <li>FSDP2 单节点放 10B 没问题, 但放 70B+ 单节点就爆了, 那时需要节点内 TP, TP 又不能跨节点。在去中心化场景 70B+ 训练的拓扑是怎样的?</li>
+  <li>Async DiLoCo (worker 不等彼此, lag 一个 outer step) 能更好处理慢节点, 论文未试。</li>
+  <li>P2P checkpoint 30–60 min 是因为模型 ~20 GB / 1 Gb/s. 这个时间随模型规模线性增长, 100B 模型就要 5+ hr P2P, blocking 几乎不可接受。</li>
+  <li>对节点贡献者的<em>激励</em> (Bitcoin 比喻) 这个论文只在 §4 讨论里提了一句, 但实操是 30 家自愿者 — 真正的"激励驱动 decentralized AI"还没起来。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> 这是<em>工程系统</em>论文, 不是新算法; 把 DiLoCo + int8 + FSDP + 容错缝合到 production<br>
+  <span class="pill">公式</span> 通信缩减 = H (DiLoCo) × 4 (int8) = 400× <br>
+  <span class="pill">数字</span> 38 min 算 : 2-10 min 通信; MFU 36-41%<br>
+  <span class="pill">关键 trick</span> Pseudo-gradient 量化比 weight 量化安全, 因为差分上 outlier 小<br>
+  <span class="pill">工程哲学</span> Blocking checkpoint &gt; non-blocking, 因为稳定性 &gt; 利用率; outer LR=0.7 因为 pseudo-grad 本身就是大位移<br>
+  <span class="pill">陷阱</span> Tailscale 跨洲会自己变瓶颈; Q(a)+Q(b)≠Q(a+b), 累加必须 fp32<br>
+  <span class="pill">陷阱</span> Ring all-reduce 取决于最弱链路, 必须 bandwidth-aware TSP 重排<br>
+  <span class="pill">语境</span> 内网生态 (Megatron/FSDP) 与公网生态 (DiLoCo/Hivemind) 设计目标镜像相反
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF 在 <code>/data/szhang967/papers/paper-notes/INTELLECT1_2412.01152.pdf</code>
+</p>
+
+</main>
+</body>
+</html>
