@@ -96,6 +96,7 @@
   <ol>
     <li><a href="#sec1">EAGLE-1: feature 级自回归 + shifted token</a></li>
     <li><a href="#sec2">EAGLE-2: confidence 校准 + dynamic draft tree</a></li>
+    <li><a href="#sec-tree">Tree Verification 详解(原理 / 效率 / 设计)</a></li>
     <li><a href="#sec3">EAGLE-3: 拆 feature loss + 多层融合 + training-time test</a></li>
     <li><a href="#sec4">DFlash: 用 block diffusion 替代 autoregressive drafter</a></li>
     <li><a href="#sec5">演化轨迹: 一根线索 + 一次范式分叉</a></li>
@@ -299,6 +300,511 @@
 <h3>2.4 与 v1 的差异</h3>
 <p>关键在于 EAGLE-2 <strong>不动 draft model 训练、不动 verification</strong>,只重写"怎么从 draft model 多次 forward 的输出里挑出最值得 verify 的 token 集合"。所以一份 EAGLE-1 的 draft checkpoint 直接套上 v2 的 search 逻辑就能拿到收益——这也是 v2 论文反复强调"out-of-the-box"的原因。</p>
 <div class="nb">实操要点:静态树的 layout 隐藏了一个常被忽略的成本——<em>verification 的 attention 长度</em>。EAGLE-1 26-token 树意味着每个 verify forward 都要算 ~26-len 的 tree-attn;EAGLE-2 通过 rerank 选 top-m 后,m 通常更小(8–16),但 acceptance length 反而高,verify forward 更便宜。</div>
+
+<hr>
+
+<h2 id="sec-tree">§ Tree Verification 详解 — 从 chain 到 tree,再到动态树</h2>
+
+<p><em>这是一节穿插在 EAGLE-2 与 EAGLE-3 之间的"机制深读"。EAGLE-2 把 dynamic tree 推向主流之后,tree verification 已经成为整个 spec decoding 生态(SpecInfer / Medusa / EAGLE / Sequoia / DDTree / Mirror-SD)的<strong>共享原语</strong>。本节抽出来单独讲清三件事:它<em>是什么</em>、它为什么<em>有用</em>、它<em>怎么设计</em>。后面 EAGLE-3 / DFlash 都会反复引用本节。</em></p>
+
+<h3 id="sec-tree-a">A · 什么是 tree verification(对比 chain)</h3>
+
+<p>朴素的 speculative decoding 是<strong>单链(chain)</strong>:draft model 串行生成 t̂₁ → t̂₂ → … → t̂_d,然后 target 一次 forward 把这条链 verify 一遍。问题是 acceptance 在深度上是<strong>乘性</strong>的——令 α 表示 per-token acceptance,d 步链全部通过的概率是 α^d。α=0.7、d=4 已经只剩 0.24,d=8 是 0.058。哪怕你 draft model 训得再好,链越长,"白干"概率指数级上升。</p>
+
+<p>Tree 的思路:既然单条链的"赌注"很容易输,那就<strong>同时下多条注</strong>,而且让它们共享前缀。在 tree 里,每个 draft 步可以扩出 2、3 或 k 个候选;深度 d 的二叉树有 2^(d+1) − 1 个节点(d=4 是 31),它们的 KV 在共享前缀上是同一份。target 仍然只跑<strong>一次</strong> forward,通过精心设计的 attention mask 一次性把整棵树都 verify 出每个节点的"假设我接受了我所有祖先,我自己被接受的概率是多少"。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arrT1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <text x="360" y="20" font-size="13" font-weight="bold" text-anchor="middle">Chain (左) vs Binary Tree (右) — 同样 4 步深度</text>
+
+    <!-- chain side -->
+    <text x="160" y="48" font-size="11" font-weight="bold" text-anchor="middle">Chain: 4 个候选 token</text>
+    <circle cx="60" cy="100" r="14" fill="#9aa6c4"/><text x="60" y="104" font-size="9" text-anchor="middle" fill="white">root</text>
+    <line x1="74" y1="100" x2="96" y2="100" stroke="#5b5e66" marker-end="url(#arrT1)"/>
+    <circle cx="110" cy="100" r="14" fill="#9aa6c4"/><text x="110" y="104" font-size="9" text-anchor="middle" fill="white">t₁</text>
+    <line x1="124" y1="100" x2="146" y2="100" stroke="#5b5e66" marker-end="url(#arrT1)"/>
+    <circle cx="160" cy="100" r="14" fill="#9aa6c4"/><text x="160" y="104" font-size="9" text-anchor="middle" fill="white">t₂</text>
+    <line x1="174" y1="100" x2="196" y2="100" stroke="#5b5e66" marker-end="url(#arrT1)"/>
+    <circle cx="210" cy="100" r="14" fill="#9aa6c4"/><text x="210" y="104" font-size="9" text-anchor="middle" fill="white">t₃</text>
+    <line x1="224" y1="100" x2="246" y2="100" stroke="#5b5e66" marker-end="url(#arrT1)"/>
+    <circle cx="260" cy="100" r="14" fill="#9aa6c4"/><text x="260" y="104" font-size="9" text-anchor="middle" fill="white">t₄</text>
+
+    <text x="160" y="155" font-size="11" text-anchor="middle">P(全接受) = α⁴</text>
+    <text x="160" y="172" font-size="11" text-anchor="middle" fill="#a8353e">α=0.7 → 0.24</text>
+    <text x="160" y="195" font-size="10" text-anchor="middle" fill="#5b5e66">期望接受长度 ≈ α/(1−α) = 2.33</text>
+    <text x="160" y="212" font-size="10" text-anchor="middle" fill="#5b5e66">cap 为 d=4</text>
+
+    <!-- tree side -->
+    <text x="540" y="48" font-size="11" font-weight="bold" text-anchor="middle">Binary tree: 1+2+4+8+16=31 候选</text>
+    <circle cx="540" cy="78" r="11" fill="#cc4a1b"/><text x="540" y="82" font-size="8" text-anchor="middle" fill="white">r</text>
+    <line x1="540" y1="89" x2="500" y2="105" stroke="#5b5e66"/>
+    <line x1="540" y1="89" x2="580" y2="105" stroke="#5b5e66"/>
+    <circle cx="495" cy="115" r="9" fill="#cc4a1b"/>
+    <circle cx="585" cy="115" r="9" fill="#cc4a1b"/>
+    <line x1="495" y1="124" x2="475" y2="140" stroke="#5b5e66"/>
+    <line x1="495" y1="124" x2="515" y2="140" stroke="#5b5e66"/>
+    <line x1="585" y1="124" x2="565" y2="140" stroke="#5b5e66"/>
+    <line x1="585" y1="124" x2="605" y2="140" stroke="#5b5e66"/>
+    <circle cx="473" cy="148" r="7" fill="#9aa6c4"/>
+    <circle cx="517" cy="148" r="7" fill="#9aa6c4"/>
+    <circle cx="563" cy="148" r="7" fill="#9aa6c4"/>
+    <circle cx="607" cy="148" r="7" fill="#9aa6c4"/>
+    <!-- depth 4 leaves -->
+    <line x1="473" y1="155" x2="465" y2="170" stroke="#bcc3d6"/>
+    <line x1="473" y1="155" x2="481" y2="170" stroke="#bcc3d6"/>
+    <line x1="517" y1="155" x2="509" y2="170" stroke="#bcc3d6"/>
+    <line x1="517" y1="155" x2="525" y2="170" stroke="#bcc3d6"/>
+    <line x1="563" y1="155" x2="555" y2="170" stroke="#bcc3d6"/>
+    <line x1="563" y1="155" x2="571" y2="170" stroke="#bcc3d6"/>
+    <line x1="607" y1="155" x2="599" y2="170" stroke="#bcc3d6"/>
+    <line x1="607" y1="155" x2="615" y2="170" stroke="#bcc3d6"/>
+    <circle cx="463" cy="175" r="4" fill="#bcc3d6"/><circle cx="481" cy="175" r="4" fill="#bcc3d6"/>
+    <circle cx="507" cy="175" r="4" fill="#bcc3d6"/><circle cx="525" cy="175" r="4" fill="#bcc3d6"/>
+    <circle cx="553" cy="175" r="4" fill="#bcc3d6"/><circle cx="571" cy="175" r="4" fill="#bcc3d6"/>
+    <circle cx="597" cy="175" r="4" fill="#bcc3d6"/><circle cx="615" cy="175" r="4" fill="#bcc3d6"/>
+
+    <text x="540" y="200" font-size="11" text-anchor="middle">P(≥1 路径全过) = 1−(1−α^d)^w</text>
+    <text x="540" y="217" font-size="11" text-anchor="middle" fill="#1f7a4a">α=0.7, w=16 → 0.999</text>
+    <text x="540" y="240" font-size="10" text-anchor="middle" fill="#5b5e66">期望接受长度更高,且 verify 成本</text>
+    <text x="540" y="255" font-size="10" text-anchor="middle" fill="#5b5e66">仍是 1 次 target forward</text>
+  </svg>
+  <figcaption>同样深度 4 的两种结构。链上输了一步整条作废;tree 里只要<em>有一条</em>路径全程通过,就拿到 d 个 token——而且即使没全过,也能拿到"最长前缀"。这就是 tree verification 的杠杆。</figcaption>
+</div>
+
+<p>注意一个常见误解:tree 并不要求 target 跑 31 次。target 永远是一次 forward,只是 input 长度从 4 变成 31。GPU 的瓶颈是 <em>memory-bound</em> decode,从 4 → 31 token 的 self-attention 在 H100 上几乎不增加 wall-clock(因为 KV 已经 cached,只需要算 query × 31 个 key 的点积),代价主要是 31 次 LM head 的 softmax。这正是 spec decoding 把"算力换 latency"的核心交易。</p>
+
+<h3 id="sec-tree-b">B · Tree attention mask 的具体形态</h3>
+
+<p>实现层面,tree verification 把整棵树<strong>flatten 成一个序列</strong>送入 target,然后用一个特制的 attention mask 强制每个节点<strong>只看到自己在树里的祖先</strong>(不能看兄弟、不能看堂表亲)。这样每个节点的 hidden state 都等价于"假设这条路径就是真实续写,我应该长成什么样"。</p>
+
+<p>看一个具体的小树。flatten 顺序按 BFS,序列长度 7:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arrT2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <text x="360" y="18" font-size="13" font-weight="bold" text-anchor="middle">7 节点 tree → 7×7 attention mask(causal-on-ancestors)</text>
+
+    <!-- left: tree -->
+    <text x="140" y="50" font-size="11" font-weight="bold" text-anchor="middle">Tree(节点编号 = flatten 索引)</text>
+    <circle cx="140" cy="80" r="13" fill="#cc4a1b"/><text x="140" y="84" font-size="10" text-anchor="middle" fill="white">0</text>
+    <line x1="140" y1="93" x2="100" y2="120" stroke="#5b5e66"/>
+    <line x1="140" y1="93" x2="180" y2="120" stroke="#5b5e66"/>
+    <circle cx="95" cy="135" r="13" fill="#9aa6c4"/><text x="95" y="139" font-size="10" text-anchor="middle" fill="white">1</text>
+    <circle cx="185" cy="135" r="13" fill="#9aa6c4"/><text x="185" y="139" font-size="10" text-anchor="middle" fill="white">2</text>
+    <line x1="95" y1="148" x2="65" y2="180" stroke="#5b5e66"/>
+    <line x1="95" y1="148" x2="125" y2="180" stroke="#5b5e66"/>
+    <line x1="185" y1="148" x2="155" y2="180" stroke="#5b5e66"/>
+    <line x1="185" y1="148" x2="215" y2="180" stroke="#5b5e66"/>
+    <circle cx="60" cy="195" r="12" fill="#bcc3d6"/><text x="60" y="199" font-size="9" text-anchor="middle">3</text>
+    <circle cx="130" cy="195" r="12" fill="#bcc3d6"/><text x="130" y="199" font-size="9" text-anchor="middle">4</text>
+    <circle cx="150" cy="195" r="12" fill="#bcc3d6"/><text x="150" y="199" font-size="9" text-anchor="middle">5</text>
+    <circle cx="220" cy="195" r="12" fill="#bcc3d6"/><text x="220" y="199" font-size="9" text-anchor="middle">6</text>
+
+    <text x="140" y="240" font-size="10" text-anchor="middle">flatten: [0, 1, 2, 3, 4, 5, 6]</text>
+    <text x="140" y="258" font-size="10" text-anchor="middle">parent: [-, 0, 0, 1, 1, 2, 2]</text>
+    <text x="140" y="280" font-size="10" text-anchor="middle">ancestors(5) = {0, 2}</text>
+    <text x="140" y="298" font-size="10" text-anchor="middle">attention(5) → 0, 2, 5(自己)</text>
+
+    <!-- right: mask matrix -->
+    <text x="500" y="50" font-size="11" font-weight="bold" text-anchor="middle">7×7 mask (v=可看, ·=屏蔽)</text>
+
+    <!-- header column labels -->
+    <g font-family="monospace" font-size="11">
+      <text x="380" y="78" text-anchor="middle" fill="#5b5e66">k=</text>
+      <text x="408" y="78" text-anchor="middle">0</text>
+      <text x="436" y="78" text-anchor="middle">1</text>
+      <text x="464" y="78" text-anchor="middle">2</text>
+      <text x="492" y="78" text-anchor="middle">3</text>
+      <text x="520" y="78" text-anchor="middle">4</text>
+      <text x="548" y="78" text-anchor="middle">5</text>
+      <text x="576" y="78" text-anchor="middle">6</text>
+
+      <!-- row 0 -->
+      <text x="380" y="100" text-anchor="middle" fill="#5b5e66">q=0</text>
+      <text x="408" y="100" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="436" y="100" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="464" y="100" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="492" y="100" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="520" y="100" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="548" y="100" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="576" y="100" text-anchor="middle" fill="#bcc3d6">·</text>
+
+      <!-- row 1 -->
+      <text x="380" y="122" text-anchor="middle" fill="#5b5e66">q=1</text>
+      <text x="408" y="122" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="436" y="122" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="464" y="122" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="492" y="122" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="520" y="122" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="548" y="122" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="576" y="122" text-anchor="middle" fill="#bcc3d6">·</text>
+
+      <!-- row 2 -->
+      <text x="380" y="144" text-anchor="middle" fill="#5b5e66">q=2</text>
+      <text x="408" y="144" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="436" y="144" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="464" y="144" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="492" y="144" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="520" y="144" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="548" y="144" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="576" y="144" text-anchor="middle" fill="#bcc3d6">·</text>
+
+      <!-- row 3 -->
+      <text x="380" y="166" text-anchor="middle" fill="#5b5e66">q=3</text>
+      <text x="408" y="166" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="436" y="166" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="464" y="166" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="492" y="166" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="520" y="166" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="548" y="166" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="576" y="166" text-anchor="middle" fill="#bcc3d6">·</text>
+
+      <!-- row 4 -->
+      <text x="380" y="188" text-anchor="middle" fill="#5b5e66">q=4</text>
+      <text x="408" y="188" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="436" y="188" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="464" y="188" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="492" y="188" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="520" y="188" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="548" y="188" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="576" y="188" text-anchor="middle" fill="#bcc3d6">·</text>
+
+      <!-- row 5 -->
+      <text x="380" y="210" text-anchor="middle" fill="#5b5e66">q=5</text>
+      <text x="408" y="210" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="436" y="210" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="464" y="210" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="492" y="210" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="520" y="210" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="548" y="210" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="576" y="210" text-anchor="middle" fill="#bcc3d6">·</text>
+
+      <!-- row 6 -->
+      <text x="380" y="232" text-anchor="middle" fill="#5b5e66">q=6</text>
+      <text x="408" y="232" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="436" y="232" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="464" y="232" text-anchor="middle" fill="#1f7a4a">v</text>
+      <text x="492" y="232" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="520" y="232" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="548" y="232" text-anchor="middle" fill="#bcc3d6">·</text>
+      <text x="576" y="232" text-anchor="middle" fill="#1f7a4a">v</text>
+    </g>
+
+    <!-- frame -->
+    <rect x="395" y="85" width="195" height="158" fill="none" stroke="#bcc3d6"/>
+
+    <text x="500" y="265" font-size="10" text-anchor="middle" fill="#5b5e66">每行非零项数 = 该节点深度 + 1</text>
+    <text x="500" y="282" font-size="10" text-anchor="middle" fill="#5b5e66">非 strictly lower-triangular(节点 2 不能看节点 1)</text>
+    <text x="500" y="300" font-size="10" text-anchor="middle" fill="#cc4a1b">这就是和 causal mask 唯一的区别</text>
+  </svg>
+  <figcaption>对比 causal mask 是 strictly lower-triangular(q=2 能看 k=0,1);tree mask 里 q=2 看不到 k=1,因为节点 1 不是节点 2 的祖先。每行的"v"个数等于该节点在树里的深度+1。整张 mask 是 sparse 的,实现上常用 <code>flash-attn</code> 的 variable-length 接口或自定义 block-sparse kernel。前缀 prompt 那部分仍然是 full causal,只在 tree 这 7 个 token 上启用 ancestor-only mask。</figcaption>
+</div>
+
+<p><strong>正确性论证</strong>:每个 tree 节点 t<sub>i</sub> 经过 self-attention 之后得到的 hidden state h<sub>i</sub>,实际上等价于把"prompt + Path(root, t<sub>i</sub>)"作为一个普通 causal 序列单独跑出来的结果——因为它能且只能 attend 到自己的祖先。这意味着 target 给出的 logit p_target(· | t<sub>i</sub>) 在数学上和"如果只 verify 这一条路径"得到的 logit 完全一致。所以 tree 没有引入任何额外近似,后面的 rejection sampling 可以照搬。</p>
+
+<h3 id="sec-tree-c">C · Tree 下的 lossless 保证</h3>
+
+<p>spec decoding 是 lossless 的(target 的 marginal token 分布和它单独 decode 一致),这一点在 chain 上由 <a href="15_Lossless_Proof_Tutorial.html">rejection sampling 教程</a> 给出严格证明。Tree 的版本只需要把"沿着唯一一条路径做 rejection"换成"沿着<strong>当前选中的路径</strong>做 rejection,reject 时切到对应 fallback":</p>
+
+<div class="formula">accept t̂<sub>i</sub> w.p. min(1, p<sub>target</sub>(t̂<sub>i</sub>) / p<sub>draft</sub>(t̂<sub>i</sub>))</div>
+
+<p>这里关键点是<strong>每个 tree 节点的"draft 分布"是它父节点位置上的那次 draft forward 给出的</strong>(因为兄弟节点共享父亲)。验证算法:</p>
+
+<ol>
+  <li>从 root 的孩子里挑出 draft 概率最高的一个,运行 rejection 测试。如果通过,推进到这个孩子,继续向下。</li>
+  <li>如果<em>这一层的某个孩子</em> reject 了,对照<strong>同层其它兄弟</strong>:把已 reject 节点的 draft 概率从父位置的 target 分布里"扣掉"(得到 residual),再用 residual 对剩下的兄弟做一次试探。这就是 SpecInfer 的 multi-candidate rejection。</li>
+  <li>若整层兄弟都 reject,则在父位置从 residual 分布里 sample 一个 token 作为 bonus,中止。</li>
+</ol>
+
+<p><strong>"longest accepted prefix" 输出规则</strong>:对每条 root → leaf 路径都跑这个 sequential rejection,沿着 tree 的连接逐级深入,直到第一次 reject 或到达 leaf。最终 commit 的就是<em>第一次 reject 之前那段路径</em>。注意这条 commit 路径在 tree 里是<em>唯一</em>的,所以输出是良定义的。</p>
+
+<p>为什么这不破坏 marginal?——因为 rejection 在每一层都是独立进行的,而每一层"成功 sample 出的 token"的分布严格等于 p<sub>target</sub>。tree 只是<em>降低</em>了某层全部 reject 的概率(因为同一位置有多个候选,任意一个被接受就不需要 fallback),但 fallback 一旦被触发,它仍是从 residual 分布精确 sample 的。所以 marginal 一致。</p>
+
+<div class="nb">这点和 Mirror-SD 的 <em>branch-complete tree</em> 关联紧密(<a href="09_MirrorSD_2510.13161.html">参见 09 Mirror-SD</a>):Mirror-SD 要求每层把 vocabulary 的 top-k 都补齐成"完整"分支,这样 rejection 算法的 residual 几乎总能被某个兄弟吸收,fallback 概率几乎为 0,等效 acceptance 暴涨。</div>
+
+<h3 id="sec-tree-d">D · 效率分析:加速从哪里来,代价是什么</h3>
+
+<h4>D.1 Acceptance 概率的数学</h4>
+
+<p>令 α 为 per-token acceptance(独立同分布近似),d 为深度,w 为最深一层的"路径数"。</p>
+<ul>
+  <li><strong>Chain</strong>:全程通过 = α^d。期望接受长度 E[L] = (1−α^d) / (1−α) − 1 ≈ α/(1−α) 当 d 足够大。</li>
+  <li><strong>Binary tree(depth d, 完全二叉)</strong>:最深层有 2^d 条路径,但它们彼此并不独立(共享前缀)。粗略上界 P(至少一条路径全过) ≤ 1 − (1 − α^d)^(2^d)。</li>
+</ul>
+
+<p>下表用 α = 0.7 计算:</p>
+<table>
+  <tr><th>结构</th><th>d=2</th><th>d=4</th><th>d=6</th><th>d=8</th></tr>
+  <tr><td>Chain α^d</td><td>0.49</td><td>0.24</td><td>0.118</td><td>0.058</td></tr>
+  <tr><td>Binary tree (1−(1−α^d)^(2^d))</td><td>0.84</td><td>0.98</td><td>0.999</td><td>~1</td></tr>
+  <tr><td>节点数 (2^(d+1)−1)</td><td>7</td><td>31</td><td>127</td><td>511</td></tr>
+  <tr><td>期望接受长度(实测,Vicuna-7B)</td><td>~1.7</td><td>~3.5</td><td>~4.8</td><td>~5.2</td></tr>
+</table>
+
+<p>看到关键转折:从 chain 到 binary tree,d=4 时全程通过概率从 0.24 跳到 0.98——但 verify 的输入长度从 4 涨到 31,大约 8× 个 LM head softmax。这交易在<strong>memory-bound 的 decode 阶段</strong>是赚的(GPU 闲着也是闲着),所以才有 EAGLE-1 的 ~3× speedup。</p>
+
+<h4>D.2 成本分解</h4>
+<p>tree verification 的实际开销有三块:</p>
+<ul>
+  <li><strong>Tree-attention 的 attention 计算</strong>:N 个节点对 prompt(长度 P)做 cross-attn 是 O(N·P);tree 内部的 self-attn 是 O(N²) 但 mask 很 sparse(总共 O(N · avg_depth))。N 在 30~60 时,这一项几乎被 LM head 盖过。</li>
+  <li><strong>LM head + softmax</strong>:N · |V| 的矩阵乘。|V|=128k 时 N=60 大约 7.6M FLOPs(其实仍很便宜),但<strong>显存带宽</strong>是真瓶颈——LM head weight ~0.5GB,要被读 N 次。</li>
+  <li><strong>KV cache 内存</strong>:每个 tree 节点都要写入它自己的 K/V。N=60、layer=32、hidden=4096、bf16 → 60 × 32 × 4096 × 2 × 2 ≈ 30 MB。乘以 verify 步数,几百兆很常见;对长 prompt 的 server 是不可忽略的开销。如果 verify 失败的节点还把 KV 留下来,KV cache 会被污染——所以实现上必须做 KV rollback(EAGLE 用 page-level cache、Mirror-SD 用 paged-attention)。</li>
+</ul>
+
+<h4>D.3 Speedup 分解公式</h4>
+<div class="formula">speedup = E[L] / (1 + C_tree(N) / t_target)</div>
+<p>其中 E[L] 是期望接受长度,t_target 是 target 单步 forward 时间,C_tree(N) 是 N 节点 tree 的额外开销(主要是 LM head 多算 N−1 次)。所以加大 N → E[L] 涨,但 C_tree(N) 也线性涨,直到某个 N* 后边际收益跌破 1。</p>
+
+<p>EAGLE-1 论文的 ablation 显示:N=26(深度 5 的 binary tree)是 7B/13B 上的甜蜜点;EAGLE-2 通过 dynamic rerank 把<em>有效</em> N 压到 8–16 同时 E[L] 反而提高。N=60 之后 throughput 普遍掉头向下(LM head 已经吃满,带宽打满)。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <text x="360" y="20" font-size="13" font-weight="bold" text-anchor="middle">全程接受概率 vs 深度: chain 指数衰减,binary tree 几乎不衰减</text>
+
+    <!-- axes -->
+    <line x1="80" y1="240" x2="640" y2="240" stroke="#5b5e66"/>
+    <line x1="80" y1="240" x2="80" y2="50" stroke="#5b5e66"/>
+    <text x="640" y="258" font-size="11" text-anchor="middle">depth d</text>
+    <text x="60" y="55" font-size="11" text-anchor="middle">P</text>
+
+    <!-- y ticks -->
+    <line x1="76" y1="60" x2="80" y2="60" stroke="#5b5e66"/><text x="68" y="64" font-size="9" text-anchor="end">1.0</text>
+    <line x1="76" y1="105" x2="80" y2="105" stroke="#5b5e66"/><text x="68" y="109" font-size="9" text-anchor="end">0.75</text>
+    <line x1="76" y1="150" x2="80" y2="150" stroke="#5b5e66"/><text x="68" y="154" font-size="9" text-anchor="end">0.50</text>
+    <line x1="76" y1="195" x2="80" y2="195" stroke="#5b5e66"/><text x="68" y="199" font-size="9" text-anchor="end">0.25</text>
+    <line x1="76" y1="240" x2="80" y2="240" stroke="#5b5e66"/><text x="68" y="244" font-size="9" text-anchor="end">0</text>
+
+    <!-- x ticks -->
+    <g font-size="10" text-anchor="middle">
+      <text x="150" y="256">2</text>
+      <text x="220" y="256">3</text>
+      <text x="290" y="256">4</text>
+      <text x="360" y="256">5</text>
+      <text x="430" y="256">6</text>
+      <text x="500" y="256">7</text>
+      <text x="570" y="256">8</text>
+    </g>
+
+    <!-- chain α^d (α=0.7): d=2..8 → 0.49, 0.343, 0.24, 0.168, 0.118, 0.082, 0.058 -->
+    <!-- y = 240 - 180*p; for p=0.49→152, 0.343→178, 0.24→197, 0.168→210, 0.118→219, 0.082→225, 0.058→230 -->
+    <polyline points="150,152 220,178 290,197 360,210 430,219 500,225 570,230"
+              fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <circle cx="150" cy="152" r="3" fill="#cc4a1b"/>
+    <circle cx="220" cy="178" r="3" fill="#cc4a1b"/>
+    <circle cx="290" cy="197" r="3" fill="#cc4a1b"/>
+    <circle cx="360" cy="210" r="3" fill="#cc4a1b"/>
+    <circle cx="430" cy="219" r="3" fill="#cc4a1b"/>
+    <circle cx="500" cy="225" r="3" fill="#cc4a1b"/>
+    <circle cx="570" cy="230" r="3" fill="#cc4a1b"/>
+    <text x="585" y="234" font-size="10" fill="#cc4a1b">chain</text>
+
+    <!-- binary tree: 1−(1−α^d)^(2^d) at α=0.7 d=2..8: 0.836, 0.948, 0.985, 0.997, ~1, ~1, ~1 -->
+    <!-- y = 240 - 180*p; 0.836→89, 0.948→69, 0.985→63, 0.997→61, 1→60 -->
+    <polyline points="150,89 220,69 290,63 360,61 430,60 500,60 570,60"
+              fill="none" stroke="#1f7a4a" stroke-width="2"/>
+    <circle cx="150" cy="89" r="3" fill="#1f7a4a"/>
+    <circle cx="220" cy="69" r="3" fill="#1f7a4a"/>
+    <circle cx="290" cy="63" r="3" fill="#1f7a4a"/>
+    <circle cx="360" cy="61" r="3" fill="#1f7a4a"/>
+    <circle cx="430" cy="60" r="3" fill="#1f7a4a"/>
+    <circle cx="500" cy="60" r="3" fill="#1f7a4a"/>
+    <circle cx="570" cy="60" r="3" fill="#1f7a4a"/>
+    <text x="585" y="64" font-size="10" fill="#1f7a4a">binary tree</text>
+
+    <!-- ternary tree (w=3): 1−(1−α^d)^(3^d): d=2→0.94, d=4→0.999+ -->
+    <polyline points="150,71 220,62 290,60 360,60 430,60 500,60 570,60"
+              fill="none" stroke="#2f6feb" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="585" y="74" font-size="10" fill="#2f6feb">w=3 (ref)</text>
+
+    <text x="360" y="270" font-size="10" text-anchor="middle" fill="#5b5e66">α = 0.7,理想假设;实测因 confidence 非独立会略低,但形状一致</text>
+  </svg>
+  <figcaption>Chain 在 d=4 后已经掉到 0.24 以下,继续加深几乎无意义;binary tree 在 d=3 已经 0.95+,d=4 后基本饱和。这解释了为什么实践中 tree 深度通常 4–6 就够,继续加深的边际收益被 verify 成本反吃。Mirror-SD 这类 branch-complete tree 等价于 w → |V|,曲线整体上推。</figcaption>
+</div>
+
+<h3 id="sec-tree-e">E · 怎么设计一棵 tree</h3>
+
+<p>设计的本质是<strong>给定 N(节点预算),怎么放才能最大化 E[L]</strong>。N 通常受 verify 的 GPU 显存与 LM head 带宽约束(典型 16–64)。</p>
+
+<h4>E.1 Static tree(EAGLE-1 / Medusa / SpecInfer 早期)</h4>
+<p>固定拓扑,常见的两种:</p>
+<ul>
+  <li><strong>完全二叉树</strong>(Medusa, EAGLE-1): 深度 d,节点 2^(d+1)−1。简单但浪费——所有节点的预算分配相同,无视它们的局部 confidence。</li>
+  <li><strong>Sequoia-style 优化静态树</strong>: 用 offline benchmark 测每个 (depth, branch) 的平均 acceptance,再用动态规划把 N 个节点放到使 E[L] 最大的位置。结果通常是一个"上左密、下右稀"的不规则树。</li>
+</ul>
+
+<p>静态树的根本问题已经在 EAGLE-2 被指出:<strong>同一个位置的 acceptance 在不同 query 上跨度很大</strong>(0.1–1.0)。静态最优解只是<em>边缘分布</em>意义上的最优,在任何具体 query 上都不会真正最优。</p>
+
+<h4>E.2 Dynamic tree(EAGLE-2): expand & rerank</h4>
+<p>把 tree 的设计拆成两步,关键是用 <strong>draft confidence 当 acceptance 的 proxy</strong>(2.1 节里讨论过 well-calibrated 性质)。给每个节点定义全局 value:</p>
+<div class="formula">V<sub>i</sub> = ∏<sub>j ∈ Path(root, t<sub>i</sub>)</sub> c<sub>j</sub></div>
+<p>其中 c<sub>j</sub> 是 draft model 在节点 j 输出 token 时的 softmax 概率。</p>
+
+<p><strong>Expand 阶段</strong>(m 次迭代,m = 树深度):</p>
+<ol>
+  <li>初始化:tree = {root}。</li>
+  <li>循环 m 次:从 frontier(当前最深一层)选 V 最大的 top-k 个节点,送给 draft 模型 forward 一次,生成它们各自的 top-k 子节点;把这些子节点加入 tree。</li>
+  <li>结束时 tree 大概有 1 + k + k² + … + k^m 个节点;但因为 top-k 的剪枝,实际节点数远小于满二叉。</li>
+</ol>
+
+<p><strong>Rerank 阶段</strong>:把 tree 里所有节点(含未扩展的浅节点)按 V 排序,取 top-N 作为最终送 verify 的<em>子树</em>。一个关键引理: <em>"按 V 取 top-N 得到的节点集合天然是连通子树"</em>——因为 V 沿着路径单调下降,所以任何被选中的节点的祖先 V 都更大、必然也被选中。</p>
+
+<h4>E.3 Worked example: dynamic 扩展一步</h4>
+<p>假设当前 frontier 有 4 个节点,V 分别为 {0.95, 0.6, 0.3, 0.05}。budget k=2:</p>
+<ol>
+  <li>选 V=0.95 和 V=0.6 两个 expand,丢弃 V=0.3 和 V=0.05(它们的 path 太弱,继续挖也会很快掉到 0.1 以下)。</li>
+  <li>对前者 draft forward,假设 top-2 子 confidence = {0.9, 0.4} → 子节点 V 分别 = {0.95×0.9, 0.95×0.4} = {0.855, 0.38}。</li>
+  <li>对后者 draft forward,top-2 = {0.7, 0.2} → 子 V = {0.42, 0.12}。</li>
+  <li>新 frontier = {0.855, 0.42, 0.38, 0.12}。继续下一轮。</li>
+</ol>
+<p>注意 0.42 > 0.38 — 更弱父亲的强孩子 反超 强父亲的弱孩子。这种<em>跨支比较</em>正是静态树做不到的地方。</p>
+
+<h4>E.4 Best-first heap(DDTree)</h4>
+<p>EAGLE-2 是 layer-synchronous 的(一层一层扩);DDTree(<a href="16_DDTree_2604.12989.html">参见 16</a>)进一步指出 layer 同步浪费:某些路径明显比其他路径强,应该<em>只</em>它们继续往下挖。DDTree 把 frontier 用 max-heap 维护,每次只 pop V 最大那一个 expand,不管它在哪一层。这相当于一个 best-first search,在 block diffusion drafter 上能拿到比 EAGLE-2 更高的 E[L](因为 diffusion drafter 一次出一整 block,best-first 能跨 block 比较 V)。</p>
+
+<h4>E.5 Node-budget 怎么调</h4>
+<p>实操经验:</p>
+<ul>
+  <li>对 Vicuna-7B / LLaMA-3-8B,N=24–32 是 throughput 拐点。</li>
+  <li>大模型(70B+)上,因为单 forward 时间长,N 可以放到 60+ 还赚。</li>
+  <li>Code 任务(HumanEval、CommitMessage)上 acceptance 高,可以减小 N(20 左右),省 verify。</li>
+  <li>Reasoning 任务(GSM8K、MATH)上 acceptance 低,需要更大 N;但深度上很难超过 6,因为 confidence 衰减太快。</li>
+</ul>
+
+<h3 id="sec-tree-f">F · 跨论文对比</h3>
+
+<table>
+  <tr>
+    <th>方法</th>
+    <th>Tree topology</th>
+    <th>Expansion 策略</th>
+    <th>Drafter 类型</th>
+    <th>核心 trade-off</th>
+  </tr>
+  <tr>
+    <td>SpecInfer (Miao 23)</td>
+    <td>静态 token tree</td>
+    <td>多个独立 SSM,各产一条 chain → 拼成 tree</td>
+    <td>多个小 AR draft model</td>
+    <td>多模型成本高;tree 不共享前缀</td>
+  </tr>
+  <tr>
+    <td>Medusa (Cai 24)</td>
+    <td>静态笛卡尔积 tree</td>
+    <td>K 个独立 head 各 top-k,笛卡尔积</td>
+    <td>多 head,无 AR</td>
+    <td>head 之间独立 → acceptance 卡 0.6</td>
+  </tr>
+  <tr>
+    <td>EAGLE-1</td>
+    <td>静态二叉,深度 5,~26 节点</td>
+    <td>每节点强制扩 2 子</td>
+    <td>1 层 AR drafter on feature</td>
+    <td>结构 context-blind</td>
+  </tr>
+  <tr>
+    <td>EAGLE-2</td>
+    <td>动态子树,N=8–16 经 rerank</td>
+    <td>Layer-synchronous expand top-k by V</td>
+    <td>同 v1,只改 search</td>
+    <td>逐层同步,深路径浪费 budget</td>
+  </tr>
+  <tr>
+    <td>Sequoia (Chen 24)</td>
+    <td>静态优化拓扑</td>
+    <td>Offline DP 对边缘 acceptance</td>
+    <td>独立 small AR</td>
+    <td>静态,但优化粒度细</td>
+  </tr>
+  <tr>
+    <td>DDTree (2604.12989)</td>
+    <td>动态,heap-driven</td>
+    <td>Best-first by global V</td>
+    <td>Block diffusion drafter</td>
+    <td>需要 frontier heap 实现;diffusion-aware</td>
+  </tr>
+  <tr>
+    <td>Mirror-SD (2510.13161)</td>
+    <td>Branch-complete tree</td>
+    <td>每层 top-|V'| 全展(V' ≪ V)</td>
+    <td>Mirror drafter</td>
+    <td>显存 / 带宽换 acceptance,extreme</td>
+  </tr>
+  <tr>
+    <td>DFlash (2602.06036)</td>
+    <td><em>无 tree</em>,平面 block</td>
+    <td>Block diffusion 一次出 16 token(平行不分支)</td>
+    <td>5-layer block diffusion</td>
+    <td>放弃 tree 的"多假设"换并行性</td>
+  </tr>
+</table>
+
+<h3 id="sec-tree-g">G · 完整 worked example: 一棵深度 2 的二叉 tree 全流程</h3>
+
+<p>假设 prompt = "积分等于",vocab = {一, 二, 三, 五},target 模型 LLaMA-7B-zh,draft 用 EAGLE-1 head。要求构造一棵深度 2、宽度 2 的完整二叉 tree(7 个节点),走完一轮 verify。</p>
+
+<h4>Step 1: Draft 第一层</h4>
+<p>Draft model 拿到 hidden state h_等于 + token "等于",输出 logit;softmax 后 top-2:</p>
+<ul>
+  <li>node 1: "一", c₁ = 0.7</li>
+  <li>node 2: "五", c₂ = 0.2</li>
+</ul>
+<p>(其余 vocab confidence 太低,忽略)</p>
+
+<h4>Step 2: Draft 第二层(2 次 forward,batched)</h4>
+<p>对 node 1("一"),draft model 输入 h_一(由 EAGLE 的特征自回归算出来) + token "一",输出 top-2:</p>
+<ul>
+  <li>node 3: "百", c₃ = 0.6 → V₃ = 0.7 × 0.6 = 0.42</li>
+  <li>node 4: "千", c₄ = 0.3 → V₄ = 0.7 × 0.3 = 0.21</li>
+</ul>
+<p>对 node 2("五"),输出:</p>
+<ul>
+  <li>node 5: "百", c₅ = 0.4 → V₅ = 0.2 × 0.4 = 0.08</li>
+  <li>node 6: "十", c₆ = 0.5 → V₆ = 0.2 × 0.5 = 0.10</li>
+</ul>
+
+<h4>Step 3: Flatten + 构 mask</h4>
+<p>Tree(BFS 顺序):[root, 一, 五, 百₁, 千, 百₂, 十],节点编号 0..6。Mask 与本节 B 部分给出的 7×7 矩阵相同(只是 token 内容不同)。</p>
+<p>Per-node 全局 V: [1.0, 0.7, 0.2, 0.42, 0.21, 0.08, 0.10]。</p>
+
+<h4>Step 4: Target 一次 forward</h4>
+<p>Target 在 prompt + 7 个 tree token 上跑一次,得到每个节点位置的 next-token 分布 p_target(· | path)。具体数值假设:</p>
+<table>
+  <tr><th>节点</th><th>token</th><th>p_draft</th><th>p_target(this token | parent path)</th></tr>
+  <tr><td>1</td><td>一</td><td>0.7</td><td>0.85</td></tr>
+  <tr><td>2</td><td>五</td><td>0.2</td><td>0.05</td></tr>
+  <tr><td>3</td><td>百</td><td>0.6</td><td>0.55</td></tr>
+  <tr><td>4</td><td>千</td><td>0.3</td><td>0.25</td></tr>
+  <tr><td>5</td><td>百</td><td>0.4</td><td>0.30</td></tr>
+  <tr><td>6</td><td>十</td><td>0.5</td><td>0.20</td></tr>
+</table>
+
+<h4>Step 5: Sequential rejection,跟随最优路径</h4>
+<p><strong>Layer 1</strong>:在 root 这一层,先比较 node 1 和 node 2(它们都对应 root 的 child)。</p>
+<ul>
+  <li>选 V 最大的 node 1("一"):accept w.p. min(1, 0.85/0.7) = 1.0 → <span class="ok">接受</span>,推进到 node 1。</li>
+</ul>
+
+<p><strong>Layer 2</strong>:在 node 1 这一层,看它的 children(node 3, node 4)。</p>
+<ul>
+  <li>选 V 最大的 node 3("百"):accept w.p. min(1, 0.55/0.6) = 0.917。假设这次 sample 取 0.7 < 0.917 → <span class="ok">接受</span>,推进到 node 3。</li>
+  <li>(若 node 3 reject,会用 residual 试探 node 4,若都失败则在 node 1 位置 fallback sample。)</li>
+</ul>
+
+<h4>Step 6: 收尾</h4>
+<p>到达 node 3(leaf),tree 走完。Commit 的 token 序列 = ["一", "百"](沿 root → 1 → 3 的路径)。再加上 target 在 node 3 位置上 sample 出的<strong>bonus token</strong>(就是它在 node 3 hidden 上的 next-token 分布 sample)——假设 bonus = "万",最终输出三个 token。</p>
+
+<p><strong>对照</strong>:同样深度的 chain 只能尝试 ["一", "百"] 这一条;如果 chain 选错(比如 chain 第一步 sample 了 "五"),就会在第一步直接 reject、commit 0 个 token。Tree 通过同时下两个一层注 + 两个二层注,把"全程通过"概率从 α² ≈ 0.49 推到 ~0.84。一次 verify forward,3 个 commit token,wall-clock 约等于 1 次普通 decode + 30% 的 LM head + tree-attn overhead。</p>
+
+<div class="nb">这个 7 节点小例子里,V=0.08 的 node 5 是<em>明显该被剪掉</em>的:它需要 root→五→百 这条路径全过才有意义,但 p_target(五 | root)=0.05 已经几乎注定 reject。EAGLE-2 的 dynamic 版本会在 expand 阶段就发现 V=0.2 远小于 V=0.7,直接放弃 expand node 2,把那部分 budget(2 个节点)挪到去 expand "一→百" 的 grandchild。这就是"动态"相比"静态"的真正杠杆。</div>
 
 <hr>
 
