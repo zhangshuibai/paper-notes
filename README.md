@@ -17,8 +17,12 @@
 | 09 | [Mirror-SD](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/09_MirrorSD_2510.13161.html) | early-exit + GPU/NPU 异构并行 / +30% over EAGLE-3 | 55 KB |
 | 10 | [SSD (Speculative Speculative Decoding)](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/10_SSD_2603.03251.html) | 预测 verify 结果 / draft 隐藏在 verify 后面 / Saguaro 5× | 57 KB |
 | 11 | [Performance or Illusion?](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/11_PerformanceOrIllusion_2601.11580.html) | 生产级 vLLM 审视 / paper vs production / 决策 cheatsheet | 51 KB |
+| 12 | [DropMatch](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/12_DropMatch_2603.03333.html) | LM head MC dropout / semantic-level acceptance / training-free | 40 KB |
+| 13 | [Speculative Verification (SV)](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/13_SpecVerification_2509.24328.html) | info-gain 动态 verify length / companion 模型 | 44 KB |
+| 14 | [LK Losses](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/14_LKLosses_2602.23881.html) | 直接优化 acceptance rate / TV+KL hybrid / 反对 proxy 训练 | 41 KB |
+| 15 | [📐 Lossless 证明 (Tutorial)](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/15_Lossless_Proof_Tutorial.html) | rejection sampling 数学证明全步详解 (Leviathan/Chen 2023) | 48 KB |
 
-建议阅读顺序: **02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 11 (Performance or Illusion?)**
+建议阅读顺序: **15 (Lossless 数学证明) → 02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 14 (LK Losses) → 13 (SV) → 12 (DropMatch) → 11 (Performance or Illusion?)**
 
 ## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (13 篇)
 
@@ -72,6 +76,11 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | Mirror-SD | — | 2025-10 | [2510.13161](https://arxiv.org/abs/2510.13161) |
 | SSD (Speculative Speculative Decoding) | Tri Dao 等 | 2026-03 | [2603.03251](https://arxiv.org/abs/2603.03251) |
 | Performance or Illusion? | — | 2026-01 | [2601.11580](https://arxiv.org/abs/2601.11580) |
+| DropMatch | — | 2026-03 | [2603.03333](https://arxiv.org/abs/2603.03333) |
+| Speculative Verification (SV) | — | 2025-09 | [2509.24328](https://arxiv.org/abs/2509.24328) |
+| LK Losses | — | 2026-02 | [2602.23881](https://arxiv.org/abs/2602.23881) |
+| (经典) Leviathan et al. — Fast Inference via SD | Google | 2022-11 | [2211.17192](https://arxiv.org/abs/2211.17192) |
+| (经典) Chen et al. — Accelerating LLM Decoding | DeepMind | 2023-02 | [2302.01318](https://arxiv.org/abs/2302.01318) |
 
 ### 前沿模型 / 训练系统 / LM 方法
 

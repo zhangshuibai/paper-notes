@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Speculative Verification (2509.24328)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Speculative Verification: Exploiting Information Gain to Refine Speculative Decoding</h1>
+<div class="meta">
+  Sungkyun Kim, Jaemin Kim, Dogyung Yoon, Jiho Shin, Junyeol Lee, Jiwon Seo (Hanyang / SNU / KAIST) · arXiv:2509.24328v2 · 2026-04-20<br>
+  关键词: Speculative Decoding · Information Gain · Goodput · Verification Length · Companion Model · 大 batch
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>额外引入一个跟 draft 模型同量级的 <em>companion model</em>,用 draft–companion 两个分布的对齐度作为 information-theoretic 信号,<em>在线预测</em>每个 drafted token 被 target 接受的概率,然后<em>动态裁剪 verification length</em>—— 把注定会被拒的尾部 token 从 target verify 里剔除,在大 batch 下平均 1.4×、最高 1.9× 优于 vanilla SD。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">30–48%</div><div class="l">观察 (S,A) 后的 entropy 下降比 (info gain ratio)</div></div>
+    <div class="stat"><div class="n">21–41%</div><div class="l">verification compute 节省 (TFLOPs)</div></div>
+    <div class="stat"><div class="n">1.4× / 1.9×</div><div class="l">大 batch 下平均/峰值 vs SD</div></div>
+  </div>
+  <p><strong>立场:</strong>这是一篇<em>用 information theory 包装的工程优化</em>论文。核心 insight 不是某个单一公式,而是"draft 自己看自己 → 永远盲;再叫一个 peer 来交叉对照 → 立刻减熵"——把额外算力花在<em>更准确地放弃</em>上,而不是更精确地猜。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:fixed-k SD 的"末段浪费"问题</a></li>
+    <li><a href="#sec2">背景速查:SD / goodput / KL-acceptance bound</a></li>
+    <li><a href="#sec3">SV 整体框架:companion + IG-aware verify</a></li>
+    <li><a href="#sec4">两个指示量 S 与 A 的设计</a></li>
+    <li><a href="#sec5">Verification length 的动态搜索 (公式 + 凹性)</a></li>
+    <li><a href="#sec6">8-token rollout worked example</a></li>
+    <li><a href="#sec7">系统侧:companion 的 overlap 与 MPS</a></li>
+    <li><a href="#sec8">实验关键结果(只看承重表)</a></li>
+    <li><a href="#sec9">与同类工作对比 (DAS / EAGLE-2 / DySpec / SVIP)</a></li>
+    <li><a href="#sec10">局限 / take / 待验证</a></li>
+    <li><a href="#sec11">Memory points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1. 动机:fixed-k SD 的"末段浪费"问题</h2>
+
+<h3>1.1 历史脉络:从"猜更准"到"猜得短一点也行"</h3>
+
+<p>Speculative Decoding(SD,Leviathan 2023)的逻辑很简单:让一个小 draft model 先 autoregressively 走 <em>k</em> 步,然后让大 target model 把这 <em>k</em> 个 token 一次性 forward 一遍,用 rejection sampling 验证。每次 verify 至少能 commit 一个 token(target 自己的那一步是 free 的),最多能 commit <em>k+1</em> 个。<em>k</em> 越大期望接受越多 → 越省 wall-clock。</p>
+
+<p>但故事在大 batch 下崩了。论文的 preliminary 测量给出了两个非常刺眼的数字:</p>
+
+<ul>
+<li><strong>40%+</strong> 的 verification compute 被花在最终被拒的 token 上 —— 对 target 而言这就是"白干 forward"。</li>
+<li><strong>48%</strong> 的 SD 步骤 <em>整体上比直接用 target decode 还慢</em>。在大 batch (32–64) 这个比例进一步恶化,SD 甚至变成负优化。</li>
+</ul>
+
+<p>原因不复杂:大 batch 下 target 单步 forward 已经接近 compute-bound,verify 成本接近线性正比于 <em>k</em>;而 SD 的 expected accept length 是次线性的(token 越往后越容易被拒,接受率几何衰减)。所以 fixed-k 在 batch=1 时还能赚,batch=64 时尾巴上的几个 token 几乎不创造价值,只是燃 compute。</p>
+
+<p>研究界的反应是<em>"动态调整 k"</em>。但具体怎么调,出现了三条不同思路 —— 见 1.2。</p>
+
+<h3>1.2 别的方案为什么不够 — alternatives 表</h3>
+
+<p>预测 acceptance 这件事至少有三类做法,SV 论文逐一论证它们在大 batch 下都不够鲁棒:</p>
+
+<table>
+<thead><tr><th>方法</th><th>预测信号</th><th>调的杠杆</th><th>大 batch 下的具体痛点</th></tr></thead>
+<tbody>
+<tr><td>Fixed-k SD (Leviathan, Medusa baseline)</td><td>无</td><td>固定 draft length</td><td>尾部接受率几何衰减,verify 浪费 40%+;48% 步更慢</td></tr>
+<tr><td>SmartSpec (Liu 2024b)</td><td>过往 acceptance 的 moving average</td><td>draft length</td><td>逐 step accept rate 抖动剧烈,与 history 几乎无关(论文 Figure 1)</td></tr>
+<tr><td>SVIP / AdaEDL / DISCO</td><td>draft 分布的 entropy(KL 上界)</td><td>draft length</td><td>KL→TV 的 bound 很松(Canonne 2022);而且 target 分布在 draft 时不可见</td></tr>
+<tr><td>DySpec / Tetris</td><td>draft 自己给 sampled token 的 prob</td><td>token tree 优先级</td><td>"draft prob ⇔ accept prob" 的强假设经常不成立</td></tr>
+<tr><td>EAGLE-2 / EAGLE-3 dynamic tree</td><td>draft-side hidden + tree expansion 评分</td><td>draft 树形状</td><td>大 batch 下 tree 展开的 verify 头本身成为 dominant cost</td></tr>
+<tr><td>DAS (length-aware budget)</td><td>RL 训练时 sequence-level 学一个 stop policy</td><td>draft length</td><td>需要训练阶段配合,不是纯 inference-time;且 budget 是序列级而非 token 级</td></tr>
+<tr><td>Staged SD (Spector 2023)</td><td>—</td><td>多级 verify</td><td>性能受中间模型 cap 限制,batch 大时甚至比 target-only 更慢</td></tr>
+<tr><td><strong>SV (本文)</strong></td><td>draft 与 <em>第二个</em> 同量级模型 (companion) 的分布对齐 + companion 给 draft token 的 prob</td><td><strong>verification length</strong>(不是 draft length)</td><td>—</td></tr>
+</tbody>
+</table>
+
+<p>核心区别有两点值得反复咀嚼:</p>
+
+<ol>
+<li><strong>SV 用的是<em>第二个独立模型</em>给的信号</strong>,而不是 draft 自身的内省信号。"draft 自己估自己有多准"在信息论上有天花板:它最多用 <em>H(draft 内部)</em>,看不到 target。引入一个独立的 peer,只要不与 draft 完全统计独立(modern LLM 训练数据高度重合,这条几乎自动成立),就能拿到正的 information gain。</li>
+<li><strong>SV 调的是 verify length 而不是 draft length</strong>。这是一个低调但关键的转向 —— 见 1.3。</li>
+</ol>
+
+<h3>1.3 为什么是 verify length 而不是 draft length</h3>
+
+<p>直觉上"少猜几步就行了",draft length 看似最自然的杠杆。但在生产 serving 场景,<strong>draft 和 verify 的成本结构不一样</strong>:</p>
+
+<ul>
+<li><strong>Draft 是 sequential</strong>:从位置 1 写到位置 k 必须逐 token autoregressive。先验它要短,意味着在没看到后续 token 之前就拍板,信号最弱(只有 entropy)。</li>
+<li><strong>Verify 是 parallel forward</strong>:target 一次拿到 k 个 token 一起算。<em>verify 完之前的状态</em>对每一位 drafted token 都已经写在那里 —— 此时 SV 可以拿 draft 的<em>已写出 token</em>,逐位 query companion 模型给出的 prob,得到一个 per-position acceptance 估计。<strong>信号比 draft-time 强得多</strong>。</li>
+</ul>
+
+<p>换句话说:draft length 的决策点太早,信号还没到;verify length 的决策点是"已经写完 8 个 token,现在决定送几个进 target",这时位置-by-位置的接受概率可以算出来。SV 把决策点向后推到信息密度最大的瞬间。</p>
+
+<p>更进一步:SV 也<em>没有</em>动 draft 流程 —— draft 还是按固定 k(比如 5 或 7)往前写。SV 只在 verify 阶段决定"送 0~k 中的哪一段进 target"。<strong>verify_length ≤ draft_length 始终成立</strong>。这种最小侵入性是 SV 能附加在 EAGLE-3 / LayerSkip 等 self-spec 之上的关键。</p>
+
+<h3>1.4 估 IG 自身要花钱 — 这个生意划算吗?</h3>
+
+<p>论文必须回答的硬问题:companion model 自己也要 forward,它会不会把省下的 verify 又烧回去?</p>
+
+<p>Table 3 给了答案。以 Qwen2.5 (1.5B/0.5B/32B) 为例:</p>
+<ul>
+<li>Verification compute 减少: <strong>16 TFLOPs / 78 (~20%)</strong></li>
+<li>Companion 增加: <strong>1 TFLOPs (~1.3%)</strong></li>
+<li>净节省: <strong>~18%</strong></li>
+</ul>
+<p>更直白地说,companion 的 incremental cost 大约是 verify 节省的 1/16。系统层面再用 MPS 让 companion 与 verify <em>overlap</em>,大部分隐藏在 verify 的等待气泡里。预算确实划算 —— 但只在大 batch 下;小 batch 时 verify 本来就便宜,companion 是纯负担,这也是论文 Figure 7 中 batch=1 时 SV 略输的来源。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 220" width="100%">
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+  </marker>
+</defs>
+<text x="20" y="22" font-size="13" font-weight="700">Fixed-k SD (k=7),target verify 全部 7 位</text>
+<g transform="translate(20,40)">
+  <rect x="0" y="0" width="50" height="26" fill="#1f7a4a" opacity=".75"/>
+  <rect x="50" y="0" width="50" height="26" fill="#1f7a4a" opacity=".75"/>
+  <rect x="100" y="0" width="50" height="26" fill="#1f7a4a" opacity=".55"/>
+  <rect x="150" y="0" width="50" height="26" fill="#cc4a1b" opacity=".4"/>
+  <rect x="200" y="0" width="50" height="26" fill="#cc4a1b" opacity=".35"/>
+  <rect x="250" y="0" width="50" height="26" fill="#a8353e" opacity=".5"/>
+  <rect x="300" y="0" width="50" height="26" fill="#a8353e" opacity=".7"/>
+  <text x="25" y="18" font-size="11" text-anchor="middle" fill="#fff">t1</text>
+  <text x="75" y="18" font-size="11" text-anchor="middle" fill="#fff">t2</text>
+  <text x="125" y="18" font-size="11" text-anchor="middle" fill="#fff">t3</text>
+  <text x="175" y="18" font-size="11" text-anchor="middle" fill="#fff">t4</text>
+  <text x="225" y="18" font-size="11" text-anchor="middle" fill="#fff">t5</text>
+  <text x="275" y="18" font-size="11" text-anchor="middle" fill="#fff">t6</text>
+  <text x="325" y="18" font-size="11" text-anchor="middle" fill="#fff">t7</text>
+  <text x="360" y="18" font-size="12" fill="#444">target verify 全部 7 位</text>
+  <text x="0" y="50" font-size="11" fill="#1f7a4a">绿: 高接受概率</text>
+  <text x="120" y="50" font-size="11" fill="#cc4a1b">橙: 中等</text>
+  <text x="200" y="50" font-size="11" fill="#a8353e">红: 大概率被拒(~40% 浪费)</text>
+</g>
+<text x="20" y="115" font-size="13" font-weight="700">SV: 估每位 acceptance,在 goodput 转折点切断</text>
+<g transform="translate(20,135)">
+  <rect x="0" y="0" width="50" height="26" fill="#1f7a4a" opacity=".75"/>
+  <rect x="50" y="0" width="50" height="26" fill="#1f7a4a" opacity=".75"/>
+  <rect x="100" y="0" width="50" height="26" fill="#1f7a4a" opacity=".55"/>
+  <rect x="150" y="0" width="50" height="26" fill="#cc4a1b" opacity=".4"/>
+  <rect x="200" y="0" width="50" height="26" fill="#cc4a1b" opacity=".35" stroke="#2f6feb" stroke-width="2" stroke-dasharray="4,3"/>
+  <rect x="250" y="0" width="50" height="26" fill="#eee" stroke="#bbb" stroke-dasharray="3,3"/>
+  <rect x="300" y="0" width="50" height="26" fill="#eee" stroke="#bbb" stroke-dasharray="3,3"/>
+  <text x="25" y="18" font-size="11" text-anchor="middle" fill="#fff">t1</text>
+  <text x="75" y="18" font-size="11" text-anchor="middle" fill="#fff">t2</text>
+  <text x="125" y="18" font-size="11" text-anchor="middle" fill="#fff">t3</text>
+  <text x="175" y="18" font-size="11" text-anchor="middle" fill="#fff">t4</text>
+  <text x="225" y="18" font-size="11" text-anchor="middle" fill="#2f6feb">t5*</text>
+  <text x="275" y="18" font-size="11" text-anchor="middle" fill="#888">drop</text>
+  <text x="325" y="18" font-size="11" text-anchor="middle" fill="#888">drop</text>
+  <text x="360" y="18" font-size="12" fill="#444">verify length γ*=5</text>
+  <line x1="200" y1="-10" x2="200" y2="40" stroke="#2f6feb" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="0" y="55" font-size="11" fill="#2f6feb">蓝色虚线: SV 选定的 γ*,t6/t7 跳过 verify(target 自己再算下一个 token)</text>
+</g>
+</svg>
+<figcaption>图1:fixed-k SD vs SV 的 verify timeline。两者 draft 都写 7 位,但 SV 通过 (S, A) 估计后认为 t6/t7 接受概率太低,选择只送前 5 位进 target。被丢弃的位置由 target 在下一步从自己的分布生成,采样分布严格保留。</figcaption>
+</div>
+
+<h2 id="sec2">2. 背景速查</h2>
+
+<table>
+<thead><tr><th>术语</th><th>含义(本文用法)</th></tr></thead>
+<tbody>
+<tr><td><span class="term">draft model</span></td><td>小模型,负责 autoregressive 写 k 个 token,记 P<sub>d</sub></td></tr>
+<tr><td><span class="term">target model</span></td><td>大模型,做 verify,记 P<sub>t</sub>。最终 token 严格遵循 P<sub>t</sub></td></tr>
+<tr><td><span class="term">companion model</span></td><td>SV 引入,与 draft 同量级、独立的"参照系",记 P<sub>c</sub></td></tr>
+<tr><td><span class="term">draft length</span> k</td><td>每轮 draft 写多少 token(本文实验 5 或 7)</td></tr>
+<tr><td><span class="term">verification length</span> γ</td><td>SV 真正送进 target 的 token 数,γ ≤ k(SV 的核心杠杆)</td></tr>
+<tr><td><span class="term">acceptance prob</span> A</td><td>min(1, P<sub>c</sub>(t<sub>d</sub>) / P<sub>d</sub>(t<sub>d</sub>)),在 companion 这边假设 SD 采样规则成立时 draft token 被接受的概率</td></tr>
+<tr><td><span class="term">distribution similarity</span> S</td><td>Σ<sub>i</sub> min(P<sub>d</sub>(t<sub>i</sub>), P<sub>c</sub>(t<sub>i</sub>)),即 1 − TV;SD 中标准的 overlap 测度</td></tr>
+<tr><td><span class="term">information gain</span> I(X;Y)</td><td>H(X) − H(X|Y),"已知 Y 后 X 的不确定度被压缩了多少"</td></tr>
+<tr><td><span class="term">goodput</span></td><td>"已被接受 token / wall-clock 秒",本文优化目标</td></tr>
+</tbody>
+</table>
+
+<details><summary>SD 验证规则速记(为什么 SV 不破坏分布)</summary>
+<p>对于 draft token t<sub>d</sub> ~ P<sub>d</sub>:</p>
+<ul>
+<li>以概率 min(1, P<sub>t</sub>(t<sub>d</sub>) / P<sub>d</sub>(t<sub>d</sub>)) 接受;</li>
+<li>否则从 max(0, P<sub>t</sub> − P<sub>d</sub>) 归一化后采样替代 token。</li>
+</ul>
+<p>该规则下,接受/拒绝合并后等价于直接 sample 自 P<sub>t</sub>。<strong>SV 在此规则之外只做一件事</strong>:在送 verify 之前选择 γ。<em>跳过</em>的 token 被视为"draft 没写过它",target 直接在该位置 sample 自己的分布 → 仍是 P<sub>t</sub>。所以 SV 不引入分布偏移。</p>
+</details>
+
+<h2 id="sec3">3. SV 整体框架</h2>
+
+<p>从 control-flow 角度看,SV 在每一轮 SD step 的时序大致是:</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 270" width="100%">
+<defs>
+  <marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+  </marker>
+</defs>
+<g font-size="12">
+<rect x="20" y="20" width="120" height="44" fill="#fff" stroke="#2f6feb" stroke-width="1.5" rx="6"/>
+<text x="80" y="38" text-anchor="middle">Draft model</text>
+<text x="80" y="54" text-anchor="middle" fill="#888">写出 k=7 token, P_d</text>
+
+<rect x="20" y="100" width="120" height="44" fill="#fff" stroke="#cc4a1b" stroke-width="1.5" rx="6"/>
+<text x="80" y="118" text-anchor="middle">Companion</text>
+<text x="80" y="134" text-anchor="middle" fill="#888">同输入 forward, P_c</text>
+
+<rect x="200" y="60" width="180" height="60" fill="#fff8e8" stroke="#d2a32a" stroke-width="1.5" rx="6"/>
+<text x="290" y="80" text-anchor="middle" font-weight="700">逐位计算 (S_i, A_i)</text>
+<text x="290" y="98" text-anchor="middle" fill="#666">查 lookup 表 → P̂(T_i | S_i, A_i)</text>
+<text x="290" y="113" text-anchor="middle" fill="#666">每位 acceptance 概率</text>
+
+<rect x="430" y="60" width="160" height="60" fill="#fff8e8" stroke="#d2a32a" stroke-width="1.5" rx="6"/>
+<text x="510" y="80" text-anchor="middle" font-weight="700">扫 γ ∈ {1..k}</text>
+<text x="510" y="98" text-anchor="middle" fill="#666">最大化 E[N|γ]/lat(γ)</text>
+<text x="510" y="113" text-anchor="middle" fill="#666">凹性 → 早停</text>
+
+<rect x="200" y="170" width="180" height="50" fill="#fff" stroke="#1f7a4a" stroke-width="1.5" rx="6"/>
+<text x="290" y="188" text-anchor="middle" font-weight="700">target verify (γ* tokens)</text>
+<text x="290" y="206" text-anchor="middle" fill="#888">SD 标准 rejection sampling</text>
+
+<line x1="140" y1="40" x2="200" y2="80" stroke="#444" marker-end="url(#ar2)"/>
+<line x1="140" y1="120" x2="200" y2="100" stroke="#444" marker-end="url(#ar2)"/>
+<line x1="380" y1="90" x2="430" y2="90" stroke="#444" marker-end="url(#ar2)"/>
+<line x1="510" y1="120" x2="380" y2="180" stroke="#444" marker-end="url(#ar2)"/>
+
+<text x="20" y="250" fill="#666" font-size="11">虚线 box 为 SV 新增组件;target 的接口完全不变,仍接受 γ 个 token 走 SD 验证规则。</text>
+</g>
+</svg>
+<figcaption>图2:SV 在一个 SD step 中的 dataflow。Draft 与 companion 接受相同 prefix,但<em>不</em>互相条件;两者输出独立采样。SV 的全部新增计算是 (1) 逐位 (S, A) lookup,(2) γ 的凹搜索,(3) companion 自身 forward。前两步是 cheap pointwise op,(3) 通过 MPS 与 verify overlap 隐藏。</figcaption>
+</div>
+
+<h3>3.1 关键非平凡点</h3>
+
+<ul>
+<li><strong>companion 不参与 verify</strong>:它<em>不替代</em>也<em>不前置</em> target,只贡献分布信号。区别于 staged SD —— staged SD 让中间模型对 draft 做一次 speculative sampling,然后剩下的进 target;那是一个 "lossy filter",受中间模型能力 cap。SV 的 companion 不做 sampling,只做"打分"。</li>
+<li><strong>统计独立性是 SV 的最弱前提</strong>:论文反复强调,只要 P<sub>c</sub> 和 P<sub>d</sub> 不完全独立,observing P<sub>c</sub> 就能给 X(=acceptance)带来 <em>positive</em> info gain,不需要"draft–companion similarity ≈ draft–target similarity"这种强相关。Modern LLM 共享数据(C4, Wikipedia, Common Crawl),独立性几乎不可能成立。</li>
+<li><strong>P̂(T<sub>i</sub> | S, A) 是 offline 估</strong>:训练前用 ShareGPT/HumanEvalPack 跑一遍标准 SD,记录 (S, A, accept?) 三元组,做 adaptive binning(数据稠密处更细),得到一张 lookup 表。inference 时 O(1) 查表。这是 SV "cheap online estimator" 的真正实现 —— 不是真有什么实时学习,是<em>预先标定 + 查表</em>。</li>
+</ul>
+
+<h2 id="sec4">4. 两个指示量 S 与 A</h2>
+
+<p>SV 选择 Y = (S, A) 作为条件随机变量。两者扮演的角色是<strong>互补</strong>的:</p>
+
+<div class="formula">
+S = Σ<sub>i ∈ vocab</sub> min(P<sub>d</sub>(t<sub>i</sub>), P<sub>c</sub>(t<sub>i</sub>))<br>
+A = min(1, P<sub>c</sub>(t<sub>d</sub>) / P<sub>d</sub>(t<sub>d</sub>))
+</div>
+
+<ul>
+<li><strong>S 是<em>分布层面</em>对齐度</strong>:整个 vocab 上的 1 − TV。S 大 → 当前 context 对 draft 与 companion 都"容易",经验上 target 的分布也类似,token 普遍易被接受。<em>但 S 是 token-agnostic 的</em>:它衡量"这一步整体好不好搞",不区分具体写出哪个 token。</li>
+<li><strong>A 是<em>具体 token 层面</em>的接受概率</strong>:就是 SD 的 rejection-sampling 公式,只不过 target 换成了 companion。A 大 → companion 也认这个特定 token,target 大概率也认。</li>
+</ul>
+
+<p>论文 Appendix B.1 报告:S 单独贡献 4–13% info gain,加上 A 之后跳到 30–40%(Table 1 chat:48%, code:37% with adaptive binning)。也就是说<strong>token 级信号 A 比分布级信号 S 重要约 5×</strong>。直觉上,这是因为 LLM 的接受瓶颈往往不是"context 难易",而是"draft 这个 token 是不是 outlier"。</p>
+
+<h3>4.1 Worked example: 计算 S 和 A</h3>
+
+<p>假设一个简化 vocab {猫, 狗, 鸟, 鱼},某位置:</p>
+
+<table>
+<thead><tr><th></th><th>猫</th><th>狗</th><th>鸟</th><th>鱼</th></tr></thead>
+<tbody>
+<tr><td>P<sub>d</sub></td><td>0.50</td><td>0.30</td><td>0.15</td><td>0.05</td></tr>
+<tr><td>P<sub>c</sub></td><td>0.40</td><td>0.40</td><td>0.10</td><td>0.10</td></tr>
+<tr><td>min</td><td>0.40</td><td>0.30</td><td>0.10</td><td>0.05</td></tr>
+</tbody>
+</table>
+
+<p>Draft 采样到 t<sub>d</sub> = "狗"。则:</p>
+<ul>
+<li>S = 0.40 + 0.30 + 0.10 + 0.05 = <strong>0.85</strong>(分布很接近)</li>
+<li>A = min(1, 0.40 / 0.30) = <strong>1.0</strong>(companion 给 "狗" 的 prob 比 draft 还高 → 必然接受)</li>
+</ul>
+<p>查表 P̂(accept | S=0.85, A=1.0) ≈ 0.93。这位置 "强力推送 verify"。</p>
+
+<p>对比另一种情况:t<sub>d</sub> = "鱼",A = min(1, 0.10/0.05) = 1.0,但 P<sub>d</sub>(鱼)=0.05 本身就是低概率 outlier —— 实际 lookup 表会反映这点(low frequency 区域 acceptance 更不稳)。<strong>两个量缺一不可</strong>。</p>
+
+<h3>4.2 反向论证:只用 S 行不行?</h3>
+
+<p>论文 Table 1 的"5×5 binning"给出 H(X|S, A) 与 H(X) 的对比。如果只用 S(等价于砍掉 A 维度),IG 仅 4–13%,relative reduction 不到 10%,远低于论文阈值。物理直觉:S 是<em>整列上的全局对齐</em>,而真正决定单 token accept 的是<em>那一行的 condition</em>(即 A)。</p>
+
+<h2 id="sec5">5. Verification length 的动态搜索</h2>
+
+<p>给定 P̂(T<sub>i</sub> | S<sub>i</sub>, A<sub>i</sub>),要从 γ ∈ {1, ..., k} 选最优值。期望接受 token 数:</p>
+
+<div class="formula">
+P<sub>γ</sub>(N) = ⎰ P(T<sub>N+1</sub> ≠ t<sub>N+1</sub>) · ∏<sub>i=1..N</sub> P(T<sub>i</sub>=t<sub>i</sub>),  N &lt; γ<br>
+                ⎱ ∏<sub>i=1..γ</sub> P(T<sub>i</sub>=t<sub>i</sub>), N = γ<br>
+E[N | γ] = Σ<sub>i=1..γ</sub> i · P<sub>γ</sub>(N=i)
+</div>
+
+<p>Goodput 即 <strong>(E[N|γ] + 1) / latency(γ)</strong> —— 加 1 因为 verify 至少额外写一个 free token。SV 从 γ=1 开始递增,只要 goodput 仍上升就继续,一旦下降就回退。论文证明 goodput 关于 γ 是 <em>concave</em>:</p>
+
+<ul>
+<li>γ 小时 GPU 没填满,latency 增长缓 → 边际收益高;</li>
+<li>γ 一过 compute saturation 拐点,latency 线性增,而 cumulative accept prob 几何衰减 → 边际收益骤降。</li>
+</ul>
+
+<p>所以 first-derivative 式的 hill-climbing 即可,O(k) 一次扫描,k=7 时几十次浮点乘法,完全是 cheap online。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" width="100%">
+<g font-size="11">
+<line x1="60" y1="240" x2="660" y2="240" stroke="#444" marker-end="url(#ar)"/>
+<line x1="60" y1="240" x2="60" y2="20" stroke="#444" marker-end="url(#ar)"/>
+<text x="660" y="258" text-anchor="end">γ (verify length)</text>
+<text x="60" y="14" text-anchor="middle">goodput</text>
+
+<g stroke="#2f6feb" stroke-width="2.5" fill="none">
+<polyline points="100,210 170,160 240,120 310,90 380,75 450,82 520,110 590,150"/>
+</g>
+<g fill="#2f6feb">
+<circle cx="100" cy="210" r="3.5"/>
+<circle cx="170" cy="160" r="3.5"/>
+<circle cx="240" cy="120" r="3.5"/>
+<circle cx="310" cy="90" r="3.5"/>
+<circle cx="380" cy="75" r="5" stroke="#cc4a1b" stroke-width="2.5" fill="#fff"/>
+<circle cx="450" cy="82" r="3.5"/>
+<circle cx="520" cy="110" r="3.5"/>
+<circle cx="590" cy="150" r="3.5"/>
+</g>
+<text x="100" y="258" text-anchor="middle">1</text>
+<text x="170" y="258" text-anchor="middle">2</text>
+<text x="240" y="258" text-anchor="middle">3</text>
+<text x="310" y="258" text-anchor="middle">4</text>
+<text x="380" y="258" text-anchor="middle" fill="#cc4a1b" font-weight="700">γ*=5</text>
+<text x="450" y="258" text-anchor="middle">6</text>
+<text x="520" y="258" text-anchor="middle">7</text>
+<text x="590" y="258" text-anchor="middle">8</text>
+
+<text x="380" y="58" text-anchor="middle" fill="#cc4a1b">goodput peak</text>
+
+<g font-size="10" fill="#888">
+<text x="160" y="195">underutilized GPU</text>
+<text x="160" y="208">(latency 增长慢)</text>
+<text x="500" y="195">verify saturated</text>
+<text x="500" y="208">(尾部 accept 几何衰减)</text>
+</g>
+
+<text x="60" y="280" font-size="10" fill="#666">凹函数 → 单峰 → hill climbing 到下降即停</text>
+</g>
+</svg>
+<figcaption>图3:goodput 关于 γ 的形状。SV 从 γ=1 起逐次扩,看到 γ=6 比 γ=5 差就停在 γ*=5。整套搜索成本 = k 次乘加 + k 次延迟查表,与 verify 自身比可忽略。</figcaption>
+</div>
+
+<h3>5.1 Batch 模式下的贪心扩展</h3>
+
+<p>多查询同时存在时,SV 维护一个空的"待验证 token 集",每轮挑<em>跨 query</em> 边际增益最大的下一个 token 加入,只要 batch 级 goodput 还在涨就继续。这意味着某些 query 这一轮可能根本没 token 进 verify。但 target 那一步仍会从自己的分布在该 query 的"下一位置"采一个 token —— forward progress 永不卡住。</p>
+
+<h2 id="sec6">6. Worked example: 8-token rollout</h2>
+
+<p>假设 draft length k=8。draft 顺序写出:<code>"我 / 今天 / 想 / 去 / 公园 / 看 / 一下 / 樱花"</code>。每位置 SV 计算 (S, A) 并查表得到 P̂<sub>i</sub>:</p>
+
+<table>
+<thead><tr><th>i</th><th>token</th><th>S<sub>i</sub></th><th>A<sub>i</sub></th><th>P̂<sub>i</sub> (accept)</th><th>累乘 ∏P̂</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>我</td><td>0.92</td><td>1.00</td><td>0.95</td><td>0.95</td></tr>
+<tr><td>2</td><td>今天</td><td>0.88</td><td>0.95</td><td>0.90</td><td>0.86</td></tr>
+<tr><td>3</td><td>想</td><td>0.85</td><td>1.00</td><td>0.88</td><td>0.75</td></tr>
+<tr><td>4</td><td>去</td><td>0.80</td><td>0.90</td><td>0.78</td><td>0.59</td></tr>
+<tr><td>5</td><td>公园</td><td>0.70</td><td>0.65</td><td>0.55</td><td>0.32</td></tr>
+<tr><td>6</td><td>看</td><td>0.55</td><td>0.40</td><td>0.30</td><td>0.097</td></tr>
+<tr><td>7</td><td>一下</td><td>0.45</td><td>0.20</td><td>0.12</td><td>0.012</td></tr>
+<tr><td>8</td><td>樱花</td><td>0.40</td><td>0.10</td><td>0.05</td><td>0.0006</td></tr>
+</tbody>
+</table>
+
+<p>计算 E[N | γ]:</p>
+
+<table>
+<thead><tr><th>γ</th><th>E[N | γ]</th><th>profiled latency (ms)</th><th>goodput = (E+1)/lat</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>0.95</td><td>3.0</td><td>0.65</td></tr>
+<tr><td>2</td><td>1.81</td><td>3.2</td><td>0.88</td></tr>
+<tr><td>3</td><td>2.56</td><td>3.4</td><td>1.05</td></tr>
+<tr><td>4</td><td>3.15</td><td>3.7</td><td>1.12</td></tr>
+<tr><td><strong>5</strong></td><td><strong>3.47</strong></td><td><strong>4.1</strong></td><td><strong>1.09</strong></td></tr>
+<tr><td>6</td><td>3.57</td><td>4.6</td><td>0.99</td></tr>
+<tr><td>7</td><td>3.58</td><td>5.2</td><td>0.88</td></tr>
+<tr><td>8</td><td>3.58</td><td>6.0</td><td>0.76</td></tr>
+</tbody>
+</table>
+
+<p>SV 从 γ=1 起递增。γ=5 时 1.09 仍是局部最大 —— 等等:γ=4 是 1.12 > γ=5 是 1.09,所以 SV 到 γ=5 时发现下降,<strong>回退,选 γ*=4</strong>。</p>
+
+<p><strong>Fixed-k=7 SD 在这一步</strong>会送全部 7 位进 target。等价 latency 5.2ms,但有效贡献 E[N]=3.58,goodput=0.88;比 SV 的 γ*=4 (1.12) 慢 27%。被白白 forward 的 token #5/#6/#7 中,#6 和 #7 几乎肯定被拒(累乘到 P̂≈0.012)。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 250" width="100%">
+<g font-size="11">
+<text x="20" y="20" font-weight="700">每位 P̂<sub>i</sub> 与累乘 ∏ P̂(降到 cliff 处)</text>
+
+<line x1="60" y1="180" x2="660" y2="180" stroke="#444"/>
+<line x1="60" y1="180" x2="60" y2="40" stroke="#444"/>
+
+<g>
+<rect x="80"  y="36"  width="60" height="144" fill="#1f7a4a" opacity=".55"/>
+<rect x="150" y="50"  width="60" height="130" fill="#1f7a4a" opacity=".50"/>
+<rect x="220" y="58"  width="60" height="122" fill="#1f7a4a" opacity=".48"/>
+<rect x="290" y="73"  width="60" height="107" fill="#cc4a1b" opacity=".55"/>
+<rect x="360" y="103" width="60" height="77" fill="#cc4a1b" opacity=".50"/>
+<rect x="430" y="135" width="60" height="45" fill="#a8353e" opacity=".55"/>
+<rect x="500" y="159" width="60" height="21" fill="#a8353e" opacity=".65"/>
+<rect x="570" y="172" width="60" height="8"  fill="#a8353e" opacity=".75"/>
+</g>
+
+<g font-size="11" text-anchor="middle">
+<text x="110" y="200">我 .95</text>
+<text x="180" y="200">今天 .90</text>
+<text x="250" y="200">想 .88</text>
+<text x="320" y="200">去 .78</text>
+<text x="390" y="200">公园 .55</text>
+<text x="460" y="200">看 .30</text>
+<text x="530" y="200">一下 .12</text>
+<text x="600" y="200">樱花 .05</text>
+</g>
+
+<line x1="350" y1="30" x2="350" y2="180" stroke="#2f6feb" stroke-width="2" stroke-dasharray="6,4"/>
+<text x="355" y="36" fill="#2f6feb" font-weight="700">SV stop: γ*=4</text>
+
+<line x1="630" y1="30" x2="630" y2="180" stroke="#888" stroke-width="1.5" stroke-dasharray="3,3"/>
+<text x="568" y="36" fill="#888">Fixed-k=7 stop</text>
+
+<text x="20" y="232" font-size="10" fill="#666">SV 从 γ=1 扫到 γ=5 发现 goodput 降低,回退到 γ*=4。fixed-k 一直用全部 7 位,#6/#7 几乎必拒,白烧 verify。</text>
+</g>
+</svg>
+<figcaption>图4:同一条 8-token draft 上,SV 与 fixed-k 的停止点对比。</figcaption>
+</div>
+
+<h2 id="sec7">7. 系统侧:把 companion 的开销藏起来</h2>
+
+<p>纯算法层面 SV 已经"省了 verify",但工程上还有两个关键决策:</p>
+
+<h3>7.1 NVIDIA MPS + overlap</h3>
+
+<p>SV 把 draft / companion 与 target 放进<em>不同进程</em>,通过 NVIDIA Multi-Process Service 让两者并发占用同一张 GPU。MPS 配置上 draft+companion 占 30% SM 资源,target 占其余。两个 micro-batch 同时跑:第 t 步的 verify 与第 t+1 步的 draft+companion。这样 companion forward 大部分时间被 verify 的 latency 吞没。</p>
+
+<p>注意一个细节:<strong>profiling latency 必须在 draft+companion 同时运行的状态下测</strong>(因为有干扰),否则 γ 搜索会用错误的 latency 表。论文专门提到这一点。</p>
+
+<h3>7.2 Prefill 时的 logit 跳过</h3>
+
+<p>prefill 阶段 draft / companion 不需要算 logits(它们的输出在 prefill 还没用),论文跳过这一步,prefill overhead 降 3–5%。但即便如此,SV 的 prefill throughput 仍比 SD 低 ~10%(比 target-only 低 30%)。这是 RAG / 短输出场景下 SV 优势收窄的根源。</p>
+
+<h3>7.3 输入 tensor compaction + CUDA graph</h3>
+
+<p>因 verify length 是 query-级可变的,padding 会浪费大量算力。SV 实现了 variable-length verify 的 input tensor 紧凑化,并修了 FlashInfer 在 CUDA graph 下的 attention bug(让 graph capture 与 padded input 兼容)。这些是<em>必须做对</em>的工程,不是可选。</p>
+
+<h2 id="sec8">8. 实验关键结果</h2>
+
+<h3>8.1 Table 3 — 算账(最承重)</h3>
+
+<table>
+<thead><tr><th>D/C/T</th><th>SD accept</th><th>SV accept</th><th>SD TFLOPs</th><th>V↓</th><th>C↑</th><th>net %</th></tr></thead>
+<tbody>
+<tr><td>Qwen2.5 1.5B/0.5B/32B</td><td>0.56</td><td>0.62</td><td>78</td><td>16</td><td>1</td><td><strong>−18.3%</strong></td></tr>
+<tr><td>Qwen2.5 0.5B/0.5B/32B</td><td>0.47</td><td>0.57</td><td>84</td><td>21</td><td>1</td><td>−23.4%</td></tr>
+<tr><td>Qwen2.5 0.5B/1.5B/32B</td><td>0.47</td><td>0.72</td><td>84</td><td>19</td><td>4</td><td>−17.4%</td></tr>
+<tr><td>CodeLlama 135M/1.2B/34B</td><td>0.73</td><td>0.86</td><td>63</td><td>20</td><td>2</td><td>−27.6%</td></tr>
+<tr><td>Llama2 68M/160M/13B</td><td>0.14</td><td>0.61</td><td>109</td><td>50</td><td>1</td><td><strong>−44.6%</strong></td></tr>
+</tbody>
+</table>
+
+<p>关键观察:</p>
+<ul>
+<li><strong>当 baseline SD accept rate 极低时(Llama2 68M draft / 13B target,0.14),SV 的相对收益最大(−44.6% TFLOPs)</strong>。这与直觉一致:坏 baseline 的尾部最浪费,SV 的"早停"价值最大。</li>
+<li>Companion 的 incremental cost 是 1–4 TFLOPs,而 verify 节省 16–50 TFLOPs。<strong>大约 5–20× 杠杆</strong>。</li>
+<li>SV accept rate 普遍升高(0.56→0.62, 0.14→0.61),但这要小心解读:它是"被送进 verify 的 token 中"的接受率,不是 sequence-level 的接受率。SV 主动剔除了低质量尾部,显著提升了"分母"。</li>
+</ul>
+
+<h3>8.2 Table 1 — info gain 标定</h3>
+
+<p>Llama2 13B/160M/68M 在 chat (ShareGPT) 与 code (HumanEvalPack) 上,使用 adaptive binning:</p>
+<ul>
+<li>chat: H(X)=1.38, H(X|S,A)=0.91, IG=0.48 (35%)</li>
+<li>code: H(X)=1.78, H(X|S,A)=1.42, IG=0.37 (21%)</li>
+</ul>
+<p>chat 比 code 信号更强 —— 直觉是 chat 的 token-level 模式更稳,companion 给的预测更准;code 的多样性让 acceptance 本身更高熵,IG 比例下降。</p>
+
+<h3>8.3 EAGLE-3 整合 — 一个值得标注的失败模式</h3>
+
+<p>把 SV 套在 EAGLE-3 上时,小 batch 下<em>反而轻微变慢</em>。原因:EAGLE-3 自身 draft accept 率才 26-27%,意味着 (S, A) 的输入信号本身偏低、companion 难找出靠谱的早停点;同时小 batch 下 verify 本来就便宜,companion 是纯负担。换 SV 自带的更强 draft 后回升 56%。<strong>"draft 越烂 + batch 越大 → SV 越赚",这条经验法则可以记住。</strong></p>
+
+<h3>8.4 Fairness</h3>
+
+<p>1024 query 中,verify 数最少的底部五条平均 2.9 token / step(整体 4.1)。47% step 仅 1–2 token verify,但 39% 仍能拿到 4–5 token —— SV 不挑食得太严重。target verify 至少返回一个 token 保 forward progress 这件事是<em>结构性</em>保证,不靠调度器。</p>
+
+<h2 id="sec9">9. 与同类工作对比</h2>
+
+<table>
+<thead><tr><th>工作</th><th>调的杠杆</th><th>信号</th><th>vs SV 的关键差</th></tr></thead>
+<tbody>
+<tr><td>Fixed-k SD</td><td>无</td><td>无</td><td>baseline,大 batch 下尾部浪费严重</td></tr>
+<tr><td>SmartSpec</td><td>draft length</td><td>过往 accept 的 EMA</td><td>accept 抖动太剧,history 信号近似无用</td></tr>
+<tr><td>SVIP / AdaEDL / DISCO</td><td>draft length</td><td>draft 自身 entropy</td><td>KL→TV bound 松;target 不可见 → 信号弱;SV 用 peer model 直接缩 H(X)</td></tr>
+<tr><td>DySpec / Tetris</td><td>token tree 优先级</td><td>draft 自己给 sampled token 的 prob</td><td>"draft prob ≈ accept prob" 强假设;SV 不依赖此</td></tr>
+<tr><td>EAGLE-2 dynamic tree</td><td>draft tree 形状</td><td>draft hidden + tree score</td><td>大 batch verify 本身才是瓶颈,EAGLE-2 改 draft 帮不到 verify</td></tr>
+<tr><td>EAGLE-3 (self-spec)</td><td>无 verify-side 调节</td><td>—</td><td>正交,可以叠 SV(论文 7.7 实测)</td></tr>
+<tr><td>DAS (length-aware budget)</td><td>draft length</td><td>RL 训出 stop policy</td><td>需训练阶段配合;SV 是纯 inference-time;DAS 是 sequence-level,SV 是 token-level</td></tr>
+<tr><td>Staged SD</td><td>多级 verify chain</td><td>—</td><td>中间模型做 sampling(lossy filter),受其能力 cap;SV companion 只打分不采样</td></tr>
+<tr><td><strong>SV (本文)</strong></td><td><strong>verify length</strong></td><td><strong>draft–companion (S, A)</strong></td><td>—</td></tr>
+</tbody>
+</table>
+
+<p>简化记忆:<em>所有同类要么调 draft,要么用 draft-内部信号</em>;SV 是唯一一个<strong>(a) 调 verify length 且 (b) 用外部 peer model 信号</strong>的组合。这两条选择是耦合的:外部信号在 verify 决策点才能拿到充分的 per-position 估计。</p>
+
+<h2 id="sec10">10. 局限 / 个人 take / 待验证</h2>
+
+<ul>
+<li><strong>Companion 的获取被一带而过</strong>:论文说"fine-tune draft / quantize draft / 现成 model"都行,但 P̂(T|S,A) lookup 表是<em>每对 (D,C,T) 配置都要重新标定</em>的。生产环境每次换 target 都要重跑 ShareGPT 标定?这块工程成本被低估。</li>
+<li><strong>(S, A) 的 lookup 表是离线 binned 的</strong>,意味着 distribution shift(domain 切换、长度外推、tool-use)时 P̂ 可能严重失准。论文未做 domain transfer 实验。</li>
+<li><strong>Prefill-heavy workload (RAG, summary) 仍只有 1.39× 提速</strong>(decode-heavy 是 1.4–1.9×)。companion 在 prefill 阶段是纯加法,这个结构性劣势改不动。</li>
+<li><strong>EAGLE-3 + SV 的小 batch 退化</strong>是真实信号:SV 不是"哪都能加"的开关,弱 draft + 小 batch 是它的明确禁区。</li>
+<li><strong>fairness 分析略弱</strong>:1024 query 整体平均给的是均值,bottom-5 给了 2.9,但 worst-case query 可能整批仅 1 token 或 0(被 target free token 兜底)。tail latency 没报。</li>
+<li><strong>没和 RL post-training rollout 场景对比</strong>:SV 的"省尾部"特性恰好可能与 RL on-policy rollout 的"早期 token 重要,后期 reward 稀疏"匹配 —— 但论文没碰这个方向。</li>
+</ul>
+
+<h3>10.1 待验证(我会做的下一组实验)</h3>
+<ol>
+<li>把 P̂(T|S,A) 改成 online sliding-window 估计,看 distribution shift 鲁棒性。</li>
+<li>验证"draft 极弱时收益最大"的 monotonicity:从 68M draft 一路放大到 7B,SV 相对收益曲线长什么样?(Table 3 暗示是单调下降但论文没给曲线)</li>
+<li>SV + EAGLE-3 失败原因是 draft 弱还是 (S, A) 信号本身在 self-spec 下 collapse?(EAGLE-3 的 draft head 与 target 共享 hidden,P<sub>d</sub> 与 P<sub>c</sub> 可能反而不独立)</li>
+<li>把 companion 替换成更便宜的"distilled head"(类似 Medusa head 但只产 P<sub>c</sub>),companion forward cost 进一步压缩到 verify 的 1% 以下,会发生什么?</li>
+<li>"verify length 而非 draft length"是否能配合 EAGLE-2 的 dynamic tree —— 即"动态 tree shape × 动态 verify cut"两条杠杆同时开?</li>
+</ol>
+
+<h2 id="sec11">11. Memory points</h2>
+
+<div class="kv"><span class="pill">立场</span> <strong>SV = 不动 draft,只动 verify。</strong> 用第二个独立 peer model 给每位 drafted token 估接受概率,把没希望的尾部丢掉,把节省的算力用在更高 batch / 更大 target。</div>
+
+<div class="kv"><span class="pill">核心信号</span> Y = (S, A): S 是 draft–companion 的 vocab-level overlap (1−TV);A 是 companion 给 draft token 的 SD acceptance。S 弱 (~10% IG),A 强 (~30%+);<strong>组合达 30–48% entropy 减</strong>。</div>
+
+<div class="kv"><span class="pill">公式</span> γ* = argmax<sub>γ</sub> (E[N|γ]+1) / latency(γ),其中 P<sub>γ</sub>(N) 用 P̂(T<sub>i</sub>|S<sub>i</sub>,A<sub>i</sub>) 累乘。goodput 关于 γ 凹 → hill climbing 一遍即停。</div>
+
+<div class="kv"><span class="pill">关键架构选择</span> companion <strong>只打分不采样</strong>(区别于 staged SD);verify length 是 token-level 决策(区别于 DAS 的 sequence-level);决策点放在 verify 前(区别于 SVIP 的 draft-time entropy)。</div>
+
+<div class="kv"><span class="pill">系统</span> NVIDIA MPS 把 draft/companion (30% SM) 与 target 并发,companion 与下一轮 verify overlap;CUDA graph + variable-length verify 的 tensor compaction 是必做工程。</div>
+
+<div class="kv"><span class="pill">数字</span> 大 batch <strong>1.4× 平均、1.9× 峰值</strong>;TFLOPs 净省 <strong>17–45%</strong>(verify ↓ 比 companion ↑ 大 5–20×);accept rate 提升 0.06–0.47。</div>
+
+<div class="kv"><span class="pill">禁区</span> 小 batch + 弱 draft (e.g. EAGLE-3 self-spec, accept ≈ 0.27)→ 收益不抵 companion 成本。Prefill-heavy (RAG) 加速从 1.4–1.9× 缩到 ~1.39×。</div>
+
+<div class="kv"><span class="pill">非平凡点</span> 假设是<em>"P<sub>d</sub> 与 P<sub>c</sub> 不统计独立"</em> —— 极弱条件,modern LLM 训练数据重叠下几乎自动成立。不需要 draft–companion similarity ≈ draft–target similarity 的强相关。</div>
+
+<div class="kv"><span class="pill">vs 同类</span> SmartSpec=history、SVIP=entropy、DySpec=draft prob、staged SD=中间模型 sampling、DAS=RL 训 stop。<strong>只有 SV 的信号来自<em>外部 peer</em>,杠杆是<em>verify length</em></strong>。</div>
+
+</main>
+</body>
+</html>

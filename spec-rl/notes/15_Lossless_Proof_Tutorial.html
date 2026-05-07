@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>教程 · Speculative Decoding 为什么是 Lossless 的 (含详细证明)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .step{background:#fff;border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0}
+  .step h4{margin-top:0;color:var(--accent)}
+  .intuition{background:#eef5ff;border-left:3px solid var(--accent);
+    padding:8px 14px;border-radius:0 6px 6px 0;margin:.6em 0;font-size:.96em}
+  .intuition::before{content:"直观 · ";font-weight:600;color:var(--accent)}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Speculative Decoding 为什么是 Lossless 的 — 详细证明教程</h1>
+<div class="meta">
+  教程 · Chinese walkthrough with full proof · 面向数学基础较弱的工程师<br>
+  Source: Leviathan et al. 2023 (arXiv:2211.17192) · Chen et al. 2023 (arXiv:2302.01318)<br>
+  关键词: speculative decoding · rejection sampling · lossless · importance sampling · acceptance probability
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>这篇教程会从头到尾、用最小的数学跨度,给你证明:speculative decoding 通过 <code>min(1, p/q)</code> 接受 + <code>(p − q)+</code> 重采样,产出 token 的分布<strong>正好等于</strong>直接用 target 模型自回归采样的分布——没有偏差、没有近似、没有"几乎"。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">0</div><div class="l">输出分布偏差 (lossless)</div></div>
+    <div class="stat"><div class="n">min(1, p/q)</div><div class="l">接受概率公式</div></div>
+    <div class="stat"><div class="n">P(out=x) = p(x)</div><div class="l">最终结论</div></div>
+  </div>
+  <p><strong>读完你应该能:</strong>(a) 解释为什么不能直接用 importance sampling;(b) 推导接受概率为什么是 <code>min(1, p/q)</code>;(c) 用一个 3-vocab 的例子手算"接受/拒绝/重采样"的全部概率;(d) 知道 lossless 在浮点 / 温度 / 量化下何时失效。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">为什么需要 lossless guarantee?</a></li>
+    <li><a href="#sec2">符号表 + 直觉热身</a></li>
+    <li><a href="#sec3">想法的源头: importance sampling 复习</a></li>
+    <li><a href="#sec4">Rejection sampling: 把 IS 改造成"采样"工具</a></li>
+    <li><a href="#sec5">主定理: spec decoding 是 lossless 的</a></li>
+    <li><a href="#sec6">详细证明 (核心节)</a></li>
+    <li><a href="#sec7">几个具体例子 (数值演算)</a></li>
+    <li><a href="#sec8">常见误解 / 陷阱</a></li>
+    <li><a href="#sec9">多步 / tree-verify 的扩展</a></li>
+    <li><a href="#sec10">何时 lossless guarantee 失效</a></li>
+    <li><a href="#sec11">记忆要点</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 为什么需要 lossless guarantee?</h2>
+
+<h3>1.1 起源</h3>
+<p>2022 年底到 2023 年初,Google (Leviathan et al.) 和 DeepMind (Chen et al.) <strong>独立而同时</strong>提出了一个完全相同的核心思想:用一个小模型 (draft) 提议几个 token,再让大模型 (target/verifier) 一次性"打分",通过一种<em>修正过的 rejection sampling</em> 决定接受或重采样。两篇论文都给出了一条现在看是 spec decoding 招牌的保证:<strong>整个流程产出 token 的分布,和直接从 target 采样的分布完全相同</strong>。</p>
+
+<p>这条保证在工程上有几个名字:lossless / distribution-preserving / exact / unbiased。意思都一样:加速没有以"偷偷改了你想要的分布"为代价。</p>
+
+<h3>1.2 为什么这条保证必须存在</h3>
+
+<p>分两类场景看:</p>
+
+<table>
+  <tr><th>场景</th><th>如果 lossless 被打破会怎样</th></tr>
+  <tr><td><strong>Inference serving</strong> (部署给用户)</td><td>用户拿到的输出分布 ≠ 模型本应产出的分布。质量评估 (BLEU / ROUGE / pass@k) 可能轻微下降,但更糟的是 — 用户看到的多样性、长尾 token 的概率全都变了,而你不知道改了多少。</td></tr>
+  <tr><td><strong>RL post-training</strong> (RLHF / GRPO / PPO)</td><td>RL 的训练分布<em>必须</em>等于当前 policy 的采样分布。spec decoding 用来加速 rollout,如果输出分布漂了,那 advantage / reward 全错,GRPO 的 importance sampling correction 也会失效。这就是为什么 NeMo-RL / ReSpec / SPEC-RL 这一系列论文都把 lossless 当成"不能动"的红线。</td></tr>
+</table>
+
+<p>所以这条保证不是"锦上添花",它是 spec decoding 在 RL 场景下能用的<em>前提条件</em>。本教程要回答的就是:这个保证是怎么<em>数学上</em>成立的?</p>
+
+<hr>
+
+<h2 id="sec2">2 · 符号表 + 直觉热身</h2>
+
+<h3>2.1 我们要证什么 (用人话说)</h3>
+<p>给定当前已经写出来的 prefix(比如 "今天天气"),target 模型给出"下一个 token"的概率分布,记作 <code>p</code>。draft 模型给出另一个分布,记作 <code>q</code>。Speculative decoding 的流程是:</p>
+<ol>
+  <li>从 q 里采样一个候选 token,叫它 <code>t</code></li>
+  <li>用某个概率决定"接受 t"还是"扔掉 t"</li>
+  <li>如果扔掉,从一个修正过的分布里再采样一个 token</li>
+</ol>
+<p>我们要证明:这个流程<strong>整体</strong>输出的 token,服从 <code>p</code> 这个分布——和你直接从 target 采样一模一样。</p>
+
+<h3>2.2 符号表 (重要,后面所有公式都用这些)</h3>
+<div class="kv">
+  <p><strong>vocab</strong> · 词表,本教程用一个超小的玩具词表 <code>{cat, dog, fish}</code> (只有 3 个 token) 演算。</p>
+  <p><strong>x</strong> · 一个具体的 token。"对所有 x 求和" = 对 cat / dog / fish 三个值各算一次再加起来。</p>
+  <p><strong>prefix</strong> · 已经生成出来的前文。本教程里大部分时候省略,因为我们只看"下一个 token"。</p>
+  <p><strong>p(x)</strong> · target 模型在当前 prefix 下,认为下一个 token 是 x 的概率。例如 p(cat) = 0.6 意思是 target 觉得下一个是 cat 的概率 60%。</p>
+  <p><strong>q(x)</strong> · draft 模型在同一 prefix 下,认为下一个 token 是 x 的概率。</p>
+  <p><strong>t</strong> · 从 q 采样得到的候选 token (一个具体的值,如 t=cat)。</p>
+  <p><strong>a(x)</strong> · 接受概率,定义为 <code>a(x) = min(1, p(x)/q(x))</code>。意义:如果候选 token 是 x,我们以 a(x) 的概率接受它。</p>
+  <p><strong>r</strong> · [0, 1] 上的均匀随机数。算法实现里:采 r 后,如果 <code>r &lt; p(t)/q(t)</code> 就接受,否则拒绝——和"以 min(1, p/q) 概率接受"等价。</p>
+  <p><strong>(p − q)+(x)</strong> · "正部",定义为 <code>max(0, p(x) − q(x))</code>。意思是 p 比 q 多出来的部分,如果 q 比 p 还大就记 0。</p>
+  <p><strong>Z</strong> · 归一化常数,<code>Z = 对所有 x 求 (p(x) − q(x))+ 的和</code>。它的作用是把上面那个非负函数变成一个合法的概率分布。</p>
+  <p><strong>p'(x)</strong> · "拒绝时的重采样分布",定义为 <code>p'(x) = (p(x) − q(x))+ / Z</code>。</p>
+  <p><strong>P(...)</strong> · 表示"某事件的概率"。比如 P(output = cat ∧ accept) 表示"采样到 cat 并且被接受"的联合概率。</p>
+  <p><strong>min(p, q)(x)</strong> · 简写,表示 <code>min(p(x), q(x))</code>,即两个分布在 x 上较小的那个值。</p>
+</div>
+
+<h3>2.3 全程使用的运行例</h3>
+<p>本教程 70% 的时间都用下面这一对小分布,把 vocab 限制在 cat / dog / fish 三个 token,这样所有概率都能写出来、加起来、画出来:</p>
+
+<div class="formula">
+  target p = (p(cat), p(dog), p(fish)) = (0.6, 0.3, 0.1)<br>
+  draft &nbsp;q = (q(cat), q(dog), q(fish)) = (0.4, 0.5, 0.1)
+</div>
+
+<div class="fig">
+  <svg viewBox="0 0 600 220" width="100%" style="max-width:560px">
+    <!-- left: target p -->
+    <text x="100" y="20" font-size="14" text-anchor="middle" font-weight="bold" fill="#cc4a1b">target p</text>
+    <rect x="40" y="180" width="40" height="0" fill="#cc4a1b"/>
+    <rect x="40" y="60"  width="40" height="120" fill="#cc4a1b"/>
+    <rect x="100" y="120" width="40" height="60" fill="#cc4a1b"/>
+    <rect x="160" y="160" width="40" height="20" fill="#cc4a1b"/>
+    <text x="60" y="200" font-size="11" text-anchor="middle">cat</text>
+    <text x="120" y="200" font-size="11" text-anchor="middle">dog</text>
+    <text x="180" y="200" font-size="11" text-anchor="middle">fish</text>
+    <text x="60" y="55" font-size="11" text-anchor="middle">0.6</text>
+    <text x="120" y="115" font-size="11" text-anchor="middle">0.3</text>
+    <text x="180" y="155" font-size="11" text-anchor="middle">0.1</text>
+    <line x1="30" y1="180" x2="220" y2="180" stroke="#888" stroke-width="1"/>
+    <!-- right: draft q -->
+    <text x="400" y="20" font-size="14" text-anchor="middle" font-weight="bold" fill="#2f6feb">draft q</text>
+    <rect x="340" y="100" width="40" height="80" fill="#2f6feb"/>
+    <rect x="400" y="80"  width="40" height="100" fill="#2f6feb"/>
+    <rect x="460" y="160" width="40" height="20" fill="#2f6feb"/>
+    <text x="360" y="200" font-size="11" text-anchor="middle">cat</text>
+    <text x="420" y="200" font-size="11" text-anchor="middle">dog</text>
+    <text x="480" y="200" font-size="11" text-anchor="middle">fish</text>
+    <text x="360" y="95"  font-size="11" text-anchor="middle">0.4</text>
+    <text x="420" y="75"  font-size="11" text-anchor="middle">0.5</text>
+    <text x="480" y="155" font-size="11" text-anchor="middle">0.1</text>
+    <line x1="330" y1="180" x2="510" y2="180" stroke="#888" stroke-width="1"/>
+  </svg>
+  <figcaption>target 觉得 cat 最有可能 (0.6),但 draft 觉得 dog 最有可能 (0.5)。两个分布在 dog 上意见<em>分歧最大</em> (q 比 p 多了 0.2),而在 fish 上完全一致 (都是 0.1)。我们关心的是:从 q 采样后再做 spec decoding 的"修正",最终输出会服从 p 而不是 q。</figcaption>
+</div>
+
+<h3>2.4 一个被讨厌的小问题先放在这</h3>
+<div class="nb">
+  <strong>命名混乱预警:</strong> Leviathan 2023 用 p = target, q = draft;Chen 2023 用 p = draft, q = target,<em>正好反过来</em>。现代实现 (vLLM, EAGLE 系列) 都跟随 Leviathan 的约定。本教程统一用 <strong>p = target, q = draft</strong>。读其它资料时记得对照。
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · 想法的源头: importance sampling 复习</h2>
+
+<p>spec decoding 的本质灵感来自 importance sampling (IS),所以我们先花 3 分钟温习。</p>
+
+<h3>3.1 IS 解决什么问题</h3>
+<p>假设你想计算 target 分布 p 下某个函数 f 的期望 (比如"reward 的平均值"),写法是:</p>
+
+<div class="formula">期望 E_p[f] = 对所有 x 求和 [ p(x) × f(x) ]</div>
+
+<p>但你<strong>不能直接从 p 采样</strong> (比如 p 太贵了),只能从 q 采样。怎么办? IS 的小技巧是:在求和里凭空乘 q(x)/q(x) (= 1),然后重新组合:</p>
+
+<div class="formula">
+  E_p[f] = 对所有 x 求和 [ p(x) × f(x) ]<br>
+  = 对所有 x 求和 [ q(x) × (p(x)/q(x)) × f(x) ]<br>
+  = E_q[ (p/q) × f ]
+</div>
+
+<p>意思是:从 q 采样一堆样本 x₁, x₂, ..., 算 (p(xᵢ)/q(xᵢ)) × f(xᵢ) 的平均值,这个平均值就是 E_p[f] 的无偏估计。<code>p(x)/q(x)</code> 叫 <em>importance weight</em>。</p>
+
+<div class="intuition">
+你想问 target 的意见,但只问到了 draft 的回答;那就给 draft 的每个回答<strong>加个权重</strong> p/q,补回 target 视角下应有的"重要性"。
+</div>
+
+<h3>3.2 用 cat/dog/fish 例子</h3>
+
+<table>
+  <tr><th>x</th><th>p(x)</th><th>q(x)</th><th>p/q (权重)</th></tr>
+  <tr><td>cat</td><td>0.6</td><td>0.4</td><td>1.5 (target 比 draft 更想要)</td></tr>
+  <tr><td>dog</td><td>0.3</td><td>0.5</td><td>0.6 (target 没那么想要)</td></tr>
+  <tr><td>fish</td><td>0.1</td><td>0.1</td><td>1.0 (一致)</td></tr>
+</table>
+
+<div class="fig">
+  <svg viewBox="0 0 600 180" width="100%" style="max-width:560px">
+    <text x="300" y="20" font-size="14" text-anchor="middle" font-weight="bold">importance weight p(x)/q(x)</text>
+    <!-- baseline at y=120 (=1.0) -->
+    <line x1="40" y1="120" x2="560" y2="120" stroke="#aaa" stroke-dasharray="4 3"/>
+    <text x="20" y="124" font-size="10" text-anchor="middle" fill="#888">1.0</text>
+    <!-- bars: scale 60 px = 1.0 -->
+    <rect x="100" y="30" width="80" height="90" fill="#9b59b6"/>
+    <text x="140" y="155" font-size="12" text-anchor="middle">cat (1.5)</text>
+    <text x="140" y="22" font-size="11" text-anchor="middle">1.5</text>
+    <rect x="260" y="120" width="80" height="36" fill="#9b59b6"/>
+    <text x="300" y="173" font-size="12" text-anchor="middle">dog (0.6)</text>
+    <text x="300" y="115" font-size="11" text-anchor="middle">0.6</text>
+    <rect x="420" y="120" width="80" height="0" fill="#9b59b6"/>
+    <line x1="420" y1="120" x2="500" y2="120" stroke="#9b59b6" stroke-width="3"/>
+    <text x="460" y="155" font-size="12" text-anchor="middle">fish (1.0)</text>
+    <text x="460" y="115" font-size="11" text-anchor="middle">1.0</text>
+  </svg>
+  <figcaption>p/q 越高,说明 target 比 draft 更"想要"这个 token。在 cat 上 p/q = 1.5 (target 想要 1.5 倍),在 dog 上 p/q = 0.6 (target 没那么想要)。这两个比值是 spec decoding 接受/拒绝判断的<em>核心信号</em>。</figcaption>
+</div>
+
+<h3>3.3 IS 不直接好用的地方</h3>
+
+<p>IS 给的是<strong>期望的估计</strong>。但 spec decoding 要的是<strong>样本本身</strong>—— 我们要的是真的从 p 中"抽"出一个 token 来拼到序列里,不能交给下游一个加权平均值。把 IS 改造成"采样工具"的过程,就是 rejection sampling。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Rejection Sampling: 把 IS 改造成"采样"工具</h2>
+
+<h3>4.1 经典 rejection sampling 复习</h3>
+<p>经典 RS 的设定: 想从 p 采样,只能从 q 采样。已知存在常数 M ≥ 1 使得对所有 x,M·q(x) ≥ p(x) (即 M·q 是 p 的<em>包络/envelope</em>)。流程:</p>
+<ol>
+  <li>从 q 采样 x</li>
+  <li>采均匀随机数 r ∈ [0, 1]</li>
+  <li>如果 r &lt; p(x) / (M·q(x)),接受 x;否则拒绝,重新来。</li>
+</ol>
+<p>正确性证明留给经典教科书,直观是: 用 M·q 这个"罩子"把 p 罩住,然后在罩子下"打孔",p 的形状就被你按比例采样出来了。</p>
+
+<h3>4.2 但经典 RS 不适合 spec decoding</h3>
+<p>问题是: 我们需要先知道 M (那个保证 M·q ≥ p 的常数)。在 LLM 里,p 和 q 是巨大模型的输出,在每个 prefix 上 M 都不一样,而且最坏情况下 M 可以巨大 (一个 token 在 q 里几乎为 0,在 p 里中等概率,p/q 就爆炸)。这会让接受率 1/M 趋近 0,完全失去加速意义。</p>
+
+<h3>4.3 Spec decoding 的小聪明: 不需要 envelope</h3>
+<p>Leviathan / Chen 的关键观察是: 我们不需要 <em>非要</em>把 p 罩住。如果 q 在某点比 p 小,那就<em>无脑接受</em> (反正 draft 给得不够多,接受了正好);如果 q 在某点比 p 大 (draft 给多了),那就按比例打折接受,然后从"残差"里补采。</p>
+
+<div class="formula">a(x) = min(1, p(x)/q(x))</div>
+
+<div class="intuition">
+读法: 如果 target 觉得 x 比 draft 觉得的更可能 (p ≥ q),那 draft 给出的 x 就 100% 接受;否则按 p/q 这个比例打折接受。这是一个直觉上"对得起 target 也对得起 draft"的折中。
+</div>
+
+<div class="fig">
+  <svg viewBox="0 0 600 200" width="100%" style="max-width:560px">
+    <text x="300" y="20" font-size="14" text-anchor="middle" font-weight="bold">a(x) = min(1, p/q): 接受概率裁掉超过 1 的部分</text>
+    <line x1="40" y1="140" x2="560" y2="140" stroke="#aaa"/>
+    <line x1="40" y1="80"  x2="560" y2="80"  stroke="#aaa" stroke-dasharray="4 3"/>
+    <text x="20" y="84" font-size="10" text-anchor="middle" fill="#888">a=1</text>
+    <text x="20" y="144" font-size="10" text-anchor="middle" fill="#888">0</text>
+    <!-- cat: ratio 1.5, clipped to 1 -->
+    <rect x="100" y="80" width="80" height="60" fill="#1f7a4a"/>
+    <text x="140" y="170" font-size="12" text-anchor="middle">cat</text>
+    <text x="140" y="75" font-size="11" text-anchor="middle">1.0 (裁断)</text>
+    <text x="140" y="190" font-size="10" text-anchor="middle" fill="#888">原 p/q=1.5</text>
+    <!-- dog: ratio 0.6 -->
+    <rect x="260" y="104" width="80" height="36" fill="#cc4a1b"/>
+    <text x="300" y="170" font-size="12" text-anchor="middle">dog</text>
+    <text x="300" y="100" font-size="11" text-anchor="middle">0.6</text>
+    <text x="300" y="190" font-size="10" text-anchor="middle" fill="#888">原 p/q=0.6</text>
+    <!-- fish: ratio 1.0 -->
+    <rect x="420" y="80" width="80" height="60" fill="#1f7a4a"/>
+    <text x="460" y="170" font-size="12" text-anchor="middle">fish</text>
+    <text x="460" y="75" font-size="11" text-anchor="middle">1.0</text>
+    <text x="460" y="190" font-size="10" text-anchor="middle" fill="#888">原 p/q=1.0</text>
+  </svg>
+  <figcaption>cat 上 p/q = 1.5,但接受概率不可能 &gt; 1,所以裁到 1.0(绿色,无脑接受);dog 上 p/q = 0.6,按比例接受 60%(红色);fish 上正好 1.0。这就是 a(x) = min(1, p/q) 的图像。</figcaption>
+</div>
+
+<p>但光这一步还不够: 如果某个 x 被拒绝了 (比如采到 dog 但 r &gt; 0.6),我们必须有个"补救"步骤,否则总分布就不对了。这就是<strong>修正分布 p'</strong> 出场的地方。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 主定理: spec decoding 是 lossless 的</h2>
+
+<h3>5.1 算法陈述 (一个 token 版,无 γ-step)</h3>
+<p>给定当前 prefix,target 分布 p,draft 分布 q。执行下面三步,产出一个 token:</p>
+
+<div class="step">
+<h4>SpecSampleOne (一步 spec 采样)</h4>
+<ol>
+  <li><strong>提议:</strong>从 q 采样一个候选 t,即 t ∼ q。</li>
+  <li><strong>判定接受:</strong>独立采均匀随机数 r ∼ Uniform[0, 1]。<br>如果 r &lt; min(1, p(t)/q(t)) (等价于 r·q(t) &lt; p(t)),则<strong>接受</strong> t,直接 return t。</li>
+  <li><strong>否则:</strong>从修正分布 p'(x) = max(0, p(x) − q(x)) / Z 重新采样一个 token,return 它。其中 Z = 对所有 x 求和 max(0, p(x) − q(x))。</li>
+</ol>
+</div>
+
+<h3>5.2 主定理</h3>
+
+<blockquote><strong>定理 (Leviathan 2023, Appendix A.1; Chen 2023, Theorem 1)</strong> · 对任意离散分布 p, q (定义在同一个 vocab 上),上面 SpecSampleOne 算法 return 的 token,服从分布 p。即 P(output = x) = p(x) 对所有 x 成立。</blockquote>
+
+<div class="fig">
+  <svg viewBox="0 0 600 280" width="100%" style="max-width:580px">
+    <text x="300" y="22" font-size="14" text-anchor="middle" font-weight="bold">SpecSampleOne 流程图</text>
+    <!-- node: sample from q -->
+    <rect x="220" y="40" width="160" height="40" rx="8" fill="#2f6feb" />
+    <text x="300" y="65" font-size="13" text-anchor="middle" fill="#fff">t ∼ q (采候选)</text>
+    <line x1="300" y1="80" x2="300" y2="105" stroke="#888" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- decision -->
+    <polygon points="300,110 410,150 300,190 190,150" fill="#fff7e0" stroke="#d2a32a" stroke-width="2"/>
+    <text x="300" y="148" font-size="12" text-anchor="middle">r &lt; p(t)/q(t) ?</text>
+    <text x="300" y="165" font-size="11" text-anchor="middle" fill="#888">(接受?)</text>
+    <!-- accept branch -->
+    <line x1="410" y1="150" x2="500" y2="150" stroke="#1f7a4a" stroke-width="2" marker-end="url(#arrgreen)"/>
+    <text x="455" y="142" font-size="11" text-anchor="middle" fill="#1f7a4a">是</text>
+    <rect x="490" y="130" width="100" height="40" rx="8" fill="#1f7a4a"/>
+    <text x="540" y="155" font-size="12" text-anchor="middle" fill="#fff">return t</text>
+    <!-- reject branch -->
+    <line x1="190" y1="150" x2="100" y2="150" stroke="#a8353e" stroke-width="2" marker-end="url(#arrred)"/>
+    <text x="145" y="142" font-size="11" text-anchor="middle" fill="#a8353e">否</text>
+    <rect x="10" y="115" width="90" height="70" rx="8" fill="#a8353e"/>
+    <text x="55" y="138" font-size="11" text-anchor="middle" fill="#fff">从 p'(x) =</text>
+    <text x="55" y="153" font-size="11" text-anchor="middle" fill="#fff">(p−q)+ / Z</text>
+    <text x="55" y="170" font-size="11" text-anchor="middle" fill="#fff">采样 return</text>
+    <!-- output legend -->
+    <text x="300" y="225" font-size="13" text-anchor="middle" fill="#cc4a1b" font-weight="bold">定理: 不论走哪条路,最终输出的边际分布 = p</text>
+    <text x="300" y="250" font-size="12" text-anchor="middle" fill="#5b5e66">(本节剩下时间就是把这一行变成数学)</text>
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#888"/>
+      </marker>
+      <marker id="arrgreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#1f7a4a"/>
+      </marker>
+      <marker id="arrred" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#a8353e"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>整个流程是一个二选一的随机过程: 要么"采 t 接受",要么"被拒后从修正分布重采"。我们要证明无论走哪条路,综合起来 token x 出现的概率正好是 p(x)。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · 详细证明 (核心节)</h2>
+
+<p>把证明拆成 3 步。每步给出 (a) 数学推导,(b) 直观解释,(c) 用 cat/dog/fish 验证。</p>
+
+<h3>6.1 总策略</h3>
+<p>我们要算的是: 对任意一个 token x,output 等于 x 的<strong>总概率</strong>。这个事件可以拆成两个互斥的小事件:</p>
+
+<div class="formula">
+  P(output = x) = P(output = x ∧ accept) + P(output = x ∧ reject)
+</div>
+
+<p>接下来三步分别处理这两项,然后合并。</p>
+
+<h3>6.2 Step 1 · 计算 P(output = x ∧ accept)</h3>
+
+<div class="step">
+<h4>Step 1 数学</h4>
+<p>"output 是 x 并且被接受",意味着第 1 步采样时正好采到了 x (概率 q(x)),并且 r &lt; p(x)/q(x) 被判接受 (概率 a(x) = min(1, p(x)/q(x)))。两个采样独立,所以:</p>
+<div class="formula">
+  P(output = x ∧ accept) = q(x) · a(x) = q(x) · min(1, p(x)/q(x))
+</div>
+<p>把 min 拆开看两种情况:</p>
+<ul>
+  <li>如果 p(x) ≥ q(x): min(1, p/q) = 1, 所以 q(x) · 1 = q(x) = min(p(x), q(x))</li>
+  <li>如果 p(x) &lt; q(x): min(1, p/q) = p/q, 所以 q(x) · p/q = p(x) = min(p(x), q(x))</li>
+</ul>
+<p>两种情况都等于 min(p(x), q(x))。所以:</p>
+<div class="formula">
+  P(output = x ∧ accept) = min(p(x), q(x))
+</div>
+</div>
+
+<div class="intuition">
+"采到 x 并接受"的概率,正好是两个分布在 x 这一点的<em>较小值</em>。这个量叫"下包络 (lower envelope)",代表 p 和 q 在 x 上"都同意采样"的那部分概率。如果 p 和 q 都觉得 x 概率高,那 min 就高;只要其中一个低,那 min 就低。
+</div>
+
+<div class="fig">
+  <svg viewBox="0 0 600 200" width="100%" style="max-width:560px">
+    <text x="300" y="20" font-size="14" text-anchor="middle" font-weight="bold">下包络 min(p, q): 两分布在每点取较小值</text>
+    <line x1="40" y1="170" x2="560" y2="170" stroke="#aaa"/>
+    <!-- cat: p=0.6 q=0.4 min=0.4 -->
+    <rect x="100" y="50" width="80" height="120" fill="none" stroke="#cc4a1b" stroke-dasharray="3 2"/>
+    <rect x="100" y="90" width="80" height="80"  fill="none" stroke="#2f6feb" stroke-dasharray="3 2"/>
+    <rect x="100" y="90" width="80" height="80"  fill="#7b8ab8" opacity="0.7"/>
+    <text x="140" y="187" font-size="12" text-anchor="middle">cat</text>
+    <text x="140" y="85" font-size="10" text-anchor="middle" fill="#3a3b40">min=0.4</text>
+    <!-- dog: p=0.3 q=0.5 min=0.3 -->
+    <rect x="260" y="110" width="80" height="60" fill="none" stroke="#cc4a1b" stroke-dasharray="3 2"/>
+    <rect x="260" y="70"  width="80" height="100" fill="none" stroke="#2f6feb" stroke-dasharray="3 2"/>
+    <rect x="260" y="110" width="80" height="60" fill="#7b8ab8" opacity="0.7"/>
+    <text x="300" y="187" font-size="12" text-anchor="middle">dog</text>
+    <text x="300" y="105" font-size="10" text-anchor="middle" fill="#3a3b40">min=0.3</text>
+    <!-- fish: p=q=0.1 -->
+    <rect x="420" y="150" width="80" height="20" fill="#7b8ab8" opacity="0.7"/>
+    <text x="460" y="187" font-size="12" text-anchor="middle">fish</text>
+    <text x="460" y="145" font-size="10" text-anchor="middle" fill="#3a3b40">min=0.1</text>
+    <!-- legend -->
+    <rect x="40" y="35" width="14" height="10" fill="none" stroke="#cc4a1b" stroke-dasharray="3 2"/>
+    <text x="60" y="44" font-size="10">p</text>
+    <rect x="78" y="35" width="14" height="10" fill="none" stroke="#2f6feb" stroke-dasharray="3 2"/>
+    <text x="98" y="44" font-size="10">q</text>
+    <rect x="116" y="35" width="14" height="10" fill="#7b8ab8" opacity="0.7"/>
+    <text x="155" y="44" font-size="10">min(p,q)</text>
+  </svg>
+  <figcaption>cat: p=0.6, q=0.4, min=0.4。dog: p=0.3, q=0.5, min=0.3。fish: 都=0.1, min=0.1。这三个值加起来是 0.8,是"被接受时输出某个 token 的总概率"。</figcaption>
+</div>
+
+<h3>6.3 Step 2 · 计算 P(reject) (被拒的总概率)</h3>
+
+<div class="step">
+<h4>Step 2 数学</h4>
+<p>"接受"事件按 token 拆开,概率是各 token min(p,q) 之和:</p>
+<div class="formula">
+  P(accept) = 对所有 x 求和 [ P(output = x ∧ accept) ] = 对所有 x 求和 [ min(p(x), q(x)) ]
+</div>
+<p>因为接受/拒绝是互斥且必有其一, P(reject) = 1 − P(accept):</p>
+<div class="formula">
+  P(reject) = 1 − 对所有 x 求和 min(p(x), q(x))
+</div>
+</div>
+
+<div class="intuition">
+拒绝率正好是"两个分布在 vocab 上的总差距"——分布越接近,min 求和越接近 1,拒绝率越接近 0;分布完全不一样 (q 和 p 没有 token 重叠),min 求和 = 0,拒绝率 = 1 (永远拒绝)。这个量叫 total variation distance,是 spec decoding 加速效果的根本指标。
+</div>
+
+<p><strong>cat/dog/fish 验证:</strong></p>
+<table>
+  <tr><th>x</th><th>p(x)</th><th>q(x)</th><th>min(p,q)</th></tr>
+  <tr><td>cat</td><td>0.6</td><td>0.4</td><td>0.4</td></tr>
+  <tr><td>dog</td><td>0.3</td><td>0.5</td><td>0.3</td></tr>
+  <tr><td>fish</td><td>0.1</td><td>0.1</td><td>0.1</td></tr>
+  <tr><td><strong>合计</strong></td><td>1.0</td><td>1.0</td><td><strong>0.8</strong></td></tr>
+</table>
+<p>所以 P(accept) = 0.8, <strong>P(reject) = 0.2</strong>。</p>
+
+<h3>6.4 Step 3 · 计算 P(output = x ∧ reject) 和最终合成</h3>
+
+<div class="step">
+<h4>Step 3a · 重采样分布的归一化常数 Z</h4>
+<p>定义残差 (p − q)+(x) = max(0, p(x) − q(x))。归一化常数:</p>
+<div class="formula">
+  Z = 对所有 x 求和 max(0, p(x) − q(x))
+</div>
+<p>这里有一个<strong>非常重要的代数恒等式</strong>,后面就靠它合并:</p>
+<div class="formula">
+  Z = 1 − 对所有 x 求和 min(p(x), q(x)) = P(reject)
+</div>
+<p><strong>为什么 Z 等于 P(reject)?</strong>把恒等式 a + b = min(a,b) + max(a,b) 应用到 p(x) 和 q(x):</p>
+<div class="formula">
+  p(x) + q(x) = min(p(x), q(x)) + max(p(x), q(x))
+</div>
+<p>而 max(p, q) = p + (q − p)+ = q + (p − q)+,所以 max(p, q) − q = (p − q)+,即:</p>
+<div class="formula">
+  p(x) − min(p(x), q(x)) = max(0, p(x) − q(x)) = (p − q)+(x)
+</div>
+<p>对所有 x 求和: 左边 = 对 p 求和 − 对 min 求和 = 1 − 对 min 求和;右边 = Z。所以:</p>
+<div class="formula">
+  Z = 1 − 对所有 x 求和 min(p(x), q(x)) ✓
+</div>
+</div>
+
+<div class="intuition">
+这个恒等式是整个证明的"核心齿轮"。它告诉我们: 归一化常数 Z 不是某个奇怪的量,它<em>正好等于</em>拒绝概率。这意味着"被拒的总概率"和"修正分布的总质量"是<em>同一个数</em>—— 这种巧合不是凑出来的,是 (p−q)+ 这个公式的设计目的。
+</div>
+
+<div class="step">
+<h4>Step 3b · P(output = x ∧ reject)</h4>
+<p>当被拒,我们从 p'(x) = (p−q)+(x) / Z 重采样。所以条件概率:</p>
+<div class="formula">
+  P(output = x | reject) = p'(x) = (p−q)+(x) / Z
+</div>
+<p>联合概率 = 条件概率 × 边际:</p>
+<div class="formula">
+  P(output = x ∧ reject) = P(reject) × p'(x) = Z × (p−q)+(x) / Z = (p−q)+(x)
+</div>
+<p>注意! Z 上下抵消,得到一个非常干净的式子:</p>
+<div class="formula">
+  P(output = x ∧ reject) = (p−q)+(x) = max(0, p(x) − q(x))
+</div>
+</div>
+
+<div class="intuition">
+代数上 Z 抵消的这一步是设计 (p−q)+ 这个分布的<em>原因</em>—— 设计的人就是想让"边际 × 条件"在合并时干净。如果当初拒绝时不归一化(用 (p−q)+ 作为非概率),Step 3a 的恒等式会保证它"正好"加到 1,但那时它就不是个分布了,采样不了;归一化后再乘回 Z,又把 Z 抵消了。这是个漂亮的循环。
+</div>
+
+<div class="step">
+<h4>Step 3c · 合并: P(output = x)</h4>
+<p>把 Step 1 和 Step 3b 加起来:</p>
+<div class="formula">
+  P(output = x) = P(output = x ∧ accept) + P(output = x ∧ reject)<br>
+  = min(p(x), q(x)) + (p−q)+(x)<br>
+  = min(p(x), q(x)) + max(0, p(x) − q(x))
+</div>
+<p>分两种情况验证:</p>
+<ul>
+  <li>如果 p(x) ≥ q(x): min = q(x), max = p(x) − q(x), 加起来 = q(x) + (p(x) − q(x)) = p(x) ✓</li>
+  <li>如果 p(x) &lt; q(x): min = p(x), max = 0, 加起来 = p(x) + 0 = p(x) ✓</li>
+</ul>
+<p>所以无论 p 和 q 在 x 上谁大谁小:</p>
+<div class="formula">
+  <strong>P(output = x) = p(x)</strong> &nbsp; ∎
+</div>
+</div>
+
+<div class="intuition">
+"输出 x"被拆成两部分:(a) min 部分是"两个分布都同意 x 应该有这么多概率"的部分,直接被接受输出;(b) (p−q)+ 部分是"target 比 draft 多想要的部分",在拒绝路径上补回来。两部分加起来正好是 target 的 p(x)。这就是 spec decoding 的灵魂: 用 draft 把容易共识的部分快速确定下来,用拒绝路径修正分歧的部分。
+</div>
+
+<div class="fig">
+  <svg viewBox="0 0 600 240" width="100%" style="max-width:580px">
+    <text x="300" y="20" font-size="14" text-anchor="middle" font-weight="bold">money diagram: min(p,q) + (p−q)+ = p</text>
+    <line x1="40" y1="200" x2="560" y2="200" stroke="#aaa"/>
+    <!-- cat -->
+    <rect x="80" y="80"  width="60" height="120" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <rect x="80" y="120" width="60" height="80"  fill="#7b8ab8" opacity="0.8"/>
+    <rect x="80" y="80"  width="60" height="40"  fill="#1f7a4a" opacity="0.85"/>
+    <text x="110" y="218" font-size="12" text-anchor="middle">cat</text>
+    <text x="110" y="160" font-size="10" text-anchor="middle" fill="#fff">min=0.4</text>
+    <text x="110" y="105" font-size="10" text-anchor="middle" fill="#fff">+0.2</text>
+    <text x="110" y="75" font-size="10" text-anchor="middle">p=0.6</text>
+    <!-- dog -->
+    <rect x="240" y="140" width="60" height="60" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <rect x="240" y="140" width="60" height="60" fill="#7b8ab8" opacity="0.8"/>
+    <text x="270" y="218" font-size="12" text-anchor="middle">dog</text>
+    <text x="270" y="175" font-size="10" text-anchor="middle" fill="#fff">min=0.3</text>
+    <text x="270" y="135" font-size="10" text-anchor="middle">p=0.3</text>
+    <!-- fish -->
+    <rect x="400" y="180" width="60" height="20" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <rect x="400" y="180" width="60" height="20" fill="#7b8ab8" opacity="0.8"/>
+    <text x="430" y="218" font-size="12" text-anchor="middle">fish</text>
+    <text x="430" y="175" font-size="10" text-anchor="middle">p=0.1</text>
+    <!-- legend -->
+    <rect x="495" y="60" width="14" height="10" fill="#7b8ab8" opacity="0.8"/>
+    <text x="513" y="69" font-size="10">min(p,q)</text>
+    <rect x="495" y="80" width="14" height="10" fill="#1f7a4a" opacity="0.85"/>
+    <text x="513" y="89" font-size="10">(p−q)+</text>
+    <rect x="495" y="100" width="14" height="10" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="513" y="109" font-size="10">p (target)</text>
+  </svg>
+  <figcaption>每个 token 上,蓝色 (min) + 绿色 ((p−q)+) 严丝合缝地堆成红色框 (p)。在 cat 上需要补 (p−q)+ = 0.2;在 dog 和 fish 上 p ≤ q,(p−q)+ = 0,只用蓝色就够。这就是为什么最终输出分布 = p。</figcaption>
+</div>
+
+<details>
+  <summary>(选读) 连续分布的情形 — 为什么换成积分还成立</summary>
+  <p>把"对所有 x 求和"换成"对 vocab 上的 Lebesgue 积分",所有 min / max / (·)+ 都按点定义,推导一字不变。本教程不展开,因为 LLM 词表是离散有限的,离散版已经够用。</p>
+</details>
+
+<hr>
+
+<h2 id="sec7">7 · 几个具体例子 (数值演算)</h2>
+
+<h3>7.1 例 1: 全程演算 cat/dog/fish</h3>
+
+<p>预备量 (从 §6.3 ~ §6.4 算出):</p>
+<table>
+  <tr><th>x</th><th>p(x)</th><th>q(x)</th><th>a(x)=min(1,p/q)</th><th>min(p,q)</th><th>(p−q)+</th></tr>
+  <tr><td>cat</td><td>0.6</td><td>0.4</td><td>1.0</td><td>0.4</td><td>0.2</td></tr>
+  <tr><td>dog</td><td>0.3</td><td>0.5</td><td>0.6</td><td>0.3</td><td>0</td></tr>
+  <tr><td>fish</td><td>0.1</td><td>0.1</td><td>1.0</td><td>0.1</td><td>0</td></tr>
+  <tr><td>合计</td><td>1.0</td><td>1.0</td><td>—</td><td><strong>0.8</strong></td><td><strong>Z=0.2</strong></td></tr>
+</table>
+
+<p><strong>Step 1: 接受路径</strong></p>
+<ul>
+  <li>P(output=cat ∧ accept) = q(cat)·a(cat) = 0.4 × 1.0 = <strong>0.4</strong></li>
+  <li>P(output=dog ∧ accept) = q(dog)·a(dog) = 0.5 × 0.6 = <strong>0.3</strong></li>
+  <li>P(output=fish ∧ accept) = q(fish)·a(fish) = 0.1 × 1.0 = <strong>0.1</strong></li>
+  <li>P(accept) = 0.4 + 0.3 + 0.1 = 0.8</li>
+</ul>
+
+<p><strong>Step 2: 拒绝总概率</strong></p>
+<p>P(reject) = 1 − 0.8 = <strong>0.2</strong>。</p>
+
+<p><strong>Step 3: 修正分布 p'</strong></p>
+<p>Z = 0.2,所以 p'(cat) = 0.2/0.2 = 1.0,p'(dog) = 0/0.2 = 0,p'(fish) = 0/0.2 = 0。也就是: <em>一旦被拒,100% 输出 cat</em>。 这听起来怪,但符合直觉: 在这个例子里,(p−q)+ 只在 cat 上非零(target 在 cat 上比 draft 多 0.2),所以拒绝补救只能输出 cat。</p>
+
+<p><strong>Step 3 联合概率:</strong></p>
+<ul>
+  <li>P(output=cat ∧ reject) = 0.2 × 1.0 = 0.2</li>
+  <li>P(output=dog ∧ reject) = 0.2 × 0 = 0</li>
+  <li>P(output=fish ∧ reject) = 0.2 × 0 = 0</li>
+</ul>
+
+<p><strong>合并:</strong></p>
+<table>
+  <tr><th>x</th><th>P(x ∧ accept)</th><th>P(x ∧ reject)</th><th>P(output = x)</th><th>p(x)</th><th>match?</th></tr>
+  <tr><td>cat</td><td>0.4</td><td>0.2</td><td><strong>0.6</strong></td><td>0.6</td><td><span class="ok">✓</span></td></tr>
+  <tr><td>dog</td><td>0.3</td><td>0</td><td><strong>0.3</strong></td><td>0.3</td><td><span class="ok">✓</span></td></tr>
+  <tr><td>fish</td><td>0.1</td><td>0</td><td><strong>0.1</strong></td><td>0.1</td><td><span class="ok">✓</span></td></tr>
+</table>
+
+<p>每行都恢复了 p(x),这就是 lossless 的<strong>真实数值演示</strong>。</p>
+
+<h3>7.2 例 2: 完美 draft (q = p)</h3>
+<p>如果 draft 的分布完全等于 target,那 (p − q)+(x) = 0 对所有 x,所以 Z = 0,拒绝路径永远不发生 (P(reject) = 0)。每次都接受,达到最大加速。这是为什么 EAGLE / Medusa 等用同源 draft 的方案能拿到最高 acceptance rate。</p>
+
+<h3>7.3 例 3: 完全错的 draft (disjoint support)</h3>
+<p>假设 q 给 cat = 1.0,而 p 只在 dog 和 fish 上有质量 (p(cat)=0)。那 min(p, q)(cat) = 0 (p=0), min(p, q)(dog) = 0 (q=0), min(p, q)(fish) = 0。P(accept) = 0,永远拒绝;每次都进入 (p−q)+ 路径,(p−q)+ = p (因为 q 和 p 不重叠),所以 p' = p。这等于<em>每次都从 p 直接采样</em>—— 没有加速,但仍然 lossless。 spec decoding 在最坏情况下退化成自回归,但永远不会偏。</p>
+
+<table>
+  <tr><th>情况</th><th>P(accept)</th><th>P(reject)</th><th>加速</th><th>lossless?</th></tr>
+  <tr><td>q = p (完美)</td><td>1.0</td><td>0</td><td>最大</td><td><span class="ok">✓</span></td></tr>
+  <tr><td>cat/dog/fish 例</td><td>0.8</td><td>0.2</td><td>中等</td><td><span class="ok">✓</span></td></tr>
+  <tr><td>q ⊥ p (不重叠)</td><td>0</td><td>1.0</td><td>无 (退化成 AR)</td><td><span class="ok">✓</span></td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec8">8 · 常见误解 / 陷阱</h2>
+
+<h3>Q1 · 拒绝时,为什么不直接从 p 采样?</h3>
+<p>错。如果拒绝时直接从 p 采样,总分布会是:</p>
+<div class="formula">P(out = x) = min(p(x), q(x)) + P(reject) · p(x)</div>
+<p>这一般不等于 p(x)。具体: 拒绝时如果你"老实"从 p 重采,就<em>双重计算</em>了那些 p 和 q 都同意的部分(min 部分),导致最终分布偏向 p ∩ q 的重叠区,而忽略了 p 中"draft 没覆盖好"的部分。</p>
+<p>举例: cat/dog/fish 上,P(reject) = 0.2,如果拒绝时从 p 采样,P(out=cat) = 0.4 + 0.2·0.6 = 0.52 (不是 0.6)。这就破坏了 lossless。</p>
+<p>必须用 (p−q)+ 这个<em>有意只补缺口</em>的分布,才能让代数对得上。</p>
+
+<h3>Q2 · 为什么是 (p − q)+,不是 |p − q|?</h3>
+<p>因为我们只想补"target 比 draft 多想要"的那部分。在 q &gt; p 的 token 上 (例如 dog: q=0.5 &gt; p=0.3),draft 已经"过度采样"了,所以接受路径里我们已经按比例打折掉了多余的;此时不需要再"补",只是要避免在拒绝路径再加进去。如果用 |p−q|,你会在 dog 上误加 0.2,把 dog 总概率推到 &gt; 0.3,违反 lossless。</p>
+
+<h3>Q3 · 既然 min(1, p/q) 就够,为什么不直接做 importance sampling?</h3>
+<p>IS 给的是<em>期望的估计</em> (例如 reward 的期望),不是<em>样本</em>。RL 训练序列、给用户写文章,都需要真实采到的 token,而不是带权重的"虚拟 token"。 IS 的权重无法直接拼成一个序列。Spec decoding 是把"加权"思想变成"接受/拒绝"二值化的版本,从而能产生真正的 token。</p>
+
+<h3>Q4 · 浮点精度、KV cache、temperature 都可能破坏 lossless 吗?</h3>
+<p>是的。证明假设我们能<strong>精确计算 p(x), q(x), p(x)/q(x)</strong>。在工程上:</p>
+<ul>
+  <li>用 fp16 / bf16 算 logits,exp 之后做 softmax,p/q 在小概率 token 上数值非常不稳。</li>
+  <li>target 和 draft 的 KV cache 用了不同 dtype / 量化,p(x) 和"理想 p(x)"之间已经有了误差。</li>
+  <li>采样温度 T、top-k、top-p、repetition penalty 必须在<em>同一个标准化分布</em>上算 ratio—— 标准做法是把所有这些操作 fold 进 p 和 q,然后再做 spec sampling (Leviathan §2.2 "Standardized Sampling")。如果 target T=0.7、draft T=1.0,那比的是两个不一样的分布,lossless 不再成立。</li>
+</ul>
+<p>结论: lossless 是<strong>数学上的</strong> exact,工程上是 "lossless within hardware numerics" (Chen 2023 原文用语)。详见 §10。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 多步 / tree-verify 的扩展</h2>
+
+<h3>9.1 多步 (γ-step) 链式扩展</h3>
+<p>实际算法一步采 γ 个 draft token,再让 target 一次 forward 计算 γ+1 个位置的 p。然后从左到右逐个判 accept/reject,一旦遇到 reject 就停下来用修正分布重采那一位,丢掉后面的 draft 提议。</p>
+
+<p>每一位的"是否接受"独立用 §6 的逻辑判断,所以每位上局部 lossless。链起来意思是: 第 i 位接受后,prefix 增加了那个 token,target 在 prefix 上的下一位分布 p_{i+1} 是<em>在该 prefix 条件下</em>的分布,而 draft 也是在同一 prefix 条件下采样的 q_{i+1}。所以在每个位置上,前提条件 (prefix) 一致,§6 的证明 1:1 套用。</p>
+
+<p>链式 lossless 的形式归纳: 第一位 lossless ⇒ 第一位输出 token 服从 p(·|prefix);进入第二位,prefix 已经在 target 分布下扩展了一个 token,接下来的判定继续 lossless;以此类推。整段产出的 token 序列服从 target 自回归分布。</p>
+
+<h3>9.2 Tree verification (多 draft 分支)</h3>
+<p>SpecInfer / EAGLE-2 / Medusa 等会让 draft 同时提议多个分支 (一棵树),target 一次 forward 验证所有分支。这种情况下"接受规则"要重新设计 (Token-tree verification),但思想类似:接受规则要保证每个被选出的"叶子路径"上的 token 在条件分布下 lossless。具体公式见:</p>
+<ul>
+  <li><a href="02_EAGLE_evolution_DFlash.html">02_EAGLE_evolution_DFlash.html</a> — EAGLE-2/3 的 dynamic tree verification</li>
+  <li>SpecInfer (Miao et al.) — 多 sequence rejection 的设计</li>
+</ul>
+<p>一旦把 acceptance 规则推广好,整体 lossless 仍然成立,这是 spec decoding 家族能放心扩展到树形结构的根本理由。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 何时 lossless guarantee 失效</h2>
+
+<table>
+  <tr><th>失效来源</th><th>机制</th><th>典型表现</th></tr>
+  <tr><td>浮点精度</td><td>p/q 在 fp16/bf16 下数值误差,某些罕见 token 上可能 ratio 错算几倍</td><td>"empirically lossless within numerics" — 大数据集统计指标和 AR 一样,但单个序列可能有微小漂移</td></tr>
+  <tr><td>Temperature 不一致</td><td>target 用 T_p、draft 用 T_q ≠ T_p,比的是不同分布的 ratio</td><td>非常常见的 bug;输出分布会偏向 draft 的"风格"</td></tr>
+  <tr><td>KV cache dtype 漂移</td><td>target 跑 bf16,draft 跑 fp8,p(x) 已经不是真正的 target 分布</td><td>在 long context 下尤为明显</td></tr>
+  <tr><td>主动 lossy 系列 (MARS / DropMatch / LK-Losses)</td><td>故意放宽接受规则换更高 acceptance,如 lenience l &lt; 1 的 min(p, l·q) 替代</td><td>训练 / serving 场景<em>主动选择</em>放弃 lossless 换速度,trade-off 是质量轻微下降</td></tr>
+</table>
+
+<p>相关 sibling notes:</p>
+<ul>
+  <li><a href="11_PerformanceOrIllusion_2601.11580.html">11_PerformanceOrIllusion</a> — 工程上 lossless / lossy 的实测对比</li>
+  <li><a href="08_HiddenStatesDrift_2604.26412.html">08_HiddenStatesDrift</a> — KV/hidden state 漂移如何打破 lossless 假设</li>
+</ul>
+
+<hr>
+
+<h2 id="sec11">11 · 记忆要点</h2>
+<div class="kv">
+  <p><span class="pill">中心结论</span> SpecSampleOne 的输出分布 = target 分布 p,无近似无偏差。</p>
+  <p><span class="pill">关键公式</span> 接受概率 a(x) = min(1, p(x)/q(x));拒绝重采分布 p'(x) = (p(x)−q(x))+ / Z。</p>
+  <p><span class="pill">代数核心</span> Z = 1 − 对所有 x 求和 min(p, q) = P(reject)。这一步让 (p−q)+ 这个非概率的"残差"在归一化时正好和拒绝概率抵消。</p>
+  <p><span class="pill">Money equation</span> min(p, q) + (p−q)+ = p (按点恒成立)。</p>
+  <p><span class="pill">直观图像</span> 蓝色 min = "两边都同意"的部分 (接受);绿色 (p−q)+ = "target 比 draft 多想要"的部分 (拒绝补救)。</p>
+  <p><span class="pill">退化情形</span> q = p ⇒ 永不拒绝,最大加速;q ⊥ p ⇒ 永远拒绝,退化成 AR,但永远不偏。</p>
+  <p><span class="pill">陷阱</span> 拒绝时<em>不能</em>从 p 重采,会双重计算 min 部分;<em>不能</em>用 |p−q| 替代 (p−q)+,会在 q&gt;p 的 token 上多加。</p>
+  <p><span class="pill">工程红线</span> Lossless 仅在"target/draft 用同一标准化分布算 ratio"时成立;temperature / top-k / top-p / dtype 必须 fold 进 p 和 q 后再做 spec sampling。</p>
+  <p><span class="pill">来源</span> Leviathan et al. 2023 (arXiv:2211.17192),Appendix A.1;Chen et al. 2023 (arXiv:2302.01318),Theorem 1。两篇独立同时给出几乎一致的证明。</p>
+</div>
+
+<hr>
+
+<p style="color:var(--muted);font-size:13px">
+本教程改编 / 复述自 Leviathan et al. 2023 和 Chen et al. 2023 的证明,加入了面向工程师的 plain-Chinese 解释、cat/dog/fish 数值演示、money diagram、和工程陷阱列表。原始数学结果归功于上述两组作者。
+</p>
+
+</main>
+</body>
+</html>

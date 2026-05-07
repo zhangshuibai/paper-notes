@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · LK Losses (2602.23881)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>LK Losses: Direct Acceptance Rate Optimization for Speculative Decoding</h1>
+<div class="meta">
+  Nebius · Samarin, Krutikov, Shevtsov, Skvortsov, Fisin, Golubev · 2026-03-02 · arXiv:2602.23881<br>
+  关键词: speculative decoding · draft training · KL divergence · TV distance · acceptance rate · EAGLE-3 · MEDUSA · MTP
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>SD draft 训练用了多年 KL/CE,其实是个 <em>proxy 目标</em>——只在 q=p 全局最优时才等价于 acceptance rate;在容量受限的 draft 上,KL 最小≠α 最大。LK losses 直接以 α 为目标,通过 TV(p,q) 与 −log α 两条路径绕过 TV 梯度消失这道坎,作为已有 SD 训练框架的 drop-in replacement,在 8B–685B 六个 target × 四种 draft 架构上一律提升 τ,平均 acceptance length 涨幅达 8–10%。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">+8.2%</div><div class="l">Qwen3-235B EAGLE-3, T=1</div></div>
+    <div class="stat"><div class="n">+7.7%</div><div class="l">GPT-OSS 120B, T=1</div></div>
+    <div class="stat"><div class="n">0 FLOPs</div><div class="l">额外训练开销</div></div>
+  </div>
+  <p><strong>立场:</strong>这是把 SD draft 训练的"<em>目标函数</em>"层面拨正——比 MARS 那种基于 acceptance threshold 的方法更"根级",因为它直接换 loss、不需要新增推理逻辑。最大启发:KL 在小容量下不是"无害的好代理",它在<em>权衡哪里牺牲</em>这件事上和 α 不一致。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:proxy 之坑</a></li>
+    <li><a href="#sec2">背景速查</a></li>
+    <li><a href="#sec3">梯度解剖:KL vs TV</a></li>
+    <li><a href="#sec4">L<sup>λ</sup><sub>LK</sub>: KL+TV 自适应混合</a></li>
+    <li><a href="#sec5">L<sup>α</sup><sub>LK</sub>: −log α 似然路线</a></li>
+    <li><a href="#sec6">vocabulary truncation 的免费红利</a></li>
+    <li><a href="#sec7">公式串与数值直觉</a></li>
+    <li><a href="#sec8">实验关键结果</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证</a></li>
+    <li><a href="#sec11">Memory points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:proxy 之坑</h2>
+
+<h3>1.1 历史脉络:为什么大家一直用 KL/CE</h3>
+<p>从 Leviathan 2023 把 SD 落地开始,draft model 的训练几乎一律是一个 KD(knowledge distillation)流程:把 target 当 teacher,用 KL(p∥q) 或等价的 CE 让 draft 学习 target 的输出分布。MEDUSA(2024)、EAGLE 系列(2024–2025)、DeepSeek-V3 MTP(2024)、FR-Spec(2025)——架构在变,但 loss 的<em>骨架</em>没变。EAGLE 在此基础上加了 hidden-state 的 MSE regression,MEDUSA 加了 LM 目标,但都是<strong>额外补丁</strong>,核心仍然是 KL。</p>
+<p>这种共识基于一个事实:<strong>KL 和 acceptance rate α 共享同一个全局最优点</strong>。如果 q 能完美匹配 p,KL=0、α=1。所以"训 KL ≈ 训 acceptance"在理论上是没毛病的——前提是你能<em>到达</em>那个全局最优。</p>
+<p>但 draft model 通常只有 target 1–5% 的参数(EAGLE-3 一层 transformer 对 70 层的 Qwen3-235B),它<strong>注定到不了 q=p</strong>。问题就是:在你必然停留的这个 suboptimal 点附近,KL 最小化和 α 最大化是两件不同的事。这就是这篇 paper 的核心攻击面。</p>
+
+<h3>1.2 别的方案为什么不够</h3>
+<table>
+<tr><th>方案</th><th>核心思路</th><th>遗留问题</th></tr>
+<tr><td>KL(p∥q) — mode covering</td><td>避免 q 在 p 有概率的地方崩到 0</td><td>把概率铺得太散,小容量下 α 反而低(toy 例子里 α=50.2%)</td></tr>
+<tr><td>Reverse KL(q∥p) — mode seeking</td><td>q 必须把质量集中在自己 commit 的 mode 上</td><td>容易 collapse 到单峰,multi-mode target 上同样亏 α(50.8%)</td></tr>
+<tr><td>MSE on hidden(EAGLE)</td><td>追 hidden state 让 inference/training 一致</td><td>仍是间接,且 hidden 距离 ≠ 输出分布距离</td></tr>
+<tr><td>EAGLE-3 multi-layer KD</td><td>融合 target 多层 hidden 提高表达力</td><td>架构层面的努力,loss 仍然是 KL</td></tr>
+<tr><td>MARS 类阈值方法</td><td>在 inference 时丢掉低 acceptance 的 head/位置</td><td>事后挽救,不是从训练目标上改</td></tr>
+<tr><td>DistillSpec(尝试 TV)</td><td>意识到 TV 才直接对 α</td><td>仅在<em>已预训练</em>的 LM 上 fine-tune;从 random init 训不动 — 见 §3</td></tr>
+</table>
+<p>注意最后一行:DistillSpec 早就指出 TV 是对的目标。但他们的实验是从一个已经会说话的 LM 上微调(初始 q 已经接近 p),所以 TV 的梯度问题被掩盖。在<strong>从头训 EAGLE/MEDUSA 这种小 head 的真实场景</strong>下,纯 TV 训练会立刻撞墙——这是 LK 这篇要解决的工程关键。</p>
+
+<h3>1.3 为什么这事不平凡</h3>
+<p>看上去很直白:既然 α=1−TV(p,q),那就直接最小化 TV 不行吗?或者更直接,把 α 写出来当 loss?三个障碍让这件事过去三年没人做成:</p>
+<ol>
+  <li><strong>min(p,q) 不光滑</strong>。α=Σ min(p<sub>i</sub>,q<sub>i</sub>) 在 p<sub>i</sub>=q<sub>i</sub> 处不可微,对应 TV 中的 sign 跳变。直接梯度只携带<em>方向</em>(过预测 vs 欠预测),不携带<em>幅度</em>——欠预测一点点和欠预测很多得到一样大小的 sign 信号。</li>
+  <li><strong>TV 梯度幅度消失</strong>。论文 §A.5 给出在"q 几乎均匀(随机初始化) + p 集中在 k 个 token"的 regime 下:‖∇<sub>z</sub>TV‖ = O(√k / V)。对 V=128k 的现代 vocabulary,这个梯度比 KL 的 O(1/√k) 小好几个数量级。换句话说,从随机初始化开始,TV 推不动 logits。</li>
+  <li><strong>−log α 看似优雅,但 α=Σ min(p,q) 不是 softmax 的 likelihood</strong>。它没有 NLL 那种"目标 token 一个 slot"的好分解(虽然在 p 是 point mass 时退化为 NLL,见 §B)。它的梯度推不出标准 cross-entropy 那种 q−p 形式;LK 推到最后是 (1/α)·∇TV,等于"TV 加自适应 1/α 放大"——这层自适应是关键,把 TV 的梯度消失问题在 α→0(随机初始化)时自动恢复 O(1/√k)。</li>
+</ol>
+<p>所以这篇 paper 的"非平凡"含金量,不在 idea(idea 是 obvious 的:就直接优化 α 嘛),而在<strong>把 TV 梯度的病理诊断清楚 + 给出两条都能绕过的路径(混合调度 / 自适应放大)</strong>。这是工程师视角下的"算法障碍解决"。</p>
+
+<div class="fig">
+<svg viewBox="0 0 680 260" width="100%" style="max-width:660px">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+  </defs>
+  <!-- target distribution -->
+  <text x="40" y="28" font-size="13" font-weight="600">target p (multi-modal)</text>
+  <rect x="20" y="40" width="20" height="80" fill="#cc4a1b" opacity=".75"/>
+  <rect x="55" y="65" width="20" height="55" fill="#cc4a1b" opacity=".75"/>
+  <rect x="90" y="50" width="20" height="70" fill="#cc4a1b" opacity=".75"/>
+  <rect x="125" y="100" width="20" height="20" fill="#cc4a1b" opacity=".4"/>
+  <line x1="20" y1="120" x2="160" y2="120" stroke="#333"/>
+  <!-- KL fit -->
+  <text x="220" y="28" font-size="13" font-weight="600" fill="#2f6feb">KL fit (mode covering)</text>
+  <rect x="200" y="78" width="20" height="42" fill="#2f6feb" opacity=".5"/>
+  <rect x="235" y="72" width="20" height="48" fill="#2f6feb" opacity=".5"/>
+  <rect x="270" y="70" width="20" height="50" fill="#2f6feb" opacity=".5"/>
+  <rect x="305" y="80" width="20" height="40" fill="#2f6feb" opacity=".5"/>
+  <line x1="200" y1="120" x2="340" y2="120" stroke="#333"/>
+  <text x="220" y="148" font-size="12">α ≈ 50%</text>
+  <!-- TV fit -->
+  <text x="400" y="28" font-size="13" font-weight="600" fill="#1f7a4a">TV fit (overlap maximizing)</text>
+  <rect x="380" y="42" width="20" height="78" fill="#1f7a4a" opacity=".55"/>
+  <rect x="415" y="62" width="20" height="58" fill="#1f7a4a" opacity=".55"/>
+  <rect x="450" y="48" width="20" height="72" fill="#1f7a4a" opacity=".55"/>
+  <rect x="485" y="105" width="20" height="15" fill="#1f7a4a" opacity=".3"/>
+  <line x1="380" y1="120" x2="520" y2="120" stroke="#333"/>
+  <text x="400" y="148" font-size="12" fill="#1f7a4a">α ≈ 60%</text>
+
+  <!-- bottom: takeaway boxes -->
+  <rect x="20" y="180" width="200" height="70" fill="#fff7e0" stroke="#d2a32a"/>
+  <text x="30" y="200" font-size="12">同样的 single-Gaussian 容量</text>
+  <text x="30" y="218" font-size="12">同样的 target</text>
+  <text x="30" y="236" font-size="12" font-weight="600">不同 loss → 不同 α</text>
+
+  <rect x="240" y="180" width="200" height="70" fill="#f3eee0" stroke="#bbb"/>
+  <text x="250" y="200" font-size="12">KL: 把质量铺到所有有 p</text>
+  <text x="250" y="218" font-size="12">的位置(包括小峰/尾巴)</text>
+  <text x="250" y="236" font-size="12">→ 主峰位质量被稀释</text>
+
+  <rect x="460" y="180" width="200" height="70" fill="#e8f4ed" stroke="#1f7a4a"/>
+  <text x="470" y="200" font-size="12">TV: 只关心 overlap 面积</text>
+  <text x="470" y="218" font-size="12">敢放弃小峰,集中主峰</text>
+  <text x="470" y="236" font-size="12" font-weight="600">→ α 直接最大</text>
+</svg>
+<figcaption>同一个单 Gaussian 容量去拟合 multi-modal target。KL 把质量铺得均匀以避免 log(0) 惩罚,主峰处反而薄;TV 不在乎"覆盖率",只在乎"重合面积"=acceptance rate,因此敢于放弃小峰把质量压到主峰。toy 例子已经能看到 α 从 ~50%→60% 的差距,这正是 LK 想要复刻到 draft 训练里的现象。</figcaption>
+</div>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+<tr><th>符号 / 术语</th><th>含义</th></tr>
+<tr><td>p, q</td><td>target / draft 在某 context 下的 next-token 分布</td></tr>
+<tr><td>β(x) = min(1, p(x)/q(x))</td><td>给定 q 抽出 x,target 接受它的概率(rejection sampling)</td></tr>
+<tr><td>α = Σ min(p<sub>i</sub>, q<sub>i</sub>) = 1 − TV(p,q)</td><td>per-position acceptance rate</td></tr>
+<tr><td>τ = K · (#accepted/#drafted) + 1</td><td>每轮 SD 期望生成 token 数 (含 bonus token);primary metric</td></tr>
+<tr><td>K</td><td>draft 序列长度(EAGLE-3/MTP 用 7,MEDUSA/MLP 用 6)</td></tr>
+<tr><td>z<sub>q</sub></td><td>draft logits;q = softmax(z<sub>q</sub>)</td></tr>
+<tr><td>L<sup>λ</sup><sub>LK</sub></td><td>hybrid loss = λ·KL + (1−λ)·TV,λ 由当前 α 自适应</td></tr>
+<tr><td>L<sup>α</sup><sub>LK</sub></td><td>likelihood loss = −log α</td></tr>
+<tr><td>η</td><td>λ 调度器的衰减强度,λ = exp(−η·sg[α])</td></tr>
+<tr><td>γ = 0.8</td><td>多 head loss 的 exponential decay,前面的 head 权重大</td></tr>
+</table>
+
+<div class="nb">
+<strong>速记 §3.1 的 SD 验证规则:</strong>把 K 个 draft token 一次性 forward target,从位置 1 起逐个判 accept(prob = min(1, p/q));遇到第一个 reject 就停,并从 (p−q)<sub>+</sub> 中重新采样 1 个 token 替换它(这就是 bonus token 的来源)。所以 τ 至少为 1。
+</div>
+
+<h2 id="sec3">3 · 梯度解剖:KL vs TV(为什么直接做 TV 撞墙)</h2>
+
+<p>论文最 load-bearing 的不是 idea 而是这一节的诊断,值得逐字啃。</p>
+
+<h3>3.1 KL 的梯度:漂亮但代理</h3>
+<div class="formula">∇<sub>z<sub>q</sub></sub> KL(p∥q) = q − p</div>
+<p>这是个被反复用过的好朋友:每个 logit 收到的力 = "我现在的概率"减"目标概率"。方向、大小都自洽。在随机初始化 + p 集中在 k token 的 regime 下,‖q−p‖ = O(1/√k) — 假设 k=20,梯度幅度 ~0.22,稳稳能动。</p>
+
+<h3>3.2 TV 的梯度:方向对了但小到看不见</h3>
+<div class="formula">∇<sub>z<sub>q</sub></sub> TV(p, q) = ½ q ⊙ (s − E<sub>q</sub>[s]),  s<sub>i</sub> = sign(q<sub>i</sub> − p<sub>i</sub>)</div>
+<p>问题三连:</p>
+<ul>
+  <li><strong>方向对、幅度无关</strong>:s<sub>i</sub> 只是 ±1。q<sub>i</sub> 比 p<sub>i</sub> 低 0.001 还是低 0.5,得到一样的 sign。</li>
+  <li><strong>有 q 的尺度因子</strong>:整体被 ⊙q 调制。随机初始化时 q<sub>i</sub> ≈ 1/V,V=128k → q<sub>i</sub> ≈ 8e-6。‖∇TV‖ = O(√k/V) ≈ √20/128000 ≈ 3.5e-5。比 KL 小约 7000 倍。</li>
+  <li><strong>landscape 不光滑</strong>:在 q<sub>i</sub>=p<sub>i</sub> 的流形上 sign 跳变。</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 680 240" width="100%" style="max-width:660px">
+  <text x="20" y="22" font-size="13" font-weight="600">梯度信号在 logit 空间的"力"对比</text>
+  <!-- Token under-predicted by 0.001 -->
+  <text x="20" y="60" font-size="12">Token A: 欠预测 0.001 (轻微)</text>
+  <line x1="280" y1="55" x2="280" y2="68" stroke="#888"/>
+  <text x="285" y="65" font-size="12">KL 力</text>
+  <rect x="320" y="52" width="3" height="14" fill="#2f6feb"/>
+  <text x="380" y="65" font-size="12">TV 力</text>
+  <rect x="420" y="52" width="50" height="14" fill="#cc4a1b"/>
+  <text x="475" y="65" font-size="12" fill="#a8353e">←sign 信号无关大小,</text>
+  <text x="475" y="80" font-size="12" fill="#a8353e">  欠 0.001 也是一格</text>
+
+  <!-- Token under-predicted by 0.5 -->
+  <text x="20" y="115" font-size="12">Token B: 欠预测 0.5  (严重)</text>
+  <rect x="320" y="107" width="80" height="14" fill="#2f6feb"/>
+  <text x="285" y="118" font-size="12">KL 力</text>
+  <text x="380" y="118" font-size="12">TV 力</text>
+  <rect x="420" y="107" width="50" height="14" fill="#cc4a1b"/>
+  <text x="475" y="118" font-size="12" fill="#1f7a4a">↑ KL 力按比例放大</text>
+  <text x="475" y="133" font-size="12" fill="#1f7a4a">  TV 不变(只看符号)</text>
+
+  <!-- Vocab scale -->
+  <text x="20" y="170" font-size="12" font-weight="600">随机初始化 + V=128k:</text>
+  <text x="20" y="190" font-size="12">‖∇KL‖ ~ O(1/√k) ≈ 0.22</text>
+  <text x="20" y="210" font-size="12" fill="#a8353e">‖∇TV‖ ~ O(√k/V) ≈ 3.5×10⁻⁵   (差 ~7000×)</text>
+
+  <!-- Discontinuity -->
+  <rect x="450" y="170" width="210" height="55" fill="#fff7e0" stroke="#d2a32a"/>
+  <text x="460" y="190" font-size="12" font-weight="600">非光滑点:q<sub>i</sub> = p<sub>i</sub></text>
+  <text x="460" y="208" font-size="11">sign 在等值面上跳变,</text>
+  <text x="460" y="222" font-size="11">优化器附近震荡无法稳定</text>
+</svg>
+<figcaption>TV 梯度的三重病理:① 信号只有 sign;② 被 q 整体缩小,在 random init + 大词表下幅度爆炸性消失;③ 等值面上不可微。这就是从随机初始化开始训纯 TV 不行的原因——也是为什么 DistillSpec 用 TV 必须从 pretrained LM 接着调。</figcaption>
+</div>
+
+<h3>3.3 关键数值表(论文 Table 3 的复述)</h3>
+<table>
+<tr><th>Loss</th><th>Gradient on S (the k support tokens)</th><th>Gradient off S (the V−k 噪声 token)</th></tr>
+<tr><td>KL</td><td>−1/k</td><td>+1/V</td></tr>
+<tr><td>TV</td><td>−1/V</td><td>≈ 0</td></tr>
+<tr><td><strong>L<sup>α</sup><sub>LK</sub> = −log α</strong></td><td><strong>−1/k</strong></td><td><strong>+1/V</strong></td></tr>
+</table>
+<p><strong>读法:</strong>L<sup>α</sup><sub>LK</sub> 在主梯度成分上和 KL 同量级(支持 token 上 −1/k),但方向和 TV 一致(对 α 直接求导)。这就是它在工程上"既能从 random init 起步,又把 α 当真目标"的来源。</p>
+
+<h2 id="sec4">4 · L<sup>λ</sup><sub>LK</sub>:KL+TV 自适应混合(trust region 的味道)</h2>
+
+<h3>4.1 公式</h3>
+<div class="formula">L<sup>λ</sup><sub>LK</sub>(p, q) = λ · KL(p∥q) + (1 − λ) · TV(p, q)</div>
+<div class="formula">λ = exp(−η · sg[α]),  η &gt; 0</div>
+<p>sg[·] 是 stop-gradient,防止 λ 自己被反向传播改写。α 用<em>当前 batch / sequence / position 聚合后的</em>真实 acceptance rate 估计。</p>
+
+<h3>4.2 直觉:课程学习而非线性混合</h3>
+<p>关键点不是"加权平均",而是<strong>自适应调度</strong>:</p>
+<ul>
+  <li>训练初期 α≈0:λ = exp(0) = 1 → 等价于 KL,享受光滑、有幅度的梯度。</li>
+  <li>训练后期 α 接近高水位(η=3 时,α=1 → λ=exp(−3)≈0.05):TV 接管,直接打磨 α。</li>
+</ul>
+<p>这和 trust region(TRPO)的精神一致:KL 当 soft constraint 把 q 拉进 p 附近,然后在 trust region 内对真目标 TV 做下降。论文里直接给了这个对偶解读:</p>
+<div class="formula">min<sub>q</sub> TV(p,q)  s.t.  KL(p∥q) ≤ δ</div>
+
+<div class="fig">
+<svg viewBox="0 0 680 220" width="100%" style="max-width:660px">
+  <!-- λ schedule curve -->
+  <line x1="50" y1="180" x2="630" y2="180" stroke="#333"/>
+  <line x1="50" y1="180" x2="50" y2="30" stroke="#333"/>
+  <text x="40" y="35" font-size="12">1.0</text>
+  <text x="34" y="185" font-size="12">0</text>
+  <text x="640" y="195" font-size="12">α</text>
+  <text x="48" y="195" font-size="12">0</text>
+  <text x="305" y="195" font-size="12">0.5</text>
+  <text x="615" y="195" font-size="12">1.0</text>
+  <text x="40" y="115" font-size="12">λ</text>
+  <!-- η=3 curve: λ = exp(-3α), at α=0 λ=1, α=0.5 λ≈0.22, α=1 λ≈0.05 -->
+  <path d="M50,30 Q 200,80 320,150 Q 500,170 620,172" stroke="#2f6feb" stroke-width="2" fill="none"/>
+  <text x="100" y="60" font-size="12" fill="#2f6feb" font-weight="600">η=3 (default)</text>
+  <!-- η=1 -->
+  <path d="M50,30 Q 250,90 400,120 Q 550,135 620,140" stroke="#cc4a1b" stroke-width="2" fill="none" stroke-dasharray="4 3"/>
+  <text x="450" y="115" font-size="12" fill="#cc4a1b" font-weight="600">η=1 (slow decay)</text>
+  <!-- annotations -->
+  <line x1="200" y1="30" x2="200" y2="180" stroke="#888" stroke-dasharray="2 3"/>
+  <text x="115" y="25" font-size="11">Phase 1:KL 主导</text>
+  <text x="115" y="42" font-size="11">(光滑,有幅度)</text>
+  <line x1="450" y1="30" x2="450" y2="180" stroke="#888" stroke-dasharray="2 3"/>
+  <text x="455" y="55" font-size="11">Phase 2:TV 主导</text>
+  <text x="455" y="72" font-size="11">(对 α 直接做下降)</text>
+</svg>
+<figcaption>λ 调度曲线。η=3 默认配置下,α 从 0 涨到 1 时 λ 从 1 衰减到 0.05;意味着训练前期几乎纯 KL,后期几乎纯 TV。η 越大切换越早,论文对 MEDUSA 用 η=10 因其 α 涨得慢,需要更激进地切到 TV 才能见效。这是一条课程学习曲线,不是固定加权——后者(λ=0.5 fixed)在实验里输给了所有自适应配置。</figcaption>
+</div>
+
+<h3>4.3 Worked example: 一个 token 走一遍</h3>
+<p>设词表 V=1024(简化),target p 集中在 token x=42,p<sub>42</sub>=0.7,p<sub>11</sub>=0.2,p<sub>99</sub>=0.1,其余为 0。draft 早期 q 接近均匀,q<sub>i</sub>≈1/1024≈9.8e-4,设当前 batch 平均 α ≈ 0.05(等价于很差的对齐)。</p>
+<ul>
+  <li>当下 λ = exp(−3 × 0.05) = exp(−0.15) ≈ 0.86 → KL 占大头(86% KL + 14% TV)。</li>
+  <li>KL 在 z<sub>42</sub> 的梯度 ≈ q<sub>42</sub> − p<sub>42</sub> ≈ −0.699:把 logit 42 往上推。</li>
+  <li>TV 在 z<sub>42</sub>:s<sub>42</sub>=sign(q−p)=−1, E<sub>q</sub>[s] ≈ +1−2k/V ≈ 0.994, q<sub>42</sub>·(s−E<sub>q</sub>[s])/2 ≈ 9.8e-4 × (−1.994)/2 ≈ −9.8e-4。比 KL 小 700×。</li>
+  <li>合成:λ·∇KL + (1−λ)·∇TV ≈ 0.86×(−0.699) + 0.14×(−9.8e-4) ≈ −0.601。KL 项主导,稳稳推。</li>
+</ul>
+<p>训了几千步后 α=0.6,q<sub>42</sub>=0.55,p<sub>42</sub>=0.7:</p>
+<ul>
+  <li>λ = exp(−1.8) ≈ 0.165 → TV 接管(83.5%)。</li>
+  <li>KL 在 z<sub>42</sub>:0.55−0.7=−0.15。</li>
+  <li>TV 在 z<sub>42</sub>:q<sub>42</sub> 大了,梯度幅度也跟上来了,这时 sign-only 信号反而是优点 — 不会被 outlier 大误差带跑。</li>
+</ul>
+
+<h2 id="sec5">5 · L<sup>α</sup><sub>LK</sub>:−log α 一条龙</h2>
+
+<h3>5.1 直觉</h3>
+<p>把 α 写成 marginal probability of acceptance:α = Σ q(x)·β(x)。这是"draft 抽到 x 且被接受"的<strong>边缘概率</strong>。最大化 α 的最大似然写法就是最小化 −log α:</p>
+<div class="formula">L<sup>α</sup><sub>LK</sub> = −log α = −log Σ<sub>x∈V</sub> min(p(x), q(x))</div>
+<p>比 hybrid 更<em>简洁</em>:不需要混合权重、不需要 schedule。但能不能从随机初始化训得动?这就要看它的梯度。</p>
+
+<h3>5.2 关键关系(§A.4)</h3>
+<div class="formula">∇<sub>z<sub>q</sub></sub> L<sup>α</sup><sub>LK</sub> = (1/α) · ∇<sub>z<sub>q</sub></sub> TV(p, q)</div>
+<p>这是整篇 paper 最漂亮的一行。意思是:−log α 的梯度 = TV 梯度 × 1/α。1/α 是<strong>自适应 boost</strong>:</p>
+<ul>
+  <li>α 小(随机初始化、训练早期):1/α 大,把 TV 那个消失的梯度强行放大回 O(1/√k) — 量级追上 KL。</li>
+  <li>α 大(训练后期):1/α 接近 1,梯度恢复成纯 TV 的尺度,正好这时 q 已经接近 p,TV 本身的梯度也不再病态。</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 680 220" width="100%" style="max-width:660px">
+  <text x="20" y="22" font-size="13" font-weight="600">L<sup>α</sup><sub>LK</sub> = (1/α)·∇TV — 一图看明白自适应放大</text>
+  <!-- min(p,q) clip illustration -->
+  <line x1="50" y1="170" x2="320" y2="170" stroke="#333"/>
+  <text x="170" y="190" font-size="12">vocab token i</text>
+  <!-- p bars -->
+  <rect x="60" y="80" width="14" height="90" fill="#cc4a1b" opacity=".6"/>
+  <rect x="78" y="120" width="14" height="50" fill="#cc4a1b" opacity=".6"/>
+  <rect x="96" y="100" width="14" height="70" fill="#cc4a1b" opacity=".6"/>
+  <rect x="114" y="160" width="14" height="10" fill="#cc4a1b" opacity=".3"/>
+  <rect x="132" y="165" width="14" height="5" fill="#cc4a1b" opacity=".3"/>
+  <!-- q bars -->
+  <rect x="60" y="135" width="14" height="35" fill="#2f6feb" opacity=".5"/>
+  <rect x="78" y="155" width="14" height="15" fill="#2f6feb" opacity=".5"/>
+  <rect x="96" y="148" width="14" height="22" fill="#2f6feb" opacity=".5"/>
+  <rect x="114" y="158" width="14" height="12" fill="#2f6feb" opacity=".5"/>
+  <rect x="132" y="160" width="14" height="10" fill="#2f6feb" opacity=".5"/>
+  <text x="60" y="55" font-size="11">α = Σ min(p,q) = 重叠面积(灰)</text>
+  <!-- min overlap -->
+  <rect x="60" y="135" width="14" height="35" fill="#888" opacity=".7"/>
+  <rect x="78" y="155" width="14" height="15" fill="#888" opacity=".7"/>
+  <rect x="96" y="148" width="14" height="22" fill="#888" opacity=".7"/>
+  <rect x="114" y="160" width="14" height="10" fill="#888" opacity=".7"/>
+  <rect x="132" y="165" width="14" height="5" fill="#888" opacity=".7"/>
+
+  <!-- Right: gradient comparison stages -->
+  <rect x="370" y="40" width="290" height="60" fill="#f3eee0" stroke="#bbb"/>
+  <text x="380" y="62" font-size="12" font-weight="600">早期: α=0.05</text>
+  <text x="380" y="80" font-size="12">‖∇L<sup>α</sup>‖ = (1/0.05) × O(√k/V) = 20× boost</text>
+  <text x="380" y="95" font-size="11">→ 量级回到 O(1/√k),与 KL 同档</text>
+
+  <rect x="370" y="115" width="290" height="55" fill="#e8f4ed" stroke="#1f7a4a"/>
+  <text x="380" y="135" font-size="12" font-weight="600">后期: α=0.7</text>
+  <text x="380" y="153" font-size="12">‖∇L<sup>α</sup>‖ ≈ 1.43× ∇TV</text>
+  <text x="380" y="167" font-size="11">→ 几乎纯 TV,直接对 α 做精修</text>
+</svg>
+<figcaption>α=Σmin(p,q) 的几何理解(灰色重叠区即 acceptance rate)+ 1/α 自适应放大的双阶段示意。这条单一 loss 不需要 schedule,自带"早期靠放大、后期回归 TV"的 curriculum——这就是为什么作者在论文里把它推荐给 simplicity-first 的实现者。但实验上它通常略输 hybrid,因为 hybrid 的 KL 项在早期同时提供了"方向更自洽"的梯度。</figcaption>
+</div>
+
+<h3>5.3 Worked example:同 CE 不同 α</h3>
+<p>这是一个最能击穿"KL 训练 = α 训练"幻觉的对比。设 V=4,target p = (0.50, 0.30, 0.15, 0.05)。</p>
+<table>
+<tr><th>方案</th><th>q</th><th>CE = −Σ p log q</th><th>α = Σ min(p,q)</th></tr>
+<tr><td>q<sub>A</sub>(KL 偏好)</td><td>(0.40, 0.30, 0.20, 0.10)</td><td>≈ 1.343</td><td>0.40+0.30+0.15+0.05 = 0.90</td></tr>
+<tr><td>q<sub>B</sub>(TV 偏好)</td><td>(0.55, 0.30, 0.10, 0.05)</td><td>≈ 1.355</td><td>0.50+0.30+0.10+0.05 = 0.95</td></tr>
+<tr><td>q<sub>C</sub>(spread)</td><td>(0.35, 0.30, 0.20, 0.15)</td><td>≈ 1.347</td><td>0.35+0.30+0.15+0.05 = 0.85</td></tr>
+</table>
+<p>读这个表:q<sub>A</sub> 的 CE 最低(KL 也最低,因 KL=CE−H(p)),但<strong>α 反而比 q<sub>B</sub> 低 0.05</strong>。q<sub>B</sub> 牺牲了一点 CE,换来 acceptance rate 提升。q<sub>C</sub> 最铺得均匀,CE 居中但 α 最差。这就是"KL 最小 ≠ α 最大"的<em>具体数值证据</em>。LK 的两个 loss 都会在 q<sub>A</sub> 和 q<sub>B</sub> 之间偏向后者。</p>
+
+<h2 id="sec6">6 · Vocabulary truncation:KL 多了一层 proxy,LK 没这个问题</h2>
+
+<p>EAGLE-3 + FR-Spec 配置下,draft 的 LM head 只输出一个截断词表(比如 32k,target 词表 128k),其它 token 的 q<sub>i</sub>=0。这对 KL 是<strong>致命的</strong>:p<sub>i</sub>&gt;0 而 q<sub>i</sub>=0 → KL=∞。常规做法是把 target 也截:p̃ = softmax(m⊙z<sub>p</sub>),把截断外的 logit 设 −∞,再去做 KL(p̃∥q)。</p>
+<p>这就是论文一句犀利的吐槽:<strong>"makes KL a proxy of a proxy"</strong>(代理的代理)。一层是 KL≠α,另一层是 p̃≠p。</p>
+<p>LK 怎么处理?从 α=Σmin(p<sub>i</sub>,q<sub>i</sub>) 看,被截掉的 token 上 q<sub>i</sub>=0,贡献 min(p<sub>i</sub>, 0)=0,自然被忽略 — <strong>不需要修改 p</strong>。L<sup>α</sup><sub>LK</sub> 和 hybrid 的 TV 部分都直接对原始 p 做优化,不引入额外近似。这是 LK 落地 EAGLE-3+FR-Spec 时的一个免费红利。</p>
+
+<div class="nb">
+为什么这点重要:在生产部署里 truncated vocab 是<em>越来越流行</em>(FR-Spec 在 EAGLE-3 上节省 LM head 计算)。如果你的训练 loss 已经被迫从 KL(p∥q) 退到 KL(p̃∥q),目标和真实 α 之间有<em>两道</em>距离,LK 直接抹掉一道。
+</div>
+
+<h2 id="sec7">7 · 公式串与数值直觉</h2>
+
+<h3>7.1 推导链条(§A 复述)</h3>
+<ol>
+  <li>softmax Jacobian:∂q<sub>i</sub>/∂z<sub>q,j</sub> = q<sub>i</sub>(δ<sub>ij</sub> − q<sub>j</sub>)。</li>
+  <li>KL:∂KL/∂z<sub>q,j</sub> = −Σ<sub>i</sub> (p<sub>i</sub>/q<sub>i</sub>)·q<sub>i</sub>(δ<sub>ij</sub> − q<sub>j</sub>) = −p<sub>j</sub> + q<sub>j</sub>·Σp<sub>i</sub> = q<sub>j</sub> − p<sub>j</sub>。</li>
+  <li>TV:链式 sign 经过 softmax Jacobian 得到 ½q<sub>j</sub>(s<sub>j</sub> − E<sub>q</sub>[s])。</li>
+  <li>−log α:∂(−log α)/∂z = (1/α)·(−∂α/∂z) = (1/α)·∂TV/∂z(因 α=1−TV)。</li>
+</ol>
+
+<h3>7.2 在 p 是 point mass 的退化情况</h3>
+<p>若 p(x*)=1,其它为 0,则 α = Σ min(p<sub>i</sub>, q<sub>i</sub>) = min(1, q(x*)) = q(x*)(因 q 是概率)。所以:</p>
+<div class="formula">L<sup>α</sup><sub>LK</sub> | p=δ<sub>x*</sub> = −log q(x*) = NLL</div>
+<p>这是个不错的 sanity check:当 target 退化为硬标签,LK 等于普通的 cross-entropy 训练。它是 NLL 在<em>软标签</em>(distillation)情况下的"正确" generalization——比直接做 soft-label CE 更直接对 α。</p>
+
+<h3>7.3 数值敏感性表(η 选择)</h3>
+<table>
+<tr><th>α 当前值</th><th>η=1, λ</th><th>η=3, λ</th><th>η=10, λ</th></tr>
+<tr><td>0.0</td><td>1.00</td><td>1.00</td><td>1.00</td></tr>
+<tr><td>0.2</td><td>0.82</td><td>0.55</td><td>0.135</td></tr>
+<tr><td>0.5</td><td>0.61</td><td>0.22</td><td>0.0067</td></tr>
+<tr><td>0.8</td><td>0.45</td><td>0.091</td><td>3.4e-4</td></tr>
+</table>
+<p>读法:η 越大,KL 越早退场。EAGLE-3 / MTP 这种<em>α 涨得快</em>的架构默认 η=3 即可;MEDUSA 因为头之间独立、α 涨得慢,论文用 η=10 强行推快 TV 接管。这是个有点反常识但可解释的调参逻辑——你想让 TV 在 α 还没涨太高的时候就接管,因为再不接管它就不打磨了。</p>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 跨架构(LLaMA-3.1-8B,Table 1 节选)</h3>
+<table>
+<tr><th>Draft</th><th>Loss</th><th>MT-bench τ</th><th>HumanEval τ</th><th>GSM8K τ</th></tr>
+<tr><td rowspan="3">EAGLE-3 (T=1)</td><td>KL</td><td>3.39</td><td>4.31</td><td>3.88</td></tr>
+<tr><td>TV (纯)</td><td class="no">2.67</td><td class="no">3.25</td><td class="no">3.12</td></tr>
+<tr><td>L<sup>λ</sup><sub>LK</sub> η=3</td><td class="ok">3.48</td><td class="ok">4.52</td><td class="ok">4.02</td></tr>
+<tr><td rowspan="2">MEDUSA (T=1)</td><td>KL</td><td>1.72</td><td>2.02</td><td>1.81</td></tr>
+<tr><td>L<sup>λ</sup><sub>LK</sub> η=10</td><td class="ok">1.85</td><td class="ok">2.22</td><td class="ok">1.92</td></tr>
+<tr><td rowspan="2">MLP (T=1)</td><td>KL</td><td>2.13</td><td>2.16</td><td>2.16</td></tr>
+<tr><td>L<sup>λ</sup><sub>LK</sub> η=3</td><td class="ok">2.19</td><td class="ok">2.62</td><td class="ok">2.18</td></tr>
+</table>
+<p>关键观察:</p>
+<ul>
+  <li>纯 TV 全面输给 KL —— 印证 §3 的 TV 梯度消失分析,这不是抽象数学,是真训练曲线。</li>
+  <li>容量越小,LK 增益越大:MEDUSA + 7.8%, MLP + 8.3%, EAGLE-3 + 3.8% — 这与"limited capacity → proxy gap 越严重"的理论一致。</li>
+  <li>固定 λ=0.5 几乎没提升 — 自适应 schedule 是非平凡的。</li>
+</ul>
+
+<h3>8.2 跨 target scale(Table 2)</h3>
+<table>
+<tr><th>Target</th><th>Mean τ KL (T=1)</th><th>Mean τ L<sup>λ</sup><sub>LK</sub> (T=1)</th><th>Δ%</th></tr>
+<tr><td>LLaMA-3.1-8B</td><td>3.86</td><td>4.01</td><td>+3.9</td></tr>
+<tr><td>LLaMA-3.3-70B</td><td>4.50</td><td>4.66</td><td>+3.5</td></tr>
+<tr><td>GPT-OSS-20B</td><td>3.17</td><td>3.29</td><td>+3.8</td></tr>
+<tr><td>GPT-OSS-120B</td><td>2.46</td><td>2.65</td><td><strong>+7.7</strong></td></tr>
+<tr><td>Qwen3-235B</td><td>3.77</td><td>4.08</td><td><strong>+8.2</strong></td></tr>
+<tr><td>DeepSeek-V3 685B (MTP)</td><td>4.43</td><td>4.68</td><td>+5.6</td></tr>
+</table>
+<p>大模型(尤其 MoE)+小 dense draft 的<em>容量差</em>越悬殊,LK 的相对提升越大 — Qwen3-235B 的 +8.2% 是论文最亮的数字。DeepSeek-V3 是 fine-tune MTP(不是从头训),也提升 5.6%,印证 LK "在 q,p 距离大时都能赢" 的普适性。</p>
+
+<h3>8.3 一些容易被略过的细节</h3>
+<ul>
+  <li>vLLM 默认实现是<em>greedy 抽 draft token</em>(即使 T&gt;0),这违反了 SD 的理论假设。作者打了 patch 实现真正的 rejection sampling(基于 vllm-project/vllm#20459)。这点足够独立成 paper—— evaluation 设置下 T=1 的 acceptance 数字,在 unpatched vLLM 上是被低估的(见 §D)。</li>
+  <li>Loss 跨 head 用 γ=0.8 exponential decay,前面的 head 权重大。理由:earlier head 的 acceptance rate 决定整段是否能继续,影响 τ 的杠杆远大于后头的。</li>
+  <li>MTP 微调里 hybrid loss 自带"为后头 head 补 KL"的副作用:后头 α 低 → λ 大 → KL 主导 → 拉回到 trust region;前头 α 已高 → λ 小 → TV 精修。同一条公式同时处理两类 head。</li>
+</ul>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+<tr><th>Loss / 方法</th><th>对 α 的关系</th><th>从随机初始化能训吗?</th><th>truncated vocab 兼容?</th><th>额外开销</th></tr>
+<tr><td>CE / KL(p∥q)</td><td>proxy(同 global opt)</td><td class="ok">能</td><td class="no">需把 p 也截</td><td>0</td></tr>
+<tr><td>Reverse KL(q∥p)</td><td>proxy,mode seeking</td><td class="ok">能</td><td class="ok">兼容</td><td>0</td></tr>
+<tr><td>MSE on hidden(EAGLE)</td><td>很间接</td><td class="ok">能</td><td>看实现</td><td>+ regression head</td></tr>
+<tr><td>EAGLE-3 multi-layer KD</td><td>架构层面,loss 仍是 KL</td><td class="ok">能</td><td class="no">同 KL</td><td>+ feature fusion</td></tr>
+<tr><td>DistillSpec(reverse KL/TV)</td><td>TV 直接对 α</td><td class="no">需 pretrained LM 起步</td><td>取决于 divergence</td><td>0</td></tr>
+<tr><td>MARS(threshold)</td><td>inference-time filter</td><td>—</td><td>—</td><td>+ inference 逻辑</td></tr>
+<tr><td><strong>L<sup>α</sup><sub>LK</sub></strong></td><td><strong>直接</strong>(−log α)</td><td class="ok">能(1/α 自适应放大)</td><td class="ok">天然兼容</td><td>0</td></tr>
+<tr><td><strong>L<sup>λ</sup><sub>LK</sub></strong></td><td><strong>直接</strong>(后期)</td><td class="ok">能(KL 起步)</td><td class="ok">天然兼容(TV 部分)</td><td>0</td></tr>
+</table>
+
+<p>核心差异化:</p>
+<ul>
+  <li>vs CE/KL distillation:同样易实现、同样无开销,但目标对齐。这是真正的 drop-in replacement。</li>
+  <li>vs MSE on hidden / EAGLE-3 multi-layer KD:这些是<em>架构 / 特征</em>层面的努力,正交于 LK。论文显示的实验是直接套到 EAGLE-3 上,所以这两条是叠加的关系而非互斥。</li>
+  <li>vs DistillSpec:DistillSpec 第一个意识到 TV 才是对的目标,但他们没解决 from-scratch 训练的梯度消失问题。LK 的两条公式是工程层面的"修复方案"。</li>
+  <li>vs MARS-类阈值方法:那些是事后挽救(reject 掉低 α head),LK 是事前(从训练目标就对齐)。两者甚至可以叠加。</li>
+</ul>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证</h2>
+
+<ul>
+  <li><strong>"τ" 不等于 wall-clock speedup</strong>。论文只报 τ,没给端到端 latency 数字。τ 涨 8% 在 LM head 不主导的场景下大致 = 8% throughput,但在 FR-Spec 截断词表的场景下要看 head 计算占比。</li>
+  <li><strong>η 的调参依然是 manual</strong>(EAGLE-3 用 3,MEDUSA 用 10)。这暗示 LK 的"自适应"并不全自动,而是把"调温度"的负担从 schedule 函数式上转移到了 η 这个常数。Future work 里作者也提到 learnable per-head loss aggregation 会更好。</li>
+  <li><strong>α 是 batch 聚合估计</strong>,带方差。早期 batch 小时 sg[α] 噪声会让 λ 抖动,论文没讨论 batch size 的稳健性。</li>
+  <li><strong>top-k / top-p 部署没纳入</strong>。生产里目标分布常带 top-p 截断,这会让 α 的实际分布跟训练时定义有 gap。这一条作者在 future work 里直接承认。</li>
+  <li><strong>K=6/7 之外的延展性</strong>。Figure 1 显示 K 越大 LK 优势越明显,但论文没系统扫描 K∈{2,3,…,15};EAGLE-3 论文里 K 上去后 τ 边际下降,LK 是否真改这条曲线值得验证。</li>
+  <li><strong>p 的来源</strong>:训练用 target sample 自己生成的 660k Infinity-Instruct,这是 on-policy。如果换成静态语料(如 ShareGPT),LK vs KL 的差距会怎么变?未做对照。</li>
+</ul>
+
+<p><strong>需要验证的几个问题:</strong></p>
+<ol>
+  <li>L<sup>α</sup><sub>LK</sub> 在<em>更大 V</em>(比如 200k+)和<em>更深 draft</em>(2-3 层 transformer)上,1/α 放大是否足够?会不会触发数值不稳定(α 接近 0 时 1/α 爆炸)?</li>
+  <li>把 LK 嫁接到 RL post-training 里的 draft model(参考 ReSpec / NeMo-RL),acceptance length 抖动场景下 sg[α] 估计的方差会不会让 λ 跑飞?</li>
+  <li>对 reverse KL(mode seeking)直接也做一次 hybrid:λ·rKL + (1−λ)·TV 是否优于 λ·KL + (1−λ)·TV?论文没尝试。</li>
+  <li>p 是 point mass 时退化为 NLL,中间区间(p 是 top-p=0.9 截断的)是否退化为某个加权 NLL?是否解释了 LK 在 GSM8K(高 confidence target)上提升相对小?</li>
+  <li>Loss landscape 在 p≈q 附近 KL 与 TV 的 Hessian 性质对比 — 是否能解释为什么 hybrid 略胜 likelihood?</li>
+</ol>
+
+<h2 id="sec11">11 · Memory points</h2>
+
+<div class="kv"><span class="pill">立场</span> KL/CE 是 SD draft 训练的<em>proxy 目标</em>;在容量受限的 draft 上 KL 最小 ≠ α 最大。LK losses 把 loss 直接换成 acceptance rate 的可微表示。</div>
+<div class="kv"><span class="pill">公式 1</span> L<sup>α</sup><sub>LK</sub> = −log Σ min(p<sub>i</sub>, q<sub>i</sub>) ;其梯度 = (1/α)·∇TV — 自适应放大,从随机初始化训得动。</div>
+<div class="kv"><span class="pill">公式 2</span> L<sup>λ</sup><sub>LK</sub> = λ·KL + (1−λ)·TV,λ = exp(−η·sg[α]) ;trust-region 视角下 KL 是 soft constraint,TV 是真目标。</div>
+<div class="kv"><span class="pill">障碍</span> 直接做 TV 不行:‖∇TV‖=O(√k/V),V=128k 时小到推不动 logits;且 sign-only,landscape 不光滑。</div>
+<div class="kv"><span class="pill">数据</span> 6 个 target(8B–685B)× 4 个 draft 架构,τ 一律提升;最大增益 Qwen3-235B +8.2%,GPT-OSS-120B +7.7%(均 T=1)。</div>
+<div class="kv"><span class="pill">规律</span> 容量越小 LK 增益越大 — MEDUSA 7.8%,MLP 8.3%,EAGLE-3 3.8%(同 8B target)。</div>
+<div class="kv"><span class="pill">免费红利</span> truncated vocabulary 下 KL 要给 p 也截(proxy of proxy);LK 不需要(min(p,0)=0 自然忽略)。</div>
+<div class="kv"><span class="pill">退化</span> p 是 point mass 时 L<sup>α</sup><sub>LK</sub> = −log q(x*) = NLL;LK 是 distillation 软标签下的"正确"NLL 推广。</div>
+<div class="kv"><span class="pill">η 调参</span> EAGLE-3/MTP 用 η=3 即可;MEDUSA 用 η=10(α 涨得慢需提早切到 TV)。</div>
+<div class="kv"><span class="pill">实现</span> 真 drop-in:0 额外 FLOPs、0 推理改动、和 EAGLE-3/FR-Spec 等已有架构正交叠加。注意 vLLM 需要 patch 让 draft 在 T&gt;0 时做真正 rejection sampling 而不是 greedy。</div>
+<div class="kv"><span class="pill">未解</span> top-k/top-p 部署、learnable head 聚合、对 K(draft 长度)扫描的曲线;τ 提升到 wall-clock 的换算。</div>
+
+</main>
+</body>
+</html>
