@@ -14,8 +14,11 @@
 | 06 | [SRT](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/06_SRT_2601.09083.html) | per-prompt token-frequency trie + run-ahead | 40 KB |
 | 07 | [DFlash 详细版](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/07_DFlash_2602.06036.html) | 块扩散 drafter / 5 层 K/V 注入 / EAGLE-3 范式分叉 | 80 KB |
 | 08 | [Hidden States Drift](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/08_HiddenStatesDrift_2604.26412.html) | KV-only reuse vs hidden reuse / KVShot 框架 | 52 KB |
+| 09 | [Mirror-SD](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/09_MirrorSD_2510.13161.html) | early-exit + GPU/NPU 异构并行 / +30% over EAGLE-3 | 55 KB |
+| 10 | [SSD (Speculative Speculative Decoding)](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/10_SSD_2603.03251.html) | 预测 verify 结果 / draft 隐藏在 verify 后面 / Saguaro 5× | 57 KB |
+| 11 | [Performance or Illusion?](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/11_PerformanceOrIllusion_2601.11580.html) | 生产级 vLLM 审视 / paper vs production / 决策 cheatsheet | 51 KB |
 
-建议阅读顺序: **02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift)**
+建议阅读顺序: **02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 11 (Performance or Illusion?)**
 
 ## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (13 篇)
 
@@ -66,6 +69,9 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | DFlash | — | 2026-02 | [2602.06036](https://arxiv.org/abs/2602.06036) |
 | NVIDIA NeMo-RL + EAGLE-3 | NVIDIA | 2026-04 | [2604.26779](https://arxiv.org/abs/2604.26779) |
 | Hidden States Drift (KVShot) | — | 2026-04 | [2604.26412](https://arxiv.org/abs/2604.26412) |
+| Mirror-SD | — | 2025-10 | [2510.13161](https://arxiv.org/abs/2510.13161) |
+| SSD (Speculative Speculative Decoding) | Tri Dao 等 | 2026-03 | [2603.03251](https://arxiv.org/abs/2603.03251) |
+| Performance or Illusion? | — | 2026-01 | [2601.11580](https://arxiv.org/abs/2601.11580) |
 
 ### 前沿模型 / 训练系统 / LM 方法
 

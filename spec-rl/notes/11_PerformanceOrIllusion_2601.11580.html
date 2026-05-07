@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Speculative Decoding: Performance or Illusion? (2601.11580)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Speculative Decoding: Performance or Illusion?</h1>
+<div class="meta">
+  Xiaoxuan Liu · Jiaxiang Yu · Jongseok Park · Ion Stoica · Alvin Cheung (UC Berkeley) · 2026-03-18 · arXiv:2601.11580v2<br>
+  关键词: speculative decoding · vLLM · production benchmark · acceptance length · EAGLE-3 · n-gram · MTP · 审计型论文
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把过去三年所有 SD 论文的"惊艳数字"放进 vLLM v0.10.1.1 + H100 + 真实 batch 重新跑一遍,系统性地发现:<em>verification 占 42%–95% 的执行时间</em>、acceptance length 在 token 位置 / request / dataset 三个维度都剧烈漂移,因此 paper-reported speedup 在生产部署里大幅缩水。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">42–95%</div><div class="l">verification 占总时间</div></div>
+    <div class="stat"><div class="n">1.21×</div><div class="l">EAGLE @ bs=128 (vs bs=1: 1.73×)</div></div>
+    <div class="stat"><div class="n">4.9×</div><div class="l">Oracle Combine 上界(理论)</div></div>
+  </div>
+  <p><strong>立场:</strong>这是一篇<em>审计 / 测量</em>论文,不是方法论文。它给 EAGLE-3 / DFlash / MARS 这类报 "2.x×" 的工作泼冷水——并指出真正没人攻克的问题是<strong>"避免 verify 注定要被拒的 token"</strong>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么"生产级 benchmarking" 比新 SD 方法更重要</a></li>
+    <li><a href="#sec2">背景速查 (vLLM / SD 公式 / 术语)</a></li>
+    <li><a href="#sec3">实验方法学:测了什么、怎么测</a></li>
+    <li><a href="#sec4">主结果:batch size 一动,speedup 立刻塌</a></li>
+    <li><a href="#sec5">时间分解:verification 才是真正的成本中心</a></li>
+    <li><a href="#sec6">acceptance length 的三层方差</a></li>
+    <li><a href="#sec7">n-gram 的 InstructCoder 神迹与 BLEU 解释</a></li>
+    <li><a href="#sec8">理论上界:Oracle proposal & Oracle Combine</a></li>
+    <li><a href="#sec9">生产场景化算账:一个 H100 集群的具体决策</a></li>
+    <li><a href="#sec10">与同类工作对比:谁的论断挺得住</a></li>
+    <li><a href="#sec11">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec12">应该读什么、应该信什么 (Memory Points)</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么"生产级 benchmarking"比新 SD 方法更重要</h2>
+
+<h3>1.1 历史脉络:从 Leviathan-2023 到今天的论文通胀</h3>
+<p>SD 自 2023 年 Leviathan 提出后,论文呈指数增长。EAGLE / EAGLE-2 / EAGLE-3 / Medusa / Lookahead / Sequoia / DistillSpec / SpecInfer / DFlash / MARS……每一篇都报一组漂亮的 "2.x× speedup",且常常基于<strong>同一套不真实的实验条件</strong>:</p>
+<ul>
+  <li><strong>batch size = 1</strong>,因为这是 SD 收益最大、最容易出好看数字的工况;</li>
+  <li><strong>research prototype</strong>(自己写的小推理框架),没有 CUDA Graph、没有 continuous batching、没有 chunked prefill,baseline 自己就跑得很慢——SD 的相对收益就被放大;</li>
+  <li><strong>报 average latency 或 dataset-level acceptance rate</strong>,把变量平均掉,看不见 per-position / per-request 的剧烈方差。</li>
+</ul>
+<p>结果就是:论文里 "2.5× over baseline" 的 EAGLE-3,真到 vLLM serving 集群上跑 batch=128,可能只剩 1.2×;某些 batch / dataset 组合下甚至比不上 no-SD。这正是这篇论文要揭穿的"幻觉"。</p>
+
+<h3>1.2 别人为什么没干这事——做生产级 benchmark 的工程门槛</h3>
+<p>把 SD 集成进 vLLM / SGLang / TensorRT-LLM 这类生产引擎,工程量非常大:要适配 PagedAttention 的 KV 调度、要让 draft 模型 / draft head 走 CUDA Graph、要处理 chunked prefill 中途加入的请求、要在 continuous batching 调度器里区分 verify token vs prefill token。绝大多数学术组没有这个工程储备,只能在 prototype 上跑数字。</p>
+<p>对比表(为什么"prototype 数字"不能信):</p>
+<table>
+  <thead><tr><th>评测设置</th><th>典型问题</th><th>对 SD 收益的偏置方向</th></tr></thead>
+  <tbody>
+    <tr><td>Prototype + bs=1</td><td>无 CUDA Graph / 无 cont batching</td><td><span class="no">乐观偏</span> 30–80%</td></tr>
+    <tr><td>vLLM + bs=1</td><td>系统已优化但 batch 不真实</td><td><span class="no">乐观偏</span> 20–40%</td></tr>
+    <tr><td>vLLM + bs=128 + 真实 prompt</td><td>本文做的</td><td><span class="ok">基本可信</span></td></tr>
+    <tr><td>仅报 dataset 平均</td><td>掩盖 per-position 方差</td><td>掩盖 robustness 问题</td></tr>
+    <tr><td>仅报 acceptance rate</td><td>不等于 wall-time speedup</td><td>掩盖 c (drafting cost) 项</td></tr>
+  </tbody>
+</table>
+
+<h3>1.3 为什么这事不平凡</h3>
+<p>"生产级 SD benchmark" 听起来像是脏活,但有三个非平凡之处:</p>
+<ul>
+  <li><strong>同一组 prompt + greedy 都得不到一致输出</strong>——因为 vLLM 在不同 batch size 下走不同 kernel,FP16 累加顺序不同,生成长度都会变(论文 Tab.1 给出 mean±std,差异在 ±5% 量级)。这意味着 "lossless SD" 这个假设在生产里不严格成立,baseline 也漂移。论文用 token throughput 而不是 wall-time per request 作为指标,就是为了消解这点。</li>
+  <li><strong>compute-bound 拐点</strong>:bs 小时系统 memory-bound,SD 有大量空闲 FLOPS 给 verification,几乎免费;bs 一大、target 模型一大,verification 的多 token forward 跟 baseline 的 1 token forward 时间不再相等(公式假设崩),SD 反而拖慢。这个拐点在哪、跟模型规模/TP 大小怎么扩展,以前没人系统测过。</li>
+  <li><strong>三层方差(within request / across requests / across datasets)</strong>是策略意义的关键:它说明 "用一种 SD 通吃" 是次优的——存在一个理论上界 4.9×,而当前最强方法只到 ~2×。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 680 220" width="100%" style="max-width:660px">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <rect x="20" y="20" width="280" height="180" fill="#fff7e0" stroke="#d2a32a" rx="6"/>
+    <text x="160" y="42" text-anchor="middle" font-weight="700" font-size="14">Paper-land (prototype, bs=1)</text>
+    <text x="160" y="68" text-anchor="middle" font-size="12">EAGLE-3: <tspan fill="#cc4a1b" font-weight="600">2.5×</tspan></text>
+    <text x="160" y="88" text-anchor="middle" font-size="12">DFlash: <tspan fill="#cc4a1b" font-weight="600">2.4×</tspan></text>
+    <text x="160" y="108" text-anchor="middle" font-size="12">Medusa: <tspan fill="#cc4a1b" font-weight="600">2.2×</tspan></text>
+    <text x="160" y="128" text-anchor="middle" font-size="12">MTP: <tspan fill="#cc4a1b" font-weight="600">2.0×</tspan></text>
+    <text x="160" y="156" text-anchor="middle" font-size="11" fill="#5b5e66">无 CUDA Graph · 无 cont batching</text>
+    <text x="160" y="174" text-anchor="middle" font-size="11" fill="#5b5e66">单请求 · greedy · 平均统计</text>
+
+    <path d="M310,110 L370,110" stroke="#5b5e66" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="340" y="100" text-anchor="middle" font-size="11" fill="#5b5e66">vLLM + bs↑</text>
+
+    <rect x="380" y="20" width="280" height="180" fill="#f3eee0" stroke="#a8353e" rx="6"/>
+    <text x="520" y="42" text-anchor="middle" font-weight="700" font-size="14">Production-land (vLLM, bs=128)</text>
+    <text x="520" y="68" text-anchor="middle" font-size="12">EAGLE-3: <tspan fill="#a8353e" font-weight="600">1.21–1.4×</tspan></text>
+    <text x="520" y="88" text-anchor="middle" font-size="12">Draft-Model (8B): <tspan fill="#a8353e" font-weight="600">~1.0×</tspan></text>
+    <text x="520" y="108" text-anchor="middle" font-size="12">tree EAGLE k=21: <tspan fill="#a8353e" font-weight="600">&lt;1×</tspan></text>
+    <text x="520" y="128" text-anchor="middle" font-size="12">MTP (GLM-4.5-Air): <tspan fill="#a8353e" font-weight="600">1.3–1.8×</tspan></text>
+    <text x="520" y="156" text-anchor="middle" font-size="11" fill="#5b5e66">verification 吃满 GPU compute</text>
+    <text x="520" y="174" text-anchor="middle" font-size="11" fill="#5b5e66">acceptance 三层方差暴露</text>
+  </svg>
+  <figcaption>图 1.1 · 论文核心立场可视化:从"论文 land"到"生产 land",speedup 普遍腰斩。这不是测量误差,是 batch / 系统优化 / 测量粒度 三方面把 SD 公式中"verification 几乎免费"的前提推翻了。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 术语与缩写</h3>
+<table>
+  <thead><tr><th>术语</th><th>含义</th><th>本文里的具体值/约定</th></tr></thead>
+  <tbody>
+    <tr><td>target model</td><td>大模型 / verifier</td><td>Llama3.1-8B / Llama3-70B / Qwen3-8B / GLM-4.5-Air-106B</td></tr>
+    <tr><td>draft method</td><td>提议 token 的方式</td><td>n-gram / EAGLE / EAGLE-3 / Draft-Model / MTP</td></tr>
+    <tr><td>k</td><td>每步提议 token 数</td><td>默认 3,n-gram 也测 5;tree 测 6/21</td></tr>
+    <tr><td>α</td><td>token acceptance rate</td><td>0.30–0.92 视方法/dataset</td></tr>
+    <tr><td>c</td><td>drafting/target 单 forward 时间比</td><td>n-gram ≈ 0;EAGLE ≈ 0.05–0.20;Draft-Model 8B 配 0.6B ≈ 0.375</td></tr>
+    <tr><td>acceptance length</td><td>每步实际通过 verify 的 token 数 (含 bonus token)</td><td>2–8,reasoning 长尾可到 15+</td></tr>
+    <tr><td>MTP</td><td>Multi-Token Prediction (DeepSeek-V3 / GLM-4.5)</td><td>co-trained 副 head,不需 post-hoc fine-tune</td></tr>
+    <tr><td>chain vs tree verify</td><td>k 个串成链 vs 多分支树</td><td>tree 仅在 bs=1 略胜,bs≥64 全面崩盘</td></tr>
+  </tbody>
+</table>
+
+<h3>2.2 SD 速度公式回顾</h3>
+<div class="formula">
+  E[speedup] = (1 − α<sup>k+1</sup>) / [(1 − α)(kc + 1)]
+</div>
+<p>这是 Leviathan et al. 2023 给的封闭式。两个核心变量:</p>
+<ul>
+  <li><strong>α (acceptance rate)</strong>:越高越好,但提高 α 一般需要更聪明的 draft → c 上升;</li>
+  <li><strong>c (drafting cost ratio)</strong>:相对成本,n-gram 接近 0,Draft-Model 取决于配对。</li>
+</ul>
+<div class="nb"><strong>注意一个隐藏前提:</strong>公式假设"target 模型 verify k+1 个 token 跟生成 1 个 token 时间近似相等"。这在 memory-bound (小 batch) 时成立,bs ↑ 进入 compute-bound 后崩溃——这是论文对该公式的关键修正解读。</div>
+
+<h3>2.3 vLLM 生产配置</h3>
+<p>本文所有实验启用 vLLM 默认优化:KV cache 管理 (PagedAttention)、continuous batching、chunked prefill、CUDA Graph;硬件 H100 80GB(8B 单卡 / 70B 与 106B TP=4)。temperature=0,top_p=1,top_k=-1。max gen length 8K(reasoning 32K)。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 实验方法学:测了什么、怎么测</h2>
+
+<h3>3.1 矩阵规模</h3>
+<table>
+  <thead><tr><th>维度</th><th>取值</th></tr></thead>
+  <tbody>
+    <tr><td>target 模型</td><td>Llama3.1-8B / Llama3-70B / Qwen3-8B / Qwen3-8B-Thinking / GLM-4.5-Air-106B</td></tr>
+    <tr><td>SD 变体</td><td>n-gram(k=3,5) / EAGLE / EAGLE-3 / Draft-Model / MTP / tree (k=6,21)</td></tr>
+    <tr><td>数据集</td><td>CNN/DailyMail · ShareGPT · InstructCoder · GSM8K · AIME22-24 · GPQA-Main</td></tr>
+    <tr><td>batch size</td><td>1, 8, 16, 32, 64, 128, 512(部分)</td></tr>
+    <tr><td>引擎</td><td>vLLM v0.10.1.1(tree 用 SGLang v0.5.9)</td></tr>
+  </tbody>
+</table>
+
+<h3>3.2 一个棘手细节:同 prompt 不一定生成同输出</h3>
+<p>论文 Tab.1 给出一个尴尬事实:即便 temperature=0、greedy 解码,把同一组 ShareGPT prompt 在 bs=1 / 8 / 32 / 128 下用 Llama3.1-8B 跑(no SD),平均生成长度分别是 737 / 722 / 674 / 714 (±约 1000)。这<strong>不是 SD 引入的</strong>,而是 GPU kernel 并行度 + FP16 累加顺序在不同 batch 下不同导致的。引用 He 2025 "Defeating Nondeterminism in LLM Inference"。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 680 200" width="100%" style="max-width:660px">
+    <defs>
+      <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#cfdcff"/><stop offset="1" stop-color="#2f6feb"/>
+      </linearGradient>
+    </defs>
+    <text x="20" y="22" font-size="13" font-weight="700">no-SD greedy 输出长度 vs batch size (Llama3.1-8B / ShareGPT, 500 req)</text>
+    <g font-size="11" fill="#5b5e66">
+      <text x="40" y="56">bs=1</text><rect x="80" y="44" width="368" height="14" fill="url(#g1)"/><text x="455" y="56">737 ± 1048</text>
+      <text x="40" y="86">bs=8</text><rect x="80" y="74" width="361" height="14" fill="url(#g1)"/><text x="455" y="86">722 ± 994</text>
+      <text x="40" y="116">bs=16</text><rect x="80" y="104" width="354" height="14" fill="url(#g1)"/><text x="455" y="116">708 ± 932</text>
+      <text x="40" y="146">bs=32</text><rect x="80" y="134" width="337" height="14" fill="url(#g1)"/><text x="455" y="146">674 ± 784</text>
+      <text x="40" y="176">bs=128</text><rect x="80" y="164" width="357" height="14" fill="url(#g1)"/><text x="455" y="176">714 ± 930</text>
+    </g>
+  </svg>
+  <figcaption>图 3.1 · 同一组 prompt + greedy + no-SD,不同 batch 下平均输出长度差 ±10%。这迫使作者用 token throughput (tok/s) 而非 per-request latency 作 speedup 指标——绕开 baseline 漂移问题。</figcaption>
+</div>
+
+<h3>3.3 评测指标定义</h3>
+<div class="formula">speedup = (tok/s with SD) / (tok/s without SD)</div>
+<p>不用 latency / 不用 acceptance rate / 不用 dataset 平均生成长度。这选择本身就是审计型论文的态度:用一个不易被搞坏的指标。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 主结果:batch size 一动,speedup 立刻塌</h2>
+
+<h3>4.1 batch size 是 SD 收益的最大杀手</h3>
+<p>论文 Fig.1 把所有 (model × dataset × method × bs) 摆出来,核心 trend:</p>
+<ul>
+  <li>Llama3.1-8B / GSM8K / EAGLE:<strong>1.73× → 1.21×</strong> 当 bs 从 1 到 128;</li>
+  <li>Llama3.1-8B / ShareGPT / EAGLE:1.68× → 1.61× (bs 1→32),损失 4.3%;</li>
+  <li>Llama3-70B / ShareGPT / EAGLE:<strong>1.96× → 1.72×</strong> (bs 1→32),损失 14.0%。</li>
+</ul>
+<p>规模效应:模型越大,SD 收益越早地随 bs 衰减。原因:70B 用 TP=4,单 H100 上的有效 batch 已经更接近 compute-bound,verifying rejected token 的浪费立刻显形。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 680 280" width="100%" style="max-width:660px">
+    <defs>
+      <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <line x1="60" y1="240" x2="640" y2="240" stroke="#5b5e66"/>
+    <line x1="60" y1="40" x2="60" y2="240" stroke="#5b5e66"/>
+    <text x="60" y="20" font-size="12">speedup ×</text>
+    <text x="640" y="258" text-anchor="end" font-size="12">batch size</text>
+    <g font-size="10" fill="#5b5e66">
+      <text x="80" y="256">1</text><text x="200" y="256">8</text><text x="320" y="256">32</text><text x="440" y="256">64</text><text x="560" y="256">128</text><text x="630" y="256">512</text>
+      <text x="50" y="244" text-anchor="end">1.0</text>
+      <text x="50" y="184" text-anchor="end">1.5</text>
+      <text x="50" y="124" text-anchor="end">2.0</text>
+      <text x="50" y="64" text-anchor="end">2.5</text>
+    </g>
+    <line x1="60" y1="184" x2="640" y2="184" stroke="#e2dfd5"/>
+    <line x1="60" y1="124" x2="640" y2="124" stroke="#e2dfd5"/>
+
+    <!-- EAGLE-3 8B GSM8K: 1.73 -> 1.21 -->
+    <polyline points="80,116 200,128 320,140 440,164 560,212 630,228" fill="none" stroke="#2f6feb" stroke-width="2.5"/>
+    <text x="86" y="108" font-size="11" fill="#2f6feb">EAGLE 8B/GSM8K (bs1=1.73×)</text>
+
+    <!-- Draft-Model 70B GSM8K: ~2.4 -> 1.4 -->
+    <polyline points="80,68 200,92 320,116 440,140 560,200 630,216" fill="none" stroke="#cc4a1b" stroke-width="2.5"/>
+    <text x="86" y="60" font-size="11" fill="#cc4a1b">Draft-Model 70B/GSM8K (bs1=2.4×)</text>
+
+    <!-- Tree k=21 EAGLE: 1.85 -> 0.7 -->
+    <polyline points="80,98 200,140 320,180 440,220 560,236 630,240" fill="none" stroke="#a8353e" stroke-width="2.5" stroke-dasharray="5,3"/>
+    <text x="86" y="148" font-size="11" fill="#a8353e">Tree k=21 (bs≥64 跌破 1×)</text>
+
+    <!-- N-gram baseline -->
+    <polyline points="80,200 200,208 320,212 440,224 560,228 630,232" fill="none" stroke="#1f7a4a" stroke-width="2"/>
+    <text x="86" y="220" font-size="11" fill="#1f7a4a">n-gram k=3 (GSM8K)</text>
+
+    <line x1="60" y1="240" x2="60" y2="245" stroke="#5b5e66"/>
+    <line x1="60" y1="240" x2="60" y2="245" stroke="#5b5e66"/>
+  </svg>
+  <figcaption>图 4.1 · 抽象示意:speedup vs batch size 的衰减曲线。Tree-style 在 bs≥64 跌穿 1× 的现象是论文最戏剧性的发现之一——以前 EAGLE 系列普遍宣传"tree 比 chain 好",但生产里恰恰相反。</figcaption>
+</div>
+
+<h3>4.2 哪个方法在哪种条件下赢</h3>
+<table>
+  <thead><tr><th>条件</th><th>胜者</th><th>关键 caveat</th></tr></thead>
+  <tbody>
+    <tr><td>大模型 (70B) + 任意 batch</td><td><strong>Draft-Model</strong> (Llama-3.2-1B 配 70B,c≈0.125)</td><td>需要现成同词表小模型,KV cache +1.77× (8B 场景)</td></tr>
+    <tr><td>中模型 (8B) + 任意 batch</td><td><strong>EAGLE-3</strong></td><td>Draft-Model 在 8B 时 c=0.375 太贵,反而被 EAGLE-3 / 甚至 n-gram 压</td></tr>
+    <tr><td>code editing (InstructCoder)</td><td><strong>n-gram (k=5)</strong></td><td>BLEU-4 &gt; 0.6 时 n-gram 赢 EAGLE 53%–100%</td></tr>
+    <tr><td>reasoning (AIME / GPQA)</td><td>EAGLE-3 主导,n-gram 紧随</td><td>n-gram 在长 CoT 末段(写最终答案)崩</td></tr>
+    <tr><td>bs=1 学术评测</td><td>tree 看起来最好</td><td>bs≥64 全面失效,真实部署不要用</td></tr>
+    <tr><td>106B + reasoning</td><td>MTP 唯一可行</td><td>仅前一个 MTP head,position-wise α: 0.92→0.68→0.38 急速衰减</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="sec5">5 · 时间分解:verification 才是真正的成本中心</h2>
+
+<h3>5.1 四阶段拆分</h3>
+<p>SD 一步分四件事:</p>
+<ol>
+  <li><strong>Drafting</strong>:n-gram 是 CPU lookup,EAGLE 是 head autoregress k 次,Draft-Model 是 1B 模型 autoregress k 次;</li>
+  <li><strong>Verification</strong>:target 模型一次 forward k+1 个 token;</li>
+  <li><strong>Rejection sampling</strong>:从 verify 输出 logits 里采样;</li>
+  <li><strong>Other (vLLM overhead)</strong>:scheduling、KV 管理。</li>
+</ol>
+
+<div class="fig">
+  <svg viewBox="0 0 680 250" width="100%" style="max-width:660px">
+    <text x="20" y="22" font-size="13" font-weight="700">Llama3-70B / CNN-DailyMail · 时间分解(approx, Fig.4)</text>
+    <g font-size="11">
+      <!-- Headers -->
+      <text x="180" y="42" text-anchor="middle" font-weight="600">bs=1</text>
+      <text x="320" y="42" text-anchor="middle" font-weight="600">bs=64</text>
+      <text x="460" y="42" text-anchor="middle" font-weight="600">bs=128</text>
+      <text x="600" y="42" text-anchor="middle" font-weight="600">bs=512</text>
+
+      <!-- n-gram row -->
+      <text x="20" y="78" font-weight="600">n-gram</text>
+      <rect x="120" y="56" width="2" height="32" fill="#cc4a1b"/><rect x="122" y="56" width="115" height="32" fill="#2f6feb"/><rect x="237" y="56" width="3" height="32" fill="#1f7a4a"/><rect x="240" y="56" width="20" height="32" fill="#5b5e66"/>
+      <rect x="260" y="56" width="2" height="32" fill="#cc4a1b"/><rect x="262" y="56" width="120" height="32" fill="#2f6feb"/><rect x="382" y="56" width="3" height="32" fill="#1f7a4a"/><rect x="385" y="56" width="15" height="32" fill="#5b5e66"/>
+      <rect x="400" y="56" width="2" height="32" fill="#cc4a1b"/><rect x="402" y="56" width="125" height="32" fill="#2f6feb"/><rect x="527" y="56" width="3" height="32" fill="#1f7a4a"/><rect x="530" y="56" width="10" height="32" fill="#5b5e66"/>
+      <rect x="540" y="56" width="2" height="32" fill="#cc4a1b"/><rect x="542" y="56" width="128" height="32" fill="#2f6feb"/><rect x="670" y="56" width="3" height="32" fill="#1f7a4a"/>
+
+      <!-- EAGLE row -->
+      <text x="20" y="118" font-weight="600">EAGLE</text>
+      <rect x="120" y="96" width="20" height="32" fill="#cc4a1b"/><rect x="140" y="96" width="90" height="32" fill="#2f6feb"/><rect x="230" y="96" width="3" height="32" fill="#1f7a4a"/><rect x="233" y="96" width="27" height="32" fill="#5b5e66"/>
+      <rect x="260" y="96" width="14" height="32" fill="#cc4a1b"/><rect x="274" y="96" width="100" height="32" fill="#2f6feb"/><rect x="374" y="96" width="3" height="32" fill="#1f7a4a"/><rect x="377" y="96" width="23" height="32" fill="#5b5e66"/>
+      <rect x="400" y="96" width="10" height="32" fill="#cc4a1b"/><rect x="410" y="96" width="110" height="32" fill="#2f6feb"/><rect x="520" y="96" width="3" height="32" fill="#1f7a4a"/><rect x="523" y="96" width="17" height="32" fill="#5b5e66"/>
+      <rect x="540" y="96" width="6" height="32" fill="#cc4a1b"/><rect x="546" y="96" width="118" height="32" fill="#2f6feb"/><rect x="664" y="96" width="3" height="32" fill="#1f7a4a"/><rect x="667" y="96" width="6" height="32" fill="#5b5e66"/>
+
+      <!-- Draft-Model row -->
+      <text x="20" y="158" font-weight="600">Draft-Model</text>
+      <rect x="120" y="136" width="30" height="32" fill="#cc4a1b"/><rect x="150" y="136" width="80" height="32" fill="#2f6feb"/><rect x="230" y="136" width="3" height="32" fill="#1f7a4a"/><rect x="233" y="136" width="27" height="32" fill="#5b5e66"/>
+      <rect x="260" y="136" width="22" height="32" fill="#cc4a1b"/><rect x="282" y="136" width="92" height="32" fill="#2f6feb"/><rect x="374" y="136" width="3" height="32" fill="#1f7a4a"/><rect x="377" y="136" width="23" height="32" fill="#5b5e66"/>
+      <rect x="400" y="136" width="14" height="32" fill="#cc4a1b"/><rect x="414" y="136" width="106" height="32" fill="#2f6feb"/><rect x="520" y="136" width="3" height="32" fill="#1f7a4a"/><rect x="523" y="136" width="17" height="32" fill="#5b5e66"/>
+      <rect x="540" y="136" width="4" height="32" fill="#cc4a1b"/><rect x="544" y="136" width="120" height="32" fill="#2f6feb"/><rect x="664" y="136" width="3" height="32" fill="#1f7a4a"/><rect x="667" y="136" width="6" height="32" fill="#5b5e66"/>
+
+      <!-- Baseline row -->
+      <text x="20" y="198" font-weight="600">Baseline</text>
+      <rect x="120" y="176" width="0" height="32"/><rect x="120" y="176" width="135" height="32" fill="#2f6feb"/><rect x="255" y="176" width="3" height="32" fill="#1f7a4a"/><rect x="258" y="176" width="2" height="32" fill="#5b5e66"/>
+      <rect x="260" y="176" width="135" height="32" fill="#2f6feb"/><rect x="395" y="176" width="3" height="32" fill="#1f7a4a"/><rect x="398" y="176" width="2" height="32" fill="#5b5e66"/>
+      <rect x="400" y="176" width="135" height="32" fill="#2f6feb"/><rect x="535" y="176" width="3" height="32" fill="#1f7a4a"/><rect x="538" y="176" width="2" height="32" fill="#5b5e66"/>
+      <rect x="540" y="176" width="130" height="32" fill="#2f6feb"/><rect x="670" y="176" width="3" height="32" fill="#1f7a4a"/>
+    </g>
+    <g font-size="11">
+      <rect x="20" y="220" width="14" height="14" fill="#cc4a1b"/><text x="40" y="232">Drafting</text>
+      <rect x="110" y="220" width="14" height="14" fill="#2f6feb"/><text x="130" y="232">Verification</text>
+      <rect x="220" y="220" width="14" height="14" fill="#1f7a4a"/><text x="240" y="232">Sampling</text>
+      <rect x="310" y="220" width="14" height="14" fill="#5b5e66"/><text x="330" y="232">vLLM Overhead</text>
+    </g>
+  </svg>
+  <figcaption>图 5.1 · 简化重绘 Fig.4(b) Llama3-70B。bs ↑ 时,verification 蓝条占比从 ~70% 涨到 ~95%;drafting (橙) 比例从 21% 跌到 3%;sampling 永远 &lt;2%。<strong>关键洞察</strong>:n-gram 几乎免费,但 verification 时间 ≈ baseline 的 forward 时间——所以 SD 的全部"加速"必须靠 verify 一次拿回多个 token。</figcaption>
+</div>
+
+<h3>5.2 关键数字</h3>
+<ul>
+  <li>verification 占比:42%–95%(随 model size, batch size 单调上升);</li>
+  <li>drafting 占比:n-gram &lt;2% / EAGLE 12–20% (bs=1) → 3–7% (bs=512) / Draft-Model 8B 配 0.6B 时 47% (bs=1) → 16% (bs=512);</li>
+  <li>sampling &lt; 1.7%(可忽略,这是过去几年大家一直忽略 KL-correction overhead 的合理性确认);</li>
+  <li>vLLM overhead:3–12%(scheduling,被 batch 摊薄)。</li>
+</ul>
+
+<h3>5.3 推论:为什么 verify 是真正的优化空间</h3>
+<p>如果 acceptance length 是 m(≤k+1),那 verify 跑了 k+1 个 token,其中 k+1−m 是注定要被丢的,这部分 GPU compute 是<strong>纯浪费</strong>。在 compute-bound 阶段(大 batch),这浪费直接换算成 throughput 损失。论文据此提出:<em>真正的研究方向不是把 acceptance rate 从 80% 提到 85%,而是只 verify "本来就会被接受的 token"</em>。这是 Section 8 的理论上界推演。</p>
+
+<h3>5.4 内存开销(顺带)</h3>
+<table>
+  <thead><tr><th>方法</th><th>静态内存增量</th><th>per-token KV 增量</th></tr></thead>
+  <tbody>
+    <tr><td>n-gram</td><td>0</td><td>0(CPU 历史)</td></tr>
+    <tr><td>EAGLE / EAGLE-3 (8B)</td><td>+3.1% / +5.3%</td><td>+3.1% (+4 KiB)</td></tr>
+    <tr><td>Draft-Model 70B+1B</td><td>+1.8%</td><td>+10% (320→352 KiB)</td></tr>
+    <tr><td>Draft-Model 8B+0.6B</td><td>+7.3%</td><td><strong>+77% (144→256 KiB)</strong></td></tr>
+  </tbody>
+</table>
+<p>结论:小模型配小 draft 在内存上反而最贵——因为 draft 全模型的多层 KV 都得留着。</p>
+
+<hr>
+
+<h2 id="sec6">6 · acceptance length 的三层方差</h2>
+
+<p>SD 论文里通常只报 dataset-level α 或 mean acceptance length。这篇说:那是<strong>把所有方差平均掉了</strong>。它从三个层级揭露 α 的分布。</p>
+
+<h3>6.1 Within a request: token 位置维度</h3>
+<p>对 reasoning 任务(Qwen3-8B-Thinking on GPQA),把生成位置分成 10 个 bin,看每个 bin 的平均 acceptance length。结果:</p>
+<ul>
+  <li>n-gram:短输出(&lt;4K)1.6 → 3.7;长输出(&gt;13K)2.7 → 5.0,<strong>越往后越好</strong>(局部重复积累),但<em>最末段往往掉</em>——因为模型从 step-by-step CoT 切到写最终答案,无重复可挖。</li>
+  <li>EAGLE-3:从 ~2.1 → 5.7,增长更平缓但更稳定。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 680 270" width="100%" style="max-width:660px">
+    <text x="20" y="22" font-size="13" font-weight="700">acceptance length vs token position (GPQA, Qwen3-8B-Thinking, &gt;13K req)</text>
+    <line x1="60" y1="220" x2="640" y2="220" stroke="#5b5e66"/>
+    <line x1="60" y1="50" x2="60" y2="220" stroke="#5b5e66"/>
+    <text x="640" y="240" text-anchor="end" font-size="11" fill="#5b5e66">token position →</text>
+    <text x="40" y="50" text-anchor="end" font-size="11" fill="#5b5e66">accept</text>
+    <text x="40" y="64" text-anchor="end" font-size="11" fill="#5b5e66">length</text>
+    <g font-size="10" fill="#5b5e66">
+      <text x="55" y="234" text-anchor="end">0</text>
+      <text x="55" y="178" text-anchor="end">2</text>
+      <text x="55" y="120" text-anchor="end">4</text>
+      <text x="55" y="62" text-anchor="end">6</text>
+    </g>
+    <line x1="60" y1="178" x2="640" y2="178" stroke="#e2dfd5"/>
+    <line x1="60" y1="120" x2="640" y2="120" stroke="#e2dfd5"/>
+    <line x1="60" y1="62" x2="640" y2="62" stroke="#e2dfd5"/>
+
+    <!-- n-gram (rises then drops at end) -->
+    <polyline points="80,212 138,196 196,180 254,152 312,116 370,80 428,62 486,72 544,98 602,140" fill="none" stroke="#cc4a1b" stroke-width="2.5"/>
+    <circle cx="80" cy="212" r="3" fill="#cc4a1b"/>
+    <circle cx="370" cy="80" r="3" fill="#cc4a1b"/>
+    <circle cx="602" cy="140" r="3" fill="#cc4a1b"/>
+    <text x="370" y="50" text-anchor="middle" font-size="11" fill="#cc4a1b">n-gram (峰在中段)</text>
+
+    <!-- EAGLE-3 smooth ascending -->
+    <polyline points="80,158 138,150 196,140 254,128 312,116 370,104 428,92 486,80 544,70 602,62" fill="none" stroke="#2f6feb" stroke-width="2.5"/>
+    <circle cx="80" cy="158" r="3" fill="#2f6feb"/>
+    <circle cx="602" cy="62" r="3" fill="#2f6feb"/>
+    <text x="486" y="100" font-size="11" fill="#2f6feb">EAGLE-3 (单调上升)</text>
+
+    <text x="80" y="252" font-size="10" fill="#5b5e66">0</text>
+    <text x="370" y="252" font-size="10" fill="#5b5e66">10K</text>
+    <text x="602" y="252" font-size="10" fill="#5b5e66">20K</text>
+  </svg>
+  <figcaption>图 6.1 · 长 reasoning 输出里 n-gram 在中段(step-by-step CoT)爆发,但写最终答案的末段崩——这暗示生产里"按位置切换 SD 方法"会有可观收益,这正是 Sec 8.2 Oracle Combine 的根据。</figcaption>
+</div>
+
+<h3>6.2 Across requests: 同 dataset 内方差</h3>
+<p>InstructCoder + Llama3-70B 的 per-request 平均 acceptance length(box plot 5–95 percentile):</p>
+<ul>
+  <li>EAGLE: 2.7–7.4(窄,std 小)</li>
+  <li>n-gram: 1.1–<strong>15.0</strong>(重尾,std 是 EAGLE 的 2–5×)</li>
+  <li>Draft-Model: 5.6–<strong>18.3</strong>(最长但波动大)</li>
+</ul>
+<p>这意味着对 SLA 敏感的服务(比如 chat 场景必须 P99 ≤ 2× P50),n-gram 那个长尾"看起来好"但<strong>不可靠</strong>。EAGLE 的稳定性可能比 mean 高 10% 更值钱。</p>
+
+<h3>6.3 Across datasets: 方法 × 任务的强相互作用</h3>
+<table>
+  <thead><tr><th>dataset</th><th>EAGLE</th><th>n-gram</th><th>Draft-Model</th></tr></thead>
+  <tbody>
+    <tr><td>InstructCoder</td><td>4.2</td><td><strong>7.3</strong></td><td>~10</td></tr>
+    <tr><td>CNN/DailyMail</td><td>3.1</td><td>2.5</td><td>~3.5</td></tr>
+    <tr><td>ShareGPT</td><td>3.5</td><td>2.0</td><td>~5</td></tr>
+    <tr><td>GSM8K</td><td>4.5</td><td>2.0</td><td>~5</td></tr>
+    <tr><td>AIME / GPQA(reasoning)</td><td>4–6</td><td>3–5</td><td>—</td></tr>
+  </tbody>
+</table>
+<p>这表是论文级 cheat sheet:任务变了,谁赢就变。<em>没有 universal winner</em>。</p>
+
+<hr>
+
+<h2 id="sec7">7 · n-gram 在 InstructCoder 上的"神迹"与 BLEU 解释</h2>
+
+<p>令人惊讶的事实:n-gram(零训练、CPU lookup、几乎没 drafting cost)在 InstructCoder 上对 Llama3.1-8B / Qwen3-8B 的 speedup 比 EAGLE / EAGLE-3 还高;对 Llama3.1-8B + bs=1 + n-gram k=5 时,相对 EAGLE 提升 +100%。</p>
+
+<h3>7.1 假设与验证</h3>
+<p>作者假设:<em>code editing 的 prompt-output 局部重复率高,n-gram lookup 命中率高</em>。用 BLEU-4(prompt vs no-SD output)作 overlap 代理量,把 request 按 BLEU 分到 5 个 bin,对每个 bin 算 n-gram-vs-EAGLE 的相对 speedup。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 680 220" width="100%" style="max-width:660px">
+    <text x="20" y="22" font-size="13" font-weight="700">n-gram (k=5) 相对 EAGLE 的 speedup 提升 (Llama3.1-8B / InstructCoder)</text>
+    <g font-size="11" font-weight="600">
+      <text x="80" y="48">BLEU 0.0–0.2</text>
+      <text x="200" y="48">0.2–0.4</text>
+      <text x="320" y="48">0.4–0.6</text>
+      <text x="440" y="48">0.6–0.8</text>
+      <text x="560" y="48">0.8–1.0</text>
+    </g>
+    <g font-size="11">
+      <text x="20" y="78">bs=1</text>
+      <rect x="60" y="60" width="80" height="20" fill="#a8353e"/><text x="100" y="74" text-anchor="middle" fill="#fff">−10%</text>
+      <rect x="180" y="60" width="80" height="20" fill="#cc4a1b" opacity="0.7"/><text x="220" y="74" text-anchor="middle" fill="#fff">−6%</text>
+      <rect x="300" y="60" width="80" height="20" fill="#cfdcff"/><text x="340" y="74" text-anchor="middle">+14%</text>
+      <rect x="420" y="60" width="80" height="20" fill="#5a8de8"/><text x="460" y="74" text-anchor="middle" fill="#fff">+42%</text>
+      <rect x="540" y="60" width="80" height="20" fill="#1f3f8a"/><text x="580" y="74" text-anchor="middle" fill="#fff"><tspan font-weight="700">+100%</tspan></text>
+
+      <text x="20" y="108">bs=16</text>
+      <rect x="60" y="90" width="80" height="20" fill="#a8353e" opacity="0.9"/><text x="100" y="104" text-anchor="middle" fill="#fff">−11%</text>
+      <rect x="180" y="90" width="80" height="20" fill="#cc4a1b" opacity="0.6"/><text x="220" y="104" text-anchor="middle" fill="#fff">−8%</text>
+      <rect x="300" y="90" width="80" height="20" fill="#cfdcff"/><text x="340" y="104" text-anchor="middle">+9%</text>
+      <rect x="420" y="90" width="80" height="20" fill="#5a8de8"/><text x="460" y="104" text-anchor="middle" fill="#fff">+31%</text>
+      <rect x="540" y="90" width="80" height="20" fill="#2f6feb"/><text x="580" y="104" text-anchor="middle" fill="#fff">+75%</text>
+
+      <text x="20" y="138">bs=64</text>
+      <rect x="60" y="120" width="80" height="20" fill="#a8353e" opacity="0.7"/><text x="100" y="134" text-anchor="middle" fill="#fff">−9%</text>
+      <rect x="180" y="120" width="80" height="20" fill="#cc4a1b" opacity="0.6"/><text x="220" y="134" text-anchor="middle" fill="#fff">−8%</text>
+      <rect x="300" y="120" width="80" height="20" fill="#dde6ff"/><text x="340" y="134" text-anchor="middle">+3%</text>
+      <rect x="420" y="120" width="80" height="20" fill="#7da3ee"/><text x="460" y="134" text-anchor="middle" fill="#fff">+14%</text>
+      <rect x="540" y="120" width="80" height="20" fill="#5a8de8"/><text x="580" y="134" text-anchor="middle" fill="#fff">+42%</text>
+
+      <text x="20" y="168">bs=128</text>
+      <rect x="60" y="150" width="80" height="20" fill="#cc4a1b" opacity="0.5"/><text x="100" y="164" text-anchor="middle" fill="#fff">−3%</text>
+      <rect x="180" y="150" width="80" height="20" fill="#cc4a1b" opacity="0.4"/><text x="220" y="164" text-anchor="middle">−5%</text>
+      <rect x="300" y="150" width="80" height="20" fill="#dde6ff"/><text x="340" y="164" text-anchor="middle">+2%</text>
+      <rect x="420" y="150" width="80" height="20" fill="#a3bdf3"/><text x="460" y="164" text-anchor="middle">+8%</text>
+      <rect x="540" y="150" width="80" height="20" fill="#7da3ee"/><text x="580" y="164" text-anchor="middle" fill="#fff">+27%</text>
+    </g>
+    <g font-size="10" fill="#5b5e66">
+      <text x="20" y="200">读法:蓝 = n-gram 胜,红 = EAGLE 胜。BLEU&gt;0.6 + bs 小 时 n-gram 完胜。</text>
+    </g>
+  </svg>
+  <figcaption>图 7.1 · 重绘 Fig.9(e)。BLEU-4 阈值约 0.4–0.6 之间存在清晰相变,这给生产决策一个可计算的判据:能预先估出 prompt-output BLEU,就能选 SD 方法。</figcaption>
+</div>
+
+<h3>7.2 操作型推论(本文未明说但可推)</h3>
+<p>routing rule:<em>code editing / refactor / patch generation</em> 走 n-gram(k=5);其它 chat / reasoning 默认 EAGLE-3;reasoning 长 CoT 走 EAGLE-3 + n-gram 联用(下一节)。如果你的服务能根据 task type 路由,可以直接吃这个 free lunch。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 理论上界:Oracle Proposal & Oracle Combine</h2>
+
+<h3>8.1 Oracle Proposal:消除"verify 注定被拒的 token"</h3>
+<p>构造:每步用 oracle 知道实际能接受的 m,然后只 propose m 个 token,verify 时全部通过。这等价于<strong>消除 wasted verification</strong>。</p>
+<p>结果(Llama3.1-8B / InstructCoder / n-gram / bs=1):oracle = 2.75×,固定 k=5 = 2.1×,gap 约 30%。bs ↑ 时 gap 拉大——固定-k 曲线下降快,oracle 下降慢。</p>
+
+<h3>8.2 Oracle Combine:跨方法择优</h3>
+<p>把 EAGLE 和 n-gram 并行跑,逐 token 位置选谁的 acceptance length 更长。这是图 11 的红蓝交错图(每个 position 总有一个赢家)的体现。结果:</p>
+<ul>
+  <li>InstructCoder:Oracle Combine 在 bs=1 飙到 ~5×(论文 abstract 报的 4.9×);</li>
+  <li>ShareGPT / CNN/DailyMail:相对 best fixed 多 ~30–50%;</li>
+  <li>GSM8K:几乎没增益(因为 n-gram 在数学步骤里很少长 burst,combine ≈ Eagle)。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 680 280" width="100%" style="max-width:660px">
+    <text x="20" y="22" font-size="13" font-weight="700">speedup 上界阶梯 (InstructCoder, Llama3.1-8B, bs=1)</text>
+    <g font-size="12">
+      <rect x="60" y="240" width="80" height="20" fill="#1f7a4a"/><text x="100" y="254" text-anchor="middle" fill="#fff">1.0×</text>
+      <text x="100" y="280" text-anchor="middle" font-size="11" fill="#5b5e66">no SD</text>
+
+      <rect x="160" y="208" width="80" height="52" fill="#2f6feb"/><text x="200" y="244" text-anchor="middle" fill="#fff">1.6×</text>
+      <text x="200" y="280" text-anchor="middle" font-size="11" fill="#5b5e66">EAGLE k=3</text>
+
+      <rect x="260" y="170" width="80" height="90" fill="#5a8de8"/><text x="300" y="222" text-anchor="middle" fill="#fff">2.1×</text>
+      <text x="300" y="280" text-anchor="middle" font-size="11" fill="#5b5e66">n-gram k=5</text>
+
+      <rect x="360" y="116" width="80" height="144" fill="#cc4a1b"/><text x="400" y="200" text-anchor="middle" fill="#fff">2.75×</text>
+      <text x="400" y="280" text-anchor="middle" font-size="11" fill="#5b5e66">Oracle (n-gram)</text>
+
+      <rect x="460" y="58" width="80" height="202" fill="#a8353e"/><text x="500" y="170" text-anchor="middle" fill="#fff">3.5×</text>
+      <text x="500" y="280" text-anchor="middle" font-size="11" fill="#5b5e66">Oracle EAGLE</text>
+
+      <rect x="560" y="40" width="80" height="220" fill="#811f28"/><text x="600" y="160" text-anchor="middle" fill="#fff" font-weight="700">4.9×</text>
+      <text x="600" y="280" text-anchor="middle" font-size="11" fill="#5b5e66">Oracle Combine</text>
+    </g>
+    <line x1="40" y1="260" x2="660" y2="260" stroke="#5b5e66"/>
+  </svg>
+  <figcaption>图 8.1 · Oracle 上界堆栈。当前最强(2.1×)到 Oracle Combine(4.9×)还差 2.3×。论文给的研究方向是:<em>做一个轻量级"per-position selector + acceptance predictor"</em>——既不增加 c,又能逼近 Oracle。</figcaption>
+</div>
+
+<h3>8.3 反向论证:为什么不能直接"propose 越多越好"</h3>
+<p>有人会问:既然 verify 不好预判 accept,那固定 k 大点不好吗?反向看:k 大 → 期望 reject 的 token 多 → verify 浪费的 compute 多 → bs 大时直接拖慢(tree k=21 在 bs=64 跌穿 1× 就是 case)。Oracle 之所以是上界,是因为它<strong>同时</strong>选对方法 + 选对 k + 全部 accept,三个理想化叠在一起。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 生产场景化算账:一个 H100 集群的具体决策</h2>
+
+<p>把上面所有发现塞进一个具体场景。</p>
+
+<h3>9.1 场景设定</h3>
+<ul>
+  <li>服务类型:多租户 chat assistant,流量混合 = 50% ShareGPT-like + 30% reasoning + 20% code editing;</li>
+  <li>硬件:8× H100 80GB,单节点 TP=4 跑 Llama3-70B-Instruct;</li>
+  <li>SLA:P50 TTFT ≤ 200ms,P50 ITL(inter-token-latency)≤ 30ms;</li>
+  <li>负载:稳态 batch 在 32–64 之间。</li>
+</ul>
+
+<h3>9.2 套用论文数据 + 公式</h3>
+<table>
+  <thead><tr><th>方案</th><th>预期 throughput speedup</th><th>P99 风险</th><th>额外成本</th></tr></thead>
+  <tbody>
+    <tr><td>no SD</td><td>1.0×(基线)</td><td>稳</td><td>0</td></tr>
+    <tr><td>EAGLE-Llama-70B + chain k=3</td><td><strong>~1.7×</strong>(bs=32 ShareGPT)</td><td>低(per-req std 小)</td><td>+1.4% 静态 GPU mem,+1.3% per-token KV;需要 EAGLE checkpoint</td></tr>
+    <tr><td>Draft-Model (Llama3.2-1B)</td><td><strong>~1.85×</strong>(bs=32 ShareGPT,胜 EAGLE)</td><td>中(α 重尾)</td><td>+1.8% 静态,+10% per-token KV</td></tr>
+    <tr><td>Tree EAGLE k=21</td><td>bs=1 看 2.0×,bs=32 跌至 ~1.3×,bs=64 <strong>&lt;1.0×</strong></td><td><span class="no">高</span></td><td>大量额外 verify compute</td></tr>
+    <tr><td>code 路由 → n-gram k=5,其余 → EAGLE</td><td>code 段额外 +30%~+75%,整体 ~1.9×</td><td>低(分段)</td><td>需路由层判断 task type</td></tr>
+  </tbody>
+</table>
+
+<h3>9.3 一笔每 token 钱</h3>
+<p>假设 H100 节点 $32/小时,no-SD 70B/TP4 throughput 在 bs=64 大约是 ~1.5K tok/s(论文数量级)。EAGLE 加速 1.7× → ~2.55K tok/s。</p>
+<div class="formula">
+  no-SD: $32 / (1500 × 3600) ≈ <strong>$5.93 / 1M tok</strong><br>
+  EAGLE: $32 / (2550 × 3600) ≈ <strong>$3.49 / 1M tok</strong>(省 41%)
+</div>
+<p>但若忽略 acceptance 三层方差,直接信论文报的 2.5× 上线,你的 capacity 规划会按 $2.37/1M 算 → 实际跑出来流量打满 → P99 爆 SLA。</p>
+
+<h3>9.4 决策口诀(本文蒸馏)</h3>
+<div class="kv"><span class="pill">规则 1</span> bs &lt; 8 时 SD 几乎总是赢,放心用。</div>
+<div class="kv"><span class="pill">规则 2</span> bs ≥ 64 时 SD 收益≤30%,而且对模型大小敏感,先 profile 再上。</div>
+<div class="kv"><span class="pill">规则 3</span> Tree-style verify 在 bs ≥ 32 是雷,默认 chain。</div>
+<div class="kv"><span class="pill">规则 4</span> 70B 用 Draft-Model,8B 用 EAGLE-3,code 用 n-gram(k=5),reasoning 用 EAGLE-3。</div>
+<div class="kv"><span class="pill">规则 5</span> 想要更进一步 → 写一个 per-position selector(论文留下的 open problem)。</div>
+
+<hr>
+
+<h2 id="sec10">10 · 与同类工作对比:谁的论断挺得住?</h2>
+
+<table>
+  <thead><tr><th>论文</th><th>核心论断</th><th>本文裁决</th></tr></thead>
+  <tbody>
+    <tr><td><a href="01_NVIDIA_NeMoRL_EAGLE3.html">NeMo-RL × EAGLE-3 (NVIDIA)</a></td><td>EAGLE-3 在 RL rollout 给 1.4–1.8× 加速</td><td><span class="ok">基本可信</span>:RL rollout 通常 bs 中等且场景 ≈ ShareGPT,本文同条件下 EAGLE-3 给 1.5–1.8× 一致</td></tr>
+    <tr><td><a href="02_EAGLE_evolution_DFlash.html">EAGLE-1/2/3 / DFlash 演化</a></td><td>EAGLE-3 报 2.5×、DFlash 报 2.4×</td><td><span class="no">乐观偏</span>:这些数字是 bs=1 / prototype 上的。本文 vLLM bs=1 还能见到 1.7–2.0×;bs=64 后腰斩到 1.2–1.4×</td></tr>
+    <tr><td><a href="04_ReSpec_2510.26475.html">ReSpec(RL 中的自适应 SD)</a></td><td>动态调 k 比固定 k 好</td><td><span class="ok">方向支持</span>:本文 Oracle Proposal 也证明动态 k 才是上界来源;ReSpec 是该 idea 的实例化</td></tr>
+    <tr><td>Medusa / Lookahead / Sequoia (tree)</td><td>tree verification 加速更高</td><td><span class="no">仅 bs=1 成立</span>:本文显示 bs ≥ 64 时 tree(k=21) 跌穿 1×</td></tr>
+    <tr><td>Liu 2024 "Optimizing SD for Serving via Goodput"</td><td>SD 在大 batch 下可能负收益</td><td><span class="ok">高度一致</span>:本文给了更系统的实证,bs 与 model size 双轴扫</td></tr>
+    <tr><td>MTP (DeepSeek-V3 / GLM-4.5)</td><td>co-trained head 加速更高</td><td><span class="ok">部分</span>:106B 上 MTP 给 1.3–1.8×,确实超过 n-gram。但 position-wise α 衰减(0.92→0.68→0.38)说明 single-head 复用是瓶颈</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="sec11">11 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>局限</h3>
+<ul>
+  <li>只测了 Llama-3 / Qwen-3 / GLM-4.5 三个家族;Mistral / DeepSeek-R1 / Gemma 等没覆盖,跨架构 SD 行为可能不同。</li>
+  <li>vLLM v0.10.1.1 一个固定版本;tree-verify 用 SGLang 是因为 vLLM 此版 tree path 没优化好——结论"tree 在大 batch 必输"可能对其他引擎不严格成立。</li>
+  <li>α 与 acceptance length 的测量定义微妙:作者"每步最多 propose 20 tokens 看实际能 accept 几个",和真正部署里固定 k=3/5 的语义略不同——是 oracle-style 上界估计。</li>
+  <li>Oracle Combine 的 4.9× 没扣 EAGLE KV 重建开销(若 method 切换会需要 prefill EAGLE 的 KV)。所以"4.9×" 这个数本身也是上界中的上界。</li>
+  <li>没有 long-context (128K+) prefill-heavy 工况;real chat 的 system prompt 越长,prefix-cache 主导,SD 收益形态可能再变。</li>
+</ul>
+
+<h3>个人 take</h3>
+<ul>
+  <li>这是 2026 年我读到最有用的一篇 SD 论文,虽然它没提任何新方法。它<em>把整个 SD 学术界的"叙事溢价"打掉一个量级</em>,以后 EAGLE-N+1 必须在 vLLM bs=64 报数才有可信度。</li>
+  <li>"verification dominates" 是审计型核心结论,但其推论"propose only what will be accepted"是个开放且具体的研究题目——可以做出一个 lightweight predictor,小规模(几十 M 参数)预测下一段 acceptance length 即可。</li>
+  <li>Oracle Combine 给出的 routing 思路,我相信工程上 1–2 季度内会有论文跟进,做"per-position SD selector"。这是接下来值得投注的方向。</li>
+  <li>对一线工程师:这论文的核心价值是<strong>给你一份 cheat sheet</strong>,能在 review SD 方案时立刻识别哪些数字水分大。</li>
+</ul>
+
+<h3>待验证问题</h3>
+<ol>
+  <li>本文用 H100 + TP=4。换到 H200 / B200 / GH200 (NVLink-NVSwitch) 后,memory-bound→compute-bound 的拐点 batch size 应该右移多少?是否能让 SD 在更大 batch 也保持高 speedup?</li>
+  <li>FP8 / INT4 量化 baseline 下 SD 的相对收益怎么变?直觉上 verify 时间被压缩,SD 优势进一步缩水。</li>
+  <li>如果用 disaggregated prefill/decode (Mooncake / DistServe),decode 阶段 batch 通常远小于 unified——SD 是不是天然在 disagg 框架下更好?</li>
+  <li>EAGLE-3 + n-gram 在 reasoning 长 CoT 上的实际 production combine 实现(不依赖 oracle),能否捞回多少?</li>
+  <li>开源 GLM-4.5-Air MTP 只有第一个 head,是否能事后蒸馏出 head 2 / 3 / 4 来恢复 position-wise α 衰减?</li>
+  <li>BLEU-4 作为 task-type router 信号是否稳定?有没有 cheap proxy 能在 prefill 阶段就预测?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec12">12 · 应该读什么、应该信什么 (Memory Points)</h2>
+
+<div class="kv"><span class="pill">立场</span> 这是审计论文,不是方法论文。读它是为了校准对其他 SD 方法数字的信任度,不是为了学新算法。</div>
+<div class="kv"><span class="pill">最大发现</span> verification 占 42–95% 总时间,drafting 几乎不重要,优化方向应该是 "<em>少 verify 注定被拒的 token</em>",而非"提高 acceptance rate"。</div>
+<div class="kv"><span class="pill">最反直觉</span> Tree-style verification 在 bs ≥ 64 跌穿 1× 速度。EAGLE-2 时代教科书写"tree 比 chain 好",在生产里反过来。</div>
+<div class="kv"><span class="pill">最实用</span> 8B 用 EAGLE-3,70B 用 Draft-Model,code 用 n-gram(k=5),reasoning 用 EAGLE-3 + n-gram 联合。</div>
+<div class="kv"><span class="pill">最有研究价值</span> Oracle Combine 4.9× vs 当前最强 ~2× 之间的 gap,完全是一个可攻克的工程/ML 题目——做一个 per-position selector + acceptance predictor。</div>
+<div class="kv"><span class="pill">最容易被高估</span> 任何"bs=1 + prototype" 报的 SD speedup,默认乘 0.5–0.7 来估生产值。</div>
+<div class="kv"><span class="pill">最容易被低估</span> n-gram 在 code 场景的实际威力。零训练、零 GPU memory,能赢学习型 SD 50–100%。</div>
+<div class="kv"><span class="pill">不要忘</span> SD 不是严格 lossless——FP16 累加顺序会让同 prompt 在 bs=1 vs bs=128 的 no-SD 输出长度都不同。这不是 bug 是 GPU 物理事实。</div>
+
+<hr>
+
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:40px">
+精读笔记 · 2026-05 · 配套 spec-rl 系列 · 与 <a href="01_NVIDIA_NeMoRL_EAGLE3.html">01 NeMo-RL</a> · <a href="02_EAGLE_evolution_DFlash.html">02 EAGLE evolution</a> · <a href="04_ReSpec_2510.26475.html">04 ReSpec</a> 互参
+</p>
+
+</main>
+</body>
+</html>

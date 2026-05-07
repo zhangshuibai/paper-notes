@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Speculative Speculative Decoding (SSD / Saguaro) · 2603.03251</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Speculative Speculative Decoding — 把 draft↔verify 的串行依赖也打掉</h1>
+<div class="meta">
+  Tanishq Kumar (Stanford) · Tri Dao (Princeton / Together AI) · Avner May (Together AI) · ICLR 2026 · arXiv:2603.03251v3 · 2026-05-04<br>
+  关键词: speculative decoding · async drafting · verification-outcome prediction · Saguaro · Llama-3.1-70B · H100
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>SD 里 draft 和 verify 仍然串行(verify 完了才能开始下一轮 draft);SSD 让 draft <em>在 verify 还没完成时</em>就预测可能的 verification outcome 并对每种可能预先 speculate,真实 outcome 命中缓存就立刻返回,把 drafting 时间藏到 verifier forward 后面。Saguaro 是其参考实现。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">~30%</div><div class="l">vs 最强 SD baseline 平均加速</div></div>
+    <div class="stat"><div class="n">≈5×</div><div class="l">vs AR (Llama-3.1-70B, GSM8k)</div></div>
+    <div class="stat"><div class="n">90%</div><div class="l">bonus token 命中率上限</div></div>
+  </div>
+  <p><strong>立场:</strong>SSD 是把 SD 的 latency Pareto wall 从 "drafting 的串行成本" 这一面凿开的方案。它<em>不是</em> tree-SD 也<em>不是</em> Mirror-SD —— 不去并行化 verifier、不动 verifier compute,而是在<em>另一台 GPU</em> 上花 (K+1)F 倍的 draft 成本去赌 verification 结果。lossless,跟 EAGLE/Medusa/tree-SD 全部正交。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:SD 自己也有一道 Pareto wall</a></li>
+    <li><a href="#sec2">背景速查 (术语 / SD 复习)</a></li>
+    <li><a href="#sec3">SSD 框架: 算法骨架与 lossless 论证</a></li>
+    <li><a href="#sec4">公式: 加速量、cache 几何分布、bound</a></li>
+    <li><a href="#sec5">Challenge ①: 怎么预测 verification outcome (Saguaro cache)</a></li>
+    <li><a href="#sec6">Challenge ②: cache hit vs acceptance 的张力 (Saguaro sampling)</a></li>
+    <li><a href="#sec7">Challenge ③: cache miss 的 fallback 策略</a></li>
+    <li><a href="#sec8">Saguaro 的实现: H100×5, FlashAttention, custom mask</a></li>
+    <li><a href="#sec9">Worked example: 一个 verification cycle 全流程</a></li>
+    <li><a href="#sec10">实验关键结果</a></li>
+    <li><a href="#sec11">与同类工作对比 (Mirror-SD / EAGLE-3 / vanilla SD / async-overlap)</a></li>
+    <li><a href="#sec12">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:SD 自己也有一道 Pareto wall</h2>
+
+<h3>1.1 历史脉络: 从 AR 到 SD,然后 SD 内部的串行难题</h3>
+<p>Speculative decoding (Leviathan 2023, Chen 2023) 的核心 trick 是: 用<strong>并行</strong>替代<strong>串行</strong> —— 让 draft 一次猜 K 个 token,target 在<em>一次</em> forward 里并行算 K+1 个位置的 logits,然后用 rejection sampling 保证产出分布等价于纯 AR。这是把 token-level 串行依赖打破的第一刀。但每一轮 SD <em>本身</em> 仍是串行的:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 200" width="100%" style="max-width:680px">
+    <!-- vanilla SD timeline -->
+    <text x="350" y="22" font-size="13" font-weight="600" text-anchor="middle" fill="#3a3b40">Vanilla SD: 一轮中 draft 与 verify 仍然串行</text>
+    <!-- draft device row -->
+    <text x="60" y="60" font-size="12" fill="#cc4a1b" text-anchor="end">draft</text>
+    <rect x="70" y="45" width="120" height="26" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="130" y="63" font-size="11" text-anchor="middle">spec round T</text>
+    <rect x="370" y="45" width="120" height="26" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="430" y="63" font-size="11" text-anchor="middle">spec round T+1</text>
+    <!-- target row -->
+    <text x="60" y="100" font-size="12" fill="#2f6feb" text-anchor="end">target</text>
+    <rect x="190" y="85" width="180" height="26" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="280" y="103" font-size="11" text-anchor="middle">verify T (1 forward)</text>
+    <rect x="490" y="85" width="180" height="26" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="580" y="103" font-size="11" text-anchor="middle">verify T+1</text>
+    <!-- idle markers -->
+    <rect x="70" y="85" width="120" height="26" fill="#f3eee0" stroke="#888" stroke-dasharray="3,3"/>
+    <text x="130" y="103" font-size="10" text-anchor="middle" fill="#888" font-style="italic">idle</text>
+    <rect x="190" y="45" width="180" height="26" fill="#f3eee0" stroke="#888" stroke-dasharray="3,3"/>
+    <text x="280" y="63" font-size="10" text-anchor="middle" fill="#888" font-style="italic">draft idle (waiting verify)</text>
+    <rect x="370" y="85" width="120" height="26" fill="#f3eee0" stroke="#888" stroke-dasharray="3,3"/>
+    <text x="430" y="103" font-size="10" text-anchor="middle" fill="#888" font-style="italic">idle</text>
+    <!-- arrow -->
+    <line x1="50" y1="140" x2="680" y2="140" stroke="#666" marker-end="url(#a1)"/>
+    <text x="365" y="158" font-size="11" fill="#5b5e66" text-anchor="middle">time →</text>
+    <text x="365" y="180" font-size="11" fill="#a8353e" text-anchor="middle" font-style="italic">每一轮的 latency = T_draft + T_verify (串行相加)</text>
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>SD 的内部串行: draft 和 verify 互相等。draft 跑 K 步 forward 时 target 闲着;target 做并行验证时 draft 闲着。一轮的 wall-clock = T<sub>draft</sub> + T<sub>verify</sub>。即使 draft 极快 (T<sub>draft</sub> ≪ T<sub>verify</sub>),它也<em>没有重叠到 verify 上</em>。</figcaption>
+</div>
+
+<p>SSD 的设计目标就是把这个 "draft 等 verify、verify 等 draft" 的乒乓打掉,让两者在两台不同 GPU 上<strong>真正并行执行</strong>:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <text x="350" y="22" font-size="13" font-weight="600" text-anchor="middle" fill="#3a3b40">SSD: 在 verify T 进行时,draft 同时 pre-speculate 多个 outcome</text>
+    <!-- draft device row -->
+    <text x="60" y="60" font-size="12" fill="#cc4a1b" text-anchor="end">draft (1×H100)</text>
+    <rect x="70" y="45" width="100" height="26" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="120" y="63" font-size="11" text-anchor="middle">spec T</text>
+    <rect x="170" y="45" width="240" height="26" fill="#ffe5b4" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="290" y="63" font-size="11" text-anchor="middle" font-weight="600" fill="#cc4a1b">pre-speculate F·(K+1) outcomes</text>
+    <rect x="410" y="45" width="100" height="26" fill="#d4edda" stroke="#1f7a4a" stroke-width="1.5"/>
+    <text x="460" y="63" font-size="11" text-anchor="middle" font-weight="600" fill="#1f7a4a">cache hit!</text>
+    <rect x="510" y="45" width="160" height="26" fill="#ffe5b4" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="590" y="63" font-size="11" text-anchor="middle">pre-speculate T+2 outcomes</text>
+    <!-- target row -->
+    <text x="60" y="100" font-size="12" fill="#2f6feb" text-anchor="end">target (TP=4 H100)</text>
+    <rect x="170" y="85" width="240" height="26" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="290" y="103" font-size="11" text-anchor="middle">verify T</text>
+    <rect x="410" y="85" width="100" height="26" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="460" y="103" font-size="11" text-anchor="middle">verify T+1</text>
+    <rect x="510" y="85" width="160" height="26" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="590" y="103" font-size="11" text-anchor="middle">verify T+2</text>
+    <!-- arrow -->
+    <line x1="50" y1="140" x2="680" y2="140" stroke="#666" marker-end="url(#a2)"/>
+    <text x="365" y="158" font-size="11" fill="#5b5e66" text-anchor="middle">time →</text>
+    <text x="365" y="180" font-size="12" fill="#1f7a4a" text-anchor="middle" font-weight="600">命中: 一轮 latency = max(T_p, T_verify) ≈ T_verify</text>
+    <text x="365" y="202" font-size="11" fill="#a8353e" text-anchor="middle">未命中: latency 退化到 T_verify + T_backup_draft (尽量便宜)</text>
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>SSD 在另一台 GPU 上跑 draft,verify 期间就开始为 K+1 种"接受多少个 token"× F 种"bonus token 是哪个"共 F·(K+1) 种 verification outcome 各预先生成一条 length-K 的 speculation,存到 speculation cache。verifier 的实际 outcome 一旦命中 cache,draft 直接把那条 chain 发回去,drafting 时间被完全隐藏在 verify 后面。</figcaption>
+</div>
+
+<h3>1.2 别的"破壁"方案为什么不够</h3>
+<p>SSD 不是第一个想要并行 draft 与 verify 的工作 —— 但前作要么只覆盖一种 outcome、要么动 verifier、要么在大 batch 下崩。</p>
+
+<table>
+  <tr><th>方案</th><th>核心思路</th><th>覆盖 outcome</th><th>缺陷 (作者点名)</th></tr>
+  <tr><td><strong>AMUSD / PEARL</strong></td><td>提前 spec T+1,但只准备"全接受"那一种 outcome</td><td>1 (out of (K+1)V)</td><td>实际 acceptance < 1,大部分情况落 fallback</td></tr>
+  <tr><td><strong>DSI</strong></td><td>多份 verifier 拷贝并行 verify 多条序列</td><td>verifier 侧并行</td><td>verifier 复制成本极高 (它本来就是大模型)</td></tr>
+  <tr><td><strong>Mirror-SD</strong> (2510.13161)</td><td>用 target 的 early-exit 信号触发 branch-complete 推测,异构执行</td><td>多分支</td><td>需 target 提供 early-exit 信号,改 verifier;见 sibling notes</td></tr>
+  <tr><td><strong>SwiftSpec</strong></td><td>大缓存 + token tree,greedy 设定下加速</td><td>tree-shaped</td><td>fallback = just-in-time spec;高 temperature / 大 batch 下 cache miss 暴涨,优势消失</td></tr>
+  <tr><td><strong>SpecBranch</strong></td><td>在 spec 上加一个 branching point;近似 SSD 的特例</td><td>1 个 branching</td><td>fallback 速度不优,大 batch 下也崩</td></tr>
+  <tr><td><strong>Tree-based SD</strong> (SpecInfer / EAGLE-2/3)</td><td>draft 提议树,verifier 一次验整棵树</td><td>多个 next-token 候选</td><td>仍然<em>串行</em>;还增加 verifier compute (整棵树都得跑一遍 target)</td></tr>
+  <tr><td><strong>SSD (本文)</strong></td><td>draft 在另一台 GPU 上 pre-speculate F·(K+1) 种 outcome,各对应一条 chain</td><td>多个 (k, t*)</td><td>需要解决: 怎么挑 outcome / sampling tradeoff / fallback</td></tr>
+</table>
+
+<div class="nb">
+<strong>SSD 与 tree-SD 的关键差异:</strong>tree-SD 把额外 compute 放到 <em>verifier</em>(verify 整棵树),因为 verifier 是大模型,这个成本很高。SSD 把额外 compute 放到 <em>draft</em>(在独立 GPU 上 fan-out 出 F·(K+1) 条 chain),draft 是小模型,且独占 1 张 H100,几乎"白送"。两者 <em>正交、可组合</em>:每个 verification outcome 对应的 chain 也可以是一棵树。</p>
+</div>
+
+<h3>1.3 为什么"双重投机"不平凡 — 它不是再套一层 SD</h3>
+<p>读到 "speculative speculative" 这个名字,第一反应往往是: 在 draft 上再加一个 mini-draft 去 spec draft 的结果。<strong>错。</strong>SSD 的 unlock 不在递归,而在<em>预测 verifier 会怎么裁决</em>。三个真正的难点:</p>
+
+<ol>
+  <li><strong>Outcome 空间是 O((K+1)·V):</strong> 一个 verification outcome 由 (k, t*) 唯一确定,k ∈ [0, K] 是接受的 token 数,t* ∈ V 是 bonus token。V ≈ 128k,K = 5 时空间是 ~10^6。穷举不可能 → 必须在<strong>预算 B 下选 top-B 个最可能的 outcome</strong>。这是 §5 解决的约束优化。</li>
+
+  <li><strong>cache hit rate vs acceptance rate 的张力:</strong> 想让 cache hit 率高,直觉上要让 bonus token 集中(残差分布尖锐),但这往往要求 draft 分布远离 target,而那又会降 acceptance rate。两个目标都进 §3.2 的 Theorem 7 分子分母 → 必须在<em>同一个 sampling 设计</em>里平衡。这是 §6 的 Saguaro sampling 解决。</li>
+
+  <li><strong>大 batch 下 cache miss 概率 → 1:</strong> batch 元素的 cache hit 是独立事件,batch=b 时 batch 整体命中率 ~ p_hit^b。b=16, p_hit=0.8 → 整 batch hit 率仅 ~3.5%。一旦 miss,整 batch 都得等 backup speculator,这时 backup 必须<em>极便宜</em>(随机 token / n-gram),否则 SSD 比 SD <em>还慢</em>。这是 §7 的 Saguaro fallback 解决。</li>
+</ol>
+
+<p>三个问题环环相扣。Saguaro 的贡献就是给三个分别 propose 一个有理论 + 实证的解,组合起来在 H100 上稳赢 SGLang/vLLM/EAGLE-3 30%。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Speculation lookahead K</span></td><td>draft 一轮自回归提议的 token 数</td></tr>
+  <tr><td><span class="term">Speculation s<sup>T</sup></span></td><td>round T 中 draft 提议的长度-K 序列 (s<sub>1</sub><sup>T</sup>, …, s<sub>K</sub><sup>T</sup>)</td></tr>
+  <tr><td><span class="term">Verification outcome v<sup>T</sup> = (k, t*)</span></td><td>verifier 接受了 k 个 token,t* 是 bonus token</td></tr>
+  <tr><td><span class="term">Acceptance rate α (a<sub>p</sub>)</span></td><td>给定前 token 都接受的条件下,下一个 draft token 被接受的概率;α = 1 - ½‖p<sub>target</sub> - p<sub>draft</sub>‖₁</td></tr>
+  <tr><td><span class="term">Residual distribution r(·)</span></td><td>r ∝ max(p<sub>target</sub> - p<sub>draft</sub>, 0);拒绝时从中重采样 t* 保证 lossless</td></tr>
+  <tr><td><span class="term">Speculation cache S<sup>T</sup></span></td><td>SSD 关键数据结构:dict[outcome v → 预先 speculate 好的 chain s]</td></tr>
+  <tr><td><span class="term">Fan-out F<sub>k</sub></span></td><td>cache 中"刚好接受 k 个 token"那一层放了几种 bonus token guess</td></tr>
+  <tr><td><span class="term">p<sub>hit,p</sub> / p<sub>hit,b</sub></span></td><td>cache hit 率;条件于上一轮是 primary / backup speculator 提议的</td></tr>
+  <tr><td><span class="term">Primary / Backup speculator</span></td><td>SSD 双层 draft: primary 慢但准 (主用); backup 快但糙 (cache miss 时兜底)</td></tr>
+  <tr><td><span class="term">T<sub>p</sub>, T<sub>b</sub></span></td><td>primary / backup speculate 一轮的耗时,以 verifier forward 时间为单位</td></tr>
+  <tr><td><span class="term">Saguaro</span></td><td>本文的优化版 SSD 实现 (PyTorch + PagedAttn + FlashAttn + custom mask)</td></tr>
+</table>
+
+<h3>2.2 SD 流程复习 (一行版)</h3>
+<p>① draft 自回归 K 步出 (s<sub>1</sub>, …, s<sub>K</sub>)。② target 一次 forward 算 K+1 个位置的 p<sub>target</sub>。③ 顺序拒绝采样: 每个 s<sub>i</sub> 以 min(1, p<sub>target</sub>(s<sub>i</sub>)/p<sub>draft</sub>(s<sub>i</sub>)) 接受,首次拒绝处从 r ∝ max(p<sub>target</sub> - p<sub>draft</sub>, 0) 抽 bonus token t*;若全接受则 t* 直接从 p<sub>target</sub> 抽。④ 输出长度 ∈ [1, K+1]。Theorem (Leviathan): 输出分布 = 纯 AR target 分布。</p>
+
+<hr>
+
+<h2 id="sec3">3 · SSD 框架: 算法骨架与 lossless 论证</h2>
+
+<h3>3.1 算法 1 的两个并发 process</h3>
+<p>SSD 把 SD 的单一控制流拆成两个并发 process,跑在不同设备上:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 360" width="100%" style="max-width:680px">
+    <!-- speculator process box -->
+    <rect x="20" y="20" width="320" height="320" rx="10" fill="#fff3cd" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="180" y="42" text-anchor="middle" font-size="14" font-weight="600" fill="#cc4a1b">Speculator process (1×H100)</text>
+
+    <rect x="40" y="60" width="280" height="32" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="180" y="80" text-anchor="middle" font-size="12">primary_draft.prefill(prompt)</text>
+
+    <rect x="40" y="100" width="280" height="32" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="180" y="120" text-anchor="middle" font-size="12">spec_tokens ← primary.speculate(prompt)</text>
+
+    <rect x="40" y="140" width="280" height="40" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="180" y="158" text-anchor="middle" font-size="12">SEND spec_tokens → verifier</text>
+    <text x="180" y="173" text-anchor="middle" font-size="11" font-style="italic" fill="#5b5e66">(verifier 开始 verify 这一轮)</text>
+
+    <rect x="40" y="188" width="280" height="48" rx="6" fill="#ffe5b4" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="180" y="206" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">// §5 Saguaro cache build</text>
+    <text x="180" y="221" text-anchor="middle" font-size="11">outcomes ← predict_verify_outcomes(...)</text>
+    <text x="180" y="232" text-anchor="middle" font-size="11">cache ← speculate_for_outcomes(outcomes)</text>
+
+    <rect x="40" y="244" width="280" height="32" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="180" y="264" text-anchor="middle" font-size="12">WAIT verify_outcome from verifier</text>
+
+    <rect x="40" y="284" width="280" height="48" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="180" y="302" text-anchor="middle" font-size="12">if verify_outcome ∈ cache: hit → return chain</text>
+    <text x="180" y="318" text-anchor="middle" font-size="12" fill="#a8353e">else: fallback_speculate (§7)</text>
+
+    <!-- verifier process box -->
+    <rect x="360" y="20" width="320" height="320" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="520" y="42" text-anchor="middle" font-size="14" font-weight="600" fill="#2f6feb">Verifier process (4×H100, TP)</text>
+
+    <rect x="380" y="60" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="520" y="80" text-anchor="middle" font-size="12">target.prefill(prompt)</text>
+
+    <rect x="380" y="100" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="520" y="120" text-anchor="middle" font-size="12">WAIT spec_tokens from speculator</text>
+
+    <rect x="380" y="140" width="280" height="40" rx="6" fill="#cce5ff" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="520" y="158" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">verify_outcome ← target.verify(spec_tokens)</text>
+    <text x="520" y="174" text-anchor="middle" font-size="11" fill="#5b5e66">(单次并行 forward, K+1 位置)</text>
+
+    <rect x="380" y="188" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="520" y="208" text-anchor="middle" font-size="12">append outcome.tokens → output</text>
+
+    <rect x="380" y="228" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="520" y="248" text-anchor="middle" font-size="12">SEND verify_outcome → speculator</text>
+
+    <rect x="380" y="268" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="520" y="288" text-anchor="middle" font-size="12">WAIT next spec_tokens</text>
+
+    <rect x="380" y="304" width="280" height="28" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="520" y="322" text-anchor="middle" font-size="12">loop until end_token</text>
+
+    <!-- arrows between processes -->
+    <path d="M 320 165 L 380 165" stroke="#666" stroke-width="1.5" marker-end="url(#a3)"/>
+    <text x="350" y="158" font-size="9" text-anchor="middle" fill="#5b5e66">spec</text>
+    <path d="M 380 250 L 320 260" stroke="#666" stroke-width="1.5" marker-end="url(#a3)"/>
+    <text x="350" y="240" font-size="9" text-anchor="middle" fill="#5b5e66">outcome</text>
+
+    <defs>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Algorithm 1 拆成两个并发 process。橙色 step 是 SSD 新增、SD 没有的: 在等待 verifier 返回 outcome <em>的同一时间窗</em>,speculator 已经在为下一轮的 F·(K+1) 种可能 outcome 各 spec 出一条 chain 存进 cache。一旦真实 outcome 命中,直接返回 cache;否则走 fallback。</figcaption>
+</div>
+
+<h3>3.2 Lossless 论证</h3>
+<p>这一点必须看清楚 —— 否则会觉得 SSD "猜得不对"会破坏分布。</p>
+<ul>
+  <li>cache 命中时,SSD 返回的 spec chain <em>就是一个普通 SD speculation</em>,verifier 用<strong>同一个</strong> rejection sampling 流程裁决。所以这种情况下产出分布与 SD 完全一致。</li>
+  <li>cache miss 时,fallback 是同步 SD(用 backup speculator) → 也是普通 SD,lossless。</li>
+  <li>所以无论命中与否,SSD 的输出分布 = SD 的输出分布 = target 的 AR 分布。</li>
+</ul>
+<p>类比: 这正像 CPU 里的<em>speculative execution</em>(Gonzalez 1997)— 用空闲算力预先执行多条可能分支,真正用到哪条由实际控制流决定。猜错的分支白干,但猜对的能直接上 retire 阶段。SSD 等价于 token-level 的 speculative execution。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 公式: 加速量、cache 几何分布、bound</h2>
+
+<h3>4.1 Theorem 7 (主加速公式)</h3>
+<div class="formula">
+  speedup<sub>SSD</sub> = ( p<sub>hit</sub>·E<sub>hit</sub> + (1-p<sub>hit</sub>)·E<sub>miss</sub> ) / ( p<sub>hit</sub>·max(1, T<sub>p</sub>) + (1-p<sub>hit</sub>)·(1+T<sub>b</sub>) )
+</div>
+
+<p>分子: 一轮期望产出 token 数。分母: 一轮期望耗时(以 verifier forward = 1 单位时间)。把 SSD 全过程归约成一个 <em>条件期望比</em>。</p>
+
+<p><strong>关键直觉:</strong>命中时 latency = max(1, T<sub>p</sub>),只要保证 <code>T<sub>p</sub> &lt; 1</code>(primary draft 在 verify 完成前结束),就 = 1 — drafting 完全被隐藏。Tokens 仍是 E<sub>hit</sub> ≈ K+1 个/轮。这就是 "5× over AR" 的来源。</p>
+
+<h3>4.2 Corollary 9 (Speedup Sandwich)</h3>
+<div class="formula">(1+T<sub>SD</sub>)·(E<sub>hit</sub>/E<sub>SD</sub>)·p<sub>hit</sub> ≤ speedup<sub>SSD</sub>/speedup<sub>SD</sub> ≤ (1+T<sub>SD</sub>)·(E<sub>hit</sub>/E<sub>SD</sub>)</div>
+<p>双向 bound 表明: SSD 相对 SD 的额外加速 = (1) <strong>隐藏 draft latency 的因子 (1+T<sub>SD</sub>)</strong> × (2) <strong>因为 draft 可以慢慢算所以 E<sub>hit</sub> 比 E<sub>SD</sub> 大的因子</strong>(T<sub>p</sub> 比 T<sub>SD</sub> 可以更大)。</p>
+
+<table>
+<tr><th>T<sub>SD</sub></th><th>p<sub>hit</sub>=0.7</th><th>p<sub>hit</sub>=0.85</th><th>p<sub>hit</sub>=0.95</th></tr>
+<tr><td>0.2 (draft 较快)</td><td>1.20×</td><td>1.20×</td><td>1.20×</td></tr>
+<tr><td>0.3 (典型 1B/70B)</td><td>1.30×</td><td>1.30×</td><td>1.30×</td></tr>
+<tr><td>0.5 (大 draft)</td><td>1.50×</td><td>1.50×</td><td>1.50×</td></tr>
+</table>
+<p>(此处取 E<sub>hit</sub>/E<sub>SD</sub> = 1, 上界形式) — 上界与 p<sub>hit</sub> 解耦,但下界严重依赖 p<sub>hit</sub>。所以<strong>最大化 p<sub>hit</sub> 是 SSD 的核心工程目标</strong>。</p>
+
+<h3>4.3 Theorem 12 (Saguaro Cache 几何分布)</h3>
+<p>给定 cache 预算 B = ΣF<sub>k</sub>,假设 cache hit 率随 fan-out F 服从 power-law (1 - 1/F<sup>r</sup>),最优 F<sub>k</sub> 服从 capped 几何级数:</p>
+<div class="formula">F<sub>k</sub> = F<sub>0</sub> · a<sub>p</sub><sup>k/(1+r)</sup>  (k &lt; K)<br>F<sub>K</sub> = F<sub>0</sub> · a<sub>p</sub><sup>K/(1+r)</sup> · (1-a<sub>p</sub>)<sup>-1/(1+r)</sup></div>
+<p><strong>物理直觉:</strong>验证<em>恰好接受 j 个 token</em> 的概率本身就是几何分布 a<sup>j</sup>(1-a) — 越深(j 越大)越罕见,所以越深 fan-out 越小,把预算花在最常发生的 outcome 上。最深的 j=K(全接受)单独一档 — 它的概率 a<sup>K</sup> 没有几何衰减,所以 F<sub>K</sub> 反而被放大 (1-a)<sup>-1/(1+r)</sup>。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 600 200" width="100%" style="max-width:580px">
+    <text x="300" y="20" text-anchor="middle" font-size="13" font-weight="600">几何 fan-out 示意 (K=4, a=0.7, r=1, B=20)</text>
+    <!-- bars -->
+    <g>
+      <rect x="80" y="60" width="80" height="100" fill="#3b7ff5"/><text x="120" y="180" text-anchor="middle" font-size="12">F₀=8</text><text x="120" y="55" text-anchor="middle" font-size="11" fill="#3b7ff5">k=0 (拒绝在第 0 位)</text>
+      <rect x="180" y="80" width="80" height="80" fill="#5996ff"/><text x="220" y="180" text-anchor="middle" font-size="12">F₁=6</text><text x="220" y="75" text-anchor="middle" font-size="11" fill="#5996ff">k=1</text>
+      <rect x="280" y="100" width="80" height="60" fill="#7eb1ff"/><text x="320" y="180" text-anchor="middle" font-size="12">F₂=4</text><text x="320" y="95" text-anchor="middle" font-size="11" fill="#7eb1ff">k=2</text>
+      <rect x="380" y="120" width="80" height="40" fill="#9ec5ff"/><text x="420" y="180" text-anchor="middle" font-size="12">F₃=2</text><text x="420" y="115" text-anchor="middle" font-size="11" fill="#9ec5ff">k=3</text>
+      <rect x="480" y="40" width="80" height="120" fill="#1058c7"/><text x="520" y="180" text-anchor="middle" font-size="12" font-weight="600">F_K=10</text><text x="520" y="35" text-anchor="middle" font-size="11" fill="#1058c7" font-weight="600">k=K=4 (全接受)</text>
+    </g>
+  </svg>
+  <figcaption>预算 B=30 在 5 档 fan-out 上按 capped geometric 分配。中间档 (k=1..3) 几何衰减,最深档 (k=K=4, 全接受 / 从 p<sub>target</sub> 直接抽 bonus) 单独突起 — 因为它对应真正 "happy path" 而且 bonus 来自 p<sub>target</sub> 而非 residual,边际收益高。</figcaption>
+</div>
+
+<h3>4.4 Theorem 15 (Saguaro Sampling 单调性)</h3>
+<div class="formula">σ<sub>F,C</sub>(z)<sub>t</sub> ∝ C·exp(z<sub>t</sub>) if t ∈ top<sub>F</sub>(z), else exp(z<sub>t</sub>)</div>
+<p>即 draft sampling 时把 cache 里的 top-F 个 token 的概率 <em>压低</em> C 倍。p<sub>hit</sub> 单调随 C → 0 增加(可证)。</p>
+<p><strong>物理直觉:</strong>residual r ∝ max(p<sub>t</sub> - p<sub>d</sub>, 0)。压低 cache 内 token 在 p<sub>d</sub> 上的质量 → 它们在 residual 上的质量增加 → bonus token 更可能落在 cache 内。代价: p<sub>d</sub> 偏离 p<sub>t</sub> → acceptance α 下降。C 是这个 trade-off 的旋钮,Theorem 19 (Appendix A.3.1) 构造了一个 4-token 例子证明<em>存在</em> α 不变但 p<sub>hit</sub> 升的 C(具体: p<sub>t</sub>=(.48,.48,.02,.02), p<sub>d</sub>=(.49,.49,.01,.01), C=47/147 → p'<sub>d</sub>=(.47,.47,.03,.03), α 仍 = 0.98, 但 p<sub>hit</sub> 从 50% 升到 100%)。</p>
+
+<hr>
+
+<h2 id="sec5">5 · Challenge ①: 怎么预测 verification outcome</h2>
+
+<h3>5.1 Saguaro 的 cache 构造算法</h3>
+<p>给定预算 B 和几何 fan-out {F<sub>k</sub>},Saguaro 的 cache 构造异常简洁:</p>
+
+<blockquote>
+在 draft 给出 spec s = (s<sub>1</sub>, ..., s<sub>K</sub>) 的每个位置 k,取 draft logits 的 <strong>top-F<sub>k</sub></strong> 个 token (排除 s<sub>k</sub> 本身,因为 s<sub>k</sub> 已经送去 verify,不会成为 bonus token),作为该位置的 bonus token guess。然后对每个 (k, t*) 用 draft 自回归 K 步,得到 length-K speculation 存入 cache。
+</blockquote>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- spec being verified -->
+    <rect x="20" y="20" width="680" height="44" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">送去 verify 的 spec s = (s₁, s₂, s₃, s₄, s₅), K=5</text>
+    <text x="360" y="58" text-anchor="middle" font-size="11" fill="#5b5e66">verifier 会接受其中前 k 个 (k ∈ [0,5]),并采样一个 bonus token t*</text>
+
+    <!-- arrow -->
+    <line x1="360" y1="64" x2="360" y2="84" stroke="#666" marker-end="url(#a4)"/>
+
+    <!-- cache rows -->
+    <text x="20" y="103" font-size="12" font-weight="600" fill="#cc4a1b">Saguaro cache (B=20):</text>
+
+    <!-- k=0 -->
+    <g>
+      <rect x="20" y="110" width="60" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="50" y="130" text-anchor="middle" font-size="12">k=0</text>
+      <text x="92" y="130" font-size="11" fill="#5b5e66">F₀=8 个 bonus 候选(top-8 draft logits, 排除 s₁):</text>
+      <g>
+        <rect x="380" y="113" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="398" y="129" text-anchor="middle" font-size="10">t*₁</text>
+        <rect x="420" y="113" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="438" y="129" text-anchor="middle" font-size="10">t*₂</text>
+        <rect x="460" y="113" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="478" y="129" text-anchor="middle" font-size="10">t*₃</text>
+        <rect x="500" y="113" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="518" y="129" text-anchor="middle" font-size="10">t*₄</text>
+        <text x="555" y="129" font-size="11" fill="#5b5e66">…(共 8)</text>
+        <text x="630" y="129" font-size="10" fill="#cc4a1b">→ 各 spec 5 token</text>
+      </g>
+    </g>
+    <!-- k=1..3 -->
+    <g>
+      <rect x="20" y="148" width="60" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="50" y="168" text-anchor="middle" font-size="12">k=1</text>
+      <text x="92" y="168" font-size="11" fill="#5b5e66">F₁=4 个 bonus 候选:  </text>
+      <rect x="290" y="151" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="308" y="167" text-anchor="middle" font-size="10">t*</text>
+      <rect x="330" y="151" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="348" y="167" text-anchor="middle" font-size="10">t*</text>
+      <rect x="370" y="151" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="388" y="167" text-anchor="middle" font-size="10">t*</text>
+      <rect x="410" y="151" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="428" y="167" text-anchor="middle" font-size="10">t*</text>
+      <text x="630" y="167" font-size="10" fill="#cc4a1b">→ 各 spec 5 token</text>
+    </g>
+    <g>
+      <rect x="20" y="186" width="60" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="50" y="206" text-anchor="middle" font-size="12">k=2</text>
+      <text x="92" y="206" font-size="11" fill="#5b5e66">F₂=2:  </text>
+      <rect x="180" y="189" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="198" y="205" text-anchor="middle" font-size="10">t*</text>
+      <rect x="220" y="189" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="238" y="205" text-anchor="middle" font-size="10">t*</text>
+      <text x="630" y="205" font-size="10" fill="#cc4a1b">→ 各 5 token</text>
+    </g>
+    <g>
+      <rect x="20" y="224" width="60" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="50" y="244" text-anchor="middle" font-size="12">k=3</text>
+      <text x="92" y="244" font-size="11" fill="#5b5e66">F₃=1:  </text>
+      <rect x="180" y="227" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="198" y="243" text-anchor="middle" font-size="10">t*</text>
+      <text x="630" y="243" font-size="10" fill="#cc4a1b">→ 各 5 token</text>
+    </g>
+    <g>
+      <rect x="20" y="262" width="60" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="50" y="282" text-anchor="middle" font-size="12">k=4</text>
+      <text x="92" y="282" font-size="11" fill="#5b5e66">F₄=1:  </text>
+      <rect x="180" y="265" width="36" height="24" rx="4" fill="#fff" stroke="#888"/><text x="198" y="281" text-anchor="middle" font-size="10">t*</text>
+      <text x="630" y="281" font-size="10" fill="#cc4a1b">→ 各 5 token</text>
+    </g>
+    <g>
+      <rect x="20" y="300" width="60" height="30" rx="5" fill="#1058c7"/>
+      <text x="50" y="320" text-anchor="middle" font-size="12" fill="#fff" font-weight="600">k=K=5</text>
+      <text x="92" y="320" font-size="11" fill="#cc4a1b" font-weight="600">F₅=4 (从 p_target 直采):  </text>
+      <rect x="290" y="303" width="36" height="24" rx="4" fill="#cce5ff" stroke="#2f6feb"/><text x="308" y="319" text-anchor="middle" font-size="10">t*</text>
+      <rect x="330" y="303" width="36" height="24" rx="4" fill="#cce5ff" stroke="#2f6feb"/><text x="348" y="319" text-anchor="middle" font-size="10">t*</text>
+      <rect x="370" y="303" width="36" height="24" rx="4" fill="#cce5ff" stroke="#2f6feb"/><text x="388" y="319" text-anchor="middle" font-size="10">t*</text>
+      <rect x="410" y="303" width="36" height="24" rx="4" fill="#cce5ff" stroke="#2f6feb"/><text x="428" y="319" text-anchor="middle" font-size="10">t*</text>
+      <text x="630" y="319" font-size="10" fill="#cc4a1b">→ 各 5 token</text>
+    </g>
+
+    <defs>
+      <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Saguaro cache 结构: 共 ΣF<sub>k</sub> = 20 条 chain,每条 chain 长 K=5,合计 100 个 token 通过 custom-mask 一次并行 decode 出来。命中时只需返回对应 chain。注意 k=K 的"全接受"档,bonus token 是从 p<sub>target</sub> 直采(不是 residual),所以分布更尖、可预测性反而更高,值得多投资。</figcaption>
+</div>
+
+<h3>5.2 命中率有多高?</h3>
+<p>论文 Figure 3 实测: rejection rate (1 - p<sub>hit</sub>) 随 fan-out F 服从 power-law,r ≈ 1。这意味着<strong>翻倍 cache size,miss 率减半</strong>。在 1B Llama draft + Llama-3.1-70B target 上:</p>
+<ul>
+  <li>F=4: p<sub>hit</sub> ≈ 0.7</li>
+  <li>F=16: p<sub>hit</sub> ≈ 0.85</li>
+  <li>F=64: p<sub>hit</sub> ≈ 0.93</li>
+  <li>bonus token 命中率最高可达 90%(论文 abstract 引用)</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · Challenge ②: cache hit vs acceptance 的张力 — Saguaro Sampling</h2>
+
+<h3>6.1 问题</h3>
+<p>残差 r 是 bonus token 的来源(rejection 时)。<em>r 难预测</em> 是因为它依赖 p<sub>target</sub> - p<sub>draft</sub> 的差;两个尖锐分布相减得到的可能很扁平。要让 r 集中,必须人为把 p<sub>draft</sub> 在 cache 候选 token 上压低。但这同时让 p<sub>draft</sub> 远离 p<sub>target</sub>,acceptance α 下降。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 240" width="100%" style="max-width:680px">
+    <text x="350" y="20" text-anchor="middle" font-size="13" font-weight="600">Saguaro sampling: 用 C ∈ (0,1) 旋钮控制残差形状</text>
+
+    <!-- before -->
+    <text x="170" y="50" text-anchor="middle" font-size="12" font-weight="600">Before (C=1, vanilla)</text>
+    <g transform="translate(50,60)">
+      <rect x="0" y="20" width="40" height="80" fill="#cc4a1b" opacity=".5"/>
+      <rect x="40" y="0" width="40" height="100" fill="#2f6feb" opacity=".5"/>
+      <rect x="80" y="20" width="40" height="80" fill="#cc4a1b" opacity=".5"/>
+      <rect x="120" y="0" width="40" height="100" fill="#2f6feb" opacity=".5"/>
+      <rect x="160" y="55" width="40" height="45" fill="#cc4a1b" opacity=".5"/>
+      <rect x="200" y="60" width="40" height="40" fill="#2f6feb" opacity=".5"/>
+      <text x="20" y="115" text-anchor="middle" font-size="9">t1*</text>
+      <text x="60" y="115" text-anchor="middle" font-size="9">t1</text>
+      <text x="100" y="115" text-anchor="middle" font-size="9">t2*</text>
+      <text x="140" y="115" text-anchor="middle" font-size="9">t2</text>
+      <text x="180" y="115" text-anchor="middle" font-size="9">t3</text>
+      <text x="220" y="115" text-anchor="middle" font-size="9">t4</text>
+      <text x="120" y="135" text-anchor="middle" font-size="10" fill="#5b5e66">残差扁平: r 在 t1*,t2*,t3,t4 都有概率</text>
+      <text x="120" y="150" text-anchor="middle" font-size="10" fill="#a8353e">cache (假设含 t1*, t2*) hit 率低</text>
+    </g>
+
+    <!-- after -->
+    <text x="520" y="50" text-anchor="middle" font-size="12" font-weight="600">After (C=0.3, Saguaro)</text>
+    <g transform="translate(400,60)">
+      <rect x="0" y="0" width="40" height="100" fill="#cc4a1b" opacity=".7"/>
+      <rect x="40" y="40" width="40" height="60" fill="#2f6feb" opacity=".5"/>
+      <rect x="80" y="0" width="40" height="100" fill="#cc4a1b" opacity=".7"/>
+      <rect x="120" y="40" width="40" height="60" fill="#2f6feb" opacity=".5"/>
+      <rect x="160" y="55" width="40" height="45" fill="#cc4a1b" opacity=".5"/>
+      <rect x="200" y="60" width="40" height="40" fill="#2f6feb" opacity=".5"/>
+      <text x="20" y="115" text-anchor="middle" font-size="9">t1*</text>
+      <text x="60" y="115" text-anchor="middle" font-size="9">t1↓</text>
+      <text x="100" y="115" text-anchor="middle" font-size="9">t2*</text>
+      <text x="140" y="115" text-anchor="middle" font-size="9">t2↓</text>
+      <text x="180" y="115" text-anchor="middle" font-size="9">t3</text>
+      <text x="220" y="115" text-anchor="middle" font-size="9">t4</text>
+      <text x="120" y="135" text-anchor="middle" font-size="10" fill="#1f7a4a">残差集中到 cache 内 t1*, t2*</text>
+      <text x="120" y="150" text-anchor="middle" font-size="10" fill="#1f7a4a">p_hit ↑, α 略 ↓</text>
+    </g>
+
+    <text x="350" y="220" text-anchor="middle" font-size="11" fill="#5b5e66">图例: 红=p_target, 蓝=p_draft. 把 cache 内 token 的 p_draft 乘 C, 残差 max(p_t-p_d,0) 在 cache 上变大</text>
+  </svg>
+  <figcaption>vanilla draft sampling (C=1) 让残差落到所有非热门 token 上,bonus 飘出 cache;Saguaro sampling (C&lt;1) 主动压低 cache 候选 token 在 p<sub>draft</sub> 上的概率,把残差质量"赶"进 cache。代价是 p<sub>draft</sub> 与 p<sub>target</sub> 的 TV 距离上升 → α 下降。两者通过 Theorem 7 的分子分母综合作用决定 end-to-end speed。</figcaption>
+</div>
+
+<h3>6.2 实证 trade-off 形状</h3>
+<p>论文 Figure 5 (left) 给出 cache hit rate vs acceptance rate 曲线随 C 变化:典型场景 C 从 1 → 0,hit rate 从 0.65 → 0.80,acceptance rate 从 0.80 → 0.50。曲线非单调推 speedup,需要选 sweet spot。论文采用<em>经验扫描</em>选 C(没有解析最优),原因是 p<sub>target</sub> 形状随上下文变化。</p>
+
+<hr>
+
+<h2 id="sec7">7 · Challenge ③: cache miss 的 fallback 策略</h2>
+
+<h3>7.1 大 batch 是 SSD 的死穴</h3>
+<p>Corollary 16: batch size = b 时,只要任何一个 batch 元素 cache miss,整个 batch 都得等 backup speculator → effective miss 率是 1 - p<sub>hit</sub><sup>b</sup>。</p>
+
+<table>
+<tr><th>batch b</th><th>1</th><th>2</th><th>4</th><th>8</th><th>16</th></tr>
+<tr><td>p<sub>hit</sub>=0.85,整 batch 命中率</td><td>85%</td><td>72%</td><td>52%</td><td>27%</td><td>7%</td></tr>
+</table>
+
+<p>b=16 时 93% 的轮次都进 fallback 路径 → <strong>fallback 速度决定大 batch 性能</strong>。Theorem 17 给临界 batch size b*: b &lt; b* 用 primary (慢但准),b ≥ b* 切到 backup (快但糙)。Saguaro 的 backup 实现:</p>
+<ul>
+  <li><strong>Fast backup:</strong> 返回随机 token (T<sub>b</sub> ≈ 0,但 acceptance ≈ 0,只能算 +1 bonus)。论文实测在大 batch 上比 neural backup 还快。</li>
+  <li><strong>升级版:</strong> 用 n-gram speculator (Liu 2024 Infini-gram, Oliaro 2024 SuffixDecoding) — 也几乎 zero latency 但 acceptance 比随机好。</li>
+  <li><strong>Neural backup (与 primary 同模型):</strong> 小 batch 下最优,但 b ≥ b* 时拖累整 batch 等它跑完。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 600 220" width="100%" style="max-width:580px">
+    <text x="300" y="22" text-anchor="middle" font-size="13" font-weight="600">batch 扩展行为 (Llama-3.1-70B/1B, T=0)</text>
+    <!-- axes -->
+    <line x1="60" y1="180" x2="540" y2="180" stroke="#666"/>
+    <line x1="60" y1="40" x2="60" y2="180" stroke="#666"/>
+    <text x="300" y="205" text-anchor="middle" font-size="11" fill="#5b5e66">batch size b →</text>
+    <text x="20" y="115" font-size="11" fill="#5b5e66" transform="rotate(-90 20 115)">decode tok/s/seq</text>
+    <!-- grid points (mock) -->
+    <g font-size="10">
+      <text x="92" y="195" text-anchor="middle">1</text>
+      <text x="180" y="195" text-anchor="middle">2</text>
+      <text x="270" y="195" text-anchor="middle">4</text>
+      <text x="360" y="195" text-anchor="middle">8</text>
+      <text x="450" y="195" text-anchor="middle">16</text>
+    </g>
+    <!-- Fast Backup line -->
+    <polyline points="92,80 180,90 270,100 360,115 450,135" fill="none" stroke="#1f7a4a" stroke-width="2"/>
+    <g fill="#1f7a4a">
+      <circle cx="92" cy="80" r="4"/><circle cx="180" cy="90" r="4"/><circle cx="270" cy="100" r="4"/><circle cx="360" cy="115" r="4"/><circle cx="450" cy="135" r="4"/>
+    </g>
+    <!-- Neural Backup line -->
+    <polyline points="92,70 180,82 270,110 360,148 450,170" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <g fill="#cc4a1b">
+      <circle cx="92" cy="70" r="4"/><circle cx="180" cy="82" r="4"/><circle cx="270" cy="110" r="4"/><circle cx="360" cy="148" r="4"/><circle cx="450" cy="170" r="4"/>
+    </g>
+    <!-- Sync SD line -->
+    <polyline points="92,130 180,135 270,140 360,148 450,158" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="4,3"/>
+    <g fill="#888">
+      <circle cx="92" cy="130" r="3"/><circle cx="180" cy="135" r="3"/><circle cx="270" cy="140" r="3"/><circle cx="360" cy="148" r="3"/><circle cx="450" cy="158" r="3"/>
+    </g>
+
+    <!-- legend -->
+    <rect x="350" y="42" width="190" height="58" rx="6" fill="#fff" stroke="#888"/>
+    <line x1="360" y1="55" x2="380" y2="55" stroke="#1f7a4a" stroke-width="2"/><text x="385" y="58" font-size="10">Fast backup (random)</text>
+    <line x1="360" y1="72" x2="380" y2="72" stroke="#cc4a1b" stroke-width="2"/><text x="385" y="75" font-size="10">Neural backup</text>
+    <line x1="360" y1="89" x2="380" y2="89" stroke="#888" stroke-width="2" stroke-dasharray="3,2"/><text x="385" y="92" font-size="10">Sync SD baseline</text>
+
+    <!-- crossover -->
+    <line x1="270" y1="40" x2="270" y2="180" stroke="#a8353e" stroke-width="1" stroke-dasharray="3,2"/>
+    <text x="275" y="50" font-size="10" fill="#a8353e">b* 临界点</text>
+  </svg>
+  <figcaption>(Figure 6 重绘) 小 batch (b ≤ 2) 用 neural backup 更快 (因为它产出 token 多);b ≥ 4 后 cache miss 概率太高,整 batch 等 neural backup 跑完反而拖慢,fast backup 占优。Theorem 17 给出 b*。 Saguaro 实测在 b=16 仍比 sync SD 快 ~20%。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec8">8 · Saguaro 的实现: H100×5, FlashAttention, custom mask</h2>
+
+<h3>8.1 系统架构</h3>
+<p>Saguaro 是 PyTorch 自研推理引擎,集成 PagedAttention + continuous batching + TP + BF16 + torch.compile + CUDAGraphs。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <!-- target side -->
+    <rect x="20" y="20" width="320" height="280" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="180" y="42" text-anchor="middle" font-size="14" font-weight="600" fill="#2f6feb">Verifier 4×H100 (TP=4)</text>
+    <rect x="40" y="60" width="280" height="34" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="82" text-anchor="middle" font-size="12">Llama-3.1-70B, BF16, TP=4</text>
+    <rect x="40" y="104" width="280" height="34" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="126" text-anchor="middle" font-size="12">PagedAttention + continuous batching</text>
+    <rect x="40" y="148" width="280" height="34" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="170" text-anchor="middle" font-size="12">Coordinator + Scheduler + BlockManager</text>
+    <rect x="40" y="192" width="280" height="34" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="214" text-anchor="middle" font-size="12">target.verify (1 forward, K+1 位置)</text>
+    <rect x="40" y="236" width="280" height="50" rx="6" fill="#fef9e6" stroke="#d2a32a"/>
+    <text x="180" y="256" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Page-table 双重维护</text>
+    <text x="180" y="272" text-anchor="middle" font-size="11" fill="#5b5e66">含 draft 的 block_table (target host 持有)</text>
+
+    <!-- draft side -->
+    <rect x="380" y="20" width="320" height="280" rx="10" fill="#fff3cd" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="540" y="42" text-anchor="middle" font-size="14" font-weight="600" fill="#cc4a1b">Speculator 1×H100</text>
+    <rect x="400" y="60" width="280" height="34" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="540" y="82" text-anchor="middle" font-size="12">Llama-3.2-1B-Instruct draft</text>
+    <rect x="400" y="104" width="280" height="34" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="540" y="126" text-anchor="middle" font-size="12" fill="#cc4a1b">Custom sparse attention mask</text>
+    <rect x="400" y="148" width="280" height="34" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="540" y="170" text-anchor="middle" font-size="12">FlashAttention-3 / FlashInfer</text>
+    <rect x="400" y="192" width="280" height="34" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="540" y="214" text-anchor="middle" font-size="12">B·F·(K+1) chains 并行 decode</text>
+    <rect x="400" y="236" width="280" height="50" rx="6" fill="#fef9e6" stroke="#d2a32a"/>
+    <text x="540" y="256" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Speculation cache (~ 100s MB)</text>
+    <text x="540" y="272" text-anchor="middle" font-size="11" fill="#5b5e66">B·K·(K+1)·F·(V+1) bits</text>
+
+    <!-- NCCL link -->
+    <path d="M 340 160 L 380 160" stroke="#a8353e" stroke-width="2.5"/>
+    <text x="360" y="155" font-size="10" fill="#a8353e" text-anchor="middle" font-weight="600">NCCL</text>
+    <text x="360" y="172" font-size="9" fill="#a8353e" text-anchor="middle">NVLink, 1× / 轮</text>
+
+    <!-- payload spec -->
+    <text x="360" y="196" font-size="9" fill="#5b5e66" text-anchor="middle">↑ outcome: O(B) bits</text>
+    <text x="360" y="208" font-size="9" fill="#5b5e66" text-anchor="middle">↓ chain+logits: O(B·K·V) bits</text>
+  </svg>
+  <figcaption>系统拓扑: 4 张 H100 跑 70B target (TP=4),独立 1 张 H100 跑 1B draft。每轮通过 NCCL 仅交换两个超薄 payload。<strong>关键: KV cache 不跨设备</strong>,target 和 draft 各自维护,communication 不是瓶颈。Coordinator 在 target host 上同时管两边的 page table。</figcaption>
+</div>
+
+<h3>8.2 Custom attention mask: 一次 forward 出 F·(K+1) 条 chain</h3>
+<p>整个 SSD 的工程难点。每轮 draft 要为 F·(K+1) 个 outcome 各 spec K 步,共 B·K·(K+1)·F 个 token forward。如果用普通 dense attention 这是 (K+1)F 倍 SD 的 FLOPs。Saguaro 用<strong>稀疏 mask</strong> + FlashAttention 让所有分支在同一个 forward 里完成。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 600 280" width="100%" style="max-width:580px">
+    <text x="300" y="22" text-anchor="middle" font-size="13" font-weight="600">Custom SSD attention mask 示意 (B=1, K=3, F=4, depth i=2)</text>
+    <!-- mask grid -->
+    <g transform="translate(40,40)">
+      <!-- prefix block (rows attend to cols 0-15) -->
+      <rect x="0" y="0" width="180" height="220" fill="#cce5ff" stroke="#888"/>
+      <text x="90" y="115" text-anchor="middle" font-size="11" fill="#2f6feb">Prefix (verified)</text>
+      <text x="90" y="135" text-anchor="middle" font-size="10" fill="#5b5e66">所有 branch 都看 prefix</text>
+
+      <!-- glue/recurrence block -->
+      <rect x="180" y="0" width="80" height="220" fill="#fff3cd" stroke="#888"/>
+      <text x="220" y="105" text-anchor="middle" font-size="10" fill="#cc4a1b">Glue &amp;</text>
+      <text x="220" y="120" text-anchor="middle" font-size="10" fill="#cc4a1b">Recurrence</text>
+      <text x="220" y="140" text-anchor="middle" font-size="9" fill="#5b5e66">prev spec 已 prefilled</text>
+
+      <!-- diagonals (each branch own) -->
+      <g stroke="#a8353e" fill="#fff">
+        <rect x="260" y="0" width="20" height="20"/>
+        <rect x="280" y="20" width="20" height="20"/>
+        <rect x="300" y="40" width="20" height="20"/>
+        <rect x="320" y="60" width="20" height="20"/>
+        <rect x="340" y="80" width="20" height="20"/>
+        <rect x="360" y="100" width="20" height="20"/>
+        <rect x="380" y="120" width="20" height="20"/>
+        <rect x="400" y="140" width="20" height="20"/>
+        <rect x="420" y="160" width="20" height="20"/>
+        <rect x="440" y="180" width="20" height="20"/>
+        <rect x="460" y="200" width="20" height="20"/>
+      </g>
+      <text x="370" y="248" text-anchor="middle" font-size="10" fill="#a8353e">每条 branch 只看自己 fork path</text>
+
+      <!-- axis labels -->
+      <text x="240" y="-10" text-anchor="middle" font-size="11" fill="#5b5e66">key positions →</text>
+      <text x="-30" y="115" text-anchor="middle" font-size="11" fill="#5b5e66" transform="rotate(-90 -30 115)">query positions →</text>
+    </g>
+  </svg>
+  <figcaption>(Appendix B Figure 8 简化) 三块结构: ① 左侧 dense block — 所有 branch 都 attend 已验证的 prefix; ② 中间 "Glue &amp; Recurrence" — 上一轮已被并入 KV 的 spec tokens; ③ 右侧对角带 — 每条 branch 只 attend 自己 fork 出来的路径。这样 F·(K+1) 条 chain 物理上塞在同一个 batch dim 里跑,但逻辑上互不干扰,FlashAttention-3 (Shah 2024) 处理 dense 部分,FlashInfer (Ye 2025) 处理稀疏 mask 部分。</figcaption>
+</div>
+
+<h3>8.3 Compute / Memory / Communication 开销</h3>
+<table>
+<tr><th>资源</th><th>SSD vs SD 倍数</th><th>瓶颈?</th></tr>
+<tr><td>Draft FLOPs</td><td>(K+1)·F 倍 (这一轮多 decode 这么多 token)</td><td>不是 — draft 在独立 GPU,且小模型</td></tr>
+<tr><td>Verifier FLOPs</td><td>1× (完全没动)</td><td>—</td></tr>
+<tr><td>Speculation cache 内存</td><td>B·F·K·(K+1)·(V+1) bits ≈ 100-300 MB</td><td>不是 — H100 HBM 80GB</td></tr>
+<tr><td>NCCL 通信量</td><td>O(B·K·V) bits / 轮</td><td>不是 — NVLink 几 GB/s 余量</td></tr>
+<tr><td>Custom-mask attention 调度</td><td>稀疏访存 dominates draft critical path</td><td><strong>是</strong> — 限制 K 不能太大</td></tr>
+</table>
+
+<p><strong>关键观察 (作者明言):</strong> "most end-to-end speedup comes from <em>hiding draft latency</em> rather than increasing lookahead." 即 SSD 的核心收益<em>不是</em> "更长 K 让 E<sub>hit</sub> 大",而是<em>把整个 drafting 时间从 critical path 上拿掉</em>。这与我们直觉里"花更多 draft compute 换更长 chain"是不同的故事。</p>
+
+<hr>
+
+<h2 id="sec9">9 · Worked example: 一个 verification cycle 全流程</h2>
+
+<p>把上面所有抽象具体化。设定: Llama-3.1-70B target,Llama-3.2-1B draft,K=5,几何 fan-out F=(F<sub>0</sub>..F<sub>5</sub>) = (8,5,3,2,1,4),B=23,batch=1,greedy。当前 prefix 已生成到 <code>"The integral of x squared dx is"</code>。</p>
+
+<details open>
+<summary>Step 1 (T=0, sync prefill): primary draft 提议 K=5 个 token</summary>
+<p>draft 在 prefix 后自回归 5 步,greedy 出 (假设):</p>
+<pre>s = ("equal", "to", "(", "x", "^")</pre>
+<p>(逻辑上的 token id, 不严格匹配真实 tokenizer)</p>
+</details>
+
+<details open>
+<summary>Step 2: speculator <em>同时</em>启动两件事</summary>
+<p><strong>(a)</strong> NCCL SEND s 到 verifier process (4×H100); verifier 立刻开始 forward。</p>
+<p><strong>(b)</strong> speculator 不等! 立即开始为下一轮的 23 种 outcome 各 spec 5 个 token:</p>
+<ul>
+  <li>k=0 (前 0 个被接受): 8 种 bonus token guess (top-8 draft logits at pos 0,排除 "equal")。比如 ("=", "going", "indeed", "actually", ...)。每条接 5 步 spec → 8 chain.</li>
+  <li>k=1 (s₁="equal" 被接受,s₂ 被拒): 5 种 bonus guess at pos 1。如 ("\\frac", "1/3", "the", "(", "x").每条接 5 步 → 5 chain.</li>
+  <li>... k=2..K=5 类似,共 23 chain × 5 = 115 token</li>
+</ul>
+<p>这 115 个 token 通过 custom-mask attention 一次 forward 完成 (FlashAttention-3),写入 speculation cache。预计耗时 ≈ 0.6 × T<sub>verify</sub> (论文要求 T<sub>p</sub> &lt; 1 by construction)。</p>
+</details>
+
+<details open>
+<summary>Step 3: verifier 完成,outcome = (k=3, t* = "x")</summary>
+<p>verifier 接受了前 3 个: "equal", "to", "(",拒绝了 s₄="x"(注意 s₄ 也是"x"但 verifier 在那里采样了一个不同的 "x" — token id 不同)。从 residual 采到 bonus = "x" (recovery token, 不是 s₄)。 NCCL SEND (k=3, t*="x") 回 speculator,O(B)=O(1) bits。</p>
+</details>
+
+<details open>
+<summary>Step 4: 命中检查</summary>
+<p>speculator 查 cache[(k=3, t*="x")]. F<sub>3</sub>=2,假设 cache 在 k=3 那档放了 ("x", "y") 两个 bonus guess。<strong>命中!</strong> 取出对应的 length-5 chain,例如 ("squared", "+", "C", ".", " The")。</p>
+<p>SEND 这 5 个 token 给 verifier — verifier 立刻开始下一轮 verify,无需等 draft。</p>
+</details>
+
+<details>
+<summary>Step 5 (alternative: cache miss)</summary>
+<p>若 outcome = (k=3, t*="z") 且 cache k=3 档不含 "z" → miss。Saguaro fallback (batch=1, b &lt; b*) → 用 primary draft 同步 spec 一次 (T<sub>p</sub> 时间)。这一轮等同于 vanilla SD,损失 SSD 的加速收益。</p>
+</details>
+
+<h4>本轮 wall-clock 分解 (命中)</h4>
+<table>
+<tr><th>阶段</th><th>耗时</th><th>说明</th></tr>
+<tr><td>verifier forward</td><td>1.0 (基准单位)</td><td>K+1 = 6 位置并行 forward</td></tr>
+<tr><td>speculator 并行 (115 token, custom mask)</td><td>~0.6</td><td>与 verifier 重叠,被吸收</td></tr>
+<tr><td>NCCL outcome → cache lookup</td><td>~0.01</td><td>可忽略</td></tr>
+<tr><td><strong>有效 latency</strong></td><td><strong>1.0</strong></td><td>= max(1.0, 0.6) = 1.0</td></tr>
+<tr><td><strong>本轮产出 token 数</strong></td><td><strong>4</strong></td><td>3 个接受 + 1 bonus</td></tr>
+<tr><td><strong>等价 AR 速度</strong></td><td><strong>4 tok/forward</strong></td><td>对比 vanilla SD 同样 outcome 是 (1.0+T<sub>SD</sub>) 时间产 4 tok</td></tr>
+</table>
+
+<p>SSD 把这 4 token 用 1 单位时间产出,vanilla SD 要 1+T<sub>SD</sub> ≈ 1.3 单位时间。30% 提升的微观来源就在这里。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 实验关键结果</h2>
+
+<h3>10.1 端到端: Llama-3.1-70B/1B (Table B.3)</h3>
+<table>
+<tr><th>Dataset</th><th>AR tok/s</th><th>SD tok/s</th><th>SSD tok/s</th><th>SSD/SD</th><th>SSD/AR</th></tr>
+<tr><td>HumanEval</td><td>54.7</td><td>176</td><td>283</td><td>1.60×</td><td><strong>5.17×</strong></td></tr>
+<tr><td>UltraFeedback</td><td>54.7</td><td>138</td><td>215</td><td>1.55×</td><td>3.93×</td></tr>
+<tr><td>Alpaca</td><td>54.7</td><td>145</td><td>224</td><td>1.55×</td><td>4.10×</td></tr>
+<tr><td>GSM8k</td><td>54.7</td><td>188</td><td>301</td><td>1.60×</td><td><strong>5.50×</strong></td></tr>
+<tr><td><strong>Average</strong></td><td><strong>54.7</strong></td><td><strong>161.8</strong></td><td><strong>255.8</strong></td><td><strong>1.58×</strong></td><td><strong>4.68×</strong></td></tr>
+</table>
+
+<p><strong>读法:</strong>SSD 比作者自己的 SD 实现快 1.58×,而后者作者声明已经接近 vLLM/SGLang 水平。HumanEval / GSM8k (代码 / 数学,token 分布更可预测) 加速最猛 → 印证 cache hit rate 是 deterministic-style 任务的优势区。</p>
+
+<h3>10.2 SGLang/vLLM/EAGLE-3 比较</h3>
+<p>论文实测在 SGLang 0.5.9 上 Llama-3.1-70B/1B EAGLE-3 最优配置(steps × topk 搜索)峰值 ~201 tok/s,vLLM EAGLE-3 ~197 tok/s。<strong>Saguaro SSD 的 255 tok/s 比这些都快 ≥ 25%</strong>。注脚 4: 在该实验里 Llama-3.2-1B 作为 draft 比 EAGLE-3 还略好,作者据此判断没必要再叠 EAGLE-3。</p>
+
+<h3>10.3 Pareto frontier (Figure 7 right)</h3>
+<p>SSD 不仅在 latency 维度赢,在 throughput-latency 双维度都推开 Pareto wall — 即使把多用的 1 张 draft GPU 计入 per-GPU throughput。这意味着<strong>作为 cluster level 部署 primitive,SSD 比 SD 节省 GPU</strong>。</p>
+
+<h3>10.4 Qwen-3 32B/0.6B (Figure 11)</h3>
+<p>在 Qwen3 上加速比 ~2.3×/AR,~1.5×/SD。比 Llama 系列略低 — 因为 Qwen3-32B 比 Llama-3.1-70B 小,verifier forward 本身已经较快,SD 留给 SSD 的 hide 空间小。</p>
+
+<hr>
+
+<h2 id="sec11">11 · 与同类工作对比</h2>
+
+<table>
+<tr><th></th><th>vanilla SD</th><th>tree-SD / EAGLE-3</th><th>Mirror-SD (sibling note 09)</th><th>async-overlap (AMUSD/PEARL/SwiftSpec)</th><th><strong>SSD / Saguaro</strong></th></tr>
+<tr><td>额外并行域</td><td>无</td><td>token-tree (verifier compute ↑)</td><td>target early-exit branch</td><td>下一轮 spec (但只覆盖 1 outcome)</td><td>F·(K+1) outcomes</td></tr>
+<tr><td>是否动 verifier</td><td>否</td><td>是 (verify 整树)</td><td>是 (early-exit signal)</td><td>否</td><td>否</td></tr>
+<tr><td>额外硬件</td><td>—</td><td>—</td><td>异构</td><td>否</td><td>+1 张 H100 给 draft</td></tr>
+<tr><td>大 batch 鲁棒性</td><td>★★</td><td>★★</td><td>★★</td><td>★ (cache miss 集中崩)</td><td>★★ (有 fallback theorem 17)</td></tr>
+<tr><td>lossless</td><td>是</td><td>是</td><td>是</td><td>是</td><td>是</td></tr>
+<tr><td>组合可能性</td><td>—</td><td>与 SSD 正交</td><td>(机制不同)</td><td>SSD 是其严格泛化</td><td>组合 EAGLE-3 (Appendix E)</td></tr>
+<tr><td>典型加速 vs AR</td><td>2-3×</td><td>3-4× (大 model)</td><td>~3× (论文)</td><td>~3-4×</td><td><strong>4.7× avg, 5.5× peak</strong></td></tr>
+</table>
+
+<div class="nb">
+<strong>定位:</strong>SSD 与 EAGLE-3 不是替代关系。EAGLE-3 优化 acceptance rate(让 draft 更准),SSD 优化 wall-clock(把 draft 时间藏掉)。<strong>SSD-EAGLE-3</strong>(Appendix E + Figure 9)讨论了组合时的细节: SSD 的 draft 在 verify 完成前就启动 round T+1,所以拿不到 round T 的 target activations,只能用 self-generated activations 作 surrogate。需要在 draft 训练阶段就让 EAGLE-3 适应较长的 self-conditioning 链。
+</div>
+
+<p>另见 sibling note <code>09_MirrorSD_2510.13161.html</code>。Mirror-SD 与 SSD 走的是不同方向:Mirror-SD 利用 verifier 自己的 early-exit 作为信号触发 branch — 它需要修改 verifier 的执行图;而 SSD 完全把 verifier 当黑盒,只在 draft 一侧做文章。两者本质上不冲突。</p>
+
+<hr>
+
+<h2 id="sec12">12 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>Throughput-bound 工作负载(大规模 RL rollout、离线数据生成)受益不大 — verifier 已经被打到 compute-bound,SSD 只能小幅提 Pareto。这是 conclusion 直白点出的。</li>
+  <li>需要额外 1 张 H100 (1×H100 给 draft, 4×H100 给 target) — 在 cluster 层面要算 ROI;论文显示 per-GPU throughput 仍然占优,但部署上是要"5 张 vs 4 张"的决策。</li>
+  <li>Custom-mask attention 是 critical path bottleneck,所以 K 不能太大 — 不能简单"加更多 lookahead"换更高 E<sub>hit</sub>。</li>
+  <li>大 batch 下 fast backup ≈ random tokens,acceptance ≈ 0,产出近似 AR,只能做 +1 token / 轮。等于 SSD 在大 batch 退化为 SD 加一点 cache hit 的 buff。</li>
+</ul>
+
+<h3>我的疑问 (待验证)</h3>
+<ol>
+  <li>论文用 1B/70B (1.4% 比例)。如果用 7B/70B 之类<em>更强</em> primary draft,T<sub>p</sub> 会逼近 1,Theorem 7 中 max(1, T<sub>p</sub>) 项变 active,SSD 退化到 SD;甜点 draft 大小到底在哪?</li>
+  <li>Saguaro sampling 的 C 在论文中是 hand-tuned。能否做 per-context 自适应 C(根据当前 p<sub>target</sub> entropy)? 我猜在长 reasoning chain 中,entropy 单调下降,固定 C 是次优。</li>
+  <li>Theorem 12 假设 r power-law 命中率。论文 Figure 3 只验了 Llama 系列,Qwen 系列只在 Appendix F 验。其他更稀疏家族(MoE 如 Mixtral、Qwen3-235B-A22B)上 r 还成立吗?</li>
+  <li>论文测的全是 H100。AMD MI300 / TPU 上 NCCL 路径不一样,custom-mask attention 没有 FlashAttn-3 同等内核 — 实际工程化到非 H100 集群成本未知。</li>
+  <li>online weight update 场景(如 RL rollout): SSD 用的 draft 是 frozen 还是 follow learner?如果 frozen, drift 在 RL 中会让 cache hit 率下降;如果 follow, NCCL 路径上要传 weight diff,新瓶颈。论文不涉及 RL,但这恰是 sibling note 01 (NeMo-RL) 的应用场。</li>
+  <li>Theorem 19 的 4-token 反例只证 "存在" sampling 提速;实际 V≈128k 时,p<sub>hit</sub> gain vs α loss 的真实 trade-off 曲线形状是否在所有 prompt 上都"对 SSD 有利"?</li>
+</ol>
+
+<h3>我的 take (一句话)</h3>
+<p>SSD 是 SD 后第一个把"draft↔verify 串行"这道墙凿开<em>且实现工业化</em>的工作。它的价值不在新的 acceptance 改进 (那是 EAGLE 系列的活),而在<strong>把 SD 的硬件部署模型从"draft 寄宿在 target 同卡"升级到"draft 独立 GPU + 高频 NCCL"</strong>。这一步是不可逆的 — 一旦验证有效,后续 SD 工作大概率会默认在 SSD 拓扑下衡量收益。</p>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> SSD 不是再套一层 SD;它的 unlock 是<em>预测 verifier 会怎么裁决</em><br>
+  <span class="pill">公式</span> speedup = (p<sub>hit</sub>·E<sub>hit</sub> + (1-p<sub>hit</sub>)·E<sub>miss</sub>) / (p<sub>hit</sub>·max(1,T<sub>p</sub>) + (1-p<sub>hit</sub>)·(1+T<sub>b</sub>))<br>
+  <span class="pill">三难</span> outcome 选取 (Saguaro cache, geom fan-out) / sampling 张力 (Saguaro sampling, C) / fallback (random / n-gram, 大 batch 才用)<br>
+  <span class="pill">硬件</span> 4×H100 (target) + 1×H100 (draft) + NCCL/NVLink + FlashAttention-3 + custom mask<br>
+  <span class="pill">数字</span> 5.5× peak vs AR (GSM8k); 30% over best SD; 命中率上限 ~90%<br>
+  <span class="pill">陷阱</span> 大 batch p<sub>hit</sub><sup>b</sup> 暴跌 → fallback 必须 zero-latency (random 或 n-gram)<br>
+  <span class="pill">正交</span> 与 EAGLE-3 / token-tree 互不冲突,可叠加 (Appendix E)
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+精读笔记 v1 · 2026-05-07 · 配套论文 PDF: <code>/data/szhang967/papers/paper-notes/spec-rl/SSD_2603.03251.pdf</code><br>
+sibling notes: <code>02_EAGLE_evolution_DFlash.html</code> · <code>09_MirrorSD_2510.13161.html</code>
+</p>
+
+</main>
+</body>
+</html>

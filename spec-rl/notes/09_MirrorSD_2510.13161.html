@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Mirror Speculative Decoding (2510.13161)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Mirror Speculative Decoding: Breaking the Serial Barrier in LLM Inference</h1>
+<div class="meta">
+  Apple · Bhendawade, Nishu, Kundu, Bartels, Cho, Belousova · 2025-10 (v2: 2025-12-11) · arXiv:2510.13161<br>
+  关键词: speculative decoding · early exit · heterogeneous accelerators · GPU+NPU · speculative streaming · branch-complete rollout
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 draft 从"target 输出之后才开始跑"提前到"target 中间层 early-exit 时就开始 branch-complete 速推",并把 draft 物理上搬到 NPU、target 留在 GPU——把 SD 从串行 pipeline 改成<em>双向、异构、并行</em>的镜像结构,在 14B–66B target 上拿到 2.8×–5.8× wall-time。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">2.8–5.8×</div><div class="l">SpecBench wall-time speedup</div></div>
+    <div class="stat"><div class="n">+30%</div><div class="l">vs EAGLE-3(最强 baseline)</div></div>
+    <div class="stat"><div class="n">GPU+NPU</div><div class="l">异构跨加速器并行</div></div>
+  </div>
+  <p><strong>立场:</strong>这不是一个新 draft 架构,而是一个 <em>system–algorithm co-design</em>:用早退信号 + 跨设备 overlap 把 EAGLE-3 框定的 acceptance–latency 折衷曲线整体下移,代价是要有一颗 NPU(或第二类加速器)。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 SD 卡在串行墙上</a></li>
+    <li><a href="#sec2">背景速查 (符号 / 公式 / 复习)</a></li>
+    <li><a href="#sec3">方法 A:Early-exit + branch-complete 速推</a></li>
+    <li><a href="#sec4">方法 B:Speculative Streaming on draft</a></li>
+    <li><a href="#sec5">方法 C:GPU↔NPU 异构 sharding</a></li>
+    <li><a href="#sec6">Latency 公式 + 灵敏度</a></li>
+    <li><a href="#sec7">Worked example: 一条序列穿过双 pipeline</a></li>
+    <li><a href="#sec8">实验关键结果 + 30% 拆分</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 SD 卡在串行墙上</h2>
+
+<h3>1.1 历史脉络:从 Leviathan 2023 到 EAGLE-3 的"局部最优陷阱"</h3>
+
+<p>把时间线拉一下,SD 的演化基本就是<strong>沿着同一条 Pareto 曲线在挪点</strong>:</p>
+
+<ul>
+  <li><strong>2023:Leviathan & Chen 的 vanilla SD</strong>。draft 是个独立小模型,γ 个 token AR 生成,target 一次 forward 验证。serial pipeline 写在公式里:<code>T_SD = T_draft + T_target</code>。</li>
+  <li><strong>2023 末:Medusa</strong>。把 draft 拆成 target 上的 K 个并行 head,γ 步压缩成一步——但 head 之间没自回归依赖,acceptance 上限低。</li>
+  <li><strong>2024:Hydra</strong>。在 Medusa 基础上给 head 加上序列耦合,acceptance 回升,但开销也回来了。</li>
+  <li><strong>2024:EAGLE-1/2/3</strong>。改用<em>共享 target hidden state</em> 的轻量 draft layer,EAGLE-3 还引入 multi-layer fusion + token-level 预测,把 acceptance 推到当前最强(对应 SpecBench 上 2.5×–3.5×)。</li>
+  <li><strong>2024:tree drafts (SpecInfer / EAGLE-2 dyn-tree)</strong>。draft 不再是一条直线,而是个候选树,target 一次验证一棵树。</li>
+</ul>
+
+<p>但所有这些<strong>仍然是单一加速器、单一时间轴上的串行</strong>:draft 必须先把 γ 步推完,target 才能开 verification(或 verification 必须等 target 完整 forward 才出 logits)。本文用一句话把这条天花板拍死:</p>
+
+<blockquote>"larger speculative modules improve acceptance at the cost of higher draft construction latency, while smaller ones reduce overhead but lower acceptance and limit speedup. ... Eq.&nbsp;5 exposes the core limitation: improvements in acceptance must compensate for the added draft latency, intrinsically coupling acceptance with latency."</blockquote>
+
+<div class="fig">
+  <svg viewBox="0 0 680 200" width="100%" style="max-width:660px">
+    <defs>
+      <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+    <!-- vanilla SD timeline -->
+    <text x="10" y="22" font-size="13" font-weight="600" fill="#5b5e66">Vanilla SD (serial)</text>
+    <rect x="10" y="32" width="180" height="28" fill="#fde2cc" stroke="#cc4a1b"/>
+    <text x="100" y="51" font-size="12" text-anchor="middle" fill="#7a2d10">draft AR γ tokens</text>
+    <rect x="190" y="32" width="220" height="28" fill="#cce0fa" stroke="#2f6feb"/>
+    <text x="300" y="51" font-size="12" text-anchor="middle" fill="#163b78">target 1× forward(verify γ+1 位)</text>
+    <line x1="10" y1="70" x2="410" y2="70" stroke="#666" marker-end="url(#arrA)"/>
+    <text x="420" y="74" font-size="11" fill="#5b5e66">≈ T_draft + T_target</text>
+
+    <!-- Mirror SD timeline -->
+    <text x="10" y="110" font-size="13" font-weight="600" fill="#5b5e66">Mirror-SD (parallel)</text>
+    <rect x="10" y="120" width="80" height="28" fill="#cce0fa" stroke="#2f6feb"/>
+    <text x="50" y="139" font-size="11" text-anchor="middle" fill="#163b78">target 1..ℓ_e</text>
+    <rect x="92" y="120" width="14" height="28" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="99" y="139" font-size="9" text-anchor="middle" fill="#7a2d10">EE</text>
+    <!-- target suffix -->
+    <rect x="106" y="120" width="200" height="28" fill="#cce0fa" stroke="#2f6feb"/>
+    <text x="206" y="139" font-size="11" text-anchor="middle" fill="#163b78">target ℓ_e+1..N(GPU)</text>
+    <!-- draft overlapped -->
+    <rect x="106" y="153" width="200" height="28" fill="#fde2cc" stroke="#cc4a1b"/>
+    <text x="206" y="172" font-size="11" text-anchor="middle" fill="#7a2d10">draft branch-complete(NPU)</text>
+    <line x1="306" y1="138" x2="320" y2="138" stroke="#666"/>
+    <rect x="320" y="120" width="14" height="28" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="327" y="139" font-size="9" text-anchor="middle" fill="#7a2d10">FV</text>
+    <line x1="10" y1="190" x2="334" y2="190" stroke="#666" marker-end="url(#arrA)"/>
+    <text x="345" y="194" font-size="11" fill="#5b5e66">≈ T_target + T_rv (T_draft 被吃掉)</text>
+  </svg>
+  <figcaption>同一组 draft/target、同样 γ,vanilla SD 把 draft 和 target 接成一条线;Mirror-SD 在 ℓ_e=N/2 处早退,target 后半截 (suffix) 与 draft 在<strong>不同设备上</strong>同时跑。理论上 draft 时间被 target suffix 完全吸收,只剩两个 token-channel 的 rendezvous(EE / FV)在临界路径上。</figcaption>
+</div>
+
+<h3>1.2 别的方案为什么不够</h3>
+
+<table>
+  <tr><th>方案</th><th>动了什么</th><th>本质代价</th></tr>
+  <tr><td>更大的 draft / 更深 EAGLE</td><td>↑ acceptance ρ</td><td><span class="no">draft 时间 T_draft 同步上升,串行链条更长</span></td></tr>
+  <tr><td>更小的 draft / Medusa head</td><td>↓ T_draft</td><td><span class="no">acceptance 跌,γ 受限</span></td></tr>
+  <tr><td>Tree draft (SpecInfer / EAGLE-2)</td><td>多分支并行验证</td><td><span class="no">verification 时 attention pattern 变贵,draft 还是要 AR</span></td></tr>
+  <tr><td>Async / pipeline 两 step 重叠</td><td>把 step t+1 的 draft 提前到 step t 的 verify 中</td><td><span class="no">policy lag(用旧 logits)→ acceptance 漂移</span></td></tr>
+  <tr><td>Lookahead / PLD / REST(retrieval)</td><td>不用 draft 模型,用 n-gram 或 KV 检索</td><td><span class="no">域外失效,长尾 ρ 低</span></td></tr>
+  <tr><td><strong>Mirror-SD</strong></td><td>用 target 自己的中间层做 draft 触发器,跨设备 overlap</td><td><span class="ok">需要异构硬件 + 一次小 cross-device 通信</span></td></tr>
+</table>
+
+<p>本文最尖锐的 framing 是:前面所有方法都在 <strong>"acceptance ↔ latency"</strong> 这条二维曲线上挪——你想要 acceptance 高就要付 latency。Mirror-SD 不是挪,而是<strong>给曲线加一个新的维度("跨设备时间")</strong>,让 draft 时间在临界路径上消失。</p>
+
+<h3>1.3 为什么"对称速推"不平凡</h3>
+
+<p>简单想:既然 target 的中间层 hidden 已经"差不多知道下一个 token 是什么了"(Pal et al. 2023 早就报过 logit lens 现象),那为啥不在中间层就让 draft 启动?三个非显然的难点:</p>
+
+<ol>
+  <li><strong>Early exit 的分布 ≠ 最终分布。</strong>如果你直接拿 ℓ_e 层的 token 提交,会污染输出分布(违反 lossless)。所以 early exit 只能当<em>路标</em>(top-κ 候选 + 概率),最终接受还是要看第 N 层 logits。</li>
+  <li><strong>Draft 收到 top-κ 路标后,要替<em>每一个</em>候选准备好后续 γ 步——这是 branch-complete。</strong>不是 draft 一条线 γ 个 token,而是 κ 棵深度 γ 的子树。κ=8、γ=7 时 draft batch 显著膨胀,如何让它仍能在 target suffix 时间内跑完?这逼出了 SS draft + NPU 上的特殊 sharding。</li>
+  <li><strong>"Mirror" 的另一半:target 同时也在为 draft 做 correction。</strong>当 draft 选错分支(early-exit top-κ 没命中真正的下一 token),target 在第 N 层算出 correction 后,要么命中树里某条预算分支(reuse,见 §3),要么必须 fallback 重新启 draft。这一对称(draft 在猜 target / target 在校 draft)就是名字里"mirror"的来源。</li>
+</ol>
+
+<p>把这三件事合在一起:Mirror-SD 既不是单纯"提早启 draft"(那只是 early-exit decoding),也不是"换硬件"(那只是异构推理),而是<em>三件事必须同时成立</em>才能保 lossless 又拿到加速。这是它跑 v.s. 看起来"好像谁都能想到"的差距所在。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+  <tr><th>符号</th><th>含义</th></tr>
+  <tr><td><code>γ</code></td><td>speculative window 长度(本文默认 7)</td></tr>
+  <tr><td><code>κ</code></td><td>early-exit top-κ 宽度(默认 8)</td></tr>
+  <tr><td><code>ℓ_e</code></td><td>early-exit 层(默认 N/2,目标网络中点)</td></tr>
+  <tr><td><code>p<sup>(ℓ)</sup></code></td><td>把 LM head 应用在第 ℓ 层 hidden 上得到的 proxy 分布</td></tr>
+  <tr><td><code>p<sup>(N)</sup></code></td><td>target 最终(top layer)分布,验证就用它</td></tr>
+  <tr><td><code>M_t</code></td><td>early-exit 信道载荷:top-κ token IDs + log-probs,大小 O(Bκ)</td></tr>
+  <tr><td><code>A_t</code></td><td>step t 的 accepted-prefix 长度(0..γ)</td></tr>
+  <tr><td><code>𝓣_t</code></td><td>draft 在 NPU 上以 M_t 为 κ 个根、深度 γ 的"假设树"</td></tr>
+  <tr><td><code>τ = A_t + 1</code></td><td>第一次 mismatch 的 depth(correction 位置)</td></tr>
+  <tr><td><code>SS</code></td><td>Speculative Streaming(本作者 2024 年的 multi-stream attention)</td></tr>
+  <tr><td><code>SPD</code></td><td>SPD draft 架构(Kim et al. 2025),把 N_d 层切成两段、每段 G_D 个 track</td></tr>
+  <tr><td><code>G_T / G_D</code></td><td>target / draft 的 TP degree(本文都是 8)</td></tr>
+  <tr><td><code>Δ ≜ T_target<sup>ℓ_e+1:N</sup></code></td><td>"overlap budget":target suffix 时间,draft 要钻进这个窗口</td></tr>
+  <tr><td><code>Ω_κ(ℓ_e)</code></td><td>top-κ overlap mass:在 q=p<sup>(N)</sup> 下落入 top-κ(p<sup>(ℓ_e)</sup>) 的概率,fallback frequency 的下界控制者</td></tr>
+</table>
+
+<p><strong>Vanilla SD 复习一遍。</strong>step t:</p>
+<ol>
+  <li>draft 从 (x, y_<t) 自回归出 γ 个候选 ŷ_{t+1:t+γ}。</li>
+  <li>target 一次 forward 算出 p<sup>(N)</sup>(·| y_<t+j-1, x) for j=1..γ+1(teacher-forcing 沿 ŷ)。</li>
+  <li>取最长前缀 r,使所有 ŷ_{t+j} = argmax p<sup>(N)</sup>;若 r<γ,补一个 correction token c,从 (p<sup>(N)</sup> − p<sup>(draft)</sup>)<sub>+</sub> 重采(stochastic 模式)。</li>
+  <li>commit y_{t+1:t+r}(+ c),进入下一 step。</li>
+</ol>
+<p>关键观察:第 2 步 target forward 必须等第 1 步 draft 完成,这就是"serial barrier"。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 方法 A:Early-exit + branch-complete 速推</h2>
+
+<h3>3.1 关键动作:在 ℓ_e 层"分叉"</h3>
+
+<p>step t 开始,target 像往常一样跑 1..ℓ_e 层。在 ℓ_e 层,做两件事 <strong>同时</strong>:</p>
+<ul>
+  <li>把 LM head 应用到 h<sub>t</sub><sup>(ℓ_e)</sup> 得到 p<sup>(ℓ_e)</sup>;取 top-κ,打包成 M<sub>t</sub>={(v_i, log p̃_i)}<sub>i=1..κ</sub> 通过<strong>低带宽 token channel</strong> 发给 draft 所在的 NPU(O(Bκ) 字节,微秒级)。</li>
+  <li>target 自己继续 ℓ_e+1..N 层,生成最终的 p<sup>(N)</sup>——这是 verifier 真正要看的分布。</li>
+</ul>
+
+<p>NPU 这边,draft 收到 κ 个候选根之后,<strong>同时</strong>对每一个 v_i 跑深度 γ 的 rollout(branch-complete):</p>
+<div class="formula">
+  ∀ i∈{1..κ}, ∀ r∈{1..γ}: ŷ′<sup>(i)</sup><sub>t+1:t+r</sub> ∼ f<sub>d</sub>(· | y<sub>&lt;t</sub>, x, ŷ<sub>t+1</sub>=v<sub>i</sub>)
+</div>
+
+<p>这个"对每个候选都把后面 γ 步铺开"就是 <strong>branch-complete</strong>。draft 不再是一条直线,而是 κ 棵深度 γ 的树,合在一起记作 <code>𝓣_t</code>。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 680 280" width="100%" style="max-width:660px">
+    <defs>
+      <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+
+    <!-- target stack -->
+    <rect x="20" y="20" width="120" height="220" fill="#eef3fc" stroke="#2f6feb"/>
+    <text x="80" y="40" font-size="12" text-anchor="middle" font-weight="600" fill="#2f6feb">Target (GPU)</text>
+    <rect x="35" y="55" width="90" height="22" fill="#cce0fa"/>
+    <text x="80" y="71" font-size="11" text-anchor="middle">L1</text>
+    <text x="80" y="92" font-size="11" text-anchor="middle" fill="#5b5e66">⋮</text>
+    <rect x="35" y="100" width="90" height="22" fill="#cce0fa"/>
+    <text x="80" y="116" font-size="11" text-anchor="middle">L_{ℓ_e}</text>
+    <line x1="125" y1="111" x2="220" y2="135" stroke="#cc4a1b" stroke-width="2" marker-end="url(#arrB)"/>
+    <text x="158" y="125" font-size="10" fill="#cc4a1b">M_t = top-κ</text>
+    <rect x="35" y="135" width="90" height="22" fill="#cce0fa"/>
+    <text x="80" y="151" font-size="11" text-anchor="middle">L_{ℓ_e+1}</text>
+    <text x="80" y="172" font-size="11" text-anchor="middle" fill="#5b5e66">⋮</text>
+    <rect x="35" y="180" width="90" height="22" fill="#cce0fa"/>
+    <text x="80" y="196" font-size="11" text-anchor="middle">L_N → p<sup>(N)</sup></text>
+    <line x1="80" y1="202" x2="80" y2="225" stroke="#2f6feb" marker-end="url(#arrB)"/>
+    <text x="80" y="238" font-size="10" text-anchor="middle" fill="#2f6feb">verify</text>
+
+    <!-- draft tree -->
+    <rect x="240" y="20" width="420" height="220" fill="#fef4e8" stroke="#cc4a1b"/>
+    <text x="450" y="40" font-size="12" text-anchor="middle" font-weight="600" fill="#cc4a1b">Draft 𝓣_t (NPU, branch-complete)</text>
+
+    <!-- κ roots -->
+    <g font-size="11" font-weight="600">
+      <circle cx="280" cy="80" r="14" fill="#fff3cd" stroke="#d2a32a"/><text x="280" y="84" text-anchor="middle">v₁</text>
+      <circle cx="340" cy="80" r="14" fill="#fff3cd" stroke="#d2a32a"/><text x="340" y="84" text-anchor="middle">v₂</text>
+      <circle cx="400" cy="80" r="14" fill="#fff3cd" stroke="#d2a32a"/><text x="400" y="84" text-anchor="middle">v₃</text>
+      <text x="450" y="84" font-size="11" fill="#5b5e66">···</text>
+      <circle cx="500" cy="80" r="14" fill="#fff3cd" stroke="#d2a32a"/><text x="500" y="84" text-anchor="middle">v_κ</text>
+    </g>
+
+    <!-- depth-1 from v1 -->
+    <line x1="280" y1="94" x2="265" y2="125" stroke="#cc4a1b"/>
+    <line x1="280" y1="94" x2="295" y2="125" stroke="#cc4a1b"/>
+    <circle cx="265" cy="135" r="9" fill="#fff" stroke="#cc4a1b"/>
+    <circle cx="295" cy="135" r="9" fill="#fff" stroke="#cc4a1b"/>
+    <line x1="265" y1="144" x2="265" y2="170" stroke="#cc4a1b"/>
+    <line x1="295" y1="144" x2="295" y2="170" stroke="#cc4a1b"/>
+    <circle cx="265" cy="180" r="9" fill="#fff" stroke="#cc4a1b"/>
+    <circle cx="295" cy="180" r="9" fill="#fff" stroke="#cc4a1b"/>
+    <text x="280" y="206" font-size="10" text-anchor="middle" fill="#5b5e66">深度 γ=3</text>
+
+    <!-- depth from other roots simplified -->
+    <line x1="340" y1="94" x2="340" y2="170" stroke="#cc4a1b" stroke-dasharray="2,3"/>
+    <line x1="400" y1="94" x2="400" y2="170" stroke="#cc4a1b" stroke-dasharray="2,3"/>
+    <line x1="500" y1="94" x2="500" y2="170" stroke="#cc4a1b" stroke-dasharray="2,3"/>
+    <text x="340" y="190" font-size="10" text-anchor="middle" fill="#5b5e66">…</text>
+    <text x="400" y="190" font-size="10" text-anchor="middle" fill="#5b5e66">…</text>
+    <text x="500" y="190" font-size="10" text-anchor="middle" fill="#5b5e66">…</text>
+
+    <text x="450" y="225" font-size="11" text-anchor="middle" fill="#cc4a1b">每个 v_i 都展开 γ 步连续 token,总共 κ·γ 个节点</text>
+  </svg>
+  <figcaption>Target 在 ℓ_e 层泄露 top-κ 候选 → NPU 上 draft 同时为每一个候选 v_i 跑出深度 γ 的预测;target 后半段 ℓ_e+1..N 与这棵树<strong>同时</strong>跑。最终 verifier 拿到 p<sup>(N)</sup>,在树里挑那条与 target 真采样匹配的分支提交。</figcaption>
+</div>
+
+<div class="fig">
+  <svg viewBox="0 0 680 200" width="100%" style="max-width:660px">
+    <defs>
+      <marker id="arrEE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+    <!-- target column on left -->
+    <rect x="20" y="20" width="200" height="160" fill="#eef3fc" stroke="#2f6feb"/>
+    <text x="120" y="40" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">GPU(target stack)</text>
+    <rect x="40" y="55" width="160" height="20" fill="#cce0fa"/>
+    <text x="120" y="69" text-anchor="middle" font-size="10">h_t^{(ℓ_e)} = layer ℓ_e 输出</text>
+    <line x1="120" y1="75" x2="120" y2="95" stroke="#2f6feb" marker-end="url(#arrA)"/>
+    <rect x="40" y="100" width="160" height="22" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="120" y="115" text-anchor="middle" font-size="10">W_LM · h_t^{(ℓ_e)} → softmax</text>
+    <line x1="120" y1="122" x2="120" y2="140" stroke="#cc4a1b" marker-end="url(#arrEE)"/>
+    <rect x="40" y="145" width="160" height="22" fill="#ffe6dc" stroke="#cc4a1b"/>
+    <text x="120" y="160" text-anchor="middle" font-size="10" fill="#7a2d10">Top-κ → M_t = {(v_i, log p̃_i)}</text>
+
+    <!-- channel arrow -->
+    <line x1="220" y1="156" x2="350" y2="156" stroke="#cc4a1b" stroke-width="2" marker-end="url(#arrEE)"/>
+    <text x="285" y="148" text-anchor="middle" font-size="11" fill="#cc4a1b">token channel</text>
+    <text x="285" y="172" text-anchor="middle" font-size="10" fill="#5b5e66">O(Bκ) bytes · μs 级</text>
+
+    <!-- right side: NPU -->
+    <rect x="350" y="20" width="310" height="160" fill="#fef4e8" stroke="#cc4a1b"/>
+    <text x="505" y="40" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">NPU(draft)</text>
+    <rect x="370" y="55" width="270" height="22" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="505" y="70" text-anchor="middle" font-size="10">收到 M_t 的 κ 个根</text>
+    <rect x="370" y="85" width="270" height="40" fill="#ffe8cc" stroke="#d2a32a"/>
+    <text x="505" y="100" text-anchor="middle" font-size="10">batch 维 κ 路 SS draft forward</text>
+    <text x="505" y="115" text-anchor="middle" font-size="10">每 step 出 η̄ 个 token</text>
+    <rect x="370" y="135" width="270" height="30" fill="#ffd6c0" stroke="#cc4a1b"/>
+    <text x="505" y="153" text-anchor="middle" font-size="10">→ κ 棵深度 γ 的 hypothesis tree 𝓣_t</text>
+
+    <!-- 同时 GPU 还在跑 suffix -->
+    <text x="120" y="195" text-anchor="middle" font-size="10" fill="#2f6feb" font-style="italic">同时:GPU 继续 ℓ_e+1..N → p^{(N)}</text>
+  </svg>
+  <figcaption>Early-exit signal flow 单独看一眼。注意 W_LM 是<strong>target 自己原本的 LM head</strong>(不是新训的 head),只是在 ℓ_e 层<em>提前借</em>来用一下。这里没有任何额外训练开销——比 EAGLE 系列要训 draft head + EAGLE-3 还要 multi-layer fusion 的方案<em>更轻</em>。target 这边的额外计算只是一次 (LM_head × κ-best)。</figcaption>
+</div>
+
+<h3>3.2 Verification vs. reuse 规则</h3>
+
+<p>target 跑完到 N 层得到 p<sup>(N)</sup>,沿"当前 draft 选定路径"做标准 SD verify,得到 A_t。两种情况:</p>
+
+<ul>
+  <li><strong>A_t = γ:</strong>整个 window 全接受,直接 commit;下一步从树根重新出发。</li>
+  <li><strong>A_t &lt; γ:</strong> 在深度 τ=A_t+1 处出现 mismatch,target 用 c<sub>t+τ</sub> ∼ p<sup>(N)</sup>(·) 修正。</li>
+</ul>
+
+<p>关键的"<strong>reuse</strong>"判定:被 commit 的 prefix Π<sub>t</sub><sup>+</sup> = (accepted...,c) 在不在 𝓣_t 已经预算好的 paths 里?</p>
+
+<div class="formula">Π<sub>t</sub><sup>+</sup> ∈ Paths<sub>τ</sub>(𝓣_t) ⇒ <span class="ok">reuse</span>;否则 <span class="no">fallback(整 draft 重启)</span></div>
+
+<p>Reuse 命中 = 下一 step 的 draft 不用重来,直接拿树里那条分支当新 window;fallback = draft 必须从被修正后的 context 重新 rollout,白费一次 NPU 时间。</p>
+
+<h3>3.3 Worked example: 一个 token "积" 的命运</h3>
+
+<p>设 target = Qwen3-32B,N=64,ℓ_e=32,κ=8,γ=7。当前 prefix = "微积" 之后,要预测下一个字。</p>
+
+<ol>
+  <li>target 跑完 32 层,LM head(h<sup>(32)</sup>) → p<sup>(32)</sup>。top-8 = ["分", "学", "公", "(", "方", "在", "运", "的"](假设)。把这 8 个 token + log-prob 通过 token channel 发给 NPU(8 项 × bf16,几十字节)。</li>
+  <li>同一时刻:GPU 继续跑 33..64 层。NPU 上,draft 同时在 batch 维度展开 8 棵 γ=7 的树,例如对 "分":"分→法→是→一→种→重→要" 之类。SS draft 实际只需 J ≤ ⌈γ/η̄⌉ 步(后面会讲),通常 J=2~3 而非 7。</li>
+  <li>GPU 第 64 层算出 p<sup>(64)</sup>,argmax = "分"——命中 v_1!</li>
+  <li>用 "分" 这条分支沿深度 verify:draft 给 "分→法→是" 而 target 给 "分→法→中"。则 A_t=2(接受了 "分", "法"),τ=3,correction c="中"。</li>
+  <li>检查 reuse:Π<sub>t</sub><sup>+</sup>=("分","法","中") 在不在树里?如果 draft 在 "分→法" 的 depth-2 节点下还展开了多个分支(包括 "中"),那就 reuse 命中,下一 step 直接用预算好的 "分→法→中→…" 当 window;否则 fallback。</li>
+</ol>
+
+<p><strong>反向论证:</strong> 如果不做 branch-complete(只让 draft 给一条线),那么 step t 的 fallback 概率 = P(target argmax ≠ draft 选的那个根 v*),通常 30%–50%——白费一半。Branch-complete 把它降到 P(c<sub>t+τ</sub> ∉ 任何已展开 path),实测 0.1–0.3(见 §8 fallback 曲线)。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 方法 B:Speculative Streaming on draft(只动 draft,不动 target)</h2>
+
+<p>问题:branch-complete 让 draft 要在很短时间内吐出 κ·γ 个 token。如果 draft 还是普通 AR,要 γ 个内部步——很可能撑爆 overlap budget Δ。</p>
+
+<p>解法:把作者自己 2024 年的 <strong>Speculative Streaming (SS)</strong> 装到 draft 上(<em>不是</em>装到 target 上,这个区分很重要)。SS 的核心是 multi-stream attention:每一层除了主 stream M<sub>t</sub><sup>(ℓ)</sup>,还附带 γ 个 lookahead stream S<sub>t,j</sub><sup>(ℓ)</sup>(j=1..γ),每个 lookahead 只看前面已 verified 部分 + 比它早的 lookahead。一次 forward 同时给出:</p>
+
+<ul>
+  <li>主 stream 的下一 token 分布(用来 verify 上一轮 draft)</li>
+  <li>γ 个 lookahead 的下一 token 分布(用来填本轮 window)</li>
+</ul>
+
+<p>每个内部 step 因此能吐 η_j ≥ 1 个 token,平均 η̄ &gt; 1。要覆盖 γ 个 token,只需 J ≤ ⌈γ/η̄⌉ 步而不是 γ 步。实测 J ≈ 2–3 时,T_draft 砍掉 50%+。</p>
+
+<div class="nb">
+  <strong>为什么 SS 必须装在 draft 而不是 target?</strong>SS 改写 forward 内部的 attention mask,等于改了 next-token 分布;装到 target 就破坏了 lossless 保证(commit 用的不再是原始 p<sup>(N)</sup>)。装到 draft 没事,因为 draft 任何输出最终都要拿 target 的 p<sup>(N)</sup> 验证,所以语义不动。
+</div>
+
+<div class="fig">
+  <svg viewBox="0 0 680 220" width="100%" style="max-width:660px">
+    <defs>
+      <marker id="arrC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#888"/>
+      </marker>
+    </defs>
+    <!-- prefix tokens -->
+    <g font-size="11">
+      <rect x="20" y="40" width="40" height="26" fill="#e0e0e0" stroke="#888"/><text x="40" y="58" text-anchor="middle">x_0</text>
+      <text x="80" y="58" text-anchor="middle">…</text>
+      <rect x="100" y="40" width="40" height="26" fill="#e0e0e0" stroke="#888"/><text x="120" y="58" text-anchor="middle">y_m</text>
+    </g>
+    <text x="80" y="30" font-size="11" fill="#5b5e66">verified prefix</text>
+
+    <!-- main stream -->
+    <rect x="160" y="40" width="60" height="26" fill="#cce0fa" stroke="#2f6feb"/>
+    <text x="190" y="58" text-anchor="middle" font-size="11">M_t</text>
+    <text x="190" y="80" text-anchor="middle" font-size="10" fill="#2f6feb">main(verify 上轮)</text>
+
+    <!-- lookahead streams -->
+    <rect x="240" y="40" width="60" height="26" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="270" y="58" text-anchor="middle" font-size="11">S_{t,1}</text>
+    <rect x="310" y="40" width="60" height="26" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="340" y="58" text-anchor="middle" font-size="11">S_{t,2}</text>
+    <rect x="380" y="40" width="60" height="26" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="410" y="58" text-anchor="middle" font-size="11">S_{t,3}</text>
+    <text x="500" y="58" font-size="11">…</text>
+    <text x="340" y="80" text-anchor="middle" font-size="10" fill="#cc4a1b">γ 个 lookahead stream</text>
+
+    <!-- arrows showing attention -->
+    <line x1="140" y1="53" x2="158" y2="53" stroke="#888" marker-end="url(#arrC)"/>
+    <line x1="220" y1="53" x2="238" y2="53" stroke="#888" marker-end="url(#arrC)" stroke-dasharray="2,2"/>
+    <line x1="300" y1="53" x2="308" y2="53" stroke="#888" marker-end="url(#arrC)" stroke-dasharray="2,2"/>
+    <line x1="370" y1="53" x2="378" y2="53" stroke="#888" marker-end="url(#arrC)" stroke-dasharray="2,2"/>
+
+    <!-- one forward yields multi token -->
+    <text x="20" y="125" font-size="12" font-weight="600" fill="#5b5e66">一次 forward 产出:</text>
+    <rect x="20" y="135" width="80" height="26" fill="#d4edda" stroke="#155724"/>
+    <text x="60" y="153" text-anchor="middle" font-size="11">y_{m+1}</text>
+    <rect x="110" y="135" width="80" height="26" fill="#d4edda" stroke="#155724"/>
+    <text x="150" y="153" text-anchor="middle" font-size="11">y_{m+2}</text>
+    <rect x="200" y="135" width="80" height="26" fill="#d4edda" stroke="#155724"/>
+    <text x="240" y="153" text-anchor="middle" font-size="11">y_{m+3}</text>
+    <text x="320" y="153" font-size="11" fill="#5b5e66">η_j ≈ 2–4 tokens / draft step</text>
+
+    <!-- comparison -->
+    <text x="20" y="190" font-size="11" fill="#5b5e66">→ J ≤ ⌈γ/η̄⌉ 步,而非 γ 步;T_draft 显著缩短,容易钻进 Δ overlap 窗口</text>
+  </svg>
+  <figcaption>Speculative Streaming 用 multi-stream attention 把"verify 上一轮"和"提议下 γ 个"压在一次 forward 里。draft 装上 SS,J 从 7 降到 2–3,T_draft(γ) 也对应下降——这正好是把 Mirror-SD 推进"完全 hide 在 Δ 之内"那个 zero-slope 区域的关键钥匙。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · 方法 C:GPU↔NPU 异构 sharding</h2>
+
+<p>这一节是论文最"systems"的部分,也是 EAGLE-3 没做的(EAGLE-3 把 draft 和 target 全堆在 GPU 上,共享 KV)。Mirror-SD 用 8 张 GPU + 8 颗 NPU(Apple M2 Ultra 系统),分工:</p>
+
+<table>
+  <tr><th>角色</th><th>设备</th><th>Sharding</th><th>每 step 同步次数</th></tr>
+  <tr><td>Target(N=64,32B)</td><td>8 张 M2 Ultra GPU</td><td>Megatron-style TP:每 MHA / MLP 块 2 次 all-reduce</td><td>2N = 128 次 / step</td></tr>
+  <tr><td>Draft(N_d=16,0.6B)</td><td>8 颗 NPU</td><td>SPD:layers 切 2 段,每段 G_D=8 个 track,每 track 一颗 NPU 常驻自己的 weight shard</td><td><strong>2 次 / step</strong>(段边界 1 次 + 输出端 1 次)</td></tr>
+</table>
+
+<p>SPD 这件事关键到不能含糊。普通 TP 是<em>每一层</em>都要 all-reduce,因为权重是按 hidden dim 切的。SPD 把 draft 的 N_d 层切成两段,<strong>段内每个 NPU 跑全部层</strong>(用自己那份权重 shard),段间才同步。代价是每个 NPU 都要装一份权重,但 draft 才 0.6B,16 层 × 256 hidden / shard 完全装得下。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 680 320" width="100%" style="max-width:660px">
+    <!-- left: target on GPU -->
+    <rect x="10" y="10" width="320" height="300" fill="#eef3fc" stroke="#2f6feb"/>
+    <text x="170" y="30" font-size="13" text-anchor="middle" font-weight="600" fill="#2f6feb">Target on 8 GPUs (Megatron TP)</text>
+    <g font-size="10">
+      <rect x="30" y="45" width="280" height="24" fill="#cce0fa"/><text x="170" y="61" text-anchor="middle">L1 MHA → all-reduce</text>
+      <rect x="30" y="73" width="280" height="24" fill="#cce0fa"/><text x="170" y="89" text-anchor="middle">L1 MLP → all-reduce</text>
+      <rect x="30" y="101" width="280" height="24" fill="#cce0fa"/><text x="170" y="117" text-anchor="middle">L2 MHA → all-reduce</text>
+      <text x="170" y="140" text-anchor="middle" fill="#5b5e66">⋮ 共 2N = 128 collectives</text>
+      <rect x="30" y="155" width="280" height="24" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="170" y="171" text-anchor="middle" fill="#7a2d10">L_{ℓ_e}: emit M_t (top-κ) → token channel</text>
+      <rect x="30" y="185" width="280" height="24" fill="#cce0fa"/><text x="170" y="201" text-anchor="middle">L_{ℓ_e+1} … L_N (overlap with draft)</text>
+      <rect x="30" y="215" width="280" height="24" fill="#d4edda" stroke="#155724"/><text x="170" y="231" text-anchor="middle" fill="#155724">L_N → p^{(N)} → verify</text>
+    </g>
+
+    <!-- right: draft on NPU -->
+    <rect x="350" y="10" width="320" height="300" fill="#fef4e8" stroke="#cc4a1b"/>
+    <text x="510" y="30" font-size="13" text-anchor="middle" font-weight="600" fill="#cc4a1b">Draft on 8 NPUs (SPD)</text>
+
+    <g font-size="10">
+      <text x="510" y="48" text-anchor="middle" fill="#5b5e66">segment 1 (layers 0–7)</text>
+      <rect x="365" y="55" width="35" height="60" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="382" y="80" text-anchor="middle" font-size="9">NPU0</text><text x="382" y="92" text-anchor="middle" font-size="9">L0..7</text>
+      <rect x="402" y="55" width="35" height="60" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="419" y="80" text-anchor="middle" font-size="9">NPU1</text><text x="419" y="92" text-anchor="middle" font-size="9">L0..7</text>
+      <text x="475" y="85" text-anchor="middle" font-size="11">…</text>
+      <rect x="495" y="55" width="35" height="60" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="512" y="80" text-anchor="middle" font-size="9">NPU7</text><text x="512" y="92" text-anchor="middle" font-size="9">L0..7</text>
+
+      <line x1="365" y1="125" x2="660" y2="125" stroke="#cc4a1b" stroke-width="2" stroke-dasharray="4,3"/>
+      <text x="510" y="140" text-anchor="middle" fill="#cc4a1b" font-weight="600">all-reduce #1</text>
+
+      <text x="510" y="160" text-anchor="middle" fill="#5b5e66">segment 2 (layers 8–15)</text>
+      <rect x="365" y="167" width="35" height="60" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="382" y="192" text-anchor="middle" font-size="9">NPU0</text><text x="382" y="204" text-anchor="middle" font-size="9">L8..15</text>
+      <rect x="402" y="167" width="35" height="60" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="419" y="192" text-anchor="middle" font-size="9">NPU1</text><text x="419" y="204" text-anchor="middle" font-size="9">L8..15</text>
+      <text x="475" y="200" text-anchor="middle" font-size="11">…</text>
+      <rect x="495" y="167" width="35" height="60" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="512" y="192" text-anchor="middle" font-size="9">NPU7</text><text x="512" y="204" text-anchor="middle" font-size="9">L8..15</text>
+
+      <line x1="365" y1="237" x2="660" y2="237" stroke="#cc4a1b" stroke-width="2" stroke-dasharray="4,3"/>
+      <text x="510" y="252" text-anchor="middle" fill="#cc4a1b" font-weight="600">all-reduce #2 → logits</text>
+
+      <text x="510" y="278" text-anchor="middle" fill="#5b5e66">总共仅 2 次 collective / draft step</text>
+    </g>
+
+    <!-- token channel arrow -->
+    <line x1="330" y1="167" x2="350" y2="100" stroke="#d2a32a" stroke-width="2" marker-end="url(#arrA)"/>
+    <text x="320" y="135" font-size="9" fill="#d2a32a">M_t (O(Bκ))</text>
+
+    <line x1="350" y1="265" x2="330" y2="225" stroke="#155724" stroke-width="2" marker-end="url(#arrA)"/>
+    <text x="350" y="285" font-size="9" fill="#155724">draft path → verify</text>
+  </svg>
+  <figcaption>异构 sharding 全图。target 仍是标准 Megatron-style:每层 2 次 all-reduce。draft 用 SPD:每段每个 NPU 装"<em>整段</em>"权重 shard,段内零通信,段间一次 all-reduce。draft 整 forward 只 2 次 collective,而不是普通 TP 的 2N_d=32 次。这就是为什么 draft 容量可以扩(0.6B 而不是 60M)而不撑爆 overlap budget Δ。</figcaption>
+</div>
+
+<p><strong>跨设备 token channel:</strong>每 step 两次小消息——M_t(early exit)和 final verify 触发——都是 O(Bκ) 个 token IDs + log-probs(bf16),通过 GPU→CPU→NPU 拷贝走。论文说微秒级,几乎可忽略。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Latency 公式 + 灵敏度</h2>
+
+<p>把上面三件事合到一个 step 的时间公式里:</p>
+
+<div class="formula">
+T_Mirror = T_target<sup>1:ℓ_e</sup> + T_rv<sup>(ee)</sup> + max{T_target<sup>ℓ_e+1:N</sup>, T_draft<sup>gen</sup>(γ)} + T_rv<sup>(fv)</sup>
+</div>
+
+<p>记 Δ ≜ T_target<sup>ℓ_e+1:N</sup>(overlap budget,target 后半段时间)。</p>
+
+<table>
+  <tr><th>情形</th><th>T_Mirror</th><th>对比 vanilla SD</th></tr>
+  <tr><td>T_draft<sup>gen</sup>(γ) ≤ Δ <span class="ok">(理想)</span></td><td>T_target + T_rv</td><td>vanilla = T_target + T_draft<sup>gen</sup>;省了 T_draft 减去 T_rv</td></tr>
+  <tr><td>T_draft<sup>gen</sup>(γ) &gt; Δ <span class="no">(draft dominated)</span></td><td>T_target<sup>1:ℓ_e</sup> + T_draft<sup>gen</sup>(γ) + T_rv</td><td>仍省了 Δ(target 后半段被 hide),但 draft 把临界路径拉长</td></tr>
+</table>
+
+<p>所以本作的全部工程目标可以用一句话总结:<strong>把 draft 时间塞进 Δ 这个时间窗里。</strong>方法 B (SS) 缩 T_draft;方法 C (SPD) 把 draft sync 从 2N_d 砍到 2;ℓ_e 选在 N/2 让 Δ 最大化但又保证 early-exit 信号还够准。</p>
+
+<h3>6.1 灵敏度小表</h3>
+
+<table>
+  <tr><th>调旋钮</th><th>影响</th><th>权衡</th></tr>
+  <tr><td>↑ κ (top-κ 宽度)</td><td>Ω_κ ↑ → fallback ↓ → 复用率高</td><td>draft 树变大,T_draft↑;token channel payload ↑(O(Bκ))</td></tr>
+  <tr><td>↑ γ (window 长度)</td><td>每接受一次产出更多 token</td><td>T_draft↑,可能掉出 Δ;且 Δ 取决于 N - ℓ_e</td></tr>
+  <tr><td>↓ ℓ_e (浅一点)</td><td>Δ ↑(给 draft 更多时间)</td><td>p<sup>(ℓ_e)</sup> 离 q 远 → Ω_κ ↓ → fallback ↑</td></tr>
+  <tr><td>↑ ℓ_e (深一点)</td><td>Ω_κ ↑(命题 2 严格证明:fallback 单调下降)</td><td>Δ ↓,draft 没时间钻进 overlap</td></tr>
+  <tr><td>↑ B (batch size)</td><td>更多 token 摊销 GPU compute</td><td>draft compute ∝ B·κ·γ 也涨,且 NPU 受 channel 限制;论文 B≥16 时砍 κ 到 4/2/1</td></tr>
+</table>
+
+<p><strong>论文实测 sweet spot:κ=8, ℓ_e = N/2, γ=7。</strong>这个组合在 SpecBench 6 个域 (Humanities/Math/Roleplay/STEM/Coding/Math-reasoning) 上 fallback frequency 都落在 0.1–0.3,Ω_κ 接近饱和。</p>
+
+<details>
+<summary>命题 1 + 2:为什么 κ 越大越好,ℓ_e 越深越好(直觉版)</summary>
+<p><strong>命题 1(κ 单调):</strong>把 top-κ 集合扩大只会"添根",不会"减根",所以 fallback 只能不增。极限 κ→|V|,fallback→0。bound 是 FF ≤ 1 − Ω_κ(ℓ_e)。</p>
+<p><strong>命题 2(ℓ_e 单调):</strong>logit lens 现象保证 p<sup>(ℓ)</sup> 随 ℓ→N 收敛到 q。Ω_κ(ℓ) ≥ q(S*) − 2κ ε_ℓ,ε_ℓ→0 时 Ω_κ→max,fallback bound 也对应下降。如果 q 的 top-κ 边界有 margin,ε_ℓ 足够小后 Top-κ(p<sup>(ℓ)</sup>) = Top-κ(q) 完全一致,fallback 触底。</p>
+<p>这两条单调性同时存在,但 ℓ_e 增加会缩 Δ,所以才需要中点 ℓ_e=N/2 这种折中——κ 那边没有这么尖锐的约束(只要 κ 不超过 channel 带宽即可),所以 κ=8 已经接近 saturation。</p>
+</details>
+
+<hr>
+
+<h2 id="sec7">7 · Worked example:一条序列穿过双 pipeline</h2>
+
+<p>把 §3.3 的"积分"例子完整跑一遍,把所有计时也填进去。Qwen3-32B,N=64,ℓ_e=32,γ=7,κ=8,M2 Ultra GPU+NPU 集群 (×8)。</p>
+
+<p><strong>时刻 0(target step t 开始):</strong> commit 到 prefix "微". 假设 target 单层 ≈ 0.4 ms。</p>
+
+<table>
+<tr><th>时间(ms)</th><th>GPU(target)做什么</th><th>NPU(draft)做什么</th><th>注释</th></tr>
+<tr><td>0–12.8</td><td>跑 L1..L32(prefix forward)</td><td><em>等</em></td><td>T_target<sup>1:ℓ_e</sup>=32×0.4=12.8 ms</td></tr>
+<tr><td>12.8</td><td>L32 → LM head → top-κ M_t = ["分","学","公","(","方","在","运","的"]</td><td>—</td><td>同时:GPU 把 M_t 扔进 token channel</td></tr>
+<tr><td>12.8 + 几 μs</td><td>L33..L64 继续</td><td>NPU 收到 M_t,启动 8 棵 γ=7 树</td><td>token channel: 8 IDs × bf16 ≈ 16 B</td></tr>
+<tr><td>12.8–25.6</td><td>L33..L64(用 SPD-fused matmul + 2 collective)</td><td>SS draft:J=3 步,每步 2 个 lookahead,共出 8 棵深度 7 的 partial tree</td><td>Δ=12.8 ms;T_draft^gen ≈ 11 ms (J=3 × 3.5 ms)</td></tr>
+<tr><td>25.6</td><td>L64 → p<sup>(N)</sup>;argmax = "分"</td><td>把 8 棵树的 logits 通过 token channel 推回 GPU</td><td>final verify rendezvous</td></tr>
+<tr><td>25.6 + ε</td><td>沿 v="分" 这棵树往下 verify;match 到深度 2,τ=3,c="中"</td><td>idle / 准备下一 step</td><td>A_t = 2,γ-A_t = 5(本步 commit 3 个 token: 分、法、中)</td></tr>
+<tr><td>25.6 + ε</td><td>检查 reuse:("分","法","中") 在 𝓣_t 的某条 path 里? <span class="ok">命中</span> → 下 step 直接接</td><td>—</td><td>这一 step e2e ≈ 26 ms 出 3 token,有效 8.7 ms/token</td></tr>
+</table>
+
+<p><strong>对比 vanilla SD 同 prefix:</strong>需要 draft AR 7 步(7×3.5≈24.5 ms)+ target 整 forward(64×0.4=25.6 ms)= 50 ms,假设接受 2 个产出 3 token,16.7 ms/token。<strong>≈1.9× 加速</strong>,与 Math 域报的 5×–5.8× 相比稍低,因为这只是 single step 的简化估计;实际增益还要乘上"reuse 把下 step T_draft 也省了"那部分。</p>
+
+<div class="nb">
+  <strong>关键观察:</strong>在 12.8–25.6 ms 这 12.8 ms 窗口内,GPU 的 32 层 suffix 与 NPU 的 8×7 棵 draft 树<strong>同时</strong>跑。这 12.8 ms 的"draft 时间"在 vanilla SD 里是裸暴露在临界路径上的。这就是 Mirror-SD 拿到加速的物理来源。
+</div>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果 + 30% 拆分</h2>
+
+<h3>8.1 SpecBench 主表(摘录)</h3>
+
+<table>
+  <tr><th>Target</th><th>任务 (T=0)</th><th>EAGLE-3</th><th>Mirror-SD</th><th>Δ %</th></tr>
+  <tr><td>Qwen3-14B</td><td>Math reasoning</td><td>3.36×</td><td><strong>5.32×</strong></td><td>+58%</td></tr>
+  <tr><td>Qwen3-14B</td><td>Translation</td><td>2.53×</td><td>4.13×</td><td>+63%</td></tr>
+  <tr><td>Qwen3-14B</td><td>RAG</td><td>2.66×</td><td>3.49×</td><td>+31%</td></tr>
+  <tr><td>Qwen3-14B</td><td>Multi-turn conv</td><td>3.29×</td><td>3.70×</td><td>+12%</td></tr>
+  <tr><td>Qwen3-32B</td><td>Math reasoning</td><td>3.77×</td><td><strong>5.84×</strong></td><td>+55%</td></tr>
+  <tr><td>Qwen3-32B</td><td>QA</td><td>2.76×</td><td>3.04×</td><td>+10%</td></tr>
+  <tr><td>Mistral-24B / OPT-66B</td><td>多任务</td><td>—</td><td>2.8–4.5×</td><td>(通泛化,见 Fig 4)</td></tr>
+</table>
+
+<p>"30% 平均"是几十个 task × temperature × model 的 micro-average。从分布看:<strong>长输出、高确定性</strong>的任务(数学、翻译、长 reasoning)增益最大(高 acceptance + 长 window 都能稳定 hide draft);<strong>高熵</strong>任务(多轮对话、QA)增益最低(频繁 fallback 把 NPU 计算白白浪费)。</p>
+
+<h3>8.2 30% 增益拆分(我的解读)</h3>
+
+<p>论文没给一张正经的 ablation table 把 30% 切成 (cross-device + mirror + early-exit + SS) 四个分量,但从 Fig 4 (OPT/Mistral 上的 4-way) 和 Fig 6 (SS 单独 speedup) 能反推:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 680 200" width="100%" style="max-width:660px">
+    <!-- bar chart -->
+    <rect x="40" y="40" width="40" height="120" fill="#e0e0e0"/>
+    <text x="60" y="180" font-size="11" text-anchor="middle">vanilla SD</text>
+    <text x="60" y="35" font-size="11" text-anchor="middle">2.0×</text>
+
+    <rect x="120" y="40" width="40" height="100" fill="#fde2cc" stroke="#cc4a1b"/>
+    <text x="140" y="180" font-size="11" text-anchor="middle">+ SS draft</text>
+    <text x="140" y="35" font-size="11" text-anchor="middle">2.4×</text>
+    <text x="140" y="160" font-size="10" text-anchor="middle" fill="#cc4a1b">+0.4</text>
+
+    <rect x="200" y="40" width="40" height="74" fill="#cce0fa" stroke="#2f6feb"/>
+    <text x="220" y="180" font-size="11" text-anchor="middle">+ Mirror overlap</text>
+    <text x="220" y="35" font-size="11" text-anchor="middle">3.1×</text>
+    <text x="220" y="120" font-size="10" text-anchor="middle" fill="#2f6feb">+0.7</text>
+
+    <rect x="280" y="40" width="40" height="50" fill="#d4edda" stroke="#155724"/>
+    <text x="300" y="180" font-size="11" text-anchor="middle">+ NPU sharding</text>
+    <text x="300" y="35" font-size="11" text-anchor="middle">3.5×</text>
+    <text x="300" y="100" font-size="10" text-anchor="middle" fill="#155724">+0.4</text>
+
+    <rect x="360" y="40" width="40" height="40" fill="#e2d9f3" stroke="#6f42c1"/>
+    <text x="380" y="180" font-size="11" text-anchor="middle">+ branch-complete</text>
+    <text x="380" y="35" font-size="11" text-anchor="middle">3.8×</text>
+    <text x="380" y="90" font-size="10" text-anchor="middle" fill="#6f42c1">+0.3</text>
+
+    <line x1="20" y1="160" x2="430" y2="160" stroke="#888"/>
+
+    <text x="500" y="60" font-size="11" fill="#5b5e66">分量(经验估计):</text>
+    <text x="500" y="80" font-size="11" fill="#cc4a1b">SS draft → ~30%</text>
+    <text x="500" y="98" font-size="11" fill="#2f6feb">overlap (early-exit) → ~40%</text>
+    <text x="500" y="116" font-size="11" fill="#155724">SPD on NPU → ~20%</text>
+    <text x="500" y="134" font-size="11" fill="#6f42c1">branch-complete reuse → ~10%</text>
+  </svg>
+  <figcaption>把 EAGLE-3 → Mirror-SD 的 +30% 拆四块(粗略,基于 Fig 4 的 4-way 对比 + Fig 6 SS draft-only speedup ≈ 2× + Apdx D.1 batched 数据)。<strong>最大的一块是 early-exit 触发的 overlap</strong>,因为它直接吃掉了一段在 vanilla 里裸暴露的 T_draft;NPU sharding 主要让 draft 容量能从 60M 上到 0.6B 而不撑爆 Δ;branch-complete 的贡献来自 reuse 命中(下一 step 不重启 draft)。</figcaption>
+</div>
+
+<h3>8.3 Fallback 曲线(Apdx E.4)</h3>
+
+<p>论文给了 6 个域的 FF (fallback frequency) vs κ × ℓ_e 曲线:</p>
+<ul>
+  <li>κ 从 1 到 128:FF 单调降,κ=8 时已经在膝盖处,16+ 收益边际递减——支持 κ=8 的默认。</li>
+  <li>ℓ_e ∈ {1/4, 1/2, 3/4} N:深一点 fallback 更低,但论文最终选 1/2 是<strong>因为要兼顾 Δ</strong>(深一点 Δ 太小,draft 钻不进去)。</li>
+  <li>Math/Math-reasoning 域 FF 最低(0.1 左右),Multi-turn / Roleplay 最高(0.3+)——直接对应 SpecBench 表里这俩 domain 的加速差异。</li>
+</ul>
+
+<h3>8.4 Batching 影响(Apdx D.1)</h3>
+
+<p>B 从 8 → 128:vanilla SD 加速从 2.84× 跌到 1.77×;Mirror-SD 从 3.05× 跌到 1.95×。两者都跌(因为 target verify 越来越主导),但 Mirror-SD 始终领先。论文的对策是<strong>随 B 增大动态缩 κ</strong>(κ=8 → 4 → 2 → 1)以控制 draft 端 compute——这意味着大 B 部署时 mirror 优势会变小,但仍存在。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>核心 trick</th><th>与 Mirror-SD 的关键差异</th></tr>
+  <tr><td><strong>EAGLE-3</strong> (<a href="02_EAGLE_evolution_DFlash.html">02</a>)</td><td>multi-layer fusion + token-level head 共享 hidden</td><td>单设备、单时间轴;acceptance 高但 T_draft 仍在临界路径</td></tr>
+  <tr><td><strong>DFlash</strong> (<a href="07_DFlash_2602.06036.html">07</a>)</td><td>DraftAttention + tile-aware sparsification</td><td>专攻 draft 内部的 attention overhead;Mirror-SD 是把整个 draft 搬出 GPU</td></tr>
+  <tr><td><strong>Hidden States Drift</strong> (<a href="08_HiddenStatesDrift_2604.26412.html">08</a>)</td><td>分析 EAGLE 在 RL post-training 中 hidden states 漂移</td><td>诊断性论文;Mirror-SD 对 RL 不敏感(因为 draft 0.6B 完整训自 UltraChat,不依赖 target hidden 形态稳定)</td></tr>
+  <tr><td>SpecInfer / Tree drafts</td><td>candidate tree + tree-aware verify</td><td>Mirror-SD 也用树(branch-complete),但树是 NPU 上离线生长的,verify 沿"被 target 选中的那条路径"走,不需要 tree-aware attention</td></tr>
+  <tr><td>Async / pipeline SD(LlamaRL 等)</td><td>step t+1 的 draft 提前到 step t 的 verify 中</td><td>它们靠"用旧 logits"换并行,有 policy lag;Mirror-SD 严格 lossless,因为最终 commit 永远基于 p<sup>(N)</sup></td></tr>
+  <tr><td>Draft-larger 路线(更深 / 1.7B 自回归 draft)</td><td>更准的 draft → ρ↑</td><td>本文 Fig 3a 直接画了:vanilla SD 用 1.7B AR draft 也跑到 acceptance ≈ 4.5,但 latency 同步爆掉;Mirror-SD 用 0.6B SS draft 在更低 latency 拿到同等 acceptance</td></tr>
+  <tr><td>CALM / MoD(early-exit decoding)</td><td>shallow exit 直接 commit</td><td>它们牺牲 lossless;Mirror-SD 只把 early-exit 当"路标",最终 commit 仍走完整 N 层</td></tr>
+</table>
+
+<p><strong>立场总结:</strong> 90% 的 SD 改进论文都在"单一加速器内"挖榨;Mirror-SD 把 axis 加到"跨加速器异构 + 早退路标 + 双向校正"。代价是<em>需要 NPU</em>——这是它的硬件假设,也是它的硬伤。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>大 batch 下 mirror 优势缩小(Apdx D.1);本质是 draft 也变成 compute-bound,overlap 窗口被吃掉。</li>
+  <li>需要异构硬件;论文用 Apple M2 Ultra(GPU+ANE),换到 H100-only 集群没法直接用——你要么虚拟出"两组 GPU",要么完全没法跑 mirror 这部分。</li>
+  <li>Apdx F.1 透露,跨 SoC 用 Thunderbolt 5 (120 Gbps)互连,8 节点拓扑是<em>纸糊</em>的:groups of 2,group 间靠 fabric。Inter-group sync 论文说"sub-millisecond",但具体怎么 schedule 没展开,扩展性堪忧。</li>
+  <li>Lossless 证明依赖"draft 在 verification 时呈现的分布与 vanilla SD 同分布"——Apdx B Eq.12。这要求 branch 选择策略是 conditional law-preserving 的;论文用"按 v_i 概率加权"暗示了一种实现,但没证全。</li>
+</ul>
+
+<h3>我的疑问</h3>
+<ol>
+  <li><strong>真无 NPU 能复现多少?</strong>把 NPU 替换成"target 同集群里的另一组 GPU + DGL 切到 PCIe 通道",overlap 还在,但带宽完全不同。希望看 H100-only ablation。</li>
+  <li><strong>RL post-training 的 hidden states drift(见 08 号笔记)对 mirror 多敏感?</strong> 早退用的是 target 中间层,如果 RL 让中间层漂移加快(早期 fine-tune 后 logit lens 退化),Ω_κ 会跌得多猛?</li>
+  <li><strong>30% 拆分中"branch-complete reuse"那 10% 是否过高估?</strong>论文没单独 ablate,我从 fallback 0.1–0.3 推测的;实测 reuse rate 想看个真实曲线。</li>
+  <li><strong>τ=0 vs τ=1 的差距并不剧烈,意味着 Mirror-SD 对 stochastic decoding 也稳。</strong>但 nucleus / top-p 没测,top-κ 在 ℓ_e 是硬切的——和 nucleus sampler 在 N 层组合可能违反 lossless。</li>
+  <li><strong>γ=7、κ=8 是否对所有 14B–66B 都最优?</strong>论文说"是",但 OPT-66B 比 Qwen3-14B 大 5 倍,Δ 也大 5 倍,直觉上 OPT 应该可以承受更激进的 γ。</li>
+  <li><strong>"Mirror" 的真正双向是不是被夸大了?</strong>读全文,target 主要在做 verify + 给 correction;draft 在做 branch-complete。论文修辞上说"target speculates correction paths for the draft",我看更像"target 给 single-token correction,draft 自己看在不在树里" — 这并不算 target 在主动 speculate。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> 把 acceptance–latency 二维曲线加第三维(跨设备时间)<br>
+  <span class="pill">公式</span> T_Mirror = T_target<sup>1:ℓ_e</sup> + max{Δ, T_draft^gen} + T_rv;Δ=N-ℓ_e 层<br>
+  <span class="pill">钥匙</span> early-exit top-κ 路标 + branch-complete 树 + SS draft + SPD-on-NPU,四件事缺一不可<br>
+  <span class="pill">默认</span> γ=7, κ=8, ℓ_e=N/2, draft 0.6B, G_T=G_D=8<br>
+  <span class="pill">硬伤</span> 需要异构加速器(NPU);单 GPU 集群直接 fall back 到 vanilla<br>
+  <span class="pill">数字</span> 14–66B target 上 SpecBench 2.8–5.8×;比 EAGLE-3 平均 +30%;Math reasoning 上 5.84×<br>
+  <span class="pill">命题</span> FF ≤ 1 - Ω_κ(ℓ_e),κ 单调,ℓ_e 单调(eq.bounded by logit-lens convergence)
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套 PDF: <code>/data/szhang967/papers/paper-notes/spec-rl/MirrorSD_2510.13161.pdf</code><br>
+  相关:<a href="01_NVIDIA_NeMoRL_EAGLE3.html">01 NeMo-RL × EAGLE-3</a> · <a href="02_EAGLE_evolution_DFlash.html">02 EAGLE evolution</a> · <a href="07_DFlash_2602.06036.html">07 DFlash</a> · <a href="08_HiddenStatesDrift_2604.26412.html">08 Hidden States Drift</a>
+</p>
+
+</main>
+
+<script>
+  // 轻交互:无,本文图都是静态示意,不需要 timeline 播放
+</script>
+
+</body>
+</html>
