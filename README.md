@@ -20,7 +20,8 @@
 | 12 | [DropMatch](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/12_DropMatch_2603.03333.html) | LM head MC dropout / semantic-level acceptance / training-free | 40 KB |
 | 13 | [Speculative Verification (SV)](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/13_SpecVerification_2509.24328.html) | info-gain 动态 verify length / companion 模型 | 44 KB |
 | 14 | [LK Losses](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/14_LKLosses_2602.23881.html) | 直接优化 acceptance rate / TV+KL hybrid / 反对 proxy 训练 | 41 KB |
-| 15 | [📐 Lossless 证明 (Tutorial)](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/15_Lossless_Proof_Tutorial.html) | rejection sampling 数学证明全步详解 (Leviathan/Chen 2023) | 48 KB |
+| 15 | [📐 Lossless 证明 (Tutorial)](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/15_Lossless_Proof_Tutorial.html) | rejection sampling 数学证明全步详解 (Leviathan/Chen 2023) | 53 KB |
+| 16 | [DDTree](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/16_DDTree_2604.12989.html) | 块扩散 drafter 上的最优 draft tree / best-first heap | 47 KB |
 
 建议阅读顺序: **15 (Lossless 数学证明) → 02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 14 (LK Losses) → 13 (SV) → 12 (DropMatch) → 11 (Performance or Illusion?)**
 
@@ -79,6 +80,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | DropMatch | — | 2026-03 | [2603.03333](https://arxiv.org/abs/2603.03333) |
 | Speculative Verification (SV) | — | 2025-09 | [2509.24328](https://arxiv.org/abs/2509.24328) |
 | LK Losses | — | 2026-02 | [2602.23881](https://arxiv.org/abs/2602.23881) |
+| DDTree | — | 2026-04 | [2604.12989](https://arxiv.org/abs/2604.12989) |
 | (经典) Leviathan et al. — Fast Inference via SD | Google | 2022-11 | [2211.17192](https://arxiv.org/abs/2211.17192) |
 | (经典) Chen et al. — Accelerating LLM Decoding | DeepMind | 2023-02 | [2302.01318](https://arxiv.org/abs/2302.01318) |
 
