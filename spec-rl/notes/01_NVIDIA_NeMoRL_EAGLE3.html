@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · NVIDIA NeMo-RL × EAGLE-3 (2604.26779)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Accelerating RL Post-Training Rollouts via System-Integrated Speculative Decoding</h1>
+<div class="meta">
+  NVIDIA · Hayate Iso et al. · 2026-04-30 · arXiv:2604.26779<br>
+  关键词: RL post-training · speculative decoding · EAGLE-3 · NeMo-RL · vLLM · GRPO
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 speculative decoding(用 EAGLE-3 这条通用路径)塞进 NeMo-RL 的 rollout 阶段,在不改 RL 训练语义的前提下,8B 同步训练加速 ~1.4×,235B + async 仿真预测可达 2.5×。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">65–72%</div><div class="l">RL step 中 generation 占比</div></div>
+    <div class="stat"><div class="n">1.5–1.8×</div><div class="l">8B rollout generation 加速</div></div>
+    <div class="stat"><div class="n">~2.5×</div><div class="l">235B 端到端 (仿真)</div></div>
+  </div>
+  <p><strong>立场:</strong>不是新方法,是<em>系统集成</em>论文。重点是回答:在 RL 训练这个动来动去的环境里,speculative decoding 还能不能用、怎么用、能省多少。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 rollout 是新的瓶颈</a></li>
+    <li><a href="#sec2">背景速查 (术语 / 公式 / 缩写)</a></li>
+    <li><a href="#sec3">核心立场:lossless = 不偷工减料</a></li>
+    <li><a href="#sec4">EAGLE-3 怎么工作: 推理 + 训练 (含动画)</a></li>
+    <li><a href="#sec5">速度模型 (Amdahl 公式) 与直觉</a></li>
+    <li><a href="#sec6">系统架构: vLLM × MegatronLM × Draft</a></li>
+    <li><a href="#sec7">三个 operational levers</a></li>
+    <li><a href="#sec8">与 async RL 的组合</a></li>
+    <li><a href="#sec9">大规模仿真投影</a></li>
+    <li><a href="#sec10">与同期工作对比 (FastGRPO / ReSpec)</a></li>
+    <li><a href="#sec11">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 rollout 突然成了瓶颈</h2>
+
+<h3>1.1 历史脉络</h3>
+<p>RL post-training(以 RLHF / GRPO / DPO 为代表)早期主要瓶颈在<strong>训练侧</strong>——梯度计算、PPO 的多次前向反向、reward model 的评分。在那个时代加速 rollout 显得不优先,因为 generation 在每步里只占小头。</p>
+<p>2024 年后两件事改变了这个局面:</p>
+<ul>
+  <li><strong>Reasoning 模型起飞</strong>(DeepSeek-R1, o1 系列) → 模型生成的 trajectory 长度从 ~512 token 涨到 4k–32k token,有时甚至 long-CoT 几万 token。</li>
+  <li><strong>Agentic RL</strong>(WebRL, Search-R1, ToolRL) → 一个 episode 里要调用 tool / 检索 / 多轮交互,token 总量再翻倍。</li>
+</ul>
+<p>论文里给出的硬数据:在 NeMo-RL 跑 Qwen3-8B + DAPO-Math 时,<strong>generation 占了一个 RL step 的 65–72%</strong>。这是 Amdahl 视角下"应该被攻击的部分"。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 600 110" width="100%" style="max-width:560px">
+    <!-- RL step bar -->
+    <rect x="10" y="40" width="20" height="40" fill="#bcc3d6"/>
+    <rect x="30" y="40" width="40" height="40" fill="#9aa6c4"/>
+    <rect x="70" y="40" width="380" height="40" fill="#cc4a1b"/>
+    <rect x="450" y="40" width="60" height="40" fill="#9aa6c4"/>
+    <rect x="510" y="40" width="80" height="40" fill="#7884a8"/>
+    <text x="20" y="100" font-size="10" text-anchor="middle">data</text>
+    <text x="50" y="100" font-size="10" text-anchor="middle">prep</text>
+    <text x="260" y="100" font-size="11" text-anchor="middle" fill="#cc4a1b" font-weight="bold">generation (~70%)</text>
+    <text x="480" y="100" font-size="10" text-anchor="middle">log-prob</text>
+    <text x="550" y="100" font-size="10" text-anchor="middle">train</text>
+    <text x="300" y="30" font-size="11" text-anchor="middle" fill="#5b5e66">一个同步 RL step 的时间分布 (Qwen3-8B / RL-Think)</text>
+  </svg>
+  <figcaption>实测: T_gen ≈ 134s,T_logprob ≈ 18s,T_train ≈ 31s,其余 ~3s。Amdahl 律下,只优化 generation 的"地板"= 1 / ((1-0.72) + 0.72/∞) ≈ 3.6×;现实中受 draft 开销 / acceptance 限制,工程上拿到 1.5×。</figcaption>
+</div>
+
+<h3>1.2 别的加速手段为什么"够呛"</h3>
+<p>论文用一个简洁的二分给同行下了"<em>判决</em>":</p>
+<div class="formula">learning speed = effectiveness × throughput</div>
+<p>throughput 是单位时间完成的 rollout/training 工作量;effectiveness 是每条 rollout 能榨出多少有效学习信号。<strong>RL 的训练分布是 policy 自己生成的</strong>,只要任何加速手段动了 sampling 分布,effectiveness 就受损。</p>
+
+<table>
+  <tr><th>加速手段</th><th>动了什么</th><th>代价</th></tr>
+  <tr><td>Async execution (PipelineRL, LlamaRL)</td><td>把 generation 和 learning 重叠</td><td><span class="no">policy lag</span> — rollout 用的是旧 policy</td></tr>
+  <tr><td>Off-policy replay / IS correction</td><td>复用旧 trajectory</td><td><span class="no">分布漂移,需 importance sampling 修正</span></td></tr>
+  <tr><td>Low-precision (FP8) rollout</td><td>降精度生成</td><td><span class="no">rollout/training 分布 mismatch</span></td></tr>
+  <tr><td>Selective prompt filtering</td><td>跳过没信息量的 prompt</td><td><span class="no">改了训练分布</span></td></tr>
+  <tr><td><strong>Speculative decoding</strong> 👈</td><td>只换"怎么生成同一个分布"</td><td><span class="ok">理论上零 effectiveness 代价</span></td></tr>
+</table>
+
+<div class="nb">
+  <strong>这是论文最锋利的论点。</strong>所有"动 sampling 分布"的加速都属于 <em>throughput ↑, effectiveness ↓</em>;speculative decoding 的 rejection sampling 在数学上保证 verifier 分布不变,所以是<em>纯</em>提 throughput,不付 effectiveness 学费。
+</div>
+
+<h3>1.3 但为什么"把 spec decoding 拿来用"非平凡?</h3>
+<p>Inference 时的 spec decoding 已经被 EAGLE / Medusa / SpecInfer 玩烂了。问题在于:</p>
+<ul>
+  <li><strong>Policy 一直在变。</strong>RL 每个 step 都更新 weights,inference 是 freeze 的。draft 跟得上吗?</li>
+  <li><strong>Loss 必须算在 verifier (target) policy 上。</strong>不能错把 draft 的 log-prob 拿去算 GRPO loss——那就改了优化目标。</li>
+  <li><strong>Draft 训练数据从哪来?</strong>chat 域的 EAGLE-3 在数学推理域 acceptance 不一定高。</li>
+  <li><strong>Async 模式下,加速余地还有多少?</strong>generation 已经被 overlap 掉一部分。</li>
+</ul>
+<p>论文要回答的就是这堆"系统级"问题。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">RL post-training</span></td><td>预训练完之后用 RL(GRPO / PPO / DPO 等)继续训练 LLM</td></tr>
+  <tr><td><span class="term">Rollout</span></td><td>RL 里 policy 自己生成的轨迹(prompt → 多个 sampled response)</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>DeepSeekMath 的 group relative policy optimization,无需 value model 的 PPO 变体</td></tr>
+  <tr><td><span class="term">Speculative Decoding</span></td><td>小模型 (draft) 一次提议 k 个 token,大模型 (target/verifier) 并行验证,通过 rejection 保证最终分布等同于 target</td></tr>
+  <tr><td><span class="term">Draft model</span></td><td>用来"猜"token 的小模型 / head</td></tr>
+  <tr><td><span class="term">Target / Verifier model</span></td><td>真正要采样的大模型,负责验证 draft 提议的 token</td></tr>
+  <tr><td><span class="term">Acceptance length α</span></td><td>每次 speculation 步骤平均能产出几个 token (= 1 + 接受的 draft 数)</td></tr>
+  <tr><td><span class="term">EAGLE-3</span></td><td>一种 draft 方案: 复用 target 的 hidden states,加一个轻量自回归 head 预测下一个 token feature</td></tr>
+  <tr><td><span class="term">MTP head</span></td><td>Multi-Token Prediction head, 模型预训练时就带的"多 token 同时预测"辅助头(DeepSeek-V3 用过)</td></tr>
+  <tr><td><span class="term">vLLM</span></td><td>高效 LLM serving 引擎,实现 paged KV cache、continuous batching</td></tr>
+  <tr><td><span class="term">MegatronLM</span></td><td>NVIDIA 的训练框架,做 tensor / pipeline 并行</td></tr>
+  <tr><td><span class="term">Policy lag</span></td><td>async RL 里,rollout 用的 policy 落后 learner 几步</td></tr>
+  <tr><td><span class="term">DAPO</span></td><td>字节开源的数学 RL 数据集 (DAPO-Math-17K)</td></tr>
+</table>
+
+<h3>2.2 Speculative decoding 的标准流程 (复习)</h3>
+<ol>
+  <li>Draft 自回归地生成 k 个 token: t₁, t₂, ..., tₖ</li>
+  <li>Target 一次前向 (并行处理 k+1 个位置), 得到每个位置的概率 p_target(·)</li>
+  <li>对每个 tᵢ, 以概率 min(1, p_target(tᵢ)/p_draft(tᵢ)) 接受;一旦拒绝,从 (p_target − p_draft)+ 重采样后停止</li>
+  <li>本步产出 1..k+1 个 token,继续下一步</li>
+</ol>
+<p>Leviathan 2023 证明: 这个 rejection 过程的输出分布与直接从 target 自回归采样<strong>等价</strong>。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 核心立场: lossless ≠ 偷工减料</h2>
+
+<p>论文反复强调一点:</p>
+<blockquote>
+"Speculative decoding targets throughput without changing the sampling distribution: the rejection procedure guarantees that rollouts follow the verifier policy, so effectiveness is preserved <em>by construction</em>."
+</blockquote>
+
+<p>翻译成大白话:对 RL 训练流水线来说,plug 上 spec decoding 就像把 generation 这台机器换成更快的型号——产出的"数据"(trajectories)从分布上看完全没变,所以 GRPO 的优化目标、KL 约束、reward 计算全都不需要改。</p>
+
+<p>这就是论文称它为"<strong>system-integrated</strong>"而不是"new algorithm"的原因——它本来就该是个底层加速 primitive。</p>
+
+<hr>
+
+<h2 id="sec4">4 · EAGLE-3 怎么工作: 推理 + 训练</h2>
+
+<p>论文没展开讲 EAGLE-3 本身(默认读者熟悉),但搞清楚 EAGLE-3 在 RL 里"如何<em>训练</em>"几乎是理解整套系统的关键。这一节把推理流程 + 训练流程拆开讲透。</p>
+
+<h3>4.1 推理时: draft 提议 → target 并行验证</h3>
+
+<div class="fig">
+  <svg id="eagleSvg" viewBox="0 0 700 240" width="100%" style="max-width:680px">
+    <!-- target -->
+    <rect x="20" y="20" width="660" height="60" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="350" y="48" text-anchor="middle" font-size="14" font-weight="600" fill="#2f6feb">Target Model (verifier, e.g. Qwen3-8B)</text>
+    <text x="350" y="68" text-anchor="middle" font-size="11" fill="#5b5e66">输出 hidden states + log-probs</text>
+
+    <!-- arrow down -->
+    <line x1="350" y1="80" x2="350" y2="110" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="370" y="100" font-size="11" fill="#5b5e66">复用 hidden state</text>
+
+    <!-- draft head -->
+    <rect x="180" y="115" width="340" height="50" rx="8" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="350" y="138" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">EAGLE-3 Draft Head (一层小 transformer)</text>
+    <text x="350" y="155" text-anchor="middle" font-size="11" fill="#5b5e66">自回归预测下一个 hidden state → 下一个 token</text>
+
+    <!-- proposed tokens row -->
+    <g id="dtokens">
+      <rect id="d1" x="100" y="190" width="50" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text id="d1t" x="125" y="213" text-anchor="middle" font-size="13" fill="#856404">t₁</text>
+      <rect id="d2" x="160" y="190" width="50" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text id="d2t" x="185" y="213" text-anchor="middle" font-size="13" fill="#856404">t₂</text>
+      <rect id="d3" x="220" y="190" width="50" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text id="d3t" x="245" y="213" text-anchor="middle" font-size="13" fill="#856404">t₃</text>
+      <text x="290" y="213" font-size="13" fill="#5b5e66">draft 提议 k=3 个</text>
+
+      <rect id="v1" x="450" y="190" width="50" height="36" rx="6" fill="#d4edda" stroke="#155724" opacity="0.3"/>
+      <text id="v1t" x="475" y="213" text-anchor="middle" font-size="13" fill="#155724" opacity="0.3">✓</text>
+      <rect id="v2" x="510" y="190" width="50" height="36" rx="6" fill="#d4edda" stroke="#155724" opacity="0.3"/>
+      <text id="v2t" x="535" y="213" text-anchor="middle" font-size="13" fill="#155724" opacity="0.3">✓</text>
+      <rect id="v3" x="570" y="190" width="50" height="36" rx="6" fill="#d4edda" stroke="#155724" opacity="0.3"/>
+      <text id="v3t" x="595" y="213" text-anchor="middle" font-size="13" fill="#a8353e" opacity="0.3">✗</text>
+      <rect id="v4" x="630" y="190" width="50" height="36" rx="6" fill="#cce5ff" stroke="#004085" opacity="0.3"/>
+      <text id="v4t" x="655" y="213" text-anchor="middle" font-size="13" fill="#004085" opacity="0.3">t'</text>
+    </g>
+    <text x="540" y="183" font-size="11" fill="#5b5e66" text-anchor="middle">target 一次并行验证</text>
+
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#888"/>
+      </marker>
+    </defs>
+  </svg>
+  <div class="ctrl">
+    <button onclick="playEagle()">▶ 播放</button>
+    <button onclick="resetEagle()">⟲ 重置</button>
+  </div>
+  <figcaption>① Draft head 复用 target 的 hidden states,自回归地一次给出 3 个候选 t₁ t₂ t₃。② Target 用<strong>一次</strong>前向并行验证 4 个位置(原位置 + 3 个候选)。③ Rejection sampling 决定接受到哪里;若中途拒绝则补一个修正 token t'。本图示意接受 2 个、拒绝第 3 个的情况,这一步合计产出 3 个 token,而 AR 只能产 1 个。</figcaption>
+</div>
+
+<h3>4.2 训练时(Step 1): Offline 初始化, base 完全冻结</h3>
+
+<p>RL 启动之前,先单独训一次 EAGLE-3 head。这一步非常标准——base 全程<strong>冻结</strong>,只更新 draft head 的小参数(通常 <1B)。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 320" width="100%" style="max-width:680px">
+    <!-- Target frozen -->
+    <rect x="20" y="15" width="300" height="76" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="170" y="38" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Target Qwen3-8B  🔒 frozen</text>
+    <text x="170" y="58" text-anchor="middle" font-size="11" fill="#3a3b40">在 (prompt, response) 上 forward</text>
+    <text x="170" y="76" text-anchor="middle" font-size="11" fill="#3a3b40">输出 multi-layer hidden h⁽ˡ⁾_t  +  p_target</text>
+
+    <!-- arrows -->
+    <line x1="100" y1="91" x2="100" y2="125" stroke="#666" marker-end="url(#arrT)"/>
+    <text x="50" y="115" font-size="10" fill="#5b5e66">hidden 选定层</text>
+    <line x1="240" y1="91" x2="240" y2="245" stroke="#888" stroke-dasharray="4,3"/>
+    <text x="270" y="170" font-size="10" fill="#5b5e66">p_target (作 label)</text>
+
+    <!-- Draft head -->
+    <rect x="40" y="130" width="180" height="58" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="130" y="153" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Draft head 🔓 trainable</text>
+    <text x="130" y="172" text-anchor="middle" font-size="11" fill="#3a3b40">1 transformer layer + proj</text>
+
+    <!-- arrow to p_draft -->
+    <line x1="130" y1="188" x2="130" y2="220" stroke="#666" marker-end="url(#arrT)"/>
+    <text x="100" y="212" font-size="11" fill="#5b5e66">p_draft</text>
+
+    <!-- KL loss -->
+    <rect x="50" y="245" width="200" height="56" rx="8" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="150" y="266" text-anchor="middle" font-size="12" font-weight="600" fill="#a8353e">Loss = KL(p_target || p_draft)</text>
+    <text x="150" y="288" text-anchor="middle" font-size="11" fill="#5b5e66">∇ 只回到 draft head</text>
+
+    <!-- training-time test box -->
+    <rect x="360" y="15" width="320" height="290" rx="10" fill="#fef9e6" stroke="#d2a32a" stroke-dasharray="5,3"/>
+    <text x="520" y="38" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Training-time test (EAGLE-3 关键 trick)</text>
+
+    <!-- step boxes -->
+    <rect x="378" y="60" width="100" height="34" rx="6" fill="#fff" stroke="#888"/>
+    <text x="428" y="82" text-anchor="middle" font-size="11">draft step 1</text>
+    <line x1="428" y1="94" x2="428" y2="118" stroke="#666" marker-end="url(#arrT)"/>
+
+    <rect x="378" y="123" width="100" height="34" rx="6" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="428" y="145" text-anchor="middle" font-size="11">draft step 2</text>
+    <line x1="428" y1="157" x2="428" y2="181" stroke="#666" marker-end="url(#arrT)"/>
+
+    <rect x="378" y="186" width="100" height="34" rx="6" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="428" y="208" text-anchor="middle" font-size="11">draft step 3</text>
+
+    <text x="500" y="80" font-size="11" fill="#5b5e66">输入: target 的 h_t (gold)</text>
+
+    <text x="500" y="135" font-size="11" fill="#cc4a1b" font-weight="600">输入: 用 step1 自己</text>
+    <text x="500" y="148" font-size="11" fill="#cc4a1b" font-weight="600">预测的 h'_{t+1}</text>
+    <text x="500" y="162" font-size="10" fill="#5b5e66">(不用 target 的 gold!)</text>
+
+    <text x="500" y="200" font-size="11" fill="#cc4a1b" font-weight="600">输入: step2 的预测</text>
+    <text x="500" y="216" font-size="10" fill="#5b5e66">→ 多步累积误差暴露给训练</text>
+
+    <text x="520" y="252" text-anchor="middle" font-size="11" fill="#5b5e66">这样训练时的输入分布</text>
+    <text x="520" y="266" text-anchor="middle" font-size="11" fill="#5b5e66">和推理时一致 (避免 exposure bias)</text>
+    <text x="520" y="288" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ acceptance length α 显著上升</text>
+
+    <defs>
+      <marker id="arrT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Offline 初始化阶段。左侧: 标准蒸馏式训练 — target 给出 hidden + 监督分布 p_target,draft 学着复现。右侧: EAGLE-3 名字里 "training-time test" 的关键技巧 — 让 draft 在训练时就尝过自己累积误差的味道。</figcaption>
+</div>
+
+<h4>具体一点: 一个 token 的训练 step 长什么样?</h4>
+<p>假设当前轨迹片段是 <code>"积分 等于"</code>,我们要训练 draft 能从 <code>"积分"</code> 后准确预测下一个 token 分布:</p>
+<ol>
+  <li>Target Qwen3-8B forward,在 <code>"积分"</code> 这个位置给出:
+    <ul>
+      <li>hidden states h⁽ˡ⁾ ∈ ℝ⁴⁰⁹⁶ (EAGLE-3 用 low/mid/high 三层各取一份,拼起来)</li>
+      <li>p_target(下一 token | "积分") ≈ {<code>等于</code>: 0.42, <code>=</code>: 0.31, <code>可以</code>: 0.08, ...}</li>
+    </ul>
+  </li>
+  <li>Draft head 接收 [拼接的 hidden, embed("积分")],经过一层 transformer,预测出 h'_{下一步} ∈ ℝ⁴⁰⁹⁶</li>
+  <li>用 target 的 vocab projection 矩阵把 h' 投到 logits → softmax → p_draft(下一 token | "积分")</li>
+  <li>loss = KL(p_target || p_draft),反传只更新 draft head 自己 + (可选) projection</li>
+</ol>
+
+<p>本论文做的事其实很朴素: <strong>不在 chat 数据(UltraChat / Magpie)上做这个 offline init,而是用 policy 自己产出的数学 trajectory(DAPO 题面 + Qwen3 自己的 response)</strong>。这一步把 acceptance length 从 2.88 拉到 3.32 (+15%),加速从 1.51× 拉到 1.77×。</p>
+
+<div class="nb">
+  <strong>记忆点:</strong> draft 不是从零学习"语言",而是学习"<em>模仿这个特定 target 在这个特定 domain 的下一 token 分布</em>"。所以 in-domain 数据决定下限。
+</div>
+
+<hr style="border-top:1px dashed var(--line);margin:18px 0">
+
+<h3>4.3 训练时(Step 2): RL 期间的 online adaptation (可选)</h3>
+
+<p>RL 训练期间 base policy 一直在变,如果 draft 完全冻结,理论上会逐渐与 policy 错位 → acceptance 下降。Online adaptation 的诉求就是让 draft 也每步跟着更新一点。</p>
+
+<p>但有两个工程死穴:</p>
+<ol>
+  <li><strong>不能再单独跑一次 base 给 draft 做监督</strong> — RL 一步本来就要跑一次 policy forward 算 GRPO loss(几十秒级别),再加一次太奢侈</li>
+  <li><strong>不能让 draft 的训练梯度污染 policy 的 gradient</strong> — 否则就改了 GRPO 的优化目标,违反 verifier-exact 原则</li>
+</ol>
+
+<p>NVIDIA 的解法:<strong>共享 forward + 用 <code>.detach()</code> 切割梯度</strong>。看下面这张图:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- Top: shared forward -->
+    <rect x="180" y="10" width="360" height="76" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="360" y="34" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">MegatronLM Policy Forward (一次)</text>
+    <text x="360" y="54" text-anchor="middle" font-size="11" fill="#3a3b40">在当前 RL step 的 (prompts, rollouts) 上跑</text>
+    <text x="360" y="72" text-anchor="middle" font-size="11" fill="#3a3b40">cache: hidden_states  +  log_probs</text>
+
+    <!-- arrows split -->
+    <line x1="270" y1="86" x2="170" y2="120" stroke="#cc4a1b" stroke-width="2" marker-end="url(#arrO)"/>
+    <text x="180" y="108" font-size="11" fill="#cc4a1b" font-weight="600">log_probs (with grad)</text>
+
+    <line x1="450" y1="86" x2="560" y2="120" stroke="#666" stroke-width="1.5" marker-end="url(#arrO)"/>
+    <text x="525" y="108" font-size="11" fill="#5b5e66">hidden_states</text>
+
+    <!-- LEFT branch: GRPO -->
+    <rect x="50" y="125" width="240" height="62" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="170" y="148" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">GRPO loss</text>
+    <text x="170" y="167" text-anchor="middle" font-size="11" fill="#3a3b40">log_probs · advantages</text>
+    <text x="170" y="181" text-anchor="middle" font-size="11" fill="#3a3b40">+ KL penalty (vs ref)</text>
+
+    <line x1="170" y1="187" x2="170" y2="218" stroke="#cc4a1b" stroke-width="2.5" marker-end="url(#arrO)"/>
+    <text x="220" y="207" font-size="11" fill="#cc4a1b" font-weight="700">∇ base</text>
+
+    <rect x="100" y="222" width="140" height="42" rx="6" fill="#cc4a1b" opacity="0.15" stroke="#cc4a1b"/>
+    <text x="170" y="248" text-anchor="middle" font-size="12" fill="#cc4a1b" font-weight="600">更新 Qwen3-8B</text>
+
+    <!-- RIGHT branch: detach gate + draft -->
+    <!-- detach gate (highlighted with scissors-like style) -->
+    <rect x="465" y="125" width="200" height="50" rx="8" fill="#f8d7da" stroke="#a8353e" stroke-width="2.5"/>
+    <text x="565" y="146" text-anchor="middle" font-size="13" font-weight="700" fill="#a8353e">⌐ .detach() 栅栏 ⌐</text>
+    <text x="565" y="163" text-anchor="middle" font-size="10" fill="#5b5e66">值保留 / requires_grad=False</text>
+
+    <line x1="565" y1="175" x2="565" y2="195" stroke="#666" marker-end="url(#arrO)"/>
+
+    <rect x="465" y="200" width="200" height="44" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="565" y="221" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Draft head forward</text>
+    <text x="565" y="237" text-anchor="middle" font-size="11" fill="#3a3b40">→ p_draft</text>
+
+    <line x1="565" y1="244" x2="565" y2="262" stroke="#666" marker-end="url(#arrO)"/>
+
+    <rect x="425" y="267" width="280" height="42" rx="8" fill="#fff" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <text x="565" y="290" text-anchor="middle" font-size="12" font-weight="600" fill="#a8353e">SpecDec loss = KL(p_target || p_draft)</text>
+
+    <!-- gradient up to draft head only -->
+    <path d="M 700 285 Q 720 230 670 222" stroke="#a8353e" stroke-width="2.5" fill="none" marker-end="url(#arrO)"/>
+    <text x="688" y="262" font-size="10" fill="#a8353e" font-weight="700">∇ draft</text>
+
+    <!-- "blocked at gate" indicator -->
+    <path d="M 565 200 Q 555 188 565 175" stroke="#a8353e" stroke-width="2.5" fill="none"/>
+    <text x="595" y="194" font-size="10" fill="#a8353e" font-weight="700">↑ 反传到此</text>
+    <text x="595" y="207" font-size="10" fill="#a8353e" font-weight="700">  被栅栏拦住</text>
+
+    <!-- log_probs feed into KL as label (dashed) -->
+    <path d="M 360 86 Q 360 270 425 285" stroke="#888" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+    <text x="335" y="200" font-size="10" fill="#5b5e66" transform="rotate(50 335 200)">p_target (作 label, no grad)</text>
+
+    <!-- bottom legend -->
+    <rect x="40" y="320" width="660" height="32" rx="6" fill="#f3eee0" stroke="#888" stroke-dasharray="3,2"/>
+    <text x="370" y="341" text-anchor="middle" font-size="11.5" fill="#3a3b40" font-style="italic">两条梯度通道完全隔离 → base 永远只看 GRPO,draft 永远只看 SpecDec → verifier-exact</text>
+
+    <defs>
+      <marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Online adaptation 的数据流。重点在<strong>右半部分的 .detach() 栅栏</strong>: 它让 hidden_states 这个 tensor 的<em>值</em>原样传到 draft head,但<em>梯度</em>反传到这就停。所以 draft head 的 SpecDec loss 反传时只能到 draft head 自己,无法溯源到 base。</figcaption>
+</div>
+
+<h4>具体数据流</h4>
+<ol>
+  <li>MegatronLM 跑一次 policy forward(本来就要做),顺便 cache hidden states 和 log_probs</li>
+  <li>这份 cache 走两条独立的路:
+    <ul>
+      <li><strong>左路</strong>: log_probs → GRPO loss → 反传 → 更新 base 的 Qwen3-8B 权重</li>
+      <li><strong>右路</strong>: hidden_states <code>.detach()</code> → 喂给 draft head → 算 SpecDec loss → 反传 → <em>只</em>更新 draft head 权重</li>
+    </ul>
+  </li>
+  <li>p_target(用作右路 KL 的 label)也是从同一份 forward 来的,本身就 detach</li>
+</ol>
+
+<p><code>.detach()</code> 在 PyTorch 里的语义就是: tensor 的<em>值</em>原样保留,但 <code>requires_grad=False</code>;反向传播到这个边界就<em>断</em>了,不会再往上游 base 传。</p>
+
+<hr style="border-top:1px dashed var(--line);margin:18px 0">
+
+<h3>4.4 为什么 detach 必须存在(反向思考)</h3>
+
+<p>假设没有 detach,会发生什么?draft 的 SpecDec loss 想要 <em>p_target ≈ p_draft</em>,梯度沿着 hidden_states 流回 base,实际上是在<strong>"央求" base 调整自己的 hidden 表示,让自己变得更易被 draft 预测</strong>——比如更平滑、entropy 更低、表征更集中。</p>
+
+<p>但这<em>未必</em>是 RL 想要的。RL (GRPO) 想要的是: 探索 reward 高的轨迹,可能需要更多样的输出分布、更尖锐的 attention 模式。两个目标有时候冲突。让 draft 反向影响 base 等于<strong>偷偷修改了 RL 的优化目标</strong>。</p>
+
+<p>用 detach 把梯度切开后,二者完全脱钩:</p>
+
+<table>
+  <tr><th></th><th>Optimizer 看见的 loss</th><th>更新的参数</th><th>是否影响对方</th></tr>
+  <tr><td><strong>Base policy</strong></td><td>GRPO loss (reward signal)</td><td>Qwen3-8B 全部 weights</td><td>不影响 draft</td></tr>
+  <tr><td><strong>Draft head</strong></td><td>SpecDec loss (KL with target)</td><td>仅 draft head weights</td><td>不影响 base</td></tr>
+</table>
+
+<p>两个 optimizer state 各管各的。Base 永远不知道 draft 的存在。这就是论文反复强调的 "<strong>verifier-exact training semantics</strong>" 的物理基础。</p>
+
+<hr style="border-top:1px dashed var(--line);margin:18px 0">
+
+<h3>4.5 而且——默认其实是冻的</h3>
+
+<p>Section 7 的 Table 5 给了一个挺反直觉的数据(这里先剧透):</p>
+<ul>
+  <li>好初始化 (DAPO in-domain): online vs offline <strong>几乎打平</strong> (1.78× vs 1.77×)</li>
+  <li>弱初始化 (UltraChat chat-domain): online 才挽回一点 (1.63× vs 1.51×)</li>
+</ul>
+
+<p>言下之意:<strong>policy 在 RL 中的漂移其实没你想象那么剧烈</strong>。一个对齐良好的 EAGLE-3 在几百 step RL 里 acceptance 几乎不掉。所以工程上推荐的部署路线是:</p>
+
+<blockquote>
+  花点功夫做 in-domain offline init → RL 时直接 <strong>冻结</strong> draft,不开 online adaptation。系统最简单 — 不需要在每步缓存 hidden states,不需要 detach 通路,不需要额外维护 draft 的 optimizer state。
+</blockquote>
+
+<p>Online adaptation 真正的角色是<strong>"如果你只能拿到 chat 数据训 draft" 的止损通道</strong>,不是默认推荐。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 速度模型: 一个 Amdahl 公式说清一切</h2>
+
+<h3>5.1 step 时间分解</h3>
+<div class="formula">T_step = T_data + T_prepare + T_gen + T_logprob + T_train</div>
+<p>spec decoding <em>只</em>动 T_gen,而且只动其中 decode 部分(prefill 不动)。</p>
+
+<h3>5.2 加速上界</h3>
+<div class="formula">
+  S_step ≤ 1 / ( R_gen / α + (1 − R_gen) )
+</div>
+<p>其中 <code>R_gen = T_gen / T_step</code>(generation 占比),<code>α</code> = mean acceptance length。</p>
+
+<h3>5.3 物理直觉</h3>
+<p>这就是 Amdahl 律的标准形式:你只能加速一部分(R_gen),那部分被加速 α 倍,整体上限就是上式。</p>
+
+<table>
+  <tr><th>R_gen</th><th>α=2</th><th>α=3</th><th>α=5</th><th>α→∞</th></tr>
+  <tr><td>0.5</td><td>1.33×</td><td>1.50×</td><td>1.67×</td><td>2.00×</td></tr>
+  <tr><td>0.7</td><td>1.54×</td><td>1.88×</td><td>2.27×</td><td>3.33×</td></tr>
+  <tr><td>0.9</td><td>1.82×</td><td>2.50×</td><td>3.57×</td><td>10.0×</td></tr>
+</table>
+
+<div class="nb">
+  <strong>实践推论:</strong>R_gen 越接近 1,spec decoding 的天花板越高。这就是论文中"frontier-scale 模型 + 长 reasoning trace"是 spec decoding 最甜蜜的领域的原因——T_gen 自然占绝对大头。
+</div>
+
+<h3>5.4 但 α 大不一定就好——这是论文最反直觉的发现之一</h3>
+<p>上面的公式假设"每次 speculation 步骤的成本 = 一次自回归前向"。<strong>这只是上界。</strong>实际中 draft 自身有开销,k 越大、draft 自回归越久。</p>
+
+<table>
+  <tr><th>Draft length k</th><th>α (RL-Zero)</th><th>Speedup</th><th>α (RL-Think)</th><th>Speedup</th></tr>
+  <tr><td>3</td><td>3.32</td><td class="ok">1.77×</td><td>2.77</td><td class="ok">1.53×</td></tr>
+  <tr><td>5</td><td>4.35</td><td>1.44×</td><td>3.23</td><td class="no">0.84×</td></tr>
+  <tr><td>7</td><td>5.06</td><td>1.21×</td><td>3.48</td><td class="no">0.71×</td></tr>
+</table>
+
+<p>RL-Think 的 k=5/7 比 AR <em>还慢</em>!原因: α 增长边际递减,但 draft 自回归成本是线性的。<strong>k=3 在大多数 reasoning 工作负载上是甜点</strong>。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 系统架构: vLLM × MegatronLM × Draft 三方协调</h2>
+
+<div class="fig">
+  <svg viewBox="0 0 700 320" width="100%" style="max-width:680px">
+    <!-- vLLM box -->
+    <rect x="20" y="20" width="240" height="100" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="140" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">vLLM (rollout engine)</text>
+    <text x="140" y="62" text-anchor="middle" font-size="11" fill="#3a3b40">target Qwen3-8B + EAGLE-3 head</text>
+    <text x="140" y="80" text-anchor="middle" font-size="11" fill="#3a3b40">paged KV + continuous batching</text>
+    <text x="140" y="100" text-anchor="middle" font-size="11" fill="#cc4a1b">→ rollout trajectories</text>
+
+    <!-- MegatronLM box -->
+    <rect x="440" y="20" width="240" height="100" rx="10" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="560" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">MegatronLM (learner)</text>
+    <text x="560" y="62" text-anchor="middle" font-size="11" fill="#3a3b40">policy forward → GRPO loss</text>
+    <text x="560" y="80" text-anchor="middle" font-size="11" fill="#3a3b40">tensor / pipeline parallel</text>
+    <text x="560" y="100" text-anchor="middle" font-size="11" fill="#cc4a1b">← weight update</text>
+
+    <!-- arrow trajectories -->
+    <path d="M 260 70 L 440 70" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#arr2)"/>
+    <text x="350" y="62" text-anchor="middle" font-size="11" fill="#cc4a1b">trajectories</text>
+
+    <!-- arrow weights back -->
+    <path d="M 440 95 Q 350 145 260 95" stroke="#2f6feb" stroke-width="2" fill="none" marker-end="url(#arr2)"/>
+    <text x="350" y="142" text-anchor="middle" font-size="11" fill="#2f6feb">每 step 同步新 weights</text>
+
+    <!-- Cache + .detach() -->
+    <rect x="160" y="180" width="380" height="80" rx="10" fill="#f3eee0" stroke="#888" stroke-dasharray="4,3"/>
+    <text x="350" y="202" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Hidden-state &amp; log-prob cache (来自 policy forward)</text>
+    <text x="350" y="220" text-anchor="middle" font-size="11" fill="#5b5e66">复用同一次 forward, 不再单独跑 policy 一遍</text>
+    <text x="350" y="240" text-anchor="middle" font-size="11" fill="#a8353e">.detach() — gradient 不流回 policy</text>
+
+    <!-- arrows from MegatronLM to cache -->
+    <path d="M 560 120 L 540 180" stroke="#888" stroke-width="1.5" fill="none" marker-end="url(#arr2)"/>
+    <!-- arrow from cache to vLLM draft -->
+    <path d="M 160 220 Q 80 220 80 130 L 140 120" stroke="#888" stroke-width="1.5" fill="none" marker-end="url(#arr2)"/>
+    <text x="50" y="170" font-size="11" fill="#5b5e66">SpecDec loss</text>
+    <text x="50" y="184" font-size="11" fill="#5b5e66">→ 训练 draft</text>
+
+    <!-- legend -->
+    <text x="350" y="295" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">verifier-exact 关键: GRPO loss / KL / log-prob 全部用 target 算,draft 只通过 detach 通道训练</text>
+
+    <defs>
+      <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>系统总览(对应原论文 Figure 1)。三个关键工程点: ① 每个 RL step 把 learner 的新 weights 同步到 vLLM (含 EAGLE-3 head); ② 复用 policy forward 得到的 hidden states + log-probs,既算 GRPO loss 又给 draft 当训练监督;③ 用 <code>.detach()</code> 把 draft 训练的梯度从 policy 上切断,保证 policy gradient 信号干净。</figcaption>
+</div>
+
+<h3>6.1 三种 drafting 路径</h3>
+<table>
+  <tr><th>路径</th><th>需要什么</th><th>适用场景</th></tr>
+  <tr><td>Native MTP</td><td>模型预训练时就带 MTP head (DeepSeek-V3, Gloeckle 2024)</td><td>最优雅,但只有少数模型有</td></tr>
+  <tr><td>External draft</td><td>蒸馏或独立训练一个小模型</td><td>通用,但需独立维护小模型</td></tr>
+  <tr><td><strong>EAGLE-3 (本文主角)</strong></td><td>给任意 pretrained model 加一个轻量 head</td><td>最通用,本论文重点研究</td></tr>
+</table>
+
+<p>论文选 EAGLE-3 是<em>故意挑硬骨头</em>: 它要训一个外部 draft + 在 RL 中保持对齐,系统结论可以直接套到 MTP 这条简单路径。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 三个 operational levers (实战调参)</h2>
+
+<h3>7.1 Lever ①: Draft 的初始化 (in-domain 比 chat 好得多)</h3>
+<table>
+  <tr><th>Init</th><th>RL-Zero α</th><th>RL-Zero speedup</th><th>RL-Think α</th><th>RL-Think speedup</th></tr>
+  <tr><td>UltraChat (chat domain)</td><td>2.88</td><td>1.51×</td><td>2.40</td><td>1.19×</td></tr>
+  <tr><td><strong>DAPO (math domain)</strong></td><td>3.32</td><td><strong>1.77×</strong></td><td>2.77</td><td><strong>1.53×</strong></td></tr>
+</table>
+<p><strong>结论:</strong>初始化数据要和实际 RL rollout 分布对齐。chat draft 跑数学就吃亏。</p>
+
+<h3>7.2 Lever ②: Draft length k (短的反而好)</h3>
+<p>见 §5.4 表,核心结论: <strong>k=3 几乎总是最优</strong>。难任务上 k=5/7 反而拖慢。</p>
+
+<h3>7.3 Lever ③: Online draft adaptation (弱初始化的"保险")</h3>
+<table>
+  <tr><th>变体</th><th>RL-Zero speedup</th><th>RL-Think speedup</th></tr>
+  <tr><td>UltraChat, offline</td><td>1.51×</td><td>1.19×</td></tr>
+  <tr><td>UltraChat, <strong>online</strong></td><td>1.63× ↑</td><td>1.26× ↑</td></tr>
+  <tr><td>DAPO, offline</td><td>1.77×</td><td>1.53×</td></tr>
+  <tr><td>DAPO, online</td><td>1.78× (≈)</td><td>1.52× (≈)</td></tr>
+</table>
+<p><strong>结论:</strong>"online 训 draft"对好初始化几乎没用,对弱初始化是<em>保险机制</em>。这意味着如果你能拿到 in-domain 数据训 draft,可以省掉 online 这套复杂度。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 与 async RL 的组合</h2>
+
+<p>Async RL(PipelineRL, LlamaRL)本身就把 generation 和 training 重叠掉了一部分,问题: spec decoding 还有用吗?</p>
+
+<div class="kv">
+  <strong>关键数据 (RL-Think, lag=1, 16 节点 12-gen/4-train):</strong><br>
+  exposed generation time: 10.4s → 0.6s (spec decoding 后)<br>
+  effective step time: 75.0s → 60.5s (<strong>1.24× 端到端</strong>)
+</div>
+
+<p>加速倍数比 sync 的 1.35× 略小,因为 async 已经"提前"省了一些。但<strong>两个机制是互补的</strong>: spec decoding 让单条 rollout 更便宜,async 把剩余 rollout cost 藏到 training 后面。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 大规模仿真投影</h2>
+
+<p>论文最有"商业气息"的部分: 既然 8B 实测有限(只跑得起 32 GPU),那就用<em>高保真 GPU 性能仿真器</em>(NVIDIA 内部的)外推到 235B / 2048 GPU。</p>
+
+<h3>9.1 关键预测</h3>
+<ul>
+  <li><strong>Qwen3-235B-A22B (MoE)</strong>: 在 2048 GB200 + lag=2 的甜点上,rollout speedup ~3.5×, 端到端 ~2.5×</li>
+  <li><strong>Qwen3-8B</strong>: 各 scale 下都 ~2.8–3.2×,对 scale/lag 不敏感</li>
+  <li>越大模型越能受益:小 batch / 大 model → long-tail 加剧 → spec decoding 的空间反而大</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 600 220" width="100%" style="max-width:580px">
+    <!-- axes -->
+    <line x1="60" y1="180" x2="560" y2="180" stroke="#888"/>
+    <line x1="60" y1="20" x2="60" y2="180" stroke="#888"/>
+    <text x="310" y="210" text-anchor="middle" font-size="12" fill="#5b5e66">Acceptance length α (横轴) →</text>
+    <text x="20" y="100" font-size="12" fill="#5b5e66" transform="rotate(-90 20 100)">Draft length k</text>
+    <!-- heatmap cells (4 rows, 7 cols simplified) -->
+    <g font-size="10" text-anchor="middle">
+      <!-- k=1 -->
+      <rect x="60" y="140" width="65" height="35" fill="#cee5ff"/><text x="92" y="160">.97</text>
+      <rect x="125" y="140" width="65" height="35" fill="#9ec5ff"/><text x="157" y="160">1.45</text>
+      <rect x="190" y="140" width="65" height="35" fill="#7eb1ff"/><text x="222" y="160">1.93</text>
+      <!-- k=3 -->
+      <rect x="60" y="105" width="65" height="35" fill="#7eb1ff"/><text x="92" y="125">1.36</text>
+      <rect x="125" y="105" width="65" height="35" fill="#5996ff"/><text x="157" y="125">1.81</text>
+      <rect x="190" y="105" width="65" height="35" fill="#3b7ff5"/><text x="222" y="125" fill="#fff">2.27</text>
+      <rect x="255" y="105" width="65" height="35" fill="#1f6feb"/><text x="287" y="125" fill="#fff">2.72</text>
+      <rect x="320" y="105" width="65" height="35" fill="#1058c7"/><text x="352" y="125" fill="#fff">3.62</text>
+      <rect x="385" y="105" width="65" height="35" fill="#888" opacity="0.3"/><text x="417" y="125" fill="#fff">—</text>
+      <!-- k=5 -->
+      <rect x="60" y="70" width="65" height="35" fill="#9ec5ff"/><text x="92" y="90">1.72</text>
+      <rect x="125" y="70" width="65" height="35" fill="#5996ff"/><text x="157" y="90">2.14</text>
+      <rect x="190" y="70" width="65" height="35" fill="#3b7ff5"/><text x="222" y="90" fill="#fff">2.57</text>
+      <rect x="255" y="70" width="65" height="35" fill="#1058c7"/><text x="287" y="90" fill="#fff">3.42</text>
+      <rect x="320" y="70" width="65" height="35" fill="#0843a0"/><text x="352" y="90" fill="#fff">4.27</text>
+      <rect x="385" y="70" width="65" height="35" fill="#063385"/><text x="417" y="90" fill="#fff">5.12</text>
+      <!-- k=7 -->
+      <rect x="60" y="35" width="65" height="35" fill="#7eb1ff"/><text x="92" y="55">1.63</text>
+      <rect x="125" y="35" width="65" height="35" fill="#3b7ff5"/><text x="157" y="55" fill="#fff">2.04</text>
+      <rect x="190" y="35" width="65" height="35" fill="#1f6feb"/><text x="222" y="55" fill="#fff">2.45</text>
+      <rect x="255" y="35" width="65" height="35" fill="#0843a0"/><text x="287" y="55" fill="#fff">3.26</text>
+      <rect x="320" y="35" width="65" height="35" fill="#063385"/><text x="352" y="55" fill="#fff">4.07</text>
+      <rect x="385" y="35" width="65" height="35" fill="#042466"/><text x="417" y="55" fill="#fff">4.88</text>
+      <rect x="450" y="35" width="65" height="35" fill="#02194d"/><text x="482" y="55" fill="#fff">5.68</text>
+    </g>
+    <!-- x labels -->
+    <g font-size="10" fill="#5b5e66" text-anchor="middle">
+      <text x="92" y="195">1</text>
+      <text x="157" y="195">1.5</text>
+      <text x="222" y="195">2</text>
+      <text x="287" y="195">2.5</text>
+      <text x="352" y="195">3</text>
+      <text x="417" y="195">4</text>
+      <text x="482" y="195">5</text>
+    </g>
+    <!-- y labels -->
+    <g font-size="10" fill="#5b5e66" text-anchor="end">
+      <text x="55" y="58">7</text><text x="55" y="93">5</text>
+      <text x="55" y="128">3</text><text x="55" y="163">1</text>
+    </g>
+    <text x="310" y="15" text-anchor="middle" font-size="12" font-weight="600">Qwen3-235B 仿真: rollout speedup heatmap</text>
+  </svg>
+  <figcaption>α 较低时(右下)长 draft 反而拖慢;α 高时(右上)长 draft 才划算。但端到端 speedup 受 non-gen 阶段稀释,2.22× 是端到端的天花板(rollout 6.49× vs end-to-end 2.22×)。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 与同期工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>侧重</th><th>本文与之差异</th></tr>
+  <tr><td>FastGRPO (2509.21792)</td><td>concurrency-aware scheduling + online draft learning,在高并发 group sampling 下</td><td>本文不做调度,关注 e2e 系统集成</td></tr>
+  <tr><td>ReSpec (2510.26475)</td><td>adaptive draft config + reward-weighted drafter adaptation</td><td>本文不做 reward-aware 自适应,但展示更系统的 ablation</td></tr>
+  <tr><td><strong>NVIDIA NeMo-RL (本文)</strong></td><td>生产级 RL 栈 + sync/async + 32→2048 GPU 仿真</td><td>"工程报告"风格,论"deployable"</td></tr>
+</table>
+
+<div class="nb">
+  关注点提示: <strong>ReSpec 才是把"three gaps"系统化的那篇</strong>(reward-weighted, adaptive k, online drafter),NVIDIA 这篇更像是"我们把这些都集成到产品里跑通了"。读完 NeMo-RL 再看 ReSpec 会觉得它的视角更"研究化"。
+</div>
+
+<hr>
+
+<h2 id="sec11">11 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>Generation share 高 (R_gen) 才划算 — 短输出任务(指令调优、代码补全短回复)受益小</li>
+  <li>Acceptance length 强烈依赖 in-domain 数据 — chat draft 套不到数学</li>
+  <li>仿真器是 proprietary,2.5× 是<em>opportunity envelope</em>,不是实测</li>
+  <li>k 的甜点窄,生产部署需要做 sweep</li>
+</ul>
+
+<h3>我的疑问 (落地后想验证)</h3>
+<ol>
+  <li>论文用 GRPO,如果换 PPO (有 value model + critic loss),T_train 占比上升,R_gen 下降,加速天花板会显著降低?</li>
+  <li>在 long-CoT (32k+) 场景,KV cache 量级巨大,EAGLE-3 head 是否会因为要并行验证 k+1 个位置而打爆 vLLM 的 paged KV?</li>
+  <li>"online adaptation 对弱 init 有用"——但弱 init 本来就是 1.5× 升到 1.6×,绝对收益小;实际中是否值得维护这个复杂度?</li>
+  <li>Async + lag=1 时仍能 1.24×,但论文没汇报 lag=2/4/8 的实测,只有仿真。生产里 lag 经常是 2–4。</li>
+  <li>FP8 rollout × spec decoding 没尝试组合(FP8 改 sampling 分布,与 lossless 矛盾),但工程上很多人会两个一起用,效果未知。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> RL rollout 是新瓶颈,且唯一不付 effectiveness 学费的加速是 spec decoding<br>
+  <span class="pill">公式</span> S ≤ 1 / (R_gen/α + 1−R_gen)<br>
+  <span class="pill">甜点</span> k=3, in-domain draft init, R_gen 越大越好<br>
+  <span class="pill">陷阱</span> α↑ 不一定 speedup↑,n-gram 即便 α=2.47 也比 AR 慢<br>
+  <span class="pill">扩展</span> async 互补,235B 仿真 2.5× e2e
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF 在 <code>/data/szhang967/papers/spec-rl/NVIDIA-NeMo-RL-EAGLE3_2604.26779.pdf</code>
+</p>
+
+</main>
+
+<script>
+  function setOp(id, op){ document.getElementById(id).setAttribute('opacity', op); }
+  function pulse(id){
+    const el = document.getElementById(id);
+    el.setAttribute('stroke-width','2.5');
+    setTimeout(()=>el.setAttribute('stroke-width','1'),400);
+  }
+  function resetEagle(){
+    ['v1','v1t','v2','v2t','v3','v3t','v4','v4t'].forEach(i=>setOp(i,'0.3'));
+    ['d1','d2','d3'].forEach(i=>setOp(i,'1'));
+  }
+  function playEagle(){
+    resetEagle();
+    // step 1: draft proposes — pulse one by one
+    setTimeout(()=>pulse('d1'), 100);
+    setTimeout(()=>pulse('d2'), 500);
+    setTimeout(()=>pulse('d3'), 900);
+    // step 2: target verifies in parallel
+    setTimeout(()=>{
+      ['v1','v1t','v2','v2t','v3','v3t','v4','v4t'].forEach(i=>setOp(i,'1'));
+    }, 1500);
+  }
+</script>
+
+</body>
+</html>

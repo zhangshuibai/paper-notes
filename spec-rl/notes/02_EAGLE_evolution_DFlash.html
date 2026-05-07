@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · EAGLE 1/2/3 演化 × DFlash</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>EAGLE 演化史 (1 → 2 → 3) 与 DFlash 的回答</h1>
+<div class="meta">
+  Yuhui Li 等 · 2024.01–2026.02 · arXiv:2401.15077 / 2406.16858 / 2503.01840 / 2602.06036<br>
+  关键词: speculative decoding · feature autoregression · dynamic draft tree · training-time test · block diffusion drafter
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p>
+    <strong>EAGLE-1</strong>: 把 draft 从 token 级搬到 second-to-top-layer feature 级,再用 shifted token 解 sampling 不确定性 → 70B 上 ~3× speedup。
+    <strong>EAGLE-2</strong>: 发现 draft confidence 是 acceptance rate 的良好近似,把静态 binary 树换成 context-aware dynamic draft tree → +20–40% over v1。
+    <strong>EAGLE-3</strong>: 拆掉 feature regression loss + 多层特征融合 + training-time test 模拟自身误差 → 在 ShareGPT/UltraChat 上首次出现 draft data scaling law,~6.5× speedup。
+    <strong>DFlash</strong>: 直接换掉 draft 范式——用 block diffusion 一次并行画出 γ 个 token,再把 target hidden 注入到 draft 的 KV cache;Qwen3-8B 上 ~6× ,比 EAGLE-3 再快 2.5×。
+  </p>
+  <div class="stats">
+    <div class="stat"><div class="n">3.0×</div><div class="l">EAGLE-1 / LLaMA2-Chat 70B</div></div>
+    <div class="stat"><div class="n">5.5×</div><div class="l">EAGLE-3 / Vicuna 13B 平均</div></div>
+    <div class="stat"><div class="n">~2.5×</div><div class="l">DFlash 相对 EAGLE-3 再加速</div></div>
+  </div>
+  <p><strong>立场:</strong>EAGLE 三代是<em>同一架构在四个维度上的逐步松绑</em>(feature 级 → 动态树 → 多层融合 + 端到端 token 目标);DFlash 把 draft 的"自回归"维度本身砍掉,代表 draft 范式的下一步分叉。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">EAGLE-1: feature 级自回归 + shifted token</a></li>
+    <li><a href="#sec2">EAGLE-2: confidence 校准 + dynamic draft tree</a></li>
+    <li><a href="#sec3">EAGLE-3: 拆 feature loss + 多层融合 + training-time test</a></li>
+    <li><a href="#sec4">DFlash: 用 block diffusion 替代 autoregressive drafter</a></li>
+    <li><a href="#sec5">演化轨迹: 一根线索 + 一次范式分叉</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · EAGLE-1 (2401.15077): 把 draft 抬到 feature 层</h2>
+
+<h3>1.1 动机:before EAGLE,draft 模型卡在哪</h3>
+<p>2023 年的 speculative decoding 已经被 Leviathan 和 Chen 证明是 lossless 的,但工程上很尴尬:</p>
+<ul>
+  <li><strong>找不到合适大小的 draft model。</strong>LLaMA2 系列里 7B 给 70B 当 drafter 行得通,但 7B 自己想加速,只能拿 TinyLLaMA(template 不一致)或自己再训一个小模型(3000B token 的预训练成本)。</li>
+  <li><strong>Medusa</strong>:用 target 的 second-to-top-layer feature <em>f₂</em> 直接预测 t₄、t₅;但 t₄、t₅ 之间是相互独立的 head,acceptance 大约 0.6 就到顶。</li>
+  <li><strong>Lookahead</strong>:用 n-gram + Jacobi,完全不带训练,但 acceptance 更低。</li>
+</ul>
+<p>EAGLE 的两个核心 observation:</p>
+<ol>
+  <li><strong>Feature 级序列比 token 级序列更"规则"。</strong>Feature 是连续高维向量,从 f₁ 推 f₂ 的轨迹比从 t₁ 推 t₂ 的离散跳变更平滑,小模型更容易拟合。</li>
+  <li><strong>但 feature autoregression 自带 sampling 不确定性。</strong>同一个 f<sub>I</sub> 后面,sample 出 "am" 和 "always" 会得到完全不同的下一个 feature——这是<em>分布</em>而不是<em>函数</em>。</li>
+</ol>
+<p>第二点是 EAGLE 论文里最锋利的洞察。它的解法很便宜:把<strong>"领先一个时间步的 token 序列"</strong>(即已经采样的 tokens)和 feature 序列一起喂给 draft model,把"未观测到的随机性"显式注入,从而把"由 f<sub>I</sub> 预测下一个 feature"这件事从 ill-posed 变成 well-posed。</p>
+
+<h3>1.2 核心方法</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- title -->
+    <text x="350" y="20" font-size="13" font-weight="bold" text-anchor="middle">EAGLE 的 drafting:feature + shifted token</text>
+
+    <!-- target LLM block -->
+    <rect x="20" y="50" width="140" height="180" fill="#f3eee0" stroke="#d8d2bf" rx="6"/>
+    <text x="90" y="68" font-size="11" font-weight="bold" text-anchor="middle">Target LLM (frozen)</text>
+    <text x="90" y="92" font-size="11" text-anchor="middle">"How can"</text>
+    <rect x="35" y="100" width="50" height="22" fill="#9aa6c4" rx="3"/><text x="60" y="115" font-size="10" text-anchor="middle" fill="white">f_how</text>
+    <rect x="95" y="100" width="50" height="22" fill="#9aa6c4" rx="3"/><text x="120" y="115" font-size="10" text-anchor="middle" fill="white">f_can</text>
+    <text x="90" y="142" font-size="10" text-anchor="middle" fill="#5b5e66">+ sampled tokens</text>
+    <rect x="35" y="150" width="50" height="22" fill="#cc4a1b" rx="3"/><text x="60" y="165" font-size="10" text-anchor="middle" fill="white">t_can</text>
+    <rect x="95" y="150" width="50" height="22" fill="#cc4a1b" rx="3"/><text x="120" y="165" font-size="10" text-anchor="middle" fill="white">t_I</text>
+    <text x="90" y="195" font-size="10" text-anchor="middle">(token shifted by +1)</text>
+
+    <!-- arrow -->
+    <line x1="170" y1="140" x2="220" y2="140" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- draft model block -->
+    <rect x="230" y="60" width="200" height="160" fill="#fff" stroke="#2f6feb" rx="6"/>
+    <text x="330" y="80" font-size="11" font-weight="bold" text-anchor="middle" fill="#2f6feb">Draft Model</text>
+    <text x="330" y="100" font-size="10" text-anchor="middle">concat → 2k-dim</text>
+    <text x="330" y="118" font-size="10" text-anchor="middle">FC: 2k → k</text>
+    <text x="330" y="136" font-size="10" text-anchor="middle">1× decoder layer</text>
+    <text x="330" y="155" font-size="10" text-anchor="middle">→ next feature f̂_I</text>
+    <text x="330" y="178" font-size="10" text-anchor="middle" fill="#cc4a1b">(reuse target's LM head)</text>
+    <text x="330" y="200" font-size="10" text-anchor="middle">→ sample t_do</text>
+
+    <!-- arrow to tree -->
+    <line x1="440" y1="140" x2="490" y2="140" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- tree -->
+    <text x="600" y="70" font-size="11" font-weight="bold" text-anchor="middle">Static binary tree</text>
+    <circle cx="600" cy="100" r="10" fill="#cc4a1b"/><text x="600" y="103" font-size="9" text-anchor="middle" fill="white">do</text>
+    <line x1="600" y1="110" x2="570" y2="135" stroke="#5b5e66"/>
+    <line x1="600" y1="110" x2="630" y2="135" stroke="#5b5e66"/>
+    <circle cx="565" cy="148" r="10" fill="#9aa6c4"/><text x="565" y="151" font-size="9" text-anchor="middle" fill="white">it</text>
+    <circle cx="635" cy="148" r="10" fill="#9aa6c4"/><text x="635" y="151" font-size="9" text-anchor="middle" fill="white">that</text>
+    <line x1="565" y1="158" x2="545" y2="183" stroke="#5b5e66"/>
+    <line x1="565" y1="158" x2="585" y2="183" stroke="#5b5e66"/>
+    <line x1="635" y1="158" x2="615" y2="183" stroke="#5b5e66"/>
+    <line x1="635" y1="158" x2="655" y2="183" stroke="#5b5e66"/>
+    <circle cx="540" cy="195" r="9" fill="#bcc3d6"/>
+    <circle cx="585" cy="195" r="9" fill="#bcc3d6"/>
+    <circle cx="615" cy="195" r="9" fill="#bcc3d6"/>
+    <circle cx="660" cy="195" r="9" fill="#bcc3d6"/>
+    <text x="600" y="225" font-size="10" text-anchor="middle" fill="#5b5e66">depth m, &gt;m tokens</text>
+    <text x="600" y="245" font-size="10" text-anchor="middle" fill="#5b5e66">由 m 次 forward 生成</text>
+    <text x="600" y="265" font-size="10" text-anchor="middle" fill="#5b5e66">tree attention 验证</text>
+  </svg>
+  <figcaption>EAGLE 的 draft 子图: target LLM 跑过一遍后留下 f₁ … f<sub>j</sub>;draft model 拿到 (f, t<sub>shifted</sub>) 一起 concat,过一个 1-layer decoder,再走 target 的 LM head,得到下一个 token 分布。注意 LM head 和 embedding 共享 target 权重,真正训练的只有那个 FC + 1 个 decoder layer(<1B params)。</figcaption>
+</div>
+
+<h4>Worked example: "How can" → 一次 draft 步</h4>
+<table>
+  <tr><th>张量 / 量</th><th>形状</th><th>含义</th></tr>
+  <tr><td>f_how, f_can</td><td>ℝ<sup>4096</sup> × 2</td><td>target LLM 第 L−1 层 hidden(LLaMA2-7B)</td></tr>
+  <tr><td>e_can, e_I</td><td>ℝ<sup>4096</sup> × 2</td><td>embedding,token 已经领先 1 步</td></tr>
+  <tr><td>concat 后</td><td>(1, 2, 8192)</td><td>(bs, seq_len, 2·hidden)</td></tr>
+  <tr><td>FC → decoder layer</td><td>(1, 2, 4096)</td><td>~0.3B param,output 即 f̂_I</td></tr>
+  <tr><td>LM head(共享)</td><td>(1, 2, |V|)</td><td>取 top-k = 4 → 4 个候选 t_I⁽¹⁾ … t_I⁽⁴⁾</td></tr>
+  <tr><td>Tree depth</td><td>m=5</td><td>5 次 draft forward → 26-token 静态树</td></tr>
+</table>
+
+<h3>1.3 关键结果</h3>
+<p>训练只用 ShareGPT(≤70k 对话),4×A100 1–2 天就可以训完 70B 的那一份 draft 头。MT-bench T=0:</p>
+<ul>
+  <li>Vicuna 7B: <strong>2.90×</strong> ; Vicuna 13B: <strong>3.07×</strong> ; LLaMA2-Chat 70B: <strong>3.01×</strong></li>
+  <li>0-α(全精确输入下的 acceptance rate)≈ 0.78–0.82,显著高于 Medusa 的 ~0.6</li>
+  <li>throughput(单卡 bs 上限)≈ 2× vanilla</li>
+</ul>
+
+<h3>1.4 局限(为后两代埋的坑)</h3>
+<ul>
+  <li><strong>Tree 是静态的二叉树,context 无关。</strong>"10+2=" 的下一 token 几乎确定是 1,根本不需要分支;"10+2" 后却需要更宽的尝试。</li>
+  <li><strong>Feature 拟合 loss l_fea 是个隐性束缚。</strong>它强制 draft model 的输出去逼近 top-layer feature——但这块 feature 只承载"下一个 token"的信息,对"下下个" token 帮助有限。</li>
+  <li><strong>训练数据加倍后基本不再涨。</strong>不存在 scaling law。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec2">2 · EAGLE-2 (2406.16858): tree 结构本身要 context-aware</h2>
+
+<h3>2.1 动机:静态树的两个 cherry-picked 假设</h3>
+<p>Sequoia / Medusa / EAGLE-1 都<em>显式或隐式</em>假设:<strong>draft token 的 acceptance rate 只依赖它在树里的位置</strong>。所以"上左多放、下右少放"就是最优 layout。</p>
+<p>EAGLE-2 做了一个简单实验:在 Alpaca 上对 Vicuna 7B 跑 EAGLE-1,把每个位置 P1–P6 的 acceptance rate 按 query 画散点。结果是:</p>
+<ul>
+  <li>位置 P1 平均 acceptance ≈ 0.85,P6 ≈ 0.4 — <em>"位置依赖"</em> 部分成立。</li>
+  <li>但<strong>同一个位置上,不同 query 的 acceptance 跨越 [0.1, 1.0]</strong> — context 才是真正主导因素。</li>
+</ul>
+<p>这就让"动态调整 tree 结构"成为必要。但有个鸡生蛋问题:要知道某个 draft token 的 acceptance,得让 target LLM 跑一遍,而 spec decoding 的目标恰恰是少跑 target。</p>
+<p>EAGLE-2 的关键发现:<strong>EAGLE 的 draft model 是 well-calibrated 的</strong>。draft model 输出的 confidence(softmax 概率)与真实 acceptance rate 几乎落在 y=x 的对角线上(confidence 0.05 → accept 0.04;confidence 0.95 → accept 0.98)。所以可以用 confidence 当 acceptance 的代理。</p>
+
+<h3>2.2 核心方法:全局 value 排序 + expand/rerank 两阶段</h3>
+
+<p>定义节点 t<sub>i</sub> 的<strong>全局 value</strong>:</p>
+<div class="formula">V<sub>i</sub> = ∏<sub>t<sub>j</sub> ∈ Path(root, t<sub>i</sub>)</sub> p<sub>j</sub> ≈ ∏<sub>t<sub>j</sub> ∈ Path</sub> c<sub>j</sub></div>
+<p>这是从根到 t<sub>i</sub> 路径上所有 confidence 的乘积,直觉是"只有 t<sub>i</sub> 的所有祖先全部被 verify 接受,t<sub>i</sub> 才有机会被检查"。所以局部 confidence 高但深度处于劣势分支的 token,V 自然会变小。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <text x="180" y="20" font-size="13" font-weight="bold" text-anchor="middle">EAGLE-1 静态树</text>
+    <text x="540" y="20" font-size="13" font-weight="bold" text-anchor="middle">EAGLE-2 动态扩展 (Expand top-2)</text>
+
+    <!-- left static -->
+    <circle cx="180" cy="50" r="14" fill="#9aa6c4"/><text x="180" y="54" font-size="10" text-anchor="middle" fill="white">It</text>
+    <line x1="180" y1="64" x2="130" y2="100" stroke="#5b5e66"/>
+    <line x1="180" y1="64" x2="230" y2="100" stroke="#5b5e66"/>
+    <circle cx="125" cy="115" r="13" fill="#9aa6c4"/><text x="125" y="118" font-size="9" text-anchor="middle" fill="white">is</text>
+    <circle cx="235" cy="115" r="13" fill="#9aa6c4"/><text x="235" y="118" font-size="9" text-anchor="middle" fill="white">has</text>
+    <line x1="125" y1="128" x2="90" y2="160" stroke="#5b5e66"/>
+    <line x1="125" y1="128" x2="160" y2="160" stroke="#5b5e66"/>
+    <line x1="235" y1="128" x2="200" y2="160" stroke="#5b5e66"/>
+    <line x1="235" y1="128" x2="270" y2="160" stroke="#5b5e66"/>
+    <circle cx="85" cy="173" r="11" fill="#9aa6c4"/><text x="85" y="176" font-size="8" text-anchor="middle" fill="white">a</text>
+    <circle cx="160" cy="173" r="11" fill="#9aa6c4"/><text x="160" y="176" font-size="8" text-anchor="middle" fill="white">the</text>
+    <circle cx="200" cy="173" r="11" fill="#9aa6c4"/><text x="200" y="176" font-size="8" text-anchor="middle" fill="white">to</text>
+    <circle cx="275" cy="173" r="11" fill="#9aa6c4"/><text x="275" y="176" font-size="8" text-anchor="middle" fill="white">a</text>
+    <text x="180" y="220" font-size="11" text-anchor="middle" fill="#5b5e66">每个非叶节点都强制扩 2 个孩子,</text>
+    <text x="180" y="238" font-size="11" text-anchor="middle" fill="#5b5e66">无论它本身被接受的概率有多低。</text>
+    <text x="180" y="256" font-size="10" text-anchor="middle" fill="#cc4a1b">浪费在低 V 的分支上</text>
+
+    <!-- right dynamic -->
+    <circle cx="540" cy="50" r="14" fill="#cc4a1b"/><text x="540" y="54" font-size="10" text-anchor="middle" fill="white">It</text>
+    <text x="565" y="54" font-size="9" fill="#5b5e66">V=1.0</text>
+    <line x1="540" y1="64" x2="490" y2="100" stroke="#5b5e66" stroke-width="2"/>
+    <line x1="540" y1="64" x2="590" y2="100" stroke="#5b5e66"/>
+    <circle cx="485" cy="115" r="13" fill="#cc4a1b"/><text x="485" y="118" font-size="9" text-anchor="middle" fill="white">is</text>
+    <text x="450" y="118" font-size="9" fill="#5b5e66">.6</text>
+    <circle cx="595" cy="115" r="13" fill="#9aa6c4"/><text x="595" y="118" font-size="9" text-anchor="middle" fill="white">has</text>
+    <text x="620" y="118" font-size="9" fill="#5b5e66">.2</text>
+    <!-- only expand "is" -->
+    <line x1="485" y1="128" x2="450" y2="160" stroke="#cc4a1b" stroke-width="2"/>
+    <line x1="485" y1="128" x2="520" y2="160" stroke="#cc4a1b" stroke-width="2"/>
+    <circle cx="445" cy="173" r="11" fill="#cc4a1b"/><text x="445" y="176" font-size="8" text-anchor="middle" fill="white">a</text>
+    <text x="420" y="176" font-size="8" fill="#5b5e66">.48</text>
+    <circle cx="525" cy="173" r="11" fill="#9aa6c4"/><text x="525" y="176" font-size="8" text-anchor="middle" fill="white">good</text>
+    <text x="555" y="176" font-size="8" fill="#5b5e66">.34</text>
+    <line x1="445" y1="184" x2="420" y2="215" stroke="#cc4a1b"/>
+    <line x1="445" y1="184" x2="470" y2="215" stroke="#cc4a1b"/>
+    <circle cx="415" cy="225" r="10" fill="#cc4a1b"/><text x="415" y="228" font-size="8" text-anchor="middle" fill="white">the</text>
+    <circle cx="475" cy="225" r="10" fill="#cc4a1b"/><text x="475" y="228" font-size="8" text-anchor="middle" fill="white">to</text>
+    <text x="540" y="265" font-size="11" text-anchor="middle" fill="#cc4a1b">只展开 V 最大的两个</text>
+    <text x="540" y="280" font-size="11" text-anchor="middle" fill="#cc4a1b">("is" 和 "is→a"),"has" 不再深挖。</text>
+    <text x="540" y="298" font-size="10" text-anchor="middle" fill="#5b5e66">最后再 rerank 全树取 top-m flatten</text>
+  </svg>
+  <figcaption>EAGLE-2 的两阶段流程: <strong>Expand</strong>——在当前最深一层选 top-k 个 V 最大的节点喂给 draft 模型,生成下一层;<strong>Rerank</strong>——在所有节点(含未扩展的浅节点)里按 V 选 top-m,flatten + 改 attention mask 一次性丢给 target。注意 reranking 选出的 m 个节点天然是<em>连通子树</em>(因为 V 单调递减且同 V 选浅节点)。</figcaption>
+</div>
+
+<h4>Worked example: "10+2=" vs "10+2"</h4>
+<table>
+  <tr><th>Query</th><th>下一 token 顶 confidence</th><th>EAGLE-1 行为</th><th>EAGLE-2 行为</th></tr>
+  <tr><td>"10+2="</td><td>"1" → 0.99</td><td>仍然加 2 个候选,第 2 个浪费</td><td>只扩 1 个候选 "1"</td></tr>
+  <tr><td>"10+2"</td><td>"=" → 0.55, " " → 0.30</td><td>同样加 2 个</td><td>加 2 个,且都深挖</td></tr>
+</table>
+
+<h3>2.3 关键结果</h3>
+<ul>
+  <li>MT-bench T=0,Vicuna 13B:<strong>4.26×</strong>(EAGLE-1 是 3.07×),平均接受长度 τ 从 3.98 涨到 4.83。</li>
+  <li>HumanEval 上 Vicuna 13B 顶到 <strong>4.96×</strong>(代码模板高度可预测)。</li>
+  <li>所有 LLaMA3-Instruct 8B / 70B 上 v2 全面超越 v1,gain 在 +20% – +40%。</li>
+</ul>
+
+<h3>2.4 与 v1 的差异</h3>
+<p>关键在于 EAGLE-2 <strong>不动 draft model 训练、不动 verification</strong>,只重写"怎么从 draft model 多次 forward 的输出里挑出最值得 verify 的 token 集合"。所以一份 EAGLE-1 的 draft checkpoint 直接套上 v2 的 search 逻辑就能拿到收益——这也是 v2 论文反复强调"out-of-the-box"的原因。</p>
+<div class="nb">实操要点:静态树的 layout 隐藏了一个常被忽略的成本——<em>verification 的 attention 长度</em>。EAGLE-1 26-token 树意味着每个 verify forward 都要算 ~26-len 的 tree-attn;EAGLE-2 通过 rerank 选 top-m 后,m 通常更小(8–16),但 acceptance length 反而高,verify forward 更便宜。</div>
+
+<hr>
+
+<h2 id="sec3">3 · EAGLE-3 (2503.01840): 拆掉 feature loss,引入 training-time test</h2>
+
+<h3>3.1 动机:为什么 EAGLE 不能"加数据就更快"</h3>
+<p>到 2024 年下半年,LLaMA 系列每代训练数据都翻倍(LLaMA1: 1T → LLaMA3: 15T)。Yuhui 想:把 EAGLE 的训练数据也从 ShareGPT(~68K)扩到 ShareGPT + UltraChat(~530K),acceptance 应该会涨。</p>
+<p>实测结果是个 anti-scaling 曲线:数据从 1× 加到 8×,EAGLE 的 speedup 几乎不动,acceptance 微涨然后饱和。问题出在 <strong>EAGLE 的 loss 本质上是两项 lockstep</strong>:</p>
+<div class="formula">L = l_fea ‖ f̂<sub>t+1</sub> − f<sub>t+1</sub> ‖ + l_token CE(t̂<sub>t+1</sub>, t<sub>t+1</sub>)</div>
+<p>l_fea 强行让 draft model 的<em>中间表示</em>逼近 target 的 top-layer feature。这有两个隐性问题:</p>
+<ol>
+  <li>top-layer feature 只承载"下一个 token"的信息(LM head 是满秩,所以 logit 对 feature 是单射);它不天然包含"下下个 token"的信息,因此哪怕 l_fea 训得很好,multi-step generation 时也不会变得更好。</li>
+  <li>l_fea 这个约束剥夺了 draft model 的内部表达自由——加大数据后,模型本来可以学到更聪明的内部 routing,但被 l_fea 拽着不让走。</li>
+</ol>
+<p>第一刀就是<strong>砍掉 l_fea</strong>。但这又引出第二个问题:Step 2 的输入需要 f<sub>t+1</sub>,而 train 时给的是 ground-truth f,test 时只有 draft 自己的输出 â<sub>t+1</sub>——分布不一致,所以 1-α(input 含 1 个估计值时的 acceptance)崩盘到 ~0.2。</p>
+<p>解法是<strong>training-time test</strong>:训练时就让 Step 1 的 draft model 输出 â,然后把 â 而不是 f 喂给 Step 2 训练,模拟推理路径。这是标准的 <em>scheduled sampling</em> 思路在 spec decoding 上的具体化。HASS 论文同期也做了类似改动,但目的不同(HASS 是修 EAGLE 的误差累积,仍保留 l_fea)。</p>
+
+<h3>3.2 核心方法:三件套</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <text x="360" y="18" font-size="13" font-weight="bold" text-anchor="middle">EAGLE-3 三件套: 多层融合 → token-only loss → training-time test</text>
+
+    <!-- (a) multi-layer fusion -->
+    <text x="120" y="45" font-size="12" font-weight="bold" text-anchor="middle">(a) 多层特征融合</text>
+    <rect x="40" y="60" width="160" height="190" fill="#fff" stroke="#cc4a1b" rx="5"/>
+    <rect x="55" y="75" width="130" height="22" fill="#bcc3d6"/>
+    <text x="120" y="90" font-size="10" text-anchor="middle">low-layer feature  l</text>
+    <rect x="55" y="105" width="130" height="22" fill="#9aa6c4"/>
+    <text x="120" y="120" font-size="10" text-anchor="middle" fill="white">mid-layer feature  m</text>
+    <rect x="55" y="135" width="130" height="22" fill="#7884a8"/>
+    <text x="120" y="150" font-size="10" text-anchor="middle" fill="white">high-layer feature  h</text>
+    <text x="120" y="180" font-size="10" text-anchor="middle">concat → 3k</text>
+    <line x1="120" y1="190" x2="120" y2="205" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <rect x="65" y="208" width="110" height="22" fill="#cc4a1b"/>
+    <text x="120" y="223" font-size="10" text-anchor="middle" fill="white">FC: 3k → k → g</text>
+    <text x="120" y="245" font-size="9" text-anchor="middle" fill="#5b5e66">不再只用 top layer</text>
+
+    <!-- (b) loss change -->
+    <text x="360" y="45" font-size="12" font-weight="bold" text-anchor="middle">(b) loss 变化</text>
+    <rect x="240" y="60" width="240" height="80" fill="#fff" stroke="#9aa6c4" rx="5"/>
+    <text x="360" y="78" font-size="10" text-anchor="middle">EAGLE-1/2:</text>
+    <text x="360" y="95" font-size="11" text-anchor="middle" font-family="monospace">L = l_fea + l_token</text>
+    <text x="360" y="115" font-size="9" text-anchor="middle" fill="#a8353e">feature 拟合约束 → 限表达力</text>
+
+    <rect x="240" y="150" width="240" height="100" fill="#fff" stroke="#1f7a4a" rx="5"/>
+    <text x="360" y="168" font-size="10" text-anchor="middle">EAGLE-3:</text>
+    <text x="360" y="186" font-size="11" text-anchor="middle" font-family="monospace">L = l_token only</text>
+    <text x="360" y="208" font-size="9" text-anchor="middle" fill="#1f7a4a">draft model 输出 a 不必逼近 f</text>
+    <text x="360" y="225" font-size="9" text-anchor="middle" fill="#1f7a4a">→ 输入也不再被 f 形状绑架</text>
+    <text x="360" y="242" font-size="9" text-anchor="middle" fill="#1f7a4a">→ 可以喂多层融合的 g</text>
+
+    <!-- (c) training-time test -->
+    <text x="600" y="45" font-size="12" font-weight="bold" text-anchor="middle">(c) training-time test</text>
+    <rect x="500" y="60" width="200" height="220" fill="#fff" stroke="#2f6feb" rx="5"/>
+    <text x="600" y="78" font-size="10" text-anchor="middle">Step 1 (training):</text>
+    <text x="600" y="95" font-size="9" text-anchor="middle" font-family="monospace">[g₁..g_t] → â_{t+1}</text>
+    <text x="600" y="110" font-size="9" text-anchor="middle">supervise on t̂_{t+1}</text>
+    <line x1="600" y1="120" x2="600" y2="138" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <text x="600" y="155" font-size="10" text-anchor="middle">Step 2 (training):</text>
+    <text x="600" y="172" font-size="9" text-anchor="middle" font-family="monospace">[g₁..g_t, â_{t+1}] → â_{t+2}</text>
+    <text x="600" y="186" font-size="9" text-anchor="middle">supervise on t̂_{t+2}</text>
+    <text x="600" y="210" font-size="9" text-anchor="middle" fill="#cc4a1b">(â 是 Step 1 自己的输出,</text>
+    <text x="600" y="223" font-size="9" text-anchor="middle" fill="#cc4a1b">不是 ground-truth f)</text>
+    <text x="600" y="248" font-size="9" text-anchor="middle">→ 训练分布 = 推理分布</text>
+    <text x="600" y="263" font-size="9" text-anchor="middle">→ 1-α 不再崩</text>
+  </svg>
+  <figcaption>EAGLE-3 的三件套互相耦合:loss 砍掉 l_fea(b)是前提,因为只有这样 (a) 多层融合 g 才能取代 top-layer f;(c) 又是为了让砍掉 l_fea 后的 multi-step 不至于因 train/test mismatch 崩盘。注意推理时仍然兼容 EAGLE-2 的 dynamic tree。</figcaption>
+</div>
+
+<h4>Worked example: "How can" → "How can I do" 的 3 步 draft</h4>
+<table>
+  <tr><th>Step</th><th>Draft input</th><th>Draft output</th><th>Sample</th></tr>
+  <tr><td>1</td><td>g_how, g_can(target 给的多层融合) + e_can, e_I</td><td>a_I ∈ ℝ⁴⁰⁹⁶</td><td>LM head(a_I) → "do"</td></tr>
+  <tr><td>2</td><td>g_how, g_can, <b>a_I</b>(注意:不是 g_I,target 还没验) + e_I, e_do</td><td>a_do</td><td>LM head(a_do) → "it"</td></tr>
+  <tr><td>3</td><td>... + a_do + e_it</td><td>a_it</td><td>"."</td></tr>
+</table>
+<p>训练时 attention mask 要做"仿造"——同一行 ground-truth 序列要分别和 Step 1 的 a、Step 2 的 a 配对,但跨 step 之间不能互相穿越(否则模型会偷看后面的真值)。Figure 6 的稀疏 mask 用 vector dot 而不是矩阵乘可以省算力。</p>
+
+<h3>3.3 关键结果</h3>
+<ul>
+  <li>MT-bench T=0,Vicuna 13B:<strong>5.58×</strong>(v2 是 4.26×,v1 是 3.07×)。</li>
+  <li>5 个任务平均,Vicuna 13B 上 EAGLE-3 = <strong>5.51×</strong>;LLaMA-Instruct 3.1 8B = <strong>4.44×</strong>;LLaMA 3.3 70B = <strong>4.12×</strong>;DeepSeek-R1-Distill-LLaMA 8B = <strong>4.16×</strong>。</li>
+  <li>训练数据从 1× → 8× ShareGPT,τ 从 4.5 → 6.0,<strong>首次出现单调上升曲线</strong>(EAGLE-1/2 在 4× 后就饱和)。</li>
+  <li>SGLang 集成下 batch size = 64 throughput 提升 38%。</li>
+</ul>
+
+<h3>3.4 与 v2 的差异</h3>
+<p>v2 是<em>推理时的 search 优化</em>(不动训练);v3 是<em>训练目标 + 输入侧的根本重构</em>。一句话总结:v2 教会"怎么挑 token",v3 教会"怎么<em>生成</em>更好的 candidate token"。两者正交,v3 的代码里 dynamic tree 仍照常用。</p>
+<div class="nb">为什么这是"training-time test"而不是普通 scheduled sampling?——<em>测试时的输入分布</em>在 EAGLE-3 里是<em>明确知道</em>的(就是 draft model 自己输出的 a),所以可以在训练里"穷举"地模拟。这跟一般序列模型 teacher forcing 抽象不同,后者的"测试分布"无法事先采样。</div>
+
+<hr>
+
+<h2 id="sec4">4 · DFlash (2602.06036): 把 drafter 本身换成 block diffusion</h2>
+
+<h3>4.1 动机:autoregressive drafting 的天花板</h3>
+<p>EAGLE-3 已经把 acceptance 推到 ~6 token / cycle,但 DFlash 作者(Zhijian Liu et al. @ UCSD)指出一个被忽视的事实:即使 acceptance 再涨,<strong>autoregressive draft 的 T_draft 是线性增长的</strong>:</p>
+<div class="formula">T_draft = γ · t_step</div>
+<p>每多猜一个 token,draft 模型就多一次 forward。所以 EAGLE-3 不得不把 draft 模型限制成"1 个 transformer decoder layer",哪怕这意味着模型容量不够;一旦想加深,latency 立刻吃掉收益。整个 spec decoding 的实际 ceiling 卡在 2–3×(reasoning 模型上 EAGLE-3 平均 ~4× 已经是 outlier)。</p>
+
+<p>另一边,2025 年的 dLLM(LLaDA / SDAR / Block Diffusion)展示了一种不同的生成方式:<strong>一次 forward 把一个 block 内所有 mask 位置并行解码</strong>。问题是 dLLM 端到端 quality 输给 AR 模型,且需要多步去噪。但作为 drafter——只要 verifier 把关,quality 不达标的 token 会被 reject,所以 lossless 仍然成立。</p>
+
+<p>DFlash 的核心赌注:<em>drafting 不需要去和 AR 模型卷质量,只要能在并行性上拿到工程红利就赢。</em></p>
+
+<h3>4.2 核心方法</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <text x="360" y="18" font-size="13" font-weight="bold" text-anchor="middle">DFlash 推理: target hidden 注入 draft KV cache + 一次性 unmask 整个 block</text>
+
+    <!-- target -->
+    <rect x="30" y="50" width="160" height="240" fill="#f3eee0" stroke="#d8d2bf" rx="6"/>
+    <text x="110" y="68" font-size="11" font-weight="bold" text-anchor="middle">Target Model</text>
+    <text x="110" y="86" font-size="10" text-anchor="middle">"Diffusion is good"</text>
+    <text x="110" y="105" font-size="9" text-anchor="middle" fill="#5b5e66">(prefill + 上一轮 verify)</text>
+    <!-- multi layer -->
+    <rect x="50" y="120" width="120" height="14" fill="#bcc3d6"/><text x="110" y="131" font-size="9" text-anchor="middle">layer 4  hidden h₄</text>
+    <rect x="50" y="138" width="120" height="14" fill="#9aa6c4"/><text x="110" y="149" font-size="9" text-anchor="middle" fill="white">layer 12 hidden h₁₂</text>
+    <rect x="50" y="156" width="120" height="14" fill="#7884a8"/><text x="110" y="167" font-size="9" text-anchor="middle" fill="white">layer 20 hidden h₂₀</text>
+    <rect x="50" y="174" width="120" height="14" fill="#5e6a8c"/><text x="110" y="185" font-size="9" text-anchor="middle" fill="white">layer 28 hidden h₂₈</text>
+    <rect x="50" y="192" width="120" height="14" fill="#454f6e"/><text x="110" y="203" font-size="9" text-anchor="middle" fill="white">layer 36 hidden h₃₆</text>
+
+    <text x="110" y="225" font-size="10" text-anchor="middle">concat + MLP →</text>
+    <text x="110" y="242" font-size="10" text-anchor="middle" fill="#cc4a1b">target context feature</text>
+    <text x="110" y="270" font-size="9" text-anchor="middle">+ token "for"(bonus)</text>
+
+    <!-- arrow -->
+    <line x1="195" y1="180" x2="240" y2="180" stroke="#5b5e66" stroke-width="2" marker-end="url(#arr4)"/>
+    <text x="217" y="170" font-size="9" text-anchor="middle">inject K/V</text>
+
+    <!-- draft -->
+    <rect x="250" y="50" width="450" height="240" fill="#fff" stroke="#2f6feb" rx="6"/>
+    <text x="475" y="68" font-size="11" font-weight="bold" text-anchor="middle" fill="#2f6feb">DFlash Draft (3–8 layers, block diffusion)</text>
+
+    <!-- input row -->
+    <rect x="270" y="85" width="40" height="22" fill="#cc4a1b" rx="3"/><text x="290" y="100" font-size="10" text-anchor="middle" fill="white">for</text>
+    <rect x="320" y="85" width="40" height="22" fill="#bcc3d6" rx="3" stroke="#5b5e66" stroke-dasharray="3,2"/><text x="340" y="100" font-size="9" text-anchor="middle">⟨m⟩</text>
+    <rect x="370" y="85" width="40" height="22" fill="#bcc3d6" rx="3" stroke="#5b5e66" stroke-dasharray="3,2"/><text x="390" y="100" font-size="9" text-anchor="middle">⟨m⟩</text>
+    <rect x="420" y="85" width="40" height="22" fill="#bcc3d6" rx="3" stroke="#5b5e66" stroke-dasharray="3,2"/><text x="440" y="100" font-size="9" text-anchor="middle">⟨m⟩</text>
+    <rect x="470" y="85" width="40" height="22" fill="#bcc3d6" rx="3" stroke="#5b5e66" stroke-dasharray="3,2"/><text x="490" y="100" font-size="9" text-anchor="middle">⟨m⟩</text>
+    <rect x="520" y="85" width="40" height="22" fill="#bcc3d6" rx="3" stroke="#5b5e66" stroke-dasharray="3,2"/><text x="540" y="100" font-size="9" text-anchor="middle">⟨m⟩</text>
+    <text x="640" y="100" font-size="10" fill="#5b5e66">block size = 16</text>
+
+    <!-- bidirectional attn -->
+    <text x="475" y="125" font-size="10" text-anchor="middle" font-style="italic">↕ bidirectional attention(每 token 看到所有 mask 位)↕</text>
+
+    <!-- 1 forward arrow -->
+    <line x1="475" y1="135" x2="475" y2="160" stroke="#cc4a1b" stroke-width="2" marker-end="url(#arr4)"/>
+    <text x="540" y="155" font-size="10" fill="#cc4a1b">1 forward</text>
+
+    <!-- output row -->
+    <rect x="270" y="170" width="40" height="22" fill="#1f7a4a" rx="3"/><text x="290" y="185" font-size="10" text-anchor="middle" fill="white">for</text>
+    <rect x="320" y="170" width="40" height="22" fill="#1f7a4a" rx="3"/><text x="340" y="185" font-size="9" text-anchor="middle" fill="white">spec-</text>
+    <rect x="370" y="170" width="40" height="22" fill="#1f7a4a" rx="3"/><text x="390" y="185" font-size="9" text-anchor="middle" fill="white">ulative</text>
+    <rect x="420" y="170" width="40" height="22" fill="#1f7a4a" rx="3"/><text x="440" y="185" font-size="9" text-anchor="middle" fill="white">decod-</text>
+    <rect x="470" y="170" width="40" height="22" fill="#1f7a4a" rx="3"/><text x="490" y="185" font-size="9" text-anchor="middle" fill="white">ing</text>
+    <rect x="520" y="170" width="40" height="22" fill="#1f7a4a" rx="3"/><text x="540" y="185" font-size="9" text-anchor="middle" fill="white">⟨eos⟩</text>
+
+    <!-- KV inject illustration -->
+    <text x="475" y="220" font-size="10" text-anchor="middle">每个 draft layer 的 K/V cache 里都<em>持续</em>存着 target context feature</text>
+    <text x="475" y="240" font-size="10" text-anchor="middle">→ 加深 draft 不会"稀释"target 的指引</text>
+    <text x="475" y="265" font-size="10" text-anchor="middle" fill="#cc4a1b">送给 target verify(所有 16 token 一次性 verify)</text>
+  </svg>
+  <figcaption>DFlash 把 5 层(均匀采样自 layer 4/12/20/28/36)target hidden 拼接 + MLP 投影成"target context feature",然后把它作为持续的 K/V 注入 <em>每一层</em> draft 的 attention 缓存——这与 EAGLE-3 把多层 feature 仅作输入 prepend 形成对比,后者随 draft 加深信号会被"稀释"。Draft 本身用 block diffusion(bidirectional attn,一次 forward unmask 全部 16 个 mask 位置)。</figcaption>
+</div>
+
+<h4>Worked example: 一轮 draft–verify</h4>
+<table>
+  <tr><th>组件</th><th>形状 / 数</th><th>说明</th></tr>
+  <tr><td>Target hidden(5 层)</td><td>5 × ℝ<sup>4096</sup>(per-token)</td><td>从 layer {4,12,20,28,36} 抽</td></tr>
+  <tr><td>fused context feature</td><td>ℝ<sup>4096</sup>(per-token)</td><td>concat → MLP 投影</td></tr>
+  <tr><td>Draft layers</td><td>5 layers(消融最优)</td><td>EAGLE-3 是 1 layer</td></tr>
+  <tr><td>Block size</td><td>16(Qwen3),10(LLaMA3.1-8B)</td><td>训练 16 推理可降到 8</td></tr>
+  <tr><td>Draft forward</td><td><strong>1 次</strong></td><td>EAGLE-3 要 5–8 次 sequential</td></tr>
+  <tr><td>Acceptance length τ</td><td>~6.5 (Q3-8B GSM8K)</td><td>EAGLE-3 在同模型 ~3.2</td></tr>
+  <tr><td>End-to-end speedup</td><td>5.15×(GSM8K)</td><td>EAGLE-3 同条件 1.99×</td></tr>
+</table>
+
+<h3>4.3 训练设计的两个细节</h3>
+<ol>
+  <li><strong>Random anchor sampling</strong>:不是均匀切 block,而是从 response 里随机选 anchor token 作为 block 的<em>第一位</em>(对应推理时 verify 通过的 bonus token),其余位置 mask。这样训练的 block 起点分布 ≈ 推理时的 block 起点分布。</li>
+  <li><strong>Loss 指数衰减加权</strong>:w_k = exp(−(k−1)/γ)。block 内第 k 位的权重逐位下降,因为只要前面位置 reject,后面就被 discard——前面错的代价高,所以早位置 weight 大。</li>
+</ol>
+
+<h3>4.4 关键结果</h3>
+<ul>
+  <li>Qwen3-8B,Transformers backend:<strong>5.15× (GSM8K) / 6.08× (MATH-500) / 5.62× (AIME25)</strong>,EAGLE-3(60 树)对应 2.23×/2.05×/2.05×。</li>
+  <li>Acceptance length τ:DFlash ~6.5,EAGLE-3 ~3.7。draft cost 上 5-layer DFlash @ 16 token 比 1-layer EAGLE-3 @ 8 token 还低(Figure 3)。</li>
+  <li>5-layer 是 sweet spot;3-H → 5-H(target 抽 3 层 vs 5 层)acceptance 能再涨一截但训练存储线性增加。</li>
+</ul>
+
+<h3>4.5 与 EAGLE-3 的差异</h3>
+<table>
+  <tr><th>维度</th><th>EAGLE-3</th><th>DFlash</th></tr>
+  <tr><td>Drafter 类型</td><td>autoregressive,1 层 decoder</td><td>block diffusion,3–8 层 bidirectional</td></tr>
+  <tr><td>Draft cost vs γ</td><td>线性 γ·t_step</td><td>近似常数 t_parallel</td></tr>
+  <tr><td>Target hidden 注入位置</td><td>仅作 input concat</td><td>注入<em>每层</em>的 K/V cache</td></tr>
+  <tr><td>训练稳定性</td><td>需要 training-time test 模拟</td><td>用 anchor sampling 直接对齐</td></tr>
+  <tr><td>Tree?</td><td>dynamic tree(继承自 v2)</td><td>纯 block,没有 tree</td></tr>
+</table>
+<div class="nb">DFlash 的"draft model 加深不再使 target 信号稀释"是关键论点。EAGLE-3 把 g 直接拼到 token embedding 后,信号经过几层 attention 后会被 dilute;DFlash 把它放在 K/V 里,每一层 attention 都能直接 query,不被深度抹平。这是一个非常巧妙的注入位置选择。</div>
+
+<hr>
+
+<h2 id="sec5">5 · 演化轨迹: 一根线索 + 一次范式分叉</h2>
+
+<div class="fig">
+  <svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr5" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+    <!-- timeline base -->
+    <line x1="40" y1="120" x2="700" y2="120" stroke="#5b5e66" stroke-width="2"/>
+    <!-- four nodes -->
+    <circle cx="100" cy="120" r="28" fill="#bcc3d6" stroke="#5b5e66"/>
+    <text x="100" y="115" font-size="11" font-weight="bold" text-anchor="middle">EAGLE-1</text>
+    <text x="100" y="130" font-size="9" text-anchor="middle">2024.01</text>
+    <text x="100" y="170" font-size="10" text-anchor="middle" fill="#cc4a1b">feature 级</text>
+    <text x="100" y="184" font-size="10" text-anchor="middle" fill="#cc4a1b">+ shifted token</text>
+    <text x="100" y="205" font-size="11" font-weight="bold" text-anchor="middle">~3.0×</text>
+
+    <circle cx="280" cy="120" r="28" fill="#9aa6c4" stroke="#5b5e66"/>
+    <text x="280" y="115" font-size="11" font-weight="bold" text-anchor="middle" fill="white">EAGLE-2</text>
+    <text x="280" y="130" font-size="9" text-anchor="middle" fill="white">2024.06</text>
+    <text x="280" y="170" font-size="10" text-anchor="middle" fill="#cc4a1b">dynamic tree</text>
+    <text x="280" y="184" font-size="10" text-anchor="middle" fill="#cc4a1b">(confidence 校准)</text>
+    <text x="280" y="205" font-size="11" font-weight="bold" text-anchor="middle">~4.2×</text>
+
+    <circle cx="460" cy="120" r="28" fill="#7884a8" stroke="#5b5e66"/>
+    <text x="460" y="115" font-size="11" font-weight="bold" text-anchor="middle" fill="white">EAGLE-3</text>
+    <text x="460" y="130" font-size="9" text-anchor="middle" fill="white">2025.03</text>
+    <text x="460" y="170" font-size="10" text-anchor="middle" fill="#cc4a1b">无 l_fea + 多层融合</text>
+    <text x="460" y="184" font-size="10" text-anchor="middle" fill="#cc4a1b">+ training-time test</text>
+    <text x="460" y="205" font-size="11" font-weight="bold" text-anchor="middle">~5.5×</text>
+
+    <circle cx="640" cy="120" r="30" fill="#cc4a1b" stroke="#5b5e66"/>
+    <text x="640" y="115" font-size="11" font-weight="bold" text-anchor="middle" fill="white">DFlash</text>
+    <text x="640" y="130" font-size="9" text-anchor="middle" fill="white">2026.02</text>
+    <text x="640" y="170" font-size="10" text-anchor="middle" fill="#cc4a1b">block diffusion</text>
+    <text x="640" y="184" font-size="10" text-anchor="middle" fill="#cc4a1b">+ KV 注入</text>
+    <text x="640" y="205" font-size="11" font-weight="bold" text-anchor="middle">~6.0×+</text>
+
+    <!-- arrows between -->
+    <line x1="130" y1="120" x2="248" y2="120" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#arr5)"/>
+    <line x1="310" y1="120" x2="428" y2="120" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#arr5)"/>
+    <line x1="490" y1="120" x2="606" y2="120" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#arr5)"/>
+
+    <!-- annotations on top -->
+    <text x="190" y="60" font-size="10" text-anchor="middle" fill="#5b5e66">动 search</text>
+    <text x="190" y="74" font-size="9" text-anchor="middle" fill="#5b5e66">(不动 train)</text>
+    <text x="370" y="60" font-size="10" text-anchor="middle" fill="#5b5e66">动 loss + input</text>
+    <text x="370" y="74" font-size="9" text-anchor="middle" fill="#5b5e66">(同架构内重构)</text>
+    <text x="550" y="60" font-size="10" text-anchor="middle" fill="#5b5e66">范式分叉</text>
+    <text x="550" y="74" font-size="9" text-anchor="middle" fill="#5b5e66">(换 drafter 类型)</text>
+
+    <text x="360" y="25" font-size="13" font-weight="bold" text-anchor="middle">EAGLE 家族 → DFlash: 速度 / 设计变化点</text>
+  </svg>
+  <figcaption>横轴时间。三代 EAGLE 都在"AR drafter + tree verify"框架内逐步松绑;DFlash 跳出 AR drafter,但仍然沿用了 target hidden 注入这条遗产线。</figcaption>
+</div>
+
+<h3>5.1 横向对比</h3>
+<table>
+  <tr><th>维度</th><th>EAGLE-1</th><th>EAGLE-2</th><th>EAGLE-3</th><th>DFlash</th></tr>
+  <tr><td>Feature 输入粒度</td><td>top-layer feature f</td><td>同 v1</td><td>低/中/高 多层融合 g</td><td>5 层 target hidden 通过 K/V 注入</td></tr>
+  <tr><td>Draft tree topology</td><td>静态 binary tree (~26 token)</td><td><strong>context-aware dynamic</strong> + rerank</td><td>继承 v2 dynamic tree</td><td>无树,block diffusion 平面 16 token</td></tr>
+  <tr><td>Loss</td><td>l_fea + l_token</td><td>无改动(只动 search)</td><td><strong>仅 l_token</strong></td><td>l_token,带位置衰减加权</td></tr>
+  <tr><td>训练时模拟测试</td><td>否</td><td>否</td><td><strong>training-time test</strong>(scheduled sampling 风格)</td><td>random anchor + bidirectional mask</td></tr>
+  <tr><td>Drafter 架构</td><td>1 decoder + FC</td><td>同 v1</td><td>1 decoder + 3k→k FC</td><td>3–8 bidirectional layers</td></tr>
+  <tr><td>Drafter forward 数 / cycle</td><td>m 次 (m=5)</td><td>m 次 + rerank 后 m 减小</td><td>m 次</td><td><strong>1 次 / block</strong></td></tr>
+  <tr><td>是否 lossless</td><td>是(保证 verifier 分布)</td><td>是</td><td>是</td><td>是</td></tr>
+  <tr><td>典型 speedup</td><td>~3.0×</td><td>~4.2×</td><td>~5.5×</td><td>~6.0×(再 ÷ EAGLE-3 ≈ 2.5×)</td></tr>
+  <tr><td>生态位置</td><td>开 feature-level autoregression 先河</td><td>tree search 最佳实践</td><td>data scaling 路径</td><td>draft 范式分叉(non-AR drafter)</td></tr>
+</table>
+
+<h3>5.2 一句话总结每代</h3>
+<ul>
+  <li><strong>EAGLE-1</strong>(2024.01): "drafter 应该在 feature 层做自回归,且 sampling 不确定性必须用 shifted token 显式注入。"</li>
+  <li><strong>EAGLE-2</strong>(2024.06): "draft model 的 confidence 是 well-calibrated 的,所以 tree 应该 context-aware 地动态扩展。"</li>
+  <li><strong>EAGLE-3</strong>(2025.03): "feature regression loss 是隐性桎梏,拆掉它,加多层融合 + training-time test,就能解锁 draft 的 data scaling law。"</li>
+  <li><strong>DFlash</strong>(2026.02): "drafter 没必要继续 AR;block diffusion 把 T_draft 从 γ·t_step 压成 t_parallel,target hidden 通过 K/V 注入持续指导深 draft;ceiling 从 ~3× 推到 ~6×。"</li>
+</ul>
+
+<h3>5.3 趋势解读</h3>
+<p>EAGLE 三代是<em>同一根线索的逐步松绑</em>。v1 把 draft 抬到 feature 层用 shifted token 解决了"sampling 随机性引入的输入歧义";v2 注意到"verify 的搜索空间也应该 context-aware";v3 终于回头审视"我们当初为什么用 l_fea"并决定把它砍掉。每一代都解决了上一代的某个被掩盖的瓶颈,但结构上都属于"AR drafter + tree verify"这个家族。</p>
+
+<p>DFlash 不在这条线上。它做的是<strong>范式分叉</strong>:既然 drafter 的核心问题是"AR 限制了 γ 和 model depth 之间的非耦合空间",那么换一个一次性并行解码 block 的生成模型(block diffusion),就能让 draft 模型变深(5 层而不是 1 层)而不付 latency 代价。注意 DFlash 仍然<em>沿用</em>了 EAGLE 系列的核心遗产——target hidden 注入(EAGLE-3 多层融合的演化版本)、共享 LM head、verifier 端 lossless rejection——它只换了"如何并行画出 γ 个候选 token"。</p>
+
+<p>从工程角度看,接下来几个月可能的分叉点:</p>
+<ul>
+  <li>DFlash 的 block 要不要内嵌 tree(同 token 多 candidate)?目前 DFlash 没有 tree,这与 EAGLE-2 的发现"context 决定 acceptance"看起来没冲突——block 内 bidirectional 已经是某种"软 tree"了。但 verify 层仍可重 rank 多 candidate。</li>
+  <li>EAGLE-3 的 training-time test 如果搬到 DFlash,会不会再涨一截?DFlash 用 random anchor + bidirectional 隐式做了类似的事情,但没在 multi-cycle 之间显式模拟。</li>
+  <li>DFlash 在大 batch 上的扩展性还没充分验证(EAGLE-3 在 SGLang B=64 时 throughput +38%,DFlash 论文 Table 2 显示 LLaMA3.1-8B 在 concurrency 提高时 EAGLE-3(60) 已经 sub-1× 而 DFlash 还能保持 1.4× — 这个对比点值得后续盯)。</li>
+</ul>
+
+<hr>
+
+<h3 id="memory">关键记忆点</h3>
+
+<div class="kv"><span class="pill">EAGLE-1</span> <strong>洞察:</strong>feature 自回归比 token 简单,但要把 shifted token 注入解决 sampling 不确定性。Loss = l_fea + l_token。</div>
+<div class="kv"><span class="pill">EAGLE-2</span> <strong>洞察:</strong>draft confidence ≈ acceptance rate;用全局 V = ∏c_j 做 expand+rerank,把静态树变成 context-aware 动态树。不动训练。</div>
+<div class="kv"><span class="pill">EAGLE-3</span> <strong>洞察:</strong>l_fea 是隐性约束;砍掉它 + 多层 feature 融合 g + training-time test = 第一次出现 draft data scaling law。</div>
+<div class="kv"><span class="pill">DFlash</span> <strong>洞察:</strong>AR drafter 的 T_draft = γ·t_step 是天花板;block diffusion 一次 forward 出 16 个 token,target hidden 通过 K/V 注入每一层。</div>
+<div class="kv"><span class="pill">数字</span> 1→2→3→DFlash 在 chat 任务上的 speedup 大致是 3 → 4.2 → 5.5 → 6.0+(模型不同,趋势一致)。</div>
+<div class="kv"><span class="pill">线索</span> 三代 EAGLE 都<em>松绑</em>(粒度→搜索→loss);DFlash 是<em>范式分叉</em>,但仍然沿用 target hidden 注入这一遗产。</div>
+<div class="kv"><span class="pill">立场</span> 把 EAGLE 系列读成"逐步把 draft 模型从设计假设里解放";DFlash 读成"draft 不必和 verifier 同范式"。下一步可能是把 training-time test 思路移植到 DFlash,或者做 batch 大场景下的 dynamic block size 调度。</div>
+
+</main>
+</body>
+</html>

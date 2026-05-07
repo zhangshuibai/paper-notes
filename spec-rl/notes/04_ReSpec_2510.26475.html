@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · ReSpec (2510.26475)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>ReSpec: Towards Optimizing Speculative Decoding in Reinforcement Learning Systems</h1>
+<div class="meta">
+  Qiaoling Chen et al. (NTU · 上海期智 · 清华 · NUS · 上海创智学院) · 2025-10-30 · arXiv:2510.26475<br>
+  关键词: speculative decoding · RL post-training · EAGLE-3 · GRPO · drafter staleness · reward-weighted KD
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 EAGLE-3 直接接进 RL 不仅不加速,反而会让 reward 崩盘——ReSpec 用三件事把 SD 救回来:动态 SD 配置、在线 KD 让 drafter 跟上 actor、用 rollout reward 给 KD 加权防止 drafter 把 actor 带偏。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">75–86%</div><div class="l">generation 占 RL step 比例</div></div>
+    <div class="stat"><div class="n">4.5×</div><div class="l">Qwen-3B 端到端 max speedup</div></div>
+    <div class="stat"><div class="n">1.48× → 1.78×</div><div class="l">Reward-weighted KD 单一贡献 / 全栈</div></div>
+  </div>
+  <p><strong>立场:</strong>这条线里"最系统"的一篇——同时把 G1(batch-size 收益消失)、G2(drafter staleness)、G3(SD 把 actor 带歪) 三个坑列出来并各给一个对应机制。<em>Reward-weighted KD 是真正新的部分</em>,其它两块更偏工程。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:naïve SD 在 RL 里的三个失败模式</a></li>
+    <li><a href="#sec2">背景速查 (SD / EAGLE-3 / 接受率公式)</a></li>
+    <li><a href="#sec3">G1 解法:Adaptive SD Server</a></li>
+    <li><a href="#sec4">G2 解法:Drafter Evolution via on-policy KD</a></li>
+    <li><a href="#sec5">G3 解法:Reward-Weighted KD (核心创新)</a></li>
+    <li><a href="#sec6">Async Update Overlap</a></li>
+    <li><a href="#sec7">关键公式与数值敏感性</a></li>
+    <li><a href="#sec8">实验关键结果</a></li>
+    <li><a href="#sec9">与同类工作对比 (SPEC-RL / NeMo-RL / DAS)</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec11">Memory points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:naïve SD 在 RL 里为什么不工作</h2>
+
+<h3>1.1 历史脉络</h3>
+<p>Speculative decoding 在 <em>serving 系统</em>里已经被打磨得非常成熟:SGLang / TensorRT-LLM / OpenAI predicted-outputs / AWS SageMaker 都默认带 SD。EAGLE-3 把 lossless SD 的 acceptance length 推到 ~4–6 tokens,1.5–2× 的加速基本是即插即用的。</p>
+<p>把这套搬进 RL post-training 听上去很顺:RL 一个 step 里 <strong>generation 占 75–86% 时间</strong>(Table 1),减半就是端到端减半。GRPO/DAPO 这类 group sampling 又把每个 prompt 复制成 8/16 个 rollout,token 量再翻几倍。看起来 SD 是天造地设的优化。</p>
+<p>但作者把 EAGLE-3 直接挂在 VeRL+SGLang 上一跑,事情立刻不对劲(Figure 5):Qwen2.5-7B 在 math 数据集上,带 EAGLE-3 跑 200 步,reward 不仅没涨,反而<strong>从 0.3 跌到 0.2</strong>;不带 SD 的 baseline 同期能涨到 0.4。SD 不是没加速,而是<strong>把 actor 训坏了</strong>。</p>
+
+<h3>1.2 别的方案为什么不够</h3>
+<p>在 ReSpec 之前,RL × SD 这条线已经有几个方向,但都各有缺口:</p>
+<table>
+  <thead><tr><th>方案</th><th>核心想法</th><th>为什么不够</th></tr></thead>
+  <tbody>
+    <tr><td>Static EAGLE-3 (NVIDIA NeMo-RL 风格)</td><td>每隔若干步用 actor 重新蒸馏 drafter,中间冻结</td><td>G2 staleness 在 100 步内就发作 (Figure 4: accept length 从 4.0 掉到 2.5);批大且温度高时 G1 反向劣化(Figure 3 在 batch=64 时 speedup &lt; 1)</td></tr>
+    <tr><td>Online SD for serving (DistillSpec, Liu23)</td><td>用流式数据持续蒸馏 drafter,跟随 request 分布漂移</td><td>它们的 teacher 是固定的、漂移在 input 侧;RL 的 teacher (actor) 自己在变,且没有把 reward 信号利用起来</td></tr>
+    <tr><td>SPEC-RL (并行同期工作)</td><td>把 rollout 切成 SD-eligible 区段,只在合适处触发 SD</td><td>仍然是 static drafter;不解决 G2;也没有 G3 这个"SD 让 policy 退化"的诊断</td></tr>
+    <tr><td>Async RL (AReaL, RhymeRL)</td><td>generation/training 异步重叠,根本不修 SD 本身</td><td>正交问题——可以叠加,不替代</td></tr>
+    <tr><td>更大的 draft tree / Medusa</td><td>用更激进的 draft 提高 acceptance length</td><td>放大 G3:multi-token 接受概率方差按 (1+δ)^|T| 指数膨胀,被偷换的 trajectory 进 replay buffer 后污染 gradient</td></tr>
+  </tbody>
+</table>
+
+<h3>1.3 为什么这事不平凡</h3>
+<p>把上面的故事聚成三个 <strong>research gap</strong>(论文里 G1/G2/G3,这是文章的骨架):</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- G1 -->
+    <rect x="20" y="20" width="200" height="180" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="120" y="44" font-size="14" font-weight="700" fill="#cc4a1b" text-anchor="middle">G1: Speedup 消失</text>
+    <text x="120" y="64" font-size="11" fill="#5b5e66" text-anchor="middle">batch 大 → GPU 已饱和</text>
+    <!-- bar chart inside G1 -->
+    <g transform="translate(40,80)">
+      <rect x="0"   y="0"  width="20" height="80" fill="#2f6feb" opacity=".8"/>
+      <rect x="28"  y="20" width="20" height="60" fill="#2f6feb" opacity=".7"/>
+      <rect x="56"  y="40" width="20" height="40" fill="#2f6feb" opacity=".5"/>
+      <rect x="84"  y="55" width="20" height="25" fill="#2f6feb" opacity=".3"/>
+      <rect x="112" y="65" width="20" height="15" fill="#a8353e" opacity=".7"/>
+      <text x="0"   y="95" font-size="9" fill="#5b5e66">b=2</text>
+      <text x="28"  y="95" font-size="9" fill="#5b5e66">b=8</text>
+      <text x="56"  y="95" font-size="9" fill="#5b5e66">b=16</text>
+      <text x="84"  y="95" font-size="9" fill="#5b5e66">b=32</text>
+      <text x="105" y="95" font-size="9" fill="#a8353e">b=64</text>
+    </g>
+    <text x="120" y="195" font-size="10" fill="#5b5e66" text-anchor="middle">b=64 时 SD 变成 0.45×</text>
+
+    <!-- G2 -->
+    <rect x="240" y="20" width="200" height="180" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="340" y="44" font-size="14" font-weight="700" fill="#cc4a1b" text-anchor="middle">G2: Drafter Staleness</text>
+    <text x="340" y="64" font-size="11" fill="#5b5e66" text-anchor="middle">actor 在变,drafter 不变</text>
+    <!-- decreasing accept length curve -->
+    <polyline points="260,90 280,98 300,108 320,118 340,130 360,140 380,148 400,154 420,158" fill="none" stroke="#a8353e" stroke-width="2"/>
+    <text x="262" y="86" font-size="10" fill="#1f7a4a">accept_len=4</text>
+    <text x="380" y="172" font-size="10" fill="#a8353e">→ 2.5 (100步后)</text>
+    <text x="340" y="195" font-size="10" fill="#5b5e66" text-anchor="middle">SD 收益线性衰减</text>
+
+    <!-- G3 -->
+    <rect x="460" y="20" width="220" height="180" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="570" y="44" font-size="14" font-weight="700" fill="#cc4a1b" text-anchor="middle">G3: Policy 退化</text>
+    <text x="570" y="64" font-size="11" fill="#5b5e66" text-anchor="middle">draft 把 actor 带偏</text>
+    <text x="475" y="90" font-size="11" fill="#1f2024">"Patience is the</text>
+    <text x="495" y="108" font-size="11" fill="#1f7a4a">key of life" (r=0.7)</text>
+    <text x="475" y="130" font-size="11" fill="#1f2024">drafter 偏爱:</text>
+    <text x="495" y="148" font-size="11" fill="#a8353e">"key to success" (r=0.3)</text>
+    <text x="495" y="166" font-size="10" fill="#5b5e66">→ 进 buffer → 污染 gradient</text>
+    <text x="570" y="190" font-size="10" fill="#5b5e66" text-anchor="middle">Reward 100 步内崩</text>
+  </svg>
+  <figcaption>三个 gap 一图概览。G1 是 throughput 问题;G2 是 metric 问题(accept length 衰减);G3 是 <strong>training signal 问题</strong>——SD 在 marginal token 分布上无偏(Eq.1 保证),但在 multi-token 序列上不无偏,而 RL 的 reward 是 trajectory-level 的,所以这个偏差直接进梯度。</figcaption>
+</div>
+
+<p>三个 gap 中,<strong>G3 是最反直觉的</strong>:经典 SD 的 acceptance test (Eq.1) 数学上保证<em>每个 token 的 marginal 分布等于 target</em>——很多人因此以为 SD 是 lossless 的、不影响训练。但 RL 的 return 是<em>非线性 trajectory function</em>:第 5 个 token 不一样,后面 100 个 token 的奖励可能差出一个数量级。Eq.3 给出的 multi-token 方差是 <code>(1+δ)^|T| − 1</code>,指数膨胀。drafter 偏爱的"看起来合理"的短语会反复出现在 replay buffer 里(论文那个例子:drafter 老说 "the key to success",而 actor 真正高 reward 的续写是 "the key of life"),于是 gradient 就被这些 lower-reward continuation 反复"投票"。这是 <em>distribution bias</em>,不是 variance,根本无法靠多采样消除。</p>
+
+<p>另外两个 opportunity 让方案有抓手:① <strong>generation 工作流是高度倾斜的</strong>(Figure 6:active batch 在一个 rollout window 内从 32 衰减到 1),意味着 SD 配置不能 static,得跟 active batch 走;② <strong>SD 的 verification 步骤已经天然在算 target logits</strong>,这正是 KD 想要的 soft target——白送的监督信号,只要顺手存下来就能拿来 distill。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+  <thead><tr><th>术语</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><span class="term">target / actor</span></td><td>RL 里的策略模型,即 SD 里的"大模型 verifier"。这两个角色在 RL × SD 里同一份权重</td></tr>
+    <tr><td><span class="term">drafter / draft model</span></td><td>EAGLE-3 风格的小 head + 一两层 transformer,提议 k 个候选 token</td></tr>
+    <tr><td><span class="term">acceptance length</span></td><td>一次 verify 中被接受的连续 token 数;直接决定 speedup</td></tr>
+    <tr><td><span class="term">(s, t, n)</span></td><td>SD 三个超参:speculative rounds / target branching factor / draft length per round</td></tr>
+    <tr><td><span class="term">active batch size</span></td><td>当前还没结束的 sequence 数。RL rollout 中从满 batch 衰减到 1</td></tr>
+    <tr><td><span class="term">replay buffer (Q)</span></td><td>ReSpec 自己的 buffer,存 (x, y, log p, log q, r),用于 reward-weighted KD</td></tr>
+  </tbody>
+</table>
+
+<h4>SD acceptance test (one-shot 版)</h4>
+<div class="formula">P(accept t̂) = min(1, p(t̂) / q(t̂))</div>
+<p>其中 q 是 drafter,p 是 target。被拒时从 residual <code>r(x) = max(0, p−q) / Σ max(0, p−q)</code> 重采样。<strong>marginal 分布无偏</strong>是 Leviathan'23 的核心定理。</p>
+
+<h4>SD cost model (Eq.4)</h4>
+<div class="formula">Cost<sub>SD</sub> ≈ C<sub>q</sub> + C<sub>p</sub>/α / r</div>
+<p>C<sub>q</sub>: drafter 单 token 成本;C<sub>p</sub>: target 单 token 成本;α: 并行验证效率(0&lt;α≤1);r: 接受率。当 batch 已经把 GPU 喂饱时 α→1 但 C<sub>q</sub> 反而成了纯开销 → SD 退化为净亏损。</p>
+
+<hr>
+
+<h2 id="sec3">3 · G1 解法:Adaptive Speculative Decoding Server</h2>
+
+<p>核心观察(Figure 7 那张热力图):同一份 SD 配置 (s=5, t=8, n=32) 在 batch=2 时 1.46× speedup,在 batch=32 时变成 <strong>0.76×</strong>(亏 24%)。所以"挑一个最好的 (s,t,n) 用一辈子"这条路根本走不通。</p>
+
+<p>ReSpec 的方案分两层:</p>
+<ul>
+  <li><strong>Solver (offline)</strong>:训练前在目标硬件上跑一轮 profiling,枚举 (s,t,n) × batch size 的吞吐表,拟合一个 lookup model。这一步 lightweight,只做一次。</li>
+  <li><strong>Scheduler (runtime)</strong>:每个 decoding step 看当前 active batch,查表选最优配置;如果连 SD 本身都不划算(预测 speedup &lt; 1),直接<em>降级到纯 target decode</em>。</li>
+</ul>
+
+<p>难点在<strong>状态切换</strong>:从 spec 切回 non-spec,或反过来,KV cache 状态不一样。ReSpec 用一个 per-request 的 flag,把 decoding 抽象成两个状态:</p>
+<ul>
+  <li><strong>Non-spec → Spec</strong>:复用 prefill 接口,把当前 decode batch "promote" 成 spec-enabled batch,不改 decoding kernel</li>
+  <li><strong>Spec → Non-spec</strong>:直接丢掉 speculative metadata(候选树等),继续普通 decode</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 700 240" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+      </marker>
+    </defs>
+    <!-- timeline -->
+    <text x="20" y="20" font-size="13" font-weight="600" fill="#1f2024">RL rollout 时间轴 (active batch 演化)</text>
+    <line x1="30" y1="40" x2="670" y2="40" stroke="#5b5e66" stroke-width="1"/>
+    <!-- batch curve -->
+    <polyline points="30,60 100,60 180,80 270,110 360,140 450,160 540,180 620,195 660,200" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="35" y="56" font-size="10" fill="#cc4a1b">batch=32</text>
+    <text x="565" y="178" font-size="10" fill="#cc4a1b">batch=2</text>
+
+    <!-- regions -->
+    <rect x="30"  y="70" width="200" height="50" fill="#a8353e" opacity=".15"/>
+    <text x="130" y="100" font-size="11" font-weight="600" fill="#a8353e" text-anchor="middle">non-spec 区</text>
+    <text x="130" y="115" font-size="9" fill="#5b5e66" text-anchor="middle">GPU 已饱和,SD 净亏</text>
+
+    <rect x="230" y="70" width="180" height="50" fill="#fff7e0" opacity=".8"/>
+    <text x="320" y="100" font-size="11" font-weight="600" fill="#cc4a1b" text-anchor="middle">过渡 (extend KV)</text>
+
+    <rect x="410" y="70" width="260" height="50" fill="#1f7a4a" opacity=".15"/>
+    <text x="540" y="100" font-size="11" font-weight="600" fill="#1f7a4a" text-anchor="middle">spec 区:激进 (s,t,n)</text>
+
+    <!-- decode boxes -->
+    <g transform="translate(30,140)">
+      <rect x="0" y="0" width="32" height="20" fill="#2f6feb" opacity=".7"/><text x="3" y="14" font-size="9" fill="#fff">D1</text>
+      <rect x="34" y="0" width="32" height="20" fill="#2f6feb" opacity=".7"/><text x="37" y="14" font-size="9" fill="#fff">D2</text>
+      <rect x="68" y="0" width="32" height="20" fill="#2f6feb" opacity=".7"/><text x="71" y="14" font-size="9" fill="#fff">D3</text>
+      <text x="0" y="38" font-size="10" fill="#5b5e66">target only</text>
+    </g>
+    <g transform="translate(230,140)">
+      <rect x="0" y="0" width="60" height="20" fill="#fff" stroke="#cc4a1b" stroke-dasharray="3,2"/><text x="6" y="14" font-size="9">extend KV</text>
+      <text x="0" y="38" font-size="10" fill="#cc4a1b">prefill-style</text>
+    </g>
+    <g transform="translate(410,140)">
+      <rect x="0" y="0" width="22" height="20" fill="#2f6feb"/><text x="2" y="14" font-size="8" fill="#fff">tgt</text>
+      <rect x="24" y="0" width="50" height="20" fill="#cc4a1b" opacity=".7"/><text x="30" y="14" font-size="9" fill="#fff">draft×n</text>
+      <rect x="76" y="0" width="22" height="20" fill="#2f6feb"/><text x="78" y="14" font-size="8" fill="#fff">vfy</text>
+      <rect x="100" y="0" width="50" height="20" fill="#cc4a1b" opacity=".7"/>
+      <rect x="152" y="0" width="22" height="20" fill="#2f6feb"/>
+      <text x="0" y="38" font-size="10" fill="#1f7a4a">SD on,接受 4 token / 2 forward</text>
+    </g>
+
+    <text x="20" y="220" font-size="11" fill="#5b5e66">Scheduler 监控 active batch,Solver 用 offline 表查最优 (s,t,n);切换不打断 KV cache。</text>
+  </svg>
+  <figcaption>Adaptive Server 的核心:把"是否开 SD"和"开哪一档 SD"都做成 runtime 状态,而不是训练前的常量。状态切换通过复用 prefill 接口实现 zero-overhead。</figcaption>
+</div>
+
+<h4>Worked example</h4>
+<p>假设 H100 上 Qwen2.5-7B + EAGLE-3,profiler 测到下表(简化版):</p>
+<table>
+  <thead><tr><th>active batch</th><th>(s,t,n)=(3,5,8)</th><th>(5,8,16)</th><th>(5,8,32)</th><th>Solver 选</th></tr></thead>
+  <tbody>
+    <tr><td>2</td><td>1.24×</td><td>1.36×</td><td><strong>1.46×</strong></td><td>(5,8,32)</td></tr>
+    <tr><td>16</td><td>1.20×</td><td>1.21×</td><td>1.06×</td><td>(3,5,16)→(3,8,32)≈1.46×</td></tr>
+    <tr><td>32</td><td>1.16×</td><td>1.04×</td><td><span class="no">0.76×</span></td><td><strong>关 SD,纯 target</strong></td></tr>
+  </tbody>
+</table>
+<p>追踪一个 prompt 的生命周期:rollout 开始时 batch=32 → Scheduler 选 non-spec(虽然 EAGLE-3 已经加载,但不调用 draft path);跑了 200 token 后 28 个 sequence 已经 EOS,active=4 → 切到 spec,先用一次 prefill-style forward 把 KV cache 补到当前位置(这是论文里 "Extend Once" 那一步,Figure 9b 中间的灰条),之后正常 spec decode。这样大批和长尾两段都吃到甜头。</p>
+
+<details>
+<summary>反向论证:不做 Adaptive Server 会怎样?</summary>
+<p>静态选 (5,8,32):大 batch 段亏 24%,小 batch 段赚 46%,两边正负相抵后端到端只剩 ~10%。论文的 ablation(Figure 14)显示:在已经有 reward-weighted KD 的基础上,Adaptive Server 又加 12%(1.48× → 1.66×)。这 12% 几乎全靠"在大 batch 阶段不要开 SD"这个简单决策。</p>
+</details>
+
+<hr>
+
+<h2 id="sec4">4 · G2 解法:Drafter Evolution via on-policy KD</h2>
+
+<p>EAGLE-3 在 serving 里只蒸馏一次就稳稳跑;在 RL 里 actor 每 step 在变,所以训练 100 步后,Figure 4 里 acceptance length 已经从 4.0 滑到 ~2.5。修复思路简单又巧妙:<strong>SD 的 verification 已经在算 target logits 了,顺手存下来当 KD 的 soft target,反过来更新 drafter</strong>。</p>
+
+<p>具体流程(Algorithm 1 简化):</p>
+<ol>
+  <li>每个 rollout sample 产生 <code>(x, y, log p, log q, r)</code> 五元组,其中 <code>log p</code> 是 verification 自动给出的 target logits</li>
+  <li>这些五元组存进 <strong>replay buffer Q</strong></li>
+  <li>每 I 步训练一次 drafter,目标是 <code>KL(softmax(log p) ‖ q_θ(·))</code>,梯度只对当前 q_θ 反传(<em>不</em>对 log q 反传——log q 只是诊断)</li>
+  <li>更新完的 drafter 推回 inference engine,下一个 RL step 用</li>
+</ol>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+      </marker>
+    </defs>
+
+    <!-- left: rollout -->
+    <rect x="20" y="20" width="200" height="70" rx="8" fill="#fff" stroke="#2f6feb"/>
+    <text x="120" y="42" font-size="13" font-weight="600" fill="#2f6feb" text-anchor="middle">RL Rollout (SD on)</text>
+    <text x="120" y="62" font-size="10" fill="#5b5e66" text-anchor="middle">target verify → 自动产</text>
+    <text x="120" y="76" font-size="10" fill="#5b5e66" text-anchor="middle">log p_t (顺手存)</text>
+
+    <!-- arrow -->
+    <line x1="220" y1="55" x2="280" y2="55" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr3)"/>
+    <text x="240" y="48" font-size="9" fill="#5b5e66">(x,y,log p, r)</text>
+
+    <!-- buffer -->
+    <rect x="280" y="20" width="160" height="70" rx="8" fill="#f3eee0" stroke="#cc4a1b"/>
+    <text x="360" y="42" font-size="13" font-weight="600" fill="#cc4a1b" text-anchor="middle">Replay Buffer Q</text>
+    <text x="360" y="62" font-size="10" fill="#5b5e66" text-anchor="middle">累积 I 步 mini-batch</text>
+    <text x="360" y="76" font-size="10" fill="#5b5e66" text-anchor="middle">每步只用 1/I</text>
+
+    <!-- arrow -->
+    <line x1="440" y1="55" x2="500" y2="55" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr3)"/>
+
+    <!-- KD update -->
+    <rect x="500" y="20" width="180" height="70" rx="8" fill="#fff" stroke="#1f7a4a"/>
+    <text x="590" y="42" font-size="13" font-weight="600" fill="#1f7a4a" text-anchor="middle">KD update</text>
+    <text x="590" y="62" font-size="10" fill="#5b5e66" text-anchor="middle">L = w(r) · KL(p̃ ‖ q_θ)</text>
+    <text x="590" y="76" font-size="10" fill="#5b5e66" text-anchor="middle">θ ← θ − η ∇L</text>
+
+    <!-- bottom: actor evolution -->
+    <text x="20" y="120" font-size="13" font-weight="600" fill="#1f2024">Actor 在变,drafter 跟着变</text>
+    <line x1="30" y1="135" x2="670" y2="135" stroke="#5b5e66" stroke-width="1"/>
+
+    <!-- actor steps -->
+    <g transform="translate(30,150)">
+      <circle cx="20" cy="0" r="14" fill="#2f6feb" opacity=".4"/><text x="14" y="4" font-size="11" fill="#fff">A0</text>
+      <circle cx="120" cy="0" r="14" fill="#2f6feb" opacity=".55"/><text x="114" y="4" font-size="11" fill="#fff">A1</text>
+      <circle cx="220" cy="0" r="14" fill="#2f6feb" opacity=".7"/><text x="214" y="4" font-size="11" fill="#fff">A2</text>
+      <circle cx="320" cy="0" r="14" fill="#2f6feb" opacity=".85"/><text x="314" y="4" font-size="11" fill="#fff">A3</text>
+      <circle cx="420" cy="0" r="14" fill="#2f6feb"/><text x="414" y="4" font-size="11" fill="#fff">A4</text>
+      <circle cx="520" cy="0" r="14" fill="#2f6feb"/><text x="514" y="4" font-size="11" fill="#fff">A5</text>
+      <circle cx="620" cy="0" r="14" fill="#2f6feb"/><text x="614" y="4" font-size="11" fill="#fff">A6</text>
+    </g>
+    <!-- drafter -->
+    <g transform="translate(30,200)">
+      <rect x="6" y="-8" width="28" height="16" fill="#cc4a1b" opacity=".5"/><text x="11" y="4" font-size="10" fill="#fff">D0</text>
+      <rect x="106" y="-8" width="28" height="16" fill="#cc4a1b" opacity=".5"/><text x="111" y="4" font-size="10" fill="#fff">D0</text>
+      <rect x="206" y="-8" width="28" height="16" fill="#cc4a1b" opacity=".7"/><text x="211" y="4" font-size="10" fill="#fff">D1</text>
+      <rect x="306" y="-8" width="28" height="16" fill="#cc4a1b" opacity=".7"/><text x="311" y="4" font-size="10" fill="#fff">D1</text>
+      <rect x="406" y="-8" width="28" height="16" fill="#cc4a1b" opacity=".85"/><text x="411" y="4" font-size="10" fill="#fff">D2</text>
+      <rect x="506" y="-8" width="28" height="16" fill="#cc4a1b" opacity=".85"/><text x="511" y="4" font-size="10" fill="#fff">D2</text>
+      <rect x="606" y="-8" width="28" height="16" fill="#cc4a1b"/><text x="611" y="4" font-size="10" fill="#fff">D3</text>
+    </g>
+    <text x="20" y="245" font-size="10" fill="#5b5e66">每 I=2 步 drafter 更新一次,KV: actor ↑ 实线,drafter ↑ 虚线跟随</text>
+    <text x="20" y="262" font-size="10" fill="#a8353e">naïve EAGLE-3: drafter 永远停在 D0 → 100 步后 accept_len 从 4 → 2.5</text>
+  </svg>
+  <figcaption>Drafter Evolution 通过 on-policy KD 持续追赶 actor。关键 trick:KD 的 soft target 是 SD verification 自然产生的 log p,等于"白送的监督",不需要额外 forward。</figcaption>
+</div>
+
+<h4>Worked example: 一条 rollout 的生命周期</h4>
+<p>假设 prompt = "求 ∫₀¹ x²dx",actor 输出 100 个 token。其中第 17 个位置 SD verify 同时产出长度 V=151936(Qwen2.5 vocab) 的 logits 张量 <code>log p_17 ∈ ℝ^V</code>。存盘时只存 top-K=32(节省存储,论文默认这么做),其它位置 mask 掉。</p>
+<table>
+  <thead><tr><th>位置 t</th><th>token y_t</th><th>log p (top-3)</th><th>log q (drafter)</th><th>KL 贡献</th></tr></thead>
+  <tbody>
+    <tr><td>17</td><td>"x²"</td><td>{x²:-0.4, x:-2.1, t²:-3.2}</td><td>{x²:-0.9, x:-1.5, t²:-2.0}</td><td>0.32</td></tr>
+    <tr><td>18</td><td>"dx"</td><td>{dx:-0.1, dt:-3.5}</td><td>{dx:-0.3, dt:-1.8}</td><td>0.18</td></tr>
+    <tr><td>19</td><td>"="</td><td>{=:-0.05}</td><td>{=:-0.06}</td><td>~0</td></tr>
+  </tbody>
+</table>
+<p>句子级 r=0.85(答对了 1/3)。Loss = 0.85 · (0.32 + 0.18 + 0) = 0.425,反向更新到 drafter 的 token-mlp head。下一个 step,drafter 在"x²"位置的概率会被推高,acceptance length 期望提升 ~5%。</p>
+
+<details>
+<summary>反向论证:不让 drafter 更新会怎样?</summary>
+<p>等价于 NeMo-RL / SPEC-RL 的做法。短期 OK,长期(>100 step)acceptance length 退化到 2.5,SD 的物理增益降到 1.2× 以下;再叠加 G3(下面),reward 直接崩。Figure 12 中"EAGLE-3"那条曲线就是这个状态:Qwen-3B 在第 400 步 val score 降到 0.15。</p>
+</details>
+
+<hr>
+
+<h2 id="sec5">5 · G3 解法:Reward-Weighted KD <span class="pill">核心创新</span></h2>
+
+<p>这是 ReSpec 区别于其它 RL × SD 工作的真正新东西。前两个 gap 的解法多少有先例(adaptive SD 是 serving 里的常识,on-policy KD 是 DistillSpec 改 RL),但 G3 第一次被诊断为"<em>SD 不仅没加速,还在偷换梯度</em>",并且解法是把 RL 的 reward 信号注回到 SD 的 KD 损失里。</p>
+
+<h4>问题精确化</h4>
+<p>朴素 KD(标准 KL,所有样本平权)在 RL 里有个反馈环路:</p>
+<ol>
+  <li>drafter 学习全部 rollout(包括 reward=0 的失败 trajectory)</li>
+  <li>drafter 学到的"平均"分布偏向 actor 的 noisy 行为</li>
+  <li>下一轮 SD 用这个 drafter 提议,acceptance test 在<em>marginal</em>上无偏,但在 multi-token 上把 actor 朝 drafter 的偏置方向"拉过去"</li>
+  <li>更多 noisy rollout 进 buffer → drafter 更偏 → ...</li>
+</ol>
+
+<p>论文给出的修正非常直接——给每个 sample 的 KD 损失加一个 reward 权重 w(r):</p>
+<div class="formula">L_KD(x, y) = w(r) · Σ<sub>t=1..T</sub> KL( p(·|x, y&lt;t) ‖ q_θ(·|x, y&lt;t) )</div>
+<p>默认 <code>w(r) = r</code>(实际实现里 normalize + clip 防止极端值)。直觉:<strong>reward 高的 trajectory 是"actor 的优秀样本",让 drafter 重点学这类;reward 低的 trajectory 是 actor 的失败案例,drafter 不该去模仿</strong>。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 320" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+
+    <text x="350" y="22" font-size="14" font-weight="700" fill="#1f2024" text-anchor="middle">Reward-Weighted KD: 高 reward 样本主导 drafter</text>
+
+    <!-- rollouts -->
+    <g transform="translate(30,40)">
+      <text x="0" y="14" font-size="12" font-weight="600" fill="#5b5e66">5 个 rollout (同一 prompt)</text>
+    </g>
+
+    <!-- rollout boxes -->
+    <g transform="translate(30,60)">
+      <rect x="0" y="0" width="280" height="22" fill="#1f7a4a" opacity=".15" stroke="#1f7a4a"/>
+      <text x="6" y="15" font-size="11" fill="#1f2024">"...key of life" → r=1.0, w=1.00</text>
+      <rect x="320" y="0" width="60" height="22" fill="#1f7a4a"/>
+      <text x="350" y="15" font-size="11" fill="#fff" text-anchor="middle">w · KL = 0.40</text>
+
+      <rect x="0" y="28" width="280" height="22" fill="#1f7a4a" opacity=".10" stroke="#1f7a4a"/>
+      <text x="6" y="43" font-size="11" fill="#1f2024">"...key to wisdom" → r=0.8, w=0.80</text>
+      <rect x="320" y="28" width="48" height="22" fill="#1f7a4a" opacity=".75"/>
+      <text x="344" y="43" font-size="11" fill="#fff" text-anchor="middle">0.32</text>
+
+      <rect x="0" y="56" width="280" height="22" fill="#cc4a1b" opacity=".10" stroke="#cc4a1b"/>
+      <text x="6" y="71" font-size="11" fill="#1f2024">"...key to success" → r=0.3, w=0.30</text>
+      <rect x="320" y="56" width="18" height="22" fill="#cc4a1b" opacity=".5"/>
+      <text x="344" y="71" font-size="11" fill="#5b5e66" text-anchor="middle">0.12</text>
+
+      <rect x="0" y="84" width="280" height="22" fill="#cc4a1b" opacity=".15" stroke="#cc4a1b"/>
+      <text x="6" y="99" font-size="11" fill="#1f2024">"...power" (短) → r=0.3, w=0.30</text>
+      <rect x="320" y="84" width="15" height="22" fill="#cc4a1b" opacity=".5"/>
+      <text x="344" y="99" font-size="11" fill="#5b5e66" text-anchor="middle">0.10</text>
+
+      <rect x="0" y="112" width="280" height="22" fill="#a8353e" opacity=".18" stroke="#a8353e"/>
+      <text x="6" y="127" font-size="11" fill="#1f2024">"...seed" (跑题) → r=0.0, w=0 (clip)</text>
+      <rect x="320" y="112" width="3" height="22" fill="#a8353e"/>
+      <text x="344" y="127" font-size="11" fill="#a8353e" text-anchor="middle">0</text>
+    </g>
+
+    <!-- arrow to total -->
+    <line x1="380" y1="160" x2="380" y2="200" stroke="#5b5e66" stroke-width="2" marker-end="url(#arr4)"/>
+    <text x="395" y="180" font-size="11" fill="#5b5e66">Σ</text>
+
+    <rect x="180" y="200" width="400" height="40" fill="#fff" stroke="#2f6feb" stroke-width="2"/>
+    <text x="380" y="225" font-size="13" font-weight="700" fill="#2f6feb" text-anchor="middle">L_tot = 0.40 + 0.32 + 0.12 + 0.10 + 0 = 0.94</text>
+
+    <text x="180" y="265" font-size="11" fill="#5b5e66">朴素 KD: 5 个样本平权 → 把 "key to success" 也学进去 → drafter 偏向短句 → SD verify 偏好继续抽到 "key to success" → reward 螺旋下降</text>
+    <text x="180" y="285" font-size="11" fill="#1f7a4a">Reward-weighted: drafter 学到"actor 的高 reward 行为子集",SD 偏向高奖励 trajectory,policy update 不再被 noise 拉低</text>
+
+    <text x="600" y="55" font-size="11" font-weight="600" fill="#1f7a4a" text-anchor="middle">drafter 该学的</text>
+    <text x="600" y="125" font-size="11" font-weight="600" fill="#a8353e" text-anchor="middle">drafter 不该学的</text>
+  </svg>
+  <figcaption>Reward-weighted KD 一图。同一个 prompt 的 5 条 rollout(GRPO group),按 reward 给 KD 损失加权。低 reward 的样本即使 drafter 拟合得好,也几乎不影响梯度。这把 SD 的"无意识模仿"变成"选择性模仿"。</figcaption>
+</div>
+
+<h4>Worked example: GRPO group of 5</h4>
+<p>同一道数学题 GRPO 采 5 个完成,reward = [1.0, 0.8, 0.3, 0.3, 0.0]。每条算自己的 KL_t = Σ_t KL(p_t ‖ q_t),假设都接近 0.4。</p>
+<table>
+  <thead><tr><th>样本</th><th>KL_raw</th><th>朴素 KD 贡献</th><th>Reward-weighted 贡献 (w=r)</th></tr></thead>
+  <tbody>
+    <tr><td>r=1.0 (best)</td><td>0.40</td><td>0.40</td><td>0.40 ← 主导</td></tr>
+    <tr><td>r=0.8</td><td>0.40</td><td>0.40</td><td>0.32</td></tr>
+    <tr><td>r=0.3</td><td>0.40</td><td>0.40</td><td>0.12</td></tr>
+    <tr><td>r=0.3</td><td>0.40</td><td>0.40</td><td>0.12</td></tr>
+    <tr><td>r=0.0 (failed)</td><td>0.40</td><td>0.40 ← 污染</td><td>0.00</td></tr>
+    <tr><td><strong>总和</strong></td><td>—</td><td>2.00</td><td>0.96</td></tr>
+  </tbody>
+</table>
+<p>朴素 KD 的更新方向是 5 条样本的平均;reward-weighted 的更新方向 ≈ 0.42 · ∇top1 + 0.33 · ∇top2,实际把 drafter "拉"向 reward=1.0 那条 trajectory 的预测分布。failed sample 完全不传梯度。</p>
+
+<h4>消融对比 (Figure 10)</h4>
+<table>
+  <thead><tr><th>策略</th><th>step ~125</th><th>step ~150</th><th>step ~175</th><th>step ~200</th></tr></thead>
+  <tbody>
+    <tr><td>EAGLE-3 only (无更新)</td><td>0.30 → ↓</td><td>0.20</td><td>0.07</td><td><span class="no">~0</span></td></tr>
+    <tr><td>No-reward KD (平权)</td><td>0.30 → ↓</td><td><span class="no">~0</span></td><td>~0</td><td>~0</td></tr>
+    <tr><td><strong>Reward-weighted KD</strong></td><td>0.32</td><td>0.36</td><td>0.40</td><td><span class="ok">0.42</span></td></tr>
+    <tr><td>W/O EAGLE-3 (baseline)</td><td>0.32</td><td>0.36</td><td>0.40</td><td>0.42</td></tr>
+  </tbody>
+</table>
+<p>这张表是论文最重要的数据:平权 KD 比"完全不更新"还坏,因为它<em>主动</em>把 drafter 训成了"actor 的均值",而 actor 均值充满失败 trajectory。Reward-weighted 几乎完美追上 baseline 曲线。</p>
+
+<details>
+<summary>反向论证:为什么不能用 advantage 替代 r?</summary>
+<p>GRPO 里其实有 normalized advantage A = (r - mean_group) / std_group。论文用了原始 r 而不是 A,理由(我推断的):drafter 是<em>generative model</em>,需要绝对的"高质量分布"信号;A 包含负值,clip 后等价于"比平均差就丢掉",会丢一半样本而且不稳定。直接用 r 并 clip 到 [0, ∞) 是最简洁的工程化选择。这个权重函数的最优形式应该有研究空间(例如温度缩放),论文没深入。</p>
+</details>
+
+<hr>
+
+<h2 id="sec6">6 · Async Update Overlap (G2 系统侧补丁)</h2>
+
+<p>drafter 也是个模型,反向传播要 GPU 时间。如果每个 RL step 都<strong>同步</strong>训一次 drafter,generation 必须等更新完成 → pipeline bubble。ReSpec 用两个机制摊薄这个开销:</p>
+
+<ul>
+  <li><strong>Replay buffer 累积</strong>:每 I 步才更新一次 drafter,且每次只用 buffer 的 1/I,把"频繁小更新"摊成"低频次但 batch 大"</li>
+  <li><strong>Async overlap</strong>:drafter 训练塞进 RL pipeline 的 idle slot——actor weights sync / reward inference 等阶段,GPU 有空,顺势跑 drafter forward+backward</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <text x="20" y="20" font-size="13" font-weight="600" fill="#a8353e">(a) Sync: drafter 阻塞 generation</text>
+    <g transform="translate(20,30)">
+      <rect x="0"   y="0" width="80"  height="22" fill="#2f6feb"/><text x="40" y="15" font-size="10" fill="#fff" text-anchor="middle">Train T0</text>
+      <rect x="80"  y="0" width="120" height="22" fill="#cc4a1b"/><text x="140" y="15" font-size="10" fill="#fff" text-anchor="middle">Gen T0,D0</text>
+      <rect x="200" y="0" width="60"  height="22" fill="#a8353e"/><text x="230" y="15" font-size="10" fill="#fff" text-anchor="middle">Train D0</text>
+      <rect x="260" y="0" width="80"  height="22" fill="#2f6feb"/><text x="300" y="15" font-size="10" fill="#fff" text-anchor="middle">Train T1</text>
+      <rect x="340" y="0" width="120" height="22" fill="#cc4a1b"/><text x="400" y="15" font-size="10" fill="#fff" text-anchor="middle">Gen T1,D1</text>
+      <rect x="460" y="0" width="60"  height="22" fill="#a8353e"/><text x="490" y="15" font-size="10" fill="#fff" text-anchor="middle">Train D1</text>
+      <rect x="520" y="0" width="80"  height="22" fill="#2f6feb"/><text x="560" y="15" font-size="10" fill="#fff" text-anchor="middle">Train T2</text>
+    </g>
+    <text x="650" y="50" font-size="11" fill="#a8353e">长 →</text>
+
+    <text x="20" y="100" font-size="13" font-weight="600" fill="#1f7a4a">(b) Async: drafter 训练塞进 idle slot</text>
+    <g transform="translate(20,110)">
+      <rect x="0"   y="0" width="80"  height="22" fill="#2f6feb"/><text x="40" y="15" font-size="10" fill="#fff" text-anchor="middle">Train T0</text>
+      <rect x="80"  y="0" width="120" height="22" fill="#cc4a1b"/><text x="140" y="15" font-size="10" fill="#fff" text-anchor="middle">Gen T1, D0</text>
+      <rect x="200" y="0" width="80"  height="22" fill="#2f6feb"/><text x="240" y="15" font-size="10" fill="#fff" text-anchor="middle">Train T1</text>
+      <rect x="280" y="0" width="120" height="22" fill="#cc4a1b"/><text x="340" y="15" font-size="10" fill="#fff" text-anchor="middle">Gen T2, D1</text>
+      <rect x="400" y="0" width="80"  height="22" fill="#2f6feb"/><text x="440" y="15" font-size="10" fill="#fff" text-anchor="middle">Train T2</text>
+    </g>
+    <g transform="translate(20,135)">
+      <rect x="80"  y="0" width="120" height="22" fill="#a8353e" opacity=".5"/><text x="140" y="15" font-size="10" fill="#fff" text-anchor="middle">Train D0 (overlap)</text>
+      <rect x="280" y="0" width="120" height="22" fill="#a8353e" opacity=".5"/><text x="340" y="15" font-size="10" fill="#fff" text-anchor="middle">Train D1 (overlap)</text>
+    </g>
+    <text x="650" y="135" font-size="11" fill="#1f7a4a">短 ↑</text>
+
+    <text x="20" y="190" font-size="11" fill="#5b5e66">代价:Gen step k+1 用 D_{k-1}(staleness=1 step)。Figure 15 显示 I=1 几乎无害,I≥3 显著掉点。</text>
+  </svg>
+  <figcaption>Async overlap 把 drafter training 与 generation 并行。trade-off 是 drafter 总比 actor 滞后 1 个 RL step,但小模型(3B/7B)对这个延迟敏感,大模型(14B)抗一点。</figcaption>
+</div>
+
+<p>worked example: I=1 时(每步更新),Qwen-7B reward 涨到 0.42;I=3 时降到 0.35;I=5 时降到 0.30 甚至低于 sync。所以默认 I=1 + async,既频繁又不阻塞。这是<em>系统级 vs 算法级 freshness</em>的小心 trade-off。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 关键公式与数值敏感性</h2>
+
+<h3>7.1 Multi-token 接受概率方差(Eq.3)</h3>
+<div class="formula">Var<sub>T~q</sub>[ Π<sub>t∈T</sub> p(t)/q(t) ] = Π<sub>t</sub>(1 + D<sub>χ²</sub>(p‖q)) − 1 ≈ (1+δ)<sup>|T|</sup> − 1</div>
+
+<p>把 χ² divergence 近似为常数 δ,方差按序列长度<strong>指数</strong>增长。这给 G3 提供了理论:即使每个 token 单步 marginal 无偏,接受 5-token 块时方差是 (1+δ)⁵ − 1。</p>
+
+<table>
+  <thead><tr><th>δ (drafter 偏离度)</th><th>|T|=2</th><th>|T|=4</th><th>|T|=8</th></tr></thead>
+  <tbody>
+    <tr><td>0.05 (drafter 新鲜)</td><td>0.10</td><td>0.22</td><td>0.48</td></tr>
+    <tr><td>0.20 (100 步未更新)</td><td>0.44</td><td>1.07</td><td>3.30</td></tr>
+    <tr><td>0.50 (严重 stale)</td><td>1.25</td><td>4.06</td><td>24.6</td></tr>
+  </tbody>
+</table>
+
+<p><strong>物理直觉</strong>:drafter 越 stale (δ↑),长 draft block (|T|↑) 的方差爆炸越快。这就是为什么 ReSpec 必须同时做 G2(让 δ 小)和 G3(用 reward 选好的 trajectory),仅其一不够——只解 G2 也会因为剩余 δ 在长 block 下放大;只解 G3 不让 drafter 更新,δ 会从 0.05 飙到 0.5,把 1.25 的方差变成 24.6。</p>
+
+<h3>7.2 SD cost (Eq.4) 在 RL 下的退化</h3>
+<div class="formula">Cost<sub>SD</sub> ≈ (C<sub>q</sub> + C<sub>p</sub>/α) / r</div>
+
+<p>r 是接受率(acceptance rate)。当 r → 0,cost → ∞,SD 比裸 decode 慢。把 G2 staleness 写进去:r 从 0.7 (新鲜) 降到 0.3 (stale 100 步) 时,假设 C_q=0.1 C_p,α=0.7:</p>
+
+<table>
+  <thead><tr><th>r</th><th>Cost (单位 C_p)</th><th>vs 裸 decode (C_p)</th></tr></thead>
+  <tbody>
+    <tr><td>0.7</td><td>(0.1 + 1.43)/0.7 = 2.18</td><td>但每次 verify k 个 token → 实际 0.45 → <span class="ok">2.2× speedup</span></td></tr>
+    <tr><td>0.5</td><td>(0.1 + 1.43)/0.5 = 3.06</td><td>0.61 → 1.6× speedup</td></tr>
+    <tr><td>0.3</td><td>(0.1 + 1.43)/0.3 = 5.10</td><td>1.02 → <span class="no">~1×, SD 收益归零</span></td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 端到端 reward stability (Figure 12)</h3>
+<table>
+  <thead><tr><th>模型</th><th>baseline (no SD)</th><th>EAGLE-3 naïve</th><th>ReSpec</th></tr></thead>
+  <tbody>
+    <tr><td>Qwen2.5-3B (400 步)</td><td>0.600</td><td><span class="no">0.500</span></td><td>0.550</td></tr>
+    <tr><td>Qwen2.5-7B (200 步)</td><td>0.400</td><td><span class="no">0.327</span></td><td>0.427</td></tr>
+    <tr><td>Qwen2.5-14B (200 步)</td><td>0.609</td><td>0.586</td><td>0.632</td></tr>
+  </tbody>
+</table>
+<p>读法:naïve EAGLE-3 在 3B/7B 上明显伤 reward;ReSpec 不仅追平 baseline,有时还略高(可能 reward-weighted KD 起到了"选择性放大优秀样本"的隐性正则)。14B 上差距小,符合"大模型对 stale drafter 更鲁棒"的直觉。</p>
+
+<h3>8.2 端到端 speedup (Figure 13)</h3>
+<table>
+  <thead><tr><th>模型</th><th>avg speedup</th><th>max speedup</th></tr></thead>
+  <tbody>
+    <tr><td>Qwen-3B</td><td>1.84×</td><td><strong>4.53×</strong></td></tr>
+    <tr><td>Qwen-7B</td><td>1.69×</td><td>2.41×</td></tr>
+    <tr><td>Qwen-14B</td><td>1.50×</td><td>2.33×</td></tr>
+  </tbody>
+</table>
+<p>3B 的 4.5× max speedup 是<em>瞬时</em>峰值(应该在 long-tail 单 sequence 阶段);avg 1.84× 是更可靠的数。</p>
+
+<h3>8.3 消融 (Figure 14, Qwen-14B)</h3>
+<table>
+  <thead><tr><th>累加</th><th>speedup</th><th>增量</th></tr></thead>
+  <tbody>
+    <tr><td>baseline (no SD)</td><td>1.00×</td><td>—</td></tr>
+    <tr><td>+ Reward-weighted KD (Online Learner)</td><td><strong>1.48×</strong></td><td>+48%</td></tr>
+    <tr><td>+ Adaptive Server</td><td>1.66×</td><td>+12%</td></tr>
+    <tr><td>+ Async Update Overlap</td><td>1.78×</td><td>+7%</td></tr>
+  </tbody>
+</table>
+<p><strong>读法</strong>:贡献排序是 RW-KD ≫ Adaptive Server &gt; Async overlap。RW-KD 是 main lifter——这跟我前面说的"它是真正的算法创新"一致。注意 RW-KD 既包含 G2 修复(让 SD 不退化)又包含 G3 修复(让 actor 不被带偏),所以 1.48× 里其实是<em>"让 SD 在 RL 里能用"</em>这个基本能力的全部。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <thead><tr>
+    <th>系统</th><th>G1 自适应</th><th>G2 drafter 更新</th><th>G3 reward 注入</th><th>核心立场</th>
+  </tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>ReSpec</strong> (本文)</td>
+      <td><span class="ok">✓</span> Solver+Scheduler</td>
+      <td><span class="ok">✓</span> on-policy KD</td>
+      <td><span class="ok">✓</span> reward-weighted</td>
+      <td>三个 gap 都解,系统级</td>
+    </tr>
+    <tr>
+      <td>NeMo-RL × EAGLE-3 (NVIDIA, 2604.26779)</td>
+      <td><span class="no">✗</span> static (s,t,n)</td>
+      <td>定期重蒸馏</td>
+      <td><span class="no">✗</span> 没识别出 G3</td>
+      <td>系统集成,不改 SD 算法</td>
+    </tr>
+    <tr>
+      <td>SPEC-RL (并行同期)</td>
+      <td>~ 选择性触发</td>
+      <td><span class="no">✗</span> static drafter</td>
+      <td><span class="no">✗</span></td>
+      <td>切片 + 区段 SD,不更新 drafter</td>
+    </tr>
+    <tr>
+      <td>DAS (Draft-Adapted Sampling, RL 方向)</td>
+      <td><span class="no">✗</span></td>
+      <td>~ 偶尔重蒸</td>
+      <td><span class="no">✗</span></td>
+      <td>聚焦 sampling 策略,SD 是手段</td>
+    </tr>
+    <tr>
+      <td>DistillSpec (Zhou'23, serving 方向)</td>
+      <td>—</td>
+      <td><span class="ok">✓</span> online KD</td>
+      <td><span class="no">✗</span> teacher 是固定的</td>
+      <td>SD 在 serving 里追踪 input 漂移</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>定位</strong>:ReSpec 在三件事上都打了卡,而其它工作每件至少缺一件。如果说 NeMo-RL 是 "把 SD 装进 RL pipeline 的工程示范",SPEC-RL 是 "把 SD 用得更聪明",那 ReSpec 是 "<strong>在 RL 训练动态下重新设计 SD 算法</strong>"。Reward-weighted KD 是其它工作目前都没碰的角度。</p>
+
+<div class="nb">
+  <strong>注意</strong>:ReSpec 没和 NeMo-RL 直接 head-to-head,因为这两篇基本上是同期工作,目标也不完全一样(NeMo-RL 关心大规模 + async 投影,ReSpec 关心算法稳定性)。把它们当作互补阅读更合适:NeMo-RL 告诉你"SD 在 RL 里能跑",ReSpec 告诉你"SD 在 RL 里要这样跑才不翻车"。
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+  <li><strong>实验规模有限</strong>:只到 14B,没碰 MoE 或更大稠密模型。Qwen3-32B / DeepSeek-V3 671B 上 reward-weighted KD 是否仍有这么大边际收益未知。</li>
+  <li><strong>w(r)=r 太朴素</strong>:reward 在 GRPO 里通常 ∈ [0,1],但绝对值受 reward model scale 影响。换 task(代码 / agent / preference)后 clip 阈值需要重调,论文没给 sensitivity。</li>
+  <li><strong>Adaptive Server profiling 离线一次</strong>:模型一变(actor 蒸馏 / LoRA / quantize)profiling 表就需要重做。社区里需要一个轻量的 online profiler。</li>
+  <li><strong>4.5× 是峰值</strong>,avg 1.5–1.8×;真正落到生产线的口径应该是 avg。Qwen-14B 才 1.50×,跟 NeMo-RL 报的 1.4×(8B sync)接近。</li>
+  <li><strong>Reward-weighted KD 与 RLHF 偏好奖励的耦合</strong>:如果 reward model 本身有偏(过拟合/sycophancy),drafter 会放大这个偏差;论文没讨论 reward model robustness 的 downstream 影响。</li>
+  <li><strong>EAGLE-3 限定</strong>:整套设计基本绑死 EAGLE-3。如果换成 Medusa / Lookahead / Cascade,接口和 KD 形式都要改。</li>
+</ul>
+
+<h4>待验证问题清单</h4>
+<ol>
+  <li>把 w(r) 换成 normalized advantage 或 quantile-rank,在 GRPO 里是否更稳?</li>
+  <li>Reward-weighted KD 对 reward hacking 是否敏感?如果 reward model 被 hack,drafter 会不会把 hack 放大?</li>
+  <li>14B 上 RW-KD 增益缩小到 ~0,是否 ReSpec 在更大模型上的核心贡献会被稀释?</li>
+  <li>Async I=1 vs sync 在 64+ GPU 大集群上的 weight broadcast 成本如何?(论文是 16 GPU 测的)</li>
+  <li>Drafter staleness 与 actor learning rate 的耦合:大 LR 下 δ 增长更快,KD 更新频率是否需要随 LR 自动 scale?</li>
+  <li>把 Adaptive Server 的 (s,t,n) 用 RL bandit 在线学,而不是 offline profile,是否更适应数据集 / horizon 漂移?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec11">11 · Memory points</h2>
+
+<div class="kv"><span class="pill">立场</span><strong>三个 gap (G1/G2/G3)</strong> 是这篇文章的骨架。其它 RL × SD 论文最多解 1–2 个,且不一定承认 G3 存在。</div>
+<div class="kv"><span class="pill">G1</span>SD 在大 batch 时反而变慢 → Adaptive Server (offline profiling + runtime scheduler),阈值时降级到纯 target decode。</div>
+<div class="kv"><span class="pill">G2</span>actor 在变 drafter 在停 → on-policy KD,soft target 从 SD verify 自动产出,不加额外 forward。</div>
+<div class="kv"><span class="pill">G3</span>SD marginal 无偏但 trajectory 有偏 → reward-weighted KD,让 drafter 只学高 reward 样本。这是论文最原创的部分。</div>
+<div class="kv"><span class="pill">数字</span>RW-KD 单独贡献 1.48×,占整套 1.78× 的 ~62%。Adaptive Server +12%,Async +7%。</div>
+<div class="kv"><span class="pill">数字</span>3B 上 max 4.5×,avg 1.84×;7B avg 1.69×;14B avg 1.50×。模型越大相对增益越小。</div>
+<div class="kv"><span class="pill">陷阱</span>朴素 KD 比"drafter 不更新"<em>更糟</em>——因为它主动学 actor 的 noise,而 stale drafter 至少不退化。Reward weighting 是必需的,不是优化。</div>
+<div class="kv"><span class="pill">公式</span>multi-token 接受方差 ≈ (1+δ)<sup>|T|</sup> − 1,δ 越大、|T| 越长越爆炸。这是为什么 ReSpec 必须同时控 δ (G2) 和控选样 (G3)。</div>
+<div class="kv"><span class="pill">系统</span>2K LOC on VeRL+SGLang,500 LOC Adaptive Server + 1500 LOC Online Learner。</div>
+<div class="kv"><span class="pill">局限</span>14B 是 ceiling,w(r)=r 太朴素,profiling 离线一次,EAGLE-3 绑死。</div>
+
+</main>
+</body>
+</html>

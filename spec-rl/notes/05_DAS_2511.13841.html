@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · DAS — Distribution-Aware Speculative Decoding (2511.13841)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Beat the Long Tail: Distribution-Aware Speculative Decoding for RL Training</h1>
+<div class="meta">
+  Together AI · UIUC · UCSD · Zelei Shao &amp; Vikranth Srivatsa et al. · 2025-11-17 · arXiv:2511.13841<br>
+  关键词: RL post-training · speculative decoding · suffix tree · long-tail · VeRL · vLLM · model-free drafter
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 draft model 整个扔掉,改用<em>滑动窗口 suffix tree</em> 当 drafter,再按 trajectory 长度差异化分配 draft budget,在不改 RL 训练语义的前提下把 rollout 时间砍掉 30–50%。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">~70%</div><div class="l">RL step 中 rollout 占比</div></div>
+    <div class="stat"><div class="n">≤50%</div><div class="l">rollout time 减少 (math)</div></div>
+    <div class="stat"><div class="n">0 params</div><div class="l">drafter 是<strong>非参数</strong>的</div></div>
+  </div>
+  <p><strong>立场:</strong>系统侧"工程优雅"的极致——drafter 完全 model-free、可在<strong>任何</strong>已有推理栈(vLLM/SGLang)上嵌入,不引入第二个模型、不需重训、不改 reward loop。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 RL rollout 配 EAGLE 很难</a></li>
+    <li><a href="#sec2">背景速查 (suffix tree / Ukkonen / 术语)</a></li>
+    <li><a href="#sec3">方法 A — Suffix Tree Drafter (含 SVG 构造)</a></li>
+    <li><a href="#sec4">方法 B — Per-problem sharding &amp; sliding window</a></li>
+    <li><a href="#sec5">方法 C — Length-aware speculation budget</a></li>
+    <li><a href="#sec6">公式推导:最优 draft budget</a></li>
+    <li><a href="#sec7">Worked example: 一个 prompt 走完整条流程</a></li>
+    <li><a href="#sec8">实验关键结果</a></li>
+    <li><a href="#sec9">与同类工作对比 (SPEC-RL / ReSpec / NeMo-EAGLE-3 / RhymeRL)</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 RL rollout 配 EAGLE 很难</h2>
+
+<h3>1.1 历史脉络:从 serving 到 rollout 的迁移</h3>
+<p>Speculative decoding 起家于 LLM serving 场景:固定权重的 target,小巧 draft model 提议多 token,target 一次 verify。EAGLE / Medusa / SpecInfer 这条线在 serving 上做到 2–3× wall-clock 加速。</p>
+<p>2024 起,RL post-training (RLHF / GRPO / DAPO) 占总训练时间的比例急速上升:reasoning 模型 trajectory 从 ~512 token 拉到 16k–32k,DeepSeek-R1 进一步把 long-CoT 推到几万 token。论文里的硬数据:rollout 占总训练时间 <strong>&gt; 70%</strong>。这是 Amdahl 视角下"该被攻击的部分"。</p>
+<p>把 spec decoding 直接搬过来?——三个 insight 决定不能简单照搬:</p>
+<ul>
+  <li><strong>Insight-1 (long tail):</strong> Serving 优化 TTFT/TPOT,RL rollout 必须等 batch 里<em>最长那条</em>跑完才能进下一步。短序列先完成,effective batch size 塌缩,只剩几条 straggler 决定 makespan。</li>
+  <li><strong>Insight-2 (reuse):</strong> Serving 假设每个 request 是新的。RL 每个 epoch 把同一批 prompt 重新跑一遍,trajectory 之间有大量结构与词汇复用——这是免费的 prior。</li>
+  <li><strong>Insight-3 (drift):</strong> Serving 里 target 模型权重是冻的。RL 里每个 learner step 之后 target 都变,任何<em>预训练好的</em> draft 都会变 stale。</li>
+</ul>
+
+<h3>1.2 别的方案为什么不够 (alternatives table)</h3>
+<table>
+  <thead><tr><th>方案</th><th>思路</th><th>在 RL 里的死穴</th></tr></thead>
+  <tbody>
+    <tr><td>EAGLE-2/3 (NeMo-RL 路线)</td><td>训练 draft head,跟随 target 周期性蒸馏</td><td>policy 每 step 漂移 → 要么接受率塌,要么需频繁重训 draft head,工程复杂</td></tr>
+    <tr><td>Self-speculative (layer skip)</td><td>用 target 自身浅层做 draft</td><td>RL 里 target 还在变,layer-skip 选择策略也得重调;对 long context 不友好</td></tr>
+    <tr><td>Prompt Lookup (PLD/PLD+)</td><td>从 input 里找重复 n-gram</td><td>只用单个 request 内 prompt,忽略<em>跨 epoch</em> 的 trajectory 复用 (Insight-2)</td></tr>
+    <tr><td>SPEC-RL</td><td>用历史 trajectory 直接当 draft,引入 lenience 接受参数</td><td>改了输出分布,牺牲严格 lossless;不区分 request 长度</td></tr>
+    <tr><td>FastGRPO</td><td>训练 draft model 与 target 同步更新</td><td>显存预算大;扩展性差;仍是参数化 drafter</td></tr>
+    <tr><td>RhymeRL</td><td>利用 trajectory 时序相似 + batch skew</td><td>没有 problem-difficulty 与 sliding-window 概念</td></tr>
+  </tbody>
+</table>
+
+<h3>1.3 为什么这事不平凡</h3>
+<p>表面上"用历史 trajectory 当 draft 来源"听起来一句话能讲清,但要在生产 RL 系统里落地,有三个非平凡点:</p>
+<ol>
+  <li><strong>策略漂移 vs. 历史质量。</strong>一开始的 trajectory 反映早期 policy,后期已经"过期"。直接用全部历史 → 接受率掉。需要某种 sliding window + recency weighting。</li>
+  <li><strong>跨 problem 干扰。</strong>同一个 domain 的不同问题,token-level 模式不互通。一条全局 suffix tree 在统计上稀释信号,在系统上还吃 query 时间。需要 per-problem sharding。</li>
+  <li><strong>一刀切的 budget 是错的。</strong>短序列对 makespan 没贡献,给它发 draft tokens 反而<em>增加</em> verification overhead;长序列才是 makespan 的 bottleneck。需要根据预测长度动态分配 budget。</li>
+</ol>
+<p class="nb">这三点叠加起来才是 DAS 的论文价值。如果只换数据结构(suffix tree),会被 SuffixDecoding (Oliaro 2025) 截胡;如果只做 budget 分配,会被 SpecServe / Liu 2024 截胡。<strong>这三个 component 的耦合</strong>+针对 RL 训练循环的工程化才是新的。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查 (术语 / 数据结构)</h2>
+
+<table>
+  <thead><tr><th>术语</th><th>含义 (本文)</th></tr></thead>
+  <tbody>
+    <tr><td>rollout</td><td>RL 训练的一步里,actor 用当前 policy 生成 trajectory 的阶段</td></tr>
+    <tr><td>makespan</td><td>一个 batch 里<em>最慢一条</em> trajectory 决定的总耗时</td></tr>
+    <tr><td>drafter</td><td>提议候选 token 的组件——本文里它<strong>不是模型</strong>而是 suffix tree</td></tr>
+    <tr><td>suffix tree</td><td>对字符串 (token 序列) 所有后缀建索引的压缩 trie,Ukkonen 算法 O(n) 在线构造</td></tr>
+    <tr><td>capacity factor k<sub>i</sub></td><td>drafter 对 request i 的<em>最大</em>可达接受比例 (∈(0,1])</td></tr>
+    <tr><td>α<sub>i</sub></td><td>request i 的接受效率(单位 draft token 转化为接受 token 的速率)</td></tr>
+    <tr><td>p<sub>i</sub></td><td>request i 分到的总提议 token 数 (draft budget)</td></tr>
+    <tr><td>l<sub>i</sub></td><td>request i 的目标生成长度</td></tr>
+    <tr><td>N<sub>fwd</sub></td><td>有效 forward pass 数(speculative 后)</td></tr>
+  </tbody>
+</table>
+
+<h3>Suffix tree 30 秒回顾</h3>
+<p>给定字符串 <code>S = "banana$"</code>,suffix tree 把 <em>所有</em>后缀 <code>banana$, anana$, nana$, ana$, na$, a$, $</code> 压成一棵 trie,公共前缀合并到同一节点上。从 root 到任意叶子的路径就是某个 suffix。<strong>Ukkonen 1995</strong> 给出在线、单次扫描、O(n) 时间构造的算法——这正好契合 RL 里"每 epoch 进来一批新 trajectory,要 incremental 维护"的场景。</p>
+<p>查询:给定当前 decode 已生成的 prefix <code>q</code>(长度 m),从 root 沿 <code>q</code> 指引的边下降,落到的节点的子树就是<strong>所有以 q 结尾的历史延续</strong>。在子树里取频次最高 / 路径最长的分支,就是 draft proposal。查询时间 O(m)。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 方法 A — Suffix Tree Drafter</h2>
+
+<h3>3.1 核心思路</h3>
+<p>放弃训练 draft model,改用一个对<strong>最近 N 个 epoch 的 trajectory</strong> 增量维护的 suffix tree。每次 target 即将解码下一段时:</p>
+<ol>
+  <li>取当前 decode prefix 末尾 m 个 token (m 一般 8–32) 作为 query;</li>
+  <li>在 suffix tree 里 longest-match,定位到一个内部节点;</li>
+  <li>从该节点出发沿"最高频 child"路径走 d 步 (draft length),拿到 d 个 draft tokens;</li>
+  <li>target 一次 forward 把 (q, draft<sub>1..d</sub>) 全 verify,接受最长 prefix。</li>
+</ol>
+
+<h3>3.2 SVG: 一棵小的 suffix tree</h3>
+<p>假设过去两条 rollout 拼起来是 <code>S = "the cat sat on the mat$"</code> (只为示意,实际是 BPE token 序列)。下图把它的 (示意性) suffix tree 画出来,并展示 query <code>"the "</code> 如何 longest-match:</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 360" width="100%" style="max-width:680px">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L7,4 L0,8 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- root -->
+  <circle cx="350" cy="40" r="18" fill="#fff" stroke="#1f2024" stroke-width="2"/>
+  <text x="350" y="45" text-anchor="middle" font-size="13" font-weight="600">root</text>
+
+  <!-- branches from root -->
+  <line x1="335" y1="55" x2="120" y2="105" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="195" y="75" font-size="12" fill="#cc4a1b">"the "</text>
+
+  <line x1="345" y1="58" x2="250" y2="105" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="280" y="80" font-size="12" fill="#5b5e66">"cat "</text>
+
+  <line x1="355" y1="58" x2="430" y2="105" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="380" y="82" font-size="12" fill="#5b5e66">"sat "</text>
+
+  <line x1="365" y1="55" x2="540" y2="105" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="455" y="80" font-size="12" fill="#5b5e66">"on "/"mat$"</text>
+
+  <!-- node A: "the " -->
+  <circle cx="120" cy="125" r="16" fill="#fff7e0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="120" y="129" text-anchor="middle" font-size="11" font-weight="600">A</text>
+
+  <!-- A children: cat or mat -->
+  <line x1="115" y1="140" x2="60" y2="200" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="55" y="170" font-size="12" fill="#5b5e66">"cat "</text>
+  <line x1="125" y1="140" x2="180" y2="200" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="170" y="170" font-size="12" fill="#5b5e66">"mat$"</text>
+
+  <!-- leaves -->
+  <circle cx="60" cy="220" r="14" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="60" y="224" text-anchor="middle" font-size="11">cat→</text>
+  <line x1="60" y1="234" x2="60" y2="280" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="65" y="260" font-size="11" fill="#5b5e66">"sat on the mat$"</text>
+  <circle cx="60" cy="300" r="12" fill="#e7f5ee" stroke="#1f7a4a"/>
+  <text x="60" y="304" text-anchor="middle" font-size="10">L1</text>
+
+  <circle cx="180" cy="220" r="14" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="180" y="224" text-anchor="middle" font-size="11">mat$</text>
+  <circle cx="180" cy="280" r="12" fill="#e7f5ee" stroke="#1f7a4a"/>
+  <text x="180" y="284" text-anchor="middle" font-size="10">L2</text>
+  <line x1="180" y1="234" x2="180" y2="266" stroke="#5b5e66" marker-end="url(#arr)"/>
+
+  <!-- query box -->
+  <rect x="430" y="170" width="240" height="160" rx="8" fill="#f3eee0" stroke="#e2dfd5"/>
+  <text x="450" y="195" font-size="13" font-weight="600" fill="#2f6feb">Query: "the "</text>
+  <text x="450" y="218" font-size="12" fill="#1f2024">step1: root --"the "--&gt; A</text>
+  <text x="450" y="238" font-size="12" fill="#1f2024">step2: 在 A 下 freq("cat")=1,</text>
+  <text x="450" y="256" font-size="12" fill="#1f2024">freq("mat$")=1 → 选最长路径</text>
+  <text x="450" y="278" font-size="12" fill="#cc4a1b">draft = "cat sat on the mat"</text>
+  <text x="450" y="300" font-size="12" fill="#5b5e66">target 一次 forward verify,</text>
+  <text x="450" y="318" font-size="12" fill="#5b5e66">接受最长 prefix(可能 4 token)</text>
+</svg>
+<figcaption>对 <code>S = "the cat sat on the mat$"</code> 建的 (压缩示意) suffix tree。Query "the " 落在节点 A,子树里的所有"以 'the ' 开头的延续"都是合法 draft 候选;按频次/长度选一条沿路径走 d 步即可拿到 d-token draft。Ukkonen 算法保证整棵树是 O(n) 在线构造,每条新 rollout 进来可 O(Δn) 增量更新。</figcaption>
+</div>
+
+<h3>3.3 Worked example: 一个 token 的命运</h3>
+<p>假设当前 epoch t,policy π<sub>t</sub> 正在为问题 P3 生成第 1273 个 token。decode prefix 末尾 16 token 是 <code>"...therefore the answer is "</code>。</p>
+<ol>
+  <li><strong>查询:</strong>取末 8 token <code>"the answer is "</code> 走 P3 的 suffix tree。</li>
+  <li><strong>命中:</strong>P3 在过去 16 个 epoch 共 256 条 trajectory 里 (sliding window),有 47 条以 <code>"the answer is "</code> 开头的延续;最频繁的一条是 <code>"\\boxed{42}\\n\\nLet me verify"</code>。</li>
+  <li><strong>提议 d=8:</strong>draft = <code>"\\boxed", "{", "4", "2", "}", "\\n", "\\n", "Let"</code>。</li>
+  <li><strong>Verify:</strong>target 一次 forward,前 5 个被接受,第 6 个 <code>"\\n"</code> 处 logits argmax 是空格——拒绝。</li>
+  <li><strong>结果:</strong>1 次 forward 推进了 5 token (而不是 1),省 4 次 forward。Tree 也用刚刚生成的这条 trajectory online update。</li>
+</ol>
+
+<h3>3.4 反向论证:不用 suffix tree 会怎样</h3>
+<ul>
+  <li><strong>用 suffix array (SA):</strong>更省空间但<em>动态更新</em>需要 O(n) 重建。Figure 5 报 update 时间差 &gt; 3 个数量级 (sub-ms vs. seconds);RL 每 iteration 都有新 trajectory → SA 不可用。</li>
+  <li><strong>用 hash table of n-grams:</strong>查询是 O(1) 但只能单一 n;suffix tree 支持<em>任意长度</em>longest-match 一次完成。</li>
+  <li><strong>用 EAGLE 风格 draft head:</strong>每次 policy update 都要 fine-tune draft;额外 GPU 时间 + 工程复杂度。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec4">4 · 方法 B — Per-problem sharding &amp; sliding window</h2>
+
+<h3>4.1 为什么 per-problem 而不是全局一棵树</h3>
+<p>论文 Figure 6 的结论:per-problem suffix tree 比 global 一棵树 <em>接受率更高</em>且 <em>查询更便宜</em>。原因:</p>
+<ul>
+  <li><strong>统计上:</strong>问题 P1 的解题 pattern 与 P2 几乎不重合,把 P1 的 token 塞进 P2 的索引只是噪声。</li>
+  <li><strong>系统上:</strong>全局树体量大,query 要走更深、更多碰撞;per-problem 树各自小,locality 好。</li>
+</ul>
+
+<h3>4.2 SVG: per-problem shard + sliding window</h3>
+<div class="fig">
+<svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+  <defs>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L7,4 L0,8 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- timeline -->
+  <text x="20" y="30" font-size="13" font-weight="600">Epoch 轴 →</text>
+  <line x1="20" y1="50" x2="700" y2="50" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <!-- epoch ticks -->
+  <g font-size="11" fill="#5b5e66" text-anchor="middle">
+    <text x="80" y="68">e=t-32</text><text x="180" y="68">e=t-16</text>
+    <text x="380" y="68">e=t-8</text><text x="540" y="68">e=t-2</text><text x="640" y="68">e=t (now)</text>
+  </g>
+  <!-- old, faded trajectories -->
+  <g>
+    <rect x="50" y="80" width="60" height="14" fill="#e2dfd5"/>
+    <rect x="150" y="80" width="60" height="14" fill="#e2dfd5"/>
+    <text x="115" y="91" font-size="10" fill="#a8353e">stale (drop)</text>
+  </g>
+  <!-- window N=16 -->
+  <rect x="220" y="78" width="430" height="22" fill="none" stroke="#cc4a1b" stroke-dasharray="4,3" stroke-width="2"/>
+  <text x="435" y="115" font-size="12" fill="#cc4a1b" text-anchor="middle">Sliding window (N=16 epochs)</text>
+  <g>
+    <rect x="230" y="80" width="40" height="18" fill="#fff7e0" stroke="#cc4a1b"/>
+    <rect x="280" y="80" width="40" height="18" fill="#fff7e0" stroke="#cc4a1b"/>
+    <rect x="330" y="80" width="40" height="18" fill="#fff7e0" stroke="#cc4a1b"/>
+    <rect x="380" y="80" width="40" height="18" fill="#fff7e0" stroke="#cc4a1b"/>
+    <rect x="430" y="80" width="40" height="18" fill="#fff7e0" stroke="#cc4a1b"/>
+    <rect x="480" y="80" width="40" height="18" fill="#fff7e0" stroke="#cc4a1b"/>
+    <rect x="530" y="80" width="40" height="18" fill="#fff7e0" stroke="#cc4a1b"/>
+    <rect x="580" y="80" width="40" height="18" fill="#fff7e0" stroke="#cc4a1b"/>
+  </g>
+
+  <!-- per-problem shards -->
+  <text x="20" y="160" font-size="13" font-weight="600">Per-problem shards:</text>
+  <g>
+    <rect x="60" y="180" width="160" height="100" fill="#fff" stroke="#2f6feb" stroke-width="1.5" rx="8"/>
+    <text x="140" y="200" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Tree(P1)</text>
+    <text x="140" y="220" text-anchor="middle" font-size="11" fill="#5b5e66">"求积分..."</text>
+    <text x="140" y="240" text-anchor="middle" font-size="11" fill="#5b5e66">~12k tokens</text>
+    <text x="140" y="262" text-anchor="middle" font-size="11" fill="#1f7a4a">avg accept = 5.3</text>
+  </g>
+  <g>
+    <rect x="280" y="180" width="160" height="100" fill="#fff" stroke="#2f6feb" stroke-width="1.5" rx="8"/>
+    <text x="360" y="200" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Tree(P2)</text>
+    <text x="360" y="220" text-anchor="middle" font-size="11" fill="#5b5e66">"组合数学..."</text>
+    <text x="360" y="240" text-anchor="middle" font-size="11" fill="#5b5e66">~8k tokens</text>
+    <text x="360" y="262" text-anchor="middle" font-size="11" fill="#1f7a4a">avg accept = 4.1</text>
+  </g>
+  <g>
+    <rect x="500" y="180" width="160" height="100" fill="#fff" stroke="#2f6feb" stroke-width="1.5" rx="8"/>
+    <text x="580" y="200" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Tree(P3)</text>
+    <text x="580" y="220" text-anchor="middle" font-size="11" fill="#5b5e66">"几何证明..."</text>
+    <text x="580" y="240" text-anchor="middle" font-size="11" fill="#5b5e66">~22k tokens</text>
+    <text x="580" y="262" text-anchor="middle" font-size="11" fill="#1f7a4a">avg accept = 6.8</text>
+  </g>
+</svg>
+<figcaption>每个 problem 维护独立 suffix tree,树只摄入<em>过去 N 个 epoch</em>(典型 16/32) 的 trajectory。每过一个 iteration:旧 trajectory 移出窗口、新 trajectory online insert。窗口大小是 bias–stability trade-off:窗太短覆盖不够,窗太长 stale 严重(早期 policy 的 token 已经不像现在的 policy 了)。论文经验值 16–32。</figcaption>
+</div>
+
+<h3>4.3 实证细节</h3>
+<p>Figure 6 显示三种 history 配置的平均接受 token 数:</p>
+<table>
+  <thead><tr><th>配置</th><th>avg accepted tokens / round</th><th>spec latency (ms/tok)</th></tr></thead>
+  <tbody>
+    <tr><td>global + per-request</td><td>偏低</td><td>最高 (querying 大全局索引)</td></tr>
+    <tr><td>per-problem + per-request</td><td>最高</td><td>中等 (有 prefix trie 路由开销)</td></tr>
+    <tr><td>per-problem only</td><td>次高</td><td>最低 (适合 7B 以下小模型)</td></tr>
+  </tbody>
+</table>
+<p>对小模型禁用 prefix trie 的 routing,因为 routing 的 CPU 开销已经接近 draft 收益本身。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 方法 C — Length-aware speculation budget</h2>
+
+<h3>5.1 直觉</h3>
+<p>RL batch 里的 trajectory 长度分布严重偏斜(Figure 1):前 100 步后 effective batch size 已经塌缩到 &lt;30%,只剩几条 long tail 在跑。这意味着:</p>
+<ul>
+  <li>给短序列发 draft → 提议被频繁拒绝 + 增加 verification token → <em>反而</em>变慢;</li>
+  <li>给长序列发 draft → 它本来就要决定 makespan,每节省一个 forward pass 都直接砍 wall-clock。</li>
+</ul>
+<p>所以"per-request 平均分 budget"是错的。budget 应该向 long-tail 倾斜。</p>
+
+<h3>5.2 SVG: budget allocation 概念图</h3>
+<div class="fig">
+<svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+  <!-- baseline: uniform -->
+  <text x="20" y="30" font-size="13" font-weight="600" fill="#cc4a1b">Baseline: 平均分配 (浪费在 short)</text>
+  <!-- 5 requests with varying lengths -->
+  <g>
+    <rect x="20" y="50" width="40" height="20" fill="#a8353e" opacity=".5"/>
+    <rect x="60" y="50" width="20" height="20" fill="#cc4a1b" opacity=".7"/>
+    <text x="90" y="65" font-size="11">短 r1, l=200, draft=20</text>
+
+    <rect x="20" y="78" width="60" height="20" fill="#a8353e" opacity=".5"/>
+    <rect x="80" y="78" width="20" height="20" fill="#cc4a1b" opacity=".7"/>
+    <text x="110" y="93" font-size="11">中 r2, l=2k, draft=20</text>
+
+    <rect x="20" y="106" width="160" height="20" fill="#a8353e" opacity=".5"/>
+    <rect x="180" y="106" width="20" height="20" fill="#cc4a1b" opacity=".7"/>
+    <text x="210" y="121" font-size="11">长 r3, l=12k, draft=20 (不够!)</text>
+  </g>
+
+  <!-- DAS allocation -->
+  <text x="20" y="170" font-size="13" font-weight="600" fill="#1f7a4a">DAS: length-aware (向长倾斜)</text>
+  <g>
+    <rect x="20" y="190" width="40" height="20" fill="#1f7a4a" opacity=".5"/>
+    <text x="70" y="205" font-size="11">短 r1: 不发 draft (skip)</text>
+
+    <rect x="20" y="218" width="60" height="20" fill="#1f7a4a" opacity=".5"/>
+    <rect x="80" y="218" width="14" height="20" fill="#2f6feb" opacity=".7"/>
+    <text x="100" y="233" font-size="11">中 r2: medium budget = 8</text>
+
+    <rect x="20" y="246" width="160" height="20" fill="#1f7a4a" opacity=".5"/>
+    <rect x="180" y="246" width="40" height="20" fill="#2f6feb" opacity=".7"/>
+    <text x="230" y="261" font-size="11">长 r3: aggressive budget = 32, 把 makespan 压下去</text>
+  </g>
+
+  <!-- legend -->
+  <rect x="500" y="180" width="14" height="14" fill="#1f7a4a" opacity=".5"/>
+  <text x="520" y="192" font-size="11">原 trajectory tokens</text>
+  <rect x="500" y="200" width="14" height="14" fill="#2f6feb" opacity=".7"/>
+  <text x="520" y="212" font-size="11">额外 draft tokens (verify cost)</text>
+</svg>
+<figcaption>Baseline 给所有 request 同等 draft budget,会在<em>短 request</em> 上白白付出 verification cost,而<em>长 request</em> 拿到的 budget 又不够压低 makespan。DAS 把 budget 偏移给长 request,短的直接 skip,中等的给中等。</figcaption>
+</div>
+
+<h3>5.3 Length class policy (运行时)</h3>
+<p>因为 generation 长度在线<em>不可精确预测</em>(同一 prompt 不同 epoch 长度 spread 巨大,见 Figure 9),论文用一个 hierarchical heuristic:</p>
+<ol>
+  <li><strong>Init from history:</strong>对每个 prompt,从历史 trajectory 长度分布算一个 <code>{Long, Medium, Short}</code> 多数类作为初始预测。</li>
+  <li><strong>Online update:</strong>解码到第 l 个 token 时,根据 <code>P(class | l, init)</code> 把当前 request 重新分类。比如初始预测 Medium,但已经生成了 8k 还没结束,就上调为 Long,加大 draft budget。</li>
+  <li>Class → budget 表是 offline tune 出来的(典型: Long=32, Medium=8, Short=0)。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec6">6 · 公式推导:最优 draft budget</h2>
+
+<h3>6.1 Per-pass latency 模型</h3>
+<p>profiling 显示 (DeepSeek-R1-Distill-7B, Figure 8):</p>
+<div class="formula">t<sub>fwd</sub> = c<sub>base</sub> + c<sub>tok</sub> · n<sub>toks</sub></div>
+<p>c<sub>base</sub> 是 per-pass 固定开销 (kernel launch、DRAM→SRAM 搬权重);c<sub>tok</sub> 是每 token 边际成本。Mean relative error ≈ 12%。</p>
+
+<h3>6.2 接受 token 的饱和模型</h3>
+<p>给 request i 提议 p<sub>i</sub> 个 draft token,接受数:</p>
+<div class="formula">A<sub>i</sub>(p<sub>i</sub>) = k<sub>i</sub> · l<sub>i</sub> · (1 − e<sup>−α<sub>i</sub> p<sub>i</sub> / l<sub>i</sub></sup>)</div>
+<p>k<sub>i</sub> ∈ (0,1] 是 capacity factor (drafter 与 target 的最大 alignment);α<sub>i</sub> 是接受效率。p<sub>i</sub> → ∞ 时 A<sub>i</sub> → k<sub>i</sub>l<sub>i</sub>(永远不会 100% 因为 drafter ≠ target)。</p>
+
+<h3>6.3 总目标</h3>
+<p>剩余需 forward 的 token 数: l<sub>i</sub>(1 − k<sub>i</sub> + k<sub>i</sub>e<sup>−α<sub>i</sub>p<sub>i</sub>/l<sub>i</sub></sup>)。Batch 的 forward pass 数由<em>最长那条</em>决定:</p>
+<div class="formula">N<sub>fwd</sub> = max<sub>i</sub> [ l<sub>i</sub>(1 − k<sub>i</sub> + k<sub>i</sub>e<sup>−α<sub>i</sub>p<sub>i</sub>/l<sub>i</sub></sup>) ]</div>
+<p>总延迟:</p>
+<div class="formula">J(p) = c<sub>base</sub>·N<sub>fwd</sub> + c<sub>tok</sub>·Σ p<sub>i</sub> + C</div>
+
+<h3>6.4 闭式解</h3>
+<p>把约束 l<sub>i</sub>(1 − k<sub>i</sub> + k<sub>i</sub>e<sup>−α<sub>i</sub>p<sub>i</sub>/l<sub>i</sub></sup>) ≤ N<sub>fwd</sub> 在最优处取等:</p>
+<div class="formula">p<sub>i</sub><sup>*</sup> = − (l<sub>i</sub>/α<sub>i</sub>) · ln(1 − k<sub>i</sub>(1 − N<sub>fwd</sub>/l<sub>i</sub>)),&nbsp; 当 N<sub>fwd</sub> &lt; l<sub>i</sub><br>p<sub>i</sub><sup>*</sup> = 0,&nbsp; 否则</div>
+
+<h3>6.5 物理直觉</h3>
+<p>三个观察(直接对应论文 §4.2.2):</p>
+<ol>
+  <li><strong>p<sub>i</sub><sup>*</sup> ∝ l<sub>i</sub>:</strong>越长的 request 应分越大 budget(因为它本就是 makespan 的瓶颈)。</li>
+  <li><strong>l<sub>i</sub> ≤ N<sub>fwd</sub> ⇒ p<sub>i</sub><sup>*</sup> = 0:</strong>反正它早完成,不必 speculate。</li>
+  <li><strong>c<sub>base</sub> ≫ c<sub>tok</sub>:</strong>per-pass 主导(典型小 batch 场景)→ 应激进减 N<sub>fwd</sub>,即提议更多 token;反之大 batch 时 c<sub>tok</sub> 主导,应保守。</li>
+</ol>
+
+<h3>6.6 数值敏感度小表</h3>
+<p>取 c<sub>base</sub>=20ms, c<sub>tok</sub>=0.5ms, k=0.6, α=0.4:</p>
+<table>
+  <thead><tr><th>l<sub>i</sub></th><th>N<sub>fwd</sub> 假设</th><th>p<sub>i</sub><sup>*</sup> (近似)</th><th>解读</th></tr></thead>
+  <tbody>
+    <tr><td>200</td><td>180</td><td>~25</td><td>短;接近 skip 边界</td></tr>
+    <tr><td>2000</td><td>1200</td><td>~210</td><td>medium 档</td></tr>
+    <tr><td>16000</td><td>8000</td><td>~2500</td><td>aggressive,~32 token / pass</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="sec7">7 · Worked example: 一个 prompt 的完整命运</h2>
+<p>设 RL 训练第 t 步,problem P3 = "证明欧拉公式":</p>
+<ol>
+  <li><strong>历史信号:</strong>过去 16 epoch 它的 generation 长度均值 11k、最大 18k → init class = <strong>Long</strong> → draft budget per round = 32。</li>
+  <li><strong>Drafter 状态:</strong>P3 的 suffix tree 已吸收最近 16 epoch × 16 sample = 256 条 trajectory,共 ~2.8M token,树节点 ~600k。</li>
+  <li><strong>Decode 启动:</strong>π<sub>t</sub> 开始生成。每步当前 prefix 末 16 token 进 P3 tree:longest-match → 沿最高频路径取 32 token draft → target 一次 batched verify。</li>
+  <li><strong>典型 round:</strong>32 提议被接受 18 个 (k≈0.6),N<sub>fwd</sub>(此 request) 从 11000 降到 ~6500,直接砍掉 40% forward pass。</li>
+  <li><strong>Online update:</strong>本 round 真正生成的 18 个新 token incrementally insert 到 P3 tree (Ukkonen O(18))。</li>
+  <li><strong>跨步:</strong>已生成 9k 还没 EOS → online length classifier 把 class 维持 Long;若初始误判为 Medium,这里会 escalate。</li>
+  <li><strong>本步结束:</strong>P3 trajectory 总长 13k,贡献最大 makespan。Tree 把 epoch t-16 的某条 trajectory 移出窗口、把 epoch t 的 16 条 sample 全部加进。</li>
+  <li><strong>下一步:</strong>π<sub>t+1</sub> ← π<sub>t</sub>(GRPO 更新),但 P3 tree 几乎不变(因为 policy 漂移是渐变的,recent window 仍 representative)→ 接受率保持。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 Math RL (DeepSeek-R1-Distill-Qwen-7B, DSR-sub)</h3>
+<table>
+  <thead><tr><th>指标</th><th>VeRL baseline</th><th>DAS</th><th>变化</th></tr></thead>
+  <tbody>
+    <tr><td>Generation time / step</td><td>~400ms (示意)</td><td>~200ms</td><td><span class="ok">-50%+</span></td></tr>
+    <tr><td>Reward (30 步内)</td><td>0.65 → 0.75</td><td>同曲线</td><td><span class="ok">无下降</span></td></tr>
+  </tbody>
+</table>
+
+<h3>8.2 Code RL (Qwen3-8B, DeepCoder)</h3>
+<table>
+  <thead><tr><th>指标</th><th>baseline</th><th>DAS</th><th>变化</th></tr></thead>
+  <tbody>
+    <tr><td>Code generation time</td><td>~280ms</td><td>~210ms</td><td><span class="ok">~25%</span></td></tr>
+    <tr><td>Reward</td><td>1.4 → 1.8</td><td>同曲线</td><td><span class="ok">无下降</span></td></tr>
+  </tbody>
+</table>
+<p>Math 收益 (-50%) 比 code (-25%) 大,因为 math reasoning 的 trajectory 更长 + 模板化 (\boxed, Let me verify, Therefore...) 更多,suffix tree 命中率高。</p>
+
+<h3>8.3 关键 ablation</h3>
+<ul>
+  <li><strong>无 length-aware budget (Unlimited):</strong>把 draft budget 拉到无限大,反而比 DAS <em>慢 15%</em>——verification cost 把收益吃掉。论文这条直接证实了 length-aware 的价值。</li>
+  <li><strong>Sequence length 8k vs 16k:</strong>8k 仍然 &gt;30% 加速 → 不依赖超长 trajectory。</li>
+  <li><strong>Batch 32 vs 16:</strong>fractional speedup 类似 → 不依赖特定 batching regime。</li>
+</ul>
+
+<h3>8.4 与 EAGLE 的接受率曲线</h3>
+<p>论文 Figure 4: EAGLE 静态 drafter 的 avg accepted tokens 在训练全过程基本<em>持平</em>(因为它没法跟随 policy 漂移);DAS 的 nonparametric drafter <em>随训练步骤上升</em>——因为 sliding window 里的 trajectory 越来越像当前 policy。这是"online drafter"的核心价值。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <thead><tr><th>方法</th><th>drafter 类型</th><th>需训练?</th><th>tail-aware?</th><th>lossless?</th><th>嵌入难度</th></tr></thead>
+  <tbody>
+    <tr><td><strong>DAS (本文)</strong></td><td>suffix tree (model-free)</td><td><span class="ok">否</span></td><td><span class="ok">是 (length class)</span></td><td><span class="ok">是</span></td><td>低 (vLLM plugin)</td></tr>
+    <tr><td>NVIDIA NeMo-RL × EAGLE-3</td><td>EAGLE head (neural)</td><td>是 (周期蒸馏)</td><td>否</td><td><span class="ok">是</span></td><td>中-高</td></tr>
+    <tr><td>SPEC-RL</td><td>历史 trajectory + lenience accept</td><td>否</td><td>否</td><td><span class="no">否 (改分布)</span></td><td>低</td></tr>
+    <tr><td>ReSpec</td><td>policy 自身 (self-spec) + replay</td><td>否</td><td>部分</td><td>近似</td><td>中</td></tr>
+    <tr><td>FastGRPO</td><td>neural draft, 与 target 同步训</td><td>是 (在线)</td><td>否</td><td><span class="ok">是</span></td><td>高</td></tr>
+    <tr><td>RhymeRL</td><td>trajectory 复用 + skew-aware batching</td><td>否</td><td>部分 (batch skew)</td><td><span class="ok">是</span></td><td>中</td></tr>
+  </tbody>
+</table>
+
+<h3>9.1 DAS 的"工程优雅"在哪</h3>
+<ol>
+  <li><strong>Drafter 没参数。</strong>不用第二个 GPU model,显存占用 ~MB 级 CPU 内存。</li>
+  <li><strong>不改 reward loop。</strong>VeRL/OpenRLHF 不用动,只在 vLLM rollout call 上挂一个 hook。</li>
+  <li><strong>Lossless。</strong>verification 是严格 rejection sampling,输出分布与无 SD 的 baseline 完全一致——SPEC-RL 的 lenience 路线就放弃了这条。</li>
+  <li><strong>O(m) 查询 + O(Δn) 更新。</strong>所有数据结构开销在 CPU,target 永远是 GPU bottleneck。</li>
+  <li><strong>可与 EAGLE 正交叠加。</strong>理论上 DAS 的 budget 模型可以套在 neural drafter 之上(只是论文没做这组实验)。</li>
+</ol>
+<p class="nb">个人 take:DAS 是 spec-decoding-for-RL 这条线里最容易在已有生产栈上"今晚就上"的方案。NVIDIA 那篇要训 EAGLE-3 + 还得做 capture/replay;FastGRPO 还要管 draft model 显存;DAS 只要一个 suffix tree 库 + 一个 budget 调度器。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>10.1 局限</h3>
+<ul>
+  <li><strong>第一个 epoch 冷启动:</strong>tree 是空的,接受率近 0。论文未细谈 warm-up 策略——可能直接用 prompt 自身做 PLD-style fallback。</li>
+  <li><strong>问题数极大时 sharding 开销:</strong>10k+ problems 时 per-problem 树的内存 + 路由代价上升。论文最大实验 ~1209 个 prompt。</li>
+  <li><strong>非模板化 domain:</strong>open-ended dialogue / 创作类 RL 的 trajectory 没有 \boxed 这类 motif,suffix tree 命中率会显著低,DAS 收益预计 &lt; 10%。</li>
+  <li><strong>Length classifier 是 offline tune 的:</strong>新 domain 上需要重新校准 P(class|l, init) 表。</li>
+  <li><strong>对 batch 极小或极大 regime 的覆盖不足:</strong>大 batch (≥256) 下 c<sub>tok</sub> 主导,文中公式预测的 budget 会变小,但实测未给出。</li>
+  <li><strong>仅在 ≤8B 规模实测:</strong>14B 提到但 70B+ 未验证。policy 漂移更慢的大模型可能让<em>更长</em>的 sliding window 也仍然 representative,反而对 DAS 利好。</li>
+</ul>
+
+<h3>10.2 个人 take</h3>
+<ul>
+  <li>这篇论文的 ML 贡献其实有限,真正的贡献是<strong>问题工程化的清晰度</strong>:三个 insight + 三个 component 一一对应。</li>
+  <li>"per-problem suffix tree + sliding window"这个组合是 SuffixDecoding 在 RL 场景的自然延伸,但<em>把它跟 length-aware budget 耦合</em>是新的、且实验上证明必要(unlimited budget 反而慢 15%)。</li>
+  <li>与 ReSpec / NeMo-RL 比,DAS 没有 EAGLE-3 那种"neural drafter 跟着 target 一起进化"的优雅,但它换来的是部署上的<strong>极简</strong>——这种 trade-off 在生产 RL 里非常值。</li>
+</ul>
+
+<h3>10.3 待验证问题</h3>
+<ol>
+  <li>cold-start 阶段(第 1–2 epoch)实测加速率是多少?有没有 fallback 到 PLD?</li>
+  <li>把 sliding window 大小自适应到 KL(π<sub>t</sub>‖π<sub>t-N</sub>) 上能不能进一步提收益?</li>
+  <li>多模态 / agentic RL(tool 调用穿插)里 trajectory 不连续,suffix tree 怎么 segment?</li>
+  <li>把 DAS budget 模型套在 EAGLE-3 drafter 上,长 trajectory 上能不能拿到比 DAS+suffix 更高的 k?</li>
+  <li>k<sub>i</sub> 和 α<sub>i</sub> 在线如何估计?Paper 说"profiling"但没给在线估计的算法。</li>
+  <li>Off-policy / async RL 下,policy lag 大,sliding window 还成立吗?</li>
+</ol>
+
+<hr>
+
+<div class="kv"><span class="pill">立场</span> Drafter 不必是模型;在 RL 场景里 suffix tree + sliding window 是更对路的<em>非参数</em>替代。</div>
+<div class="kv"><span class="pill">关键洞察</span> RL rollout 的 makespan 由长 trajectory 决定 → speculation budget 应当向长偏斜,而不是 per-request 平均。</div>
+<div class="kv"><span class="pill">公式</span> p<sub>i</sub><sup>*</sup> = −(l<sub>i</sub>/α<sub>i</sub>) ln(1 − k<sub>i</sub>(1 − N<sub>fwd</sub>/l<sub>i</sub>)),长 request 大 budget,短 request skip。</div>
+<div class="kv"><span class="pill">数据结构</span> Per-problem suffix tree (Ukkonen O(n) 在线构造) + 16/32 epoch sliding window;查询 O(m),更新 O(Δn)。</div>
+<div class="kv"><span class="pill">数字</span> Math -50%, Code -25%; unlimited-budget 比 DAS 慢 15%(verification cost 反噬)。</div>
+<div class="kv"><span class="pill">工程优雅</span> 0 参数 drafter / lossless / 不动 reward loop / vLLM hook 即可上线 — 是 spec-RL 这条线里最易部署的。</div>
+<div class="kv"><span class="pill">硬限制</span> 首 epoch 冷启动 + 非模板化 domain (open-ended dialogue) 收益弱;问题数极多时 sharding 内存上升。</div>
+
+</main>
+</body>
+</html>
