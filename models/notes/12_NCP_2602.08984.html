@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · ConceptLM / Next Concept Prediction (2602.08984)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Next Concept Prediction in Discrete Latent Space Leads to Stronger Language Models</h1>
+<div class="meta">
+  LUMIA Lab (SJTU) × Shanghai AI Lab × 清华 · Liu / Song / Wang / Lamb / Lin et al. · 2026-02-10 · arXiv:2602.08984<br>
+  关键词: ConceptLM · Next Concept Prediction · Vector Quantization · Product Quantization · 概念词表 · pretraining objective
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>在 token Transformer 的中间插一个"概念层":把每 k 个相邻 token 的 hidden states 经 mean-pool 得到一个"概念向量",用 product VQ 把它量化成离散 codebook entry,然后让模型先预测下一个概念 (NCP),再把预测出的概念向量加回到 token hidden 上去做 NTP。三种 loss (NTP + NCP + VQ) 同时训。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">37%</div><div class="l">同等 PPL 所需参数减少</div></div>
+    <div class="stat"><div class="n">24%</div><div class="l">同等 PPL 所需 token 减少</div></div>
+    <div class="stat"><div class="n">k=4, S=heads, N=64</div><div class="l">主实验 VQ 配置</div></div>
+  </div>
+  <p><strong>立场:</strong>这不是又一个"潜空间推理"或"句子级模型",而是<em>把 NTP 的损失结构改造成 NTP+NCP 双重监督</em>的 pretraining-objective 论文。NCP 单独不够 (会掉点),只有和 NTP+VQ 一起才赚——本质是给原始 NTP 加了一个"先想 token-span 的语义、再吐 token"的归纳偏置。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么要在 token 之上再造一层"概念"</a></li>
+    <li><a href="#sec2">背景速查 (术语 / VQ 复习 / Product Quantization)</a></li>
+    <li><a href="#sec3">ConceptLM 架构:Encoder / Concept / Decoder 三段</a></li>
+    <li><a href="#sec4">VQ 概念词表的构造与 Product Quantization 细节</a></li>
+    <li><a href="#sec5">Concept 预测头:weighted sum 而非 hard sample</a></li>
+    <li><a href="#sec6">三个 loss:NTP + NCP + VQ 各自做什么</a></li>
+    <li><a href="#sec7">防信息泄漏:k−1 位移 trick</a></li>
+    <li><a href="#sec8">公式拆解 + 一个具体 token 的全程追踪</a></li>
+    <li><a href="#sec9">实验关键结果与 scaling 行为</a></li>
+    <li><a href="#sec10">与同类工作对比 (Coconut / BLT / Megabyte / DeepSeek-V3 MTP / LCM)</a></li>
+    <li><a href="#sec11">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么要在 token 之上再造一层"概念"</h2>
+
+<h3>1.1 历史脉络:NTP 已经吃饱了它能吃的红利</h3>
+<p>从 GPT-2 / GPT-3 到 Llama-3 / Qwen3,LLM 走的是同一条路: <strong>纯 Next Token Prediction</strong>,词表是 BPE 子词,loss 是 cross-entropy。这条路把 scaling law 推到了万亿参数,但作者引用 LeCun 2022 的论点:低层级 (low-level) 的预测目标一旦逼近 token 信息熵的下限,继续 scale model 只能改善常数项,不能改变曲率。</p>
+<p>而别的领域早就跨越了"原始信号"这一关:</p>
+<ul>
+  <li>视觉:VAR / VQ-GAN / DALL·E 都把 pixel-level prediction 换成了 latent token prediction;JEPA 直接预测 representation,不预测 input。</li>
+  <li>RL/Robotics:Decision Transformer / Diffusion Policy 把 trajectory 当 sequence 建模,而不是 step-wise mapping。</li>
+  <li>多模态:LCM (Large Concept Model, Meta 2024) 干脆把句子 embedding 当作预测单位。</li>
+  <li>音频:wav2vec / HuBERT 把 raw waveform 换成 discrete hidden units。</li>
+</ul>
+<p>语言侧也有零碎的尝试 (Hourglass / ContextLM / BLT / H-Net / MegaByte / MTP),但要么是<em>结构上</em>压缩 (改 tokenizer / 改 chunk),要么仍然死守 next-token loss。"<strong>专门给语言模型设计一个高层级的自监督预训练目标</strong>"还是空白。这就是 NCP 想填的位置。</p>
+
+<h3>1.2 别的方案为什么不够 — 一张比较表</h3>
+<table>
+<tr><th>路线</th><th>代表</th><th>预测目标</th><th>本质问题</th></tr>
+<tr><td>Multi-Token Prediction</td><td>Gloeckle 2024 / DeepSeek-V3 MTP</td><td>同时预测下 m 个 token</td><td>仍在 <strong>token 空间</strong>,组合复杂度爆炸,3B 以下不显收益</td></tr>
+<tr><td>结构化压缩 (patch-level)</td><td>MegaByte, BLT, H-Net</td><td>预测下一个 patch (字节聚合)</td><td>核心 loss 还是 next-byte/token CE,只是把序列变短</td></tr>
+<tr><td>句子级潜空间</td><td>LCM (Meta)</td><td>预测下一句 SONAR embedding</td><td>粒度太粗 + embedding 是冻住的外部信号,无法和 token loss 联合优化</td></tr>
+<tr><td>Continuous latent reasoning</td><td>Coconut (Hao 2025), Token Assorted (Su 2025)</td><td>把 CoT 中间步骤换成连续 hidden vector</td><td>是 inference-time 推理技巧,不是 pretraining objective;连续空间无离散监督信号</td></tr>
+<tr><td>Hierarchical Transformer</td><td>Hourglass, ContextLM</td><td>压缩 → 上层 transformer → 解压</td><td>有"概念层"但<strong>没有显式概念词表</strong>,信号是 implicit 的</td></tr>
+<tr><td><strong>NCP / ConceptLM</strong> 👈</td><td>本文</td><td>预测下一个<strong>离散</strong>概念向量,再条件生成 token</td><td>—</td></tr>
+</table>
+
+<h3>1.3 为什么这事不平凡:三个工程/理论上的暗坑</h3>
+<p>把 "high-level prediction" 这个口号落到 LLM pretraining 上,有三件事拦路:</p>
+<p><strong>(a) 概念词表从哪来?</strong> 视觉里 VQ-GAN 可以拿一个固定 codebook (因为图像有 reconstruction 监督),语言里没有 reconstruction loss;如果 codebook 仅靠 NCP loss 训,容易 codebook collapse (作者在附录 E.3 报告过:vanilla VQ + 浅插入位置就崩)。需要一个能 <em>jointly</em> 优化、且抗崩塌的量化方案。</p>
+<p><strong>(b) 离散监督怎么传梯度?</strong> 直接 hard sample 一个 codebook entry 不可导。作者用<em>预测 logits 对 codebook 做 weighted sum</em>,然后 MSE 回归到真值 concept hidden,绕开了 cross-entropy + Gumbel-softmax 的复杂度。</p>
+<p><strong>(c) 信息泄漏。</strong> 概念是 k 个 token 的池化,即位置 t 的 concept 包含了未来 k−1 个 token 的信息。如果直接把 ground-truth concept 加回 token hidden 去预测下一 token,模型就<em>偷看了未来</em>。NCP 的精髓是:Decoder 必须用<em>预测出来</em>的 concept (而非 ground-truth),并且 broadcast 时再后移 k−1 位。这是论文最容易被忽视、但最容易实现错的工程点。</p>
+
+<div class="nb">
+  <strong>核心论断 (作者反复强调):</strong> 性能提升不是来自模型变大 (PM 基线已经做了参数对齐),也不是来自概念层多算了几层 attention,而是来自"<em>更难的预训练任务</em>"。NCP 强迫 Encoder 必须学到能 predict 未来 k 个 token 语义的 long-range 表征,这个 inductive bias 才是收益来源。Ablation (Table 4) 印证:只加 LVQ 或只加 LNCP 都不够,三者必须同时在。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+<tr><th>术语</th><th>含义</th></tr>
+<tr><td><span class="term">NTP</span></td><td>Next Token Prediction,标准 LM 目标 −Σ log p(x_{t+1} | x_{≤t})</td></tr>
+<tr><td><span class="term">NCP</span></td><td>Next Concept Prediction,本文新提出,预测 k 个 token 聚合后的概念向量</td></tr>
+<tr><td><span class="term">Concept c_t</span></td><td>第 t 个 concept = mean_pool(h_{tk}, ..., h_{tk+k-1}),k 是 chunk size</td></tr>
+<tr><td><span class="term">Codebook entry e</span></td><td>VQ 的离散 token 之一,d 维向量,通过 nearest-neighbor lookup 得到</td></tr>
+<tr><td><span class="term">Product Quantization</span></td><td>把 d 维向量切成 S 个子向量,每个子向量用独立 codebook (size N) 量化,总表达力 N^S</td></tr>
+<tr><td><span class="term">Stop-gradient sg(·)</span></td><td>VQ-VAE 经典 trick,前向不变、反向梯度截断</td></tr>
+<tr><td><span class="term">Codebook collapse</span></td><td>大多数样本被映射到极少数 entry,导致词表退化</td></tr>
+<tr><td><span class="term">SimVQ</span></td><td>Zhu 2025 提出的抗坍塌方案,本文用其"两层 MLP + ReLU 变换 codebook"思路</td></tr>
+<tr><td><span class="term">MTP</span></td><td>Multi-Token Prediction,DeepSeek-V3 / Meta 2024 的同时预测多 token 的 head</td></tr>
+<tr><td><span class="term">PM baseline</span></td><td>Parameter-Matching baseline,把 NTP 基线加 2 层 token layer 以匹配 ConceptLM 参数量</td></tr>
+<tr><td><span class="term">ContextLM</span></td><td>Dai 2025,有 concept 层但<strong>无显式 NCP loss</strong> 的 implicit 版本,本文最强基线</td></tr>
+</table>
+
+<h3>2.2 VQ-VAE 流程速复习</h3>
+<ol>
+  <li>Encoder 输出连续向量 z ∈ ℝ^d</li>
+  <li>查询 codebook {e_1, ..., e_K},取最近邻 e_q = argmin_k ||z − e_k||²</li>
+  <li>Decoder 用 e_q 重建输入</li>
+  <li>Loss: reconstruction + ||sg(z) − e_q||² (codebook loss) + β||z − sg(e_q)||² (commitment loss)</li>
+</ol>
+<p>本文复用了 (sg, commitment) 这套结构,但<strong>去掉了 reconstruction loss</strong>——concept 不需要重建任何东西,它只需要被下游的 Decoder "用"上即可。</p>
+
+<h3>2.3 Product Quantization 直觉</h3>
+<p>朴素 VQ 想表达 N^S 种概念,需要一张 size = N^S 的 codebook,既爆显存也爆参数。Product Quantization (Jegou 2010 经典 ANN 加速方法) 把 d 维向量沿特征维切成 S 段,每段独立查 N 项的小表,总组合数 N^S 但参数量只有 S × N × (d/S) = N × d。论文里 S = head 数 (~12),N = 64,概念词表实际大小约 64^12 ≈ 7.2 × 10^22,远大于 BPE 词表组合 V^k = 50000^4 ≈ 6.25 × 10^18。</p>
+
+<hr>
+
+<h2 id="sec3">3 · ConceptLM 架构总览</h2>
+
+<p>三段式: <strong>Token-level Encoder → Concept-level Module → Token-level Decoder</strong>。Encoder 和 Decoder 共享原 backbone (Pythia / GPT-2 / Llama) 的层,在某个深度<em>插入</em>两层 concept transformer。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 360" width="100%" style="max-width:680px">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+  <!-- Tokens -->
+  <text x="360" y="20" text-anchor="middle" font-size="13" fill="#5b5e66" font-weight="bold">ConceptLM 三段式 (k=4)</text>
+  <g font-size="11" text-anchor="middle">
+    <rect x="40"  y="40" width="50" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="65" y="55">x0</text>
+    <rect x="100" y="40" width="50" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="125" y="55">x1</text>
+    <rect x="160" y="40" width="50" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="185" y="55">x2</text>
+    <rect x="220" y="40" width="50" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="245" y="55">x3</text>
+    <rect x="280" y="40" width="50" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="305" y="55">x4</text>
+    <rect x="340" y="40" width="50" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="365" y="55">x5</text>
+    <rect x="400" y="40" width="50" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="425" y="55">x6</text>
+    <rect x="460" y="40" width="50" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="485" y="55">x7</text>
+  </g>
+  <!-- Encoder block -->
+  <rect x="30" y="78" width="490" height="34" fill="#f3eee0" stroke="#cc4a1b"/>
+  <text x="275" y="100" text-anchor="middle" font-size="12">Token-level Encoder (前 L_e 层 Transformer)  →  hidden h_0..h_7</text>
+  <!-- hidden states -->
+  <g font-size="10" text-anchor="middle">
+    <rect x="40"  y="125" width="50" height="20" fill="#fff" stroke="#cc4a1b"/><text x="65" y="139">h0</text>
+    <rect x="100" y="125" width="50" height="20" fill="#fff" stroke="#cc4a1b"/><text x="125" y="139">h1</text>
+    <rect x="160" y="125" width="50" height="20" fill="#fff" stroke="#cc4a1b"/><text x="185" y="139">h2</text>
+    <rect x="220" y="125" width="50" height="20" fill="#fff" stroke="#cc4a1b"/><text x="245" y="139">h3</text>
+    <rect x="280" y="125" width="50" height="20" fill="#fff" stroke="#cc4a1b"/><text x="305" y="139">h4</text>
+    <rect x="340" y="125" width="50" height="20" fill="#fff" stroke="#cc4a1b"/><text x="365" y="139">h5</text>
+    <rect x="400" y="125" width="50" height="20" fill="#fff" stroke="#cc4a1b"/><text x="425" y="139">h6</text>
+    <rect x="460" y="125" width="50" height="20" fill="#fff" stroke="#cc4a1b"/><text x="485" y="139">h7</text>
+  </g>
+  <!-- mean pool arrows -->
+  <line x1="155" y1="148" x2="155" y2="170" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <line x1="335" y1="148" x2="335" y2="170" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="155" y="166" text-anchor="middle" font-size="9" fill="#5b5e66">mean-pool</text>
+  <text x="335" y="166" text-anchor="middle" font-size="9" fill="#5b5e66">mean-pool</text>
+  <!-- concepts -->
+  <g font-size="11" text-anchor="middle">
+    <rect x="105" y="172" width="100" height="24" fill="#dbe5fb" stroke="#2f6feb"/><text x="155" y="188">c0  (h0..h3)</text>
+    <rect x="285" y="172" width="100" height="24" fill="#dbe5fb" stroke="#2f6feb"/><text x="335" y="188">c1  (h4..h7)</text>
+  </g>
+  <!-- Concept module -->
+  <rect x="80" y="208" width="330" height="30" fill="#dbe5fb" stroke="#2f6feb"/>
+  <text x="245" y="227" text-anchor="middle" font-size="12" fill="#2f6feb">Concept-level Module (2 层 Transformer + S 个 head)</text>
+  <!-- predicted concept -->
+  <g font-size="11" text-anchor="middle">
+    <rect x="285" y="248" width="120" height="26" fill="#fff" stroke="#2f6feb" stroke-dasharray="3,2"/>
+    <text x="345" y="266">ĉ1 (预测,VQ 加权和)</text>
+  </g>
+  <!-- broadcast & shift -->
+  <line x1="345" y1="276" x2="345" y2="298" stroke="#2f6feb" marker-end="url(#arrR)"/>
+  <text x="540" y="262" font-size="10" fill="#2f6feb">↓ broadcast k 次  ↓ 后移 k−1 位</text>
+  <!-- decoder fused -->
+  <rect x="30" y="300" width="490" height="34" fill="#f3eee0" stroke="#cc4a1b"/>
+  <text x="275" y="322" text-anchor="middle" font-size="12">Token-level Decoder (后 L_d 层) — 输入 = h̃_t = h_t + ĉ_{⌊t/(k-1)⌋}</text>
+  <!-- losses -->
+  <g font-size="11">
+    <rect x="540" y="172" width="160" height="22" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="620" y="187" text-anchor="middle">L_NCP = MSE(ĉ, c)</text>
+    <rect x="540" y="208" width="160" height="22" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="620" y="223" text-anchor="middle">L_VQ (codebook 学习)</text>
+    <rect x="540" y="300" width="160" height="22" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="620" y="315" text-anchor="middle">L_NTP (CE)</text>
+  </g>
+</svg>
+<figcaption>左:token x 经 Encoder 得 h,每 k=4 个 h mean-pool 成一个 concept c。中间:Concept Module 两层 transformer 把 c_<t 投影到下一个概念 ĉ_t,再用 VQ codebook 的 weighted sum 得到离散版预测。右:三个 loss。底部:ĉ 沿时间轴 broadcast k 份并后移 k−1 位,加到 h 上送入 Decoder。</figcaption>
+</div>
+
+<h3>3.1 NTP vs NCP 一图对比</h3>
+<div class="fig">
+<svg viewBox="0 0 700 230" width="100%" style="max-width:660px">
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- NTP -->
+  <text x="180" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#5b5e66">传统 NTP</text>
+  <g font-size="11" text-anchor="middle">
+    <rect x="30"  y="35" width="60" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="60" y="50">x_{t-1}</text>
+    <rect x="100" y="35" width="60" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="130" y="50">x_t</text>
+    <rect x="170" y="35" width="60" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="200" y="50">x_{t+1}</text>
+  </g>
+  <rect x="30" y="75" width="200" height="30" fill="#f3eee0" stroke="#cc4a1b"/>
+  <text x="130" y="94" text-anchor="middle" font-size="11">Transformer Decoder</text>
+  <line x1="130" y1="105" x2="130" y2="130" stroke="#5b5e66" marker-end="url(#ar2)"/>
+  <text x="130" y="148" text-anchor="middle" font-size="11">CE loss</text>
+  <text x="130" y="166" text-anchor="middle" font-size="11">−log p(x_{t+1}|x_{≤t})</text>
+  <text x="130" y="200" text-anchor="middle" font-size="10" fill="#888">每步只想着"下一个 token"</text>
+  <!-- divider -->
+  <line x1="285" y1="20" x2="285" y2="220" stroke="#e2dfd5"/>
+  <!-- NCP -->
+  <text x="500" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">NCP (本文)</text>
+  <g font-size="11" text-anchor="middle">
+    <rect x="320" y="35" width="55" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="347" y="50">x0..x3</text>
+    <rect x="385" y="35" width="55" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="412" y="50">x4..x7</text>
+    <rect x="450" y="35" width="55" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="477" y="50">x8..</text>
+  </g>
+  <rect x="320" y="70" width="185" height="22" fill="#f3eee0" stroke="#cc4a1b"/>
+  <text x="412" y="86" text-anchor="middle" font-size="10">Token Encoder + pool</text>
+  <g font-size="11" text-anchor="middle">
+    <rect x="320" y="100" width="55" height="22" fill="#dbe5fb" stroke="#2f6feb"/><text x="347" y="115">c0</text>
+    <rect x="385" y="100" width="55" height="22" fill="#dbe5fb" stroke="#2f6feb"/><text x="412" y="115">c1</text>
+    <rect x="450" y="100" width="55" height="22" fill="#dbe5fb" stroke="#2f6feb"/><text x="477" y="115">c2</text>
+  </g>
+  <rect x="540" y="100" width="120" height="22" fill="#fff" stroke="#2f6feb" stroke-dasharray="3,2"/>
+  <text x="600" y="115" text-anchor="middle" font-size="11">VQ codebook</text>
+  <line x1="540" y1="111" x2="510" y2="111" stroke="#2f6feb" marker-end="url(#ar2)"/>
+  <line x1="412" y1="125" x2="412" y2="148" stroke="#2f6feb" marker-end="url(#ar2)"/>
+  <text x="412" y="166" text-anchor="middle" font-size="11" fill="#2f6feb">MSE(ĉ_t, c_t) + CE(x_{t+1})</text>
+  <text x="412" y="200" text-anchor="middle" font-size="10" fill="#888">先想"下一段语义",再吐 token</text>
+</svg>
+<figcaption>左:NTP 一步只跨一个 token。右:NCP 把 4 个 token 的 hidden 池化为一个 concept,Concept Module 在 T/k 长的序列上预测下一个 concept,再 broadcast 回去帮 token decoder 做 NTP。NCP 的"sequence length"是 T/4,attention 的二次项小 16 倍。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · VQ 概念词表的构造与 Product Quantization</h2>
+
+<p>每个 concept c ∈ ℝ^d (d 是模型 hidden size) 沿特征维切成 S 段:c = [c¹, c², ..., c^S],每段维度 d/S。对第 s 段,有自己的 codebook E^s = {e^s_1, ..., e^s_N}。量化方式:</p>
+
+<div class="formula">d_s = e^s_{n*}, &nbsp; n* = argmin_n ||c^s − e^s_n||² &nbsp;|&nbsp; d = concat(d_1, ..., d_S)</div>
+
+<h3>4.1 为什么要 product 而不是 monolithic</h3>
+<p>如果单 codebook,要表达 N^S 种概念,codebook size 必须 = N^S,参数量 ~ N^S × d,完全无法承受。Product 之后:</p>
+<ul>
+  <li>参数量 = S × N × (d/S) = N × d (与 S 无关!)</li>
+  <li>表达力 = N^S (与 S 指数相关)</li>
+  <li>查找代价 = S 次小 KNN,可在 GPU 上并行</li>
+</ul>
+<p>论文里 Pythia 的 d=768, head=12,所以 S=12,N=64,概念词表 = 64^12 ≈ 7.2 × 10^22。对比 BPE: V^k = 50000^4 ≈ 6.25 × 10^18,概念词表大了 4 个数量级。这意味着<strong>概念粒度比 4-gram token 更细</strong>,有充足的"语义槽位"。</p>
+
+<h3>4.2 防 codebook 坍塌:SimVQ trick</h3>
+<p>vanilla VQ 容易让大部分 input 都 nearest 到少数几个 e。作者沿用 SimVQ (Zhu 2025): 把 codebook entry 通过<em>两层 MLP + ReLU</em>变换之后再用,即真实参与 KNN 的不是 e^s_n 本身而是 MLP(e^s_n)。原理:非线性变换让 codebook 的有效流形更弯曲,不易塌到一个子空间。</p>
+<p>实证 (附录 E.3): 即便用 S=12, N=1024 (1.2 万个 entry) 的大词表,codebook utilization 仍达近 100%。如果不用 ReLU MLP,而且 concept 层插入位置太浅,会观察到 collapse。</p>
+
+<h3>4.3 Worked example: 一个 4-token span 的量化</h3>
+<p>设 backbone 是 Pythia-160M, d=768, S=12, N=64, k=4。输入序列 "<code>The integral of x squared</code>" 经 BPE 分成 6 个 token,我们看前 4 个 token 组成的 concept c0:</p>
+<pre>x0..x3 = ["The", "Ġintegral", "Ġof", "Ġx"]
+h0..h3 ∈ ℝ^768   (Encoder 第 1 层之后的 hidden)
+c0 = mean(h0, h1, h2, h3) ∈ ℝ^768
+
+切 12 段:c0¹ ∈ ℝ^64, c0² ∈ ℝ^64, ..., c0^{12} ∈ ℝ^64
+
+对每段并行查 codebook (size 64):
+  c0¹ → argmin_n ||c0¹ − MLP(e¹_n)||²  =  e¹_{37}
+  c0² → e²_{12}
+  ...
+  c0^{12} → e^{12}_{5}
+
+离散概念 ID = (37, 12, ..., 5)  ← 一个 12-tuple,概念词表里的一个"词"
+量化向量 d0 = concat(e¹_{37}, e²_{12}, ..., e^{12}_{5}) ∈ ℝ^768</pre>
+
+<p>这个 12-tuple 就是 c0 在概念词表里的"BPE id"。下一个 chunk c1 (x4..x7 = "<code>squared dx equals one third</code>") 同样得到一个 12-tuple,这个 12-tuple 才是 NCP loss 想"猜对"的目标。</p>
+
+<hr>
+
+<h2 id="sec5">5 · Concept 预测头:weighted sum 而非 hard sample</h2>
+
+<p>预测下一个 concept 时,Concept Module 输出 hidden h_c,再过 S 个独立的 prediction head,每个 head 是一个 linear (d_concept → N),输出 N 维 logits → softmax → 权重 w^s ∈ ℝ^N。</p>
+
+<p><strong>关键设计:</strong>不做 argmax / Gumbel-softmax 取出某一个 codebook entry,而是直接做<em>加权求和</em>:</p>
+
+<div class="formula">ĉ^s = Σ_{n=1..N} w^s_n · e^s_n &nbsp;&nbsp;|&nbsp;&nbsp; ĉ = concat(ĉ¹, ..., ĉ^S)</div>
+
+<p>然后用 <strong>MSE(ĉ, c)</strong> 监督——而不是用交叉熵预测 codebook id。这是论文里反复出现但不显眼的设计选择。</p>
+
+<h3>5.1 为什么不用交叉熵 + hard target</h3>
+<p>三个考虑:</p>
+<ol>
+  <li><strong>可微分性</strong>: weighted sum 处处可导,梯度直接流回 head。argmax / Gumbel 需要 reparameterization,引入额外噪声。</li>
+  <li><strong>codebook 共同优化</strong>: 因为 ĉ 是 codebook entry 的<em>线性组合</em>,梯度也流回 e^s_n,从而 codebook 能被 LNCP <em>间接</em>训(虽然主要还是 LVQ 在训)。</li>
+  <li><strong>避免 over-commitment</strong>: 如果只能选一个 entry,模型在概念边界处 (语义模糊段) 会震荡;weighted sum 容许"34% 是 e_3 + 41% 是 e_7 + ..."的软表达。</li>
+</ol>
+
+<div class="nb">
+<strong>反向论证:</strong>如果改成离散 CE loss,作者预计性能会更接近 ContextLM (implicit concept) 而不是 ConceptLM。因为离散 CE 在大概念词表上 (N^S = 7×10^22) 是<em>极度稀疏</em>的监督信号,而 MSE 是稠密的回归信号——稠密信号正是 NTP 没有、却在 NCP 里弥补回来的部分。</p>
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · 三个 loss:NTP + NCP + VQ 各自做什么</h2>
+
+<h3>6.1 三者的分工</h3>
+<table>
+<tr><th>Loss</th><th>公式</th><th>梯度去向</th><th>目标</th></tr>
+<tr><td>L_VQ</td><td>||sg(c) − d||² + β||c − sg(d)||²</td><td>仅 codebook + Encoder (commitment 项)</td><td>让 codebook 跟踪 c 的分布,不反过来污染主表征</td></tr>
+<tr><td>L_NCP</td><td>(1/(M−1)) Σ ||ĉ_t − c_t||²</td><td>Concept Module + Encoder</td><td>逼 Encoder 产出"可被未来 concept 预测"的 long-range 表征</td></tr>
+<tr><td>L_NTP</td><td>−Σ log P(x_{t+1} | h̃_t)</td><td>所有参数</td><td>保持 token-level 语言能力,作 dense 监督</td></tr>
+</table>
+<p>总 loss: <code>L = L_NTP + L_NCP + L_VQ</code> (默认权重 1:1:1,β 是 commitment 项内部权重,文中没显式给具体值,但是 VQ-VAE 经典设置 0.25)。</p>
+
+<h3>6.2 Ablation 关键数字 (Pythia-160M, 30B tokens, Table 4)</h3>
+<table>
+<tr><th>配置</th><th>Avg Acc ↑</th><th>Avg PPL ↓</th></tr>
+<tr><td>NTP only (相同 backbone)</td><td>39.6</td><td>69.28</td></tr>
+<tr><td>NTP + VQ (无 NCP)</td><td>39.8</td><td>75.64</td></tr>
+<tr><td>NTP + NCP (无 VQ)</td><td>39.5</td><td>76.30</td></tr>
+<tr><td><strong>NTP + NCP + VQ</strong></td><td><strong>40.3</strong></td><td><strong>68.13</strong></td></tr>
+<tr><td>NTP + LMTP (multi-token baseline)</td><td>38.4</td><td>81.16</td></tr>
+</table>
+
+<p>读法: 单加 VQ 或单加 NCP 都<em>不</em>稳赢,有时 PPL 反而更差;只有三者齐全才同时拿到 Acc + PPL 双赢。MTP 在这个尺度 (160M) 反而比 baseline 还差——印证了 Gloeckle 2024 自己说的"3B 以下 MTP 没用"。</p>
+
+<h3>6.3 为什么 NTP 不能去掉</h3>
+<p>论文给的解释更微妙: NCP 学的是<em>稀疏</em>的、每 k 步一次的语义信号,Decoder 仍需要 token-级稠密监督才能维持基本语言能力 (语法 / 局部连贯)。如果只用 NCP 训,Decoder 拿到的 broadcast 概念向量只是"语义提示",但没有任何信号告诉它"该把这个语义铺成哪个具体 token"。NTP 是 dense supervision,负责"概念 → token 表面形式"的映射。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 防信息泄漏:k−1 位移 trick</h2>
+
+<p>这是论文里最容易踩坑的一处。预测下一个 concept c_{t/k} 需要看完整的前 k 个 token 的 hidden h_{(t/k-1)·k .. t-1}——<em>等价于看到了过去一个完整的 chunk</em>。但 broadcast 之后,decoder 在位置 t 拿到的 ĉ 是对应哪个 chunk 呢?</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 200" width="100%" style="max-width:680px">
+  <text x="360" y="18" text-anchor="middle" font-size="13" font-weight="bold" fill="#5b5e66">k=4 时的 broadcast & shift (避免泄漏)</text>
+  <!-- positions -->
+  <g font-size="11" text-anchor="middle">
+    <text x="40" y="48" fill="#5b5e66">t =</text>
+    <rect x="60"  y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="80"  y="50">0</text>
+    <rect x="100" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="120" y="50">1</text>
+    <rect x="140" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="160" y="50">2</text>
+    <rect x="180" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="200" y="50">3</text>
+    <rect x="220" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="240" y="50">4</text>
+    <rect x="260" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="280" y="50">5</text>
+    <rect x="300" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="320" y="50">6</text>
+    <rect x="340" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="360" y="50">7</text>
+    <rect x="380" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="400" y="50">8</text>
+    <rect x="420" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="440" y="50">9</text>
+    <rect x="460" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="480" y="50">10</text>
+    <rect x="500" y="35" width="40" height="22" fill="#eef0f6" stroke="#9aa6c4"/><text x="520" y="50">11</text>
+  </g>
+  <text x="40" y="80" font-size="11" fill="#5b5e66">原始 c:</text>
+  <rect x="60"  y="68" width="160" height="22" fill="#dbe5fb" stroke="#2f6feb"/><text x="140" y="83" font-size="11" text-anchor="middle">c0 (来自 h0..h3)</text>
+  <rect x="220" y="68" width="160" height="22" fill="#dbe5fb" stroke="#2f6feb"/><text x="300" y="83" font-size="11" text-anchor="middle">c1 (来自 h4..h7)</text>
+  <rect x="380" y="68" width="160" height="22" fill="#dbe5fb" stroke="#2f6feb"/><text x="460" y="83" font-size="11" text-anchor="middle">c2 (来自 h8..h11)</text>
+  <text x="40" y="118" font-size="11" fill="#cc4a1b">naïve add (泄漏!):</text>
+  <text x="220" y="118" font-size="10.5" fill="#cc4a1b">在 t=0 加 c0 = 偷看了 x1,x2,x3 的信息</text>
+  <text x="40" y="148" font-size="11" fill="#1f7a4a">移位 k−1=3 位:</text>
+  <rect x="60"  y="138" width="60"  height="22" fill="#eef9ee" stroke="#1f7a4a"/><text x="90"  y="153" font-size="10" text-anchor="middle">0 (zero)</text>
+  <rect x="120" y="138" width="60"  height="22" fill="#eef9ee" stroke="#1f7a4a"/><text x="150" y="153" font-size="10" text-anchor="middle">0 (zero)</text>
+  <rect x="180" y="138" width="60"  height="22" fill="#eef9ee" stroke="#1f7a4a"/><text x="210" y="153" font-size="10" text-anchor="middle">0 (zero)</text>
+  <rect x="240" y="138" width="160" height="22" fill="#dbe5fb" stroke="#2f6feb"/><text x="320" y="153" font-size="11" text-anchor="middle">ĉ_0 (预测,对齐 t≥3)</text>
+  <rect x="400" y="138" width="160" height="22" fill="#dbe5fb" stroke="#2f6feb"/><text x="480" y="153" font-size="11" text-anchor="middle">ĉ_1</text>
+  <text x="360" y="190" text-anchor="middle" font-size="11" fill="#1f7a4a">h̃_t = h_t + ĉ_⌊t/(k-1)⌋,前 k−1 位补 0</text>
+</svg>
+<figcaption>设 k=4。groundtruth c0 由 h0..h3 池化得到;若直接把 c0 加到 t=0 的 token 上做 NTP,模型在预测 x1 时就用上了 x2/x3 的信息。解法:(1) 用<em>预测出</em>的 ĉ_0 而非 ground-truth c_0;(2) 把 ĉ broadcast 后整体后移 k−1=3 位,前 3 位填 zero。这样在 t=0,1,2 没有 concept 信号 (退化为纯 NTP),从 t=3 开始拿到 ĉ_0 作为"下一段语义提示"。</figcaption>
+</div>
+
+<details>
+<summary>论文给的具体公式 (展开)</summary>
+<div class="formula">
+h̃_t = h_t + 0,&nbsp;&nbsp; if 0 ≤ t < k−1<br>
+h̃_t = h_t + ĉ_⌊t/(k−1)⌋,&nbsp;&nbsp; if k−1 ≤ t < T
+</div>
+<p>注意分母是 k−1 而非 k,这是因为 broadcast 已经做了向后移位的等效——index 缩放分母减 1 配合 zero-padding 实现"刚好覆盖未来 chunk"。</p>
+</details>
+
+<hr>
+
+<h2 id="sec8">8 · 公式拆解 + 一个 token 的全程追踪</h2>
+
+<h3>8.1 总目标函数</h3>
+<div class="formula">L = L_NTP + L_NCP + L_VQ</div>
+<div class="formula">L_VQ = ||sg(c) − d||² + β||c − sg(d)||² &nbsp;&nbsp; (β ≈ 0.25,VQ-VAE 默认)</div>
+<div class="formula">L_NCP = (1/(M−1)) Σ_{t=1}^{M−1} ||ĉ_t − c_t||² &nbsp;&nbsp; (M = T/k)</div>
+<div class="formula">L_NTP = −Σ_{t=0}^{T−1} log P(x_{t+1} | h̃_{≤t})</div>
+
+<h3>8.2 物理直觉</h3>
+<ul>
+  <li><strong>L_VQ 的两项</strong>: 第一项 sg(c) − d 拉 codebook 去贴近输入分布 (codebook 学习);第二项 c − sg(d) 给 commitment loss,让 Encoder 也愿意把表征"靠拢"到现有的 codebook 上,防止 c 漂走。sg 把两条梯度路径解耦,这也是为什么 LVQ "不影响主表征"。</li>
+  <li><strong>L_NCP 选 MSE 而非 CE</strong>: 见 §5.1。MSE 在 ℝ^d 上是稠密信号;CE 在 N^S 离散空间太稀疏。</li>
+  <li><strong>L_NTP 仍是 CE</strong>: 在 token 词表 V (50k) 上 CE 已足够稠密,且与"概念已经被提示进 hidden"形成互补。</li>
+</ul>
+
+<h3>8.3 一个 token 的全程追踪</h3>
+<p>设 Pythia-160M, T=2048, d=768, k=4, S=12, N=64。输入是数学语句:</p>
+<pre>"The integral of x squared dx equals one third x cubed plus C"
+tokens (12): [The, Ġintegral, Ġof, Ġx, Ġsquared, Ġdx, Ġequals, Ġone, Ġthird, Ġx, Ġcubed, ...]</pre>
+
+<p>追踪 t=4 这个 token <code>Ġsquared</code> 的预测过程:</p>
+
+<table>
+<tr><th>步骤</th><th>shape / 内容</th></tr>
+<tr><td>1. embed + Encoder L1 → h_4</td><td>h_4 ∈ ℝ^768,语义大致是"x 的某个幂"</td></tr>
+<tr><td>2. mean-pool h_0..h_3 = c_0</td><td>c_0 ∈ ℝ^768,代表概念 "the integral of x"</td></tr>
+<tr><td>3. c_0 切 12 段 → 量化得 d_0</td><td>d_0 ID = (37,12,5,...,18) ∈ {0..63}^12,称作"概念 #(37,12,...,18)"</td></tr>
+<tr><td>4. Concept Module 看 c_0 (历史) → 预测 ĉ_1</td><td>ĉ_1 ∈ ℝ^768,通过 12 个 head softmax × codebook 加权和</td></tr>
+<tr><td>5. ĉ_1 broadcast 4 次,后移 k−1=3 位</td><td>位置 3,4,5,6 都拿到 ĉ_0 (注意是 ĉ_0 因为 ⌊4/3⌋=1 但对应概念 0 的预测… 见下注)</td></tr>
+<tr><td>6. h̃_4 = h_4 + ĉ_⌊4/3⌋ = h_4 + ĉ_1</td><td>融合后,Decoder 在位置 4 看到了 "下一段是 squared dx equals" 这个语义提示</td></tr>
+<tr><td>7. Decoder 后续层 + LM head → logits</td><td>logits ∈ ℝ^50257,softmax 得 P(x_5)</td></tr>
+<tr><td>8. 训练 loss</td><td>L_NTP[t=4] = −log P(x_5 = "Ġdx" | h̃_{≤4})  +  L_NCP 在 t=1 处的贡献 ||ĉ_1 − c_1||² (注意 NCP loss 是在 concept 序列上算,不是 token 序列)</td></tr>
+</table>
+
+<p><em>位置→概念 index 的映射有点 tricky,公式里写 ⌊t/(k−1)⌋ 是 paper 自己的写法,实践中需要小心 off-by-one。</em></p>
+
+<h3>8.4 一个数值 sensitivity 表 (chunk size k)</h3>
+<table>
+<tr><th>k</th><th>concept seq 长度</th><th>concept 层 attn FLOPs (相对 k=1)</th><th>每个概念覆盖语义</th><th>训练难度</th></tr>
+<tr><td>1</td><td>T</td><td>1.0×</td><td>退化为 token (= NTP)</td><td>太简单,无收益</td></tr>
+<tr><td>2</td><td>T/2</td><td>0.25×</td><td>2-gram 级</td><td>偏短,语义信息有限</td></tr>
+<tr><td><strong>4</strong></td><td>T/4</td><td><strong>0.0625×</strong></td><td><strong>短语级 ("the integral of x")</strong></td><td><strong>论文甜点</strong></td></tr>
+<tr><td>8</td><td>T/8</td><td>0.016×</td><td>子句级</td><td>预测难度↑,2 层 concept transformer 不够拟合</td></tr>
+<tr><td>16+</td><td>T/16</td><td>0.004×</td><td>句子级 (≈ LCM)</td><td>过粗,broadcast 后 token 上下文断裂</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec9">9 · 实验关键结果与 scaling 行为</h2>
+
+<h3>9.1 Scaling 主图 (论文 Fig 1) 的核心三个数</h3>
+<ul>
+  <li><strong>同 perplexity 减 37% 参数</strong>: GPT-2 1.5B 的 PPL ≈ ConceptLM 1.0B 的 PPL</li>
+  <li><strong>同 perplexity 减 24% 训练 token</strong>: 同尺寸下,只跑 76% 数据就 match 全量 token-level baseline</li>
+  <li><strong>同 perplexity 减 19% FLOPs</strong>: 综合参数 + 数据的训练成本节省</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+  <!-- axes -->
+  <line x1="60" y1="240" x2="660" y2="240" stroke="#5b5e66" stroke-width="1"/>
+  <line x1="60" y1="40"  x2="60"  y2="240" stroke="#5b5e66" stroke-width="1"/>
+  <text x="360" y="265" text-anchor="middle" font-size="12" fill="#5b5e66">Model parameters (log scale)</text>
+  <text x="20"  y="140" text-anchor="middle" font-size="12" fill="#5b5e66" transform="rotate(-90 20 140)">Perplexity ↓</text>
+  <!-- x ticks -->
+  <g font-size="10" fill="#5b5e66" text-anchor="middle">
+    <text x="120" y="255">124M</text>
+    <text x="270" y="255">355M</text>
+    <text x="430" y="255">774M</text>
+    <text x="600" y="255">1.5B</text>
+  </g>
+  <!-- y ticks -->
+  <g font-size="10" fill="#5b5e66" text-anchor="end">
+    <text x="55" y="55">22</text>
+    <text x="55" y="105">19</text>
+    <text x="55" y="155">17</text>
+    <text x="55" y="205">15</text>
+  </g>
+  <!-- gridlines -->
+  <g stroke="#e2dfd5" stroke-dasharray="3,3">
+    <line x1="60" y1="55"  x2="660" y2="55"/>
+    <line x1="60" y1="105" x2="660" y2="105"/>
+    <line x1="60" y1="155" x2="660" y2="155"/>
+    <line x1="60" y1="205" x2="660" y2="205"/>
+  </g>
+  <!-- GPT-2 baseline curve: PPL 22.04 → 17.97 → 16.01 → 14.99 -->
+  <polyline points="120,55 270,122 430,162 600,184" fill="none" stroke="#cc4a1b" stroke-width="2.5"/>
+  <g fill="#cc4a1b">
+    <circle cx="120" cy="55"  r="4"/>
+    <circle cx="270" cy="122" r="4"/>
+    <circle cx="430" cy="162" r="4"/>
+    <circle cx="600" cy="184" r="4"/>
+  </g>
+  <!-- ConceptLM curve: PPL 20.56 → 16.81 → 15.20 → 14.40 -->
+  <polyline points="120,80 270,142 430,178 600,194" fill="none" stroke="#2f6feb" stroke-width="2.5"/>
+  <g fill="#2f6feb">
+    <circle cx="120" cy="80"  r="4"/>
+    <circle cx="270" cy="142" r="4"/>
+    <circle cx="430" cy="178" r="4"/>
+    <circle cx="600" cy="194" r="4"/>
+  </g>
+  <!-- 37% fewer params arrow: 1.5B baseline (600,184) ↔ ConceptLM equivalent ~950M (430,178) -->
+  <line x1="430" y1="178" x2="600" y2="184" stroke="#1f7a4a" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="515" y="172" text-anchor="middle" font-size="11" fill="#1f7a4a">≈ 37% fewer params for same PPL</text>
+  <!-- legend -->
+  <rect x="470" y="50" width="180" height="50" fill="#fff" stroke="#e2dfd5"/>
+  <line x1="480" y1="65" x2="510" y2="65" stroke="#cc4a1b" stroke-width="2.5"/>
+  <circle cx="495" cy="65" r="3" fill="#cc4a1b"/>
+  <text x="515" y="69" font-size="11" fill="#5b5e66">GPT-2 (NTP only)</text>
+  <line x1="480" y1="88" x2="510" y2="88" stroke="#2f6feb" stroke-width="2.5"/>
+  <circle cx="495" cy="88" r="3" fill="#2f6feb"/>
+  <text x="515" y="92" font-size="11" fill="#5b5e66">ConceptLM (NCP)</text>
+  <text x="360" y="20" text-anchor="middle" font-size="13" font-weight="bold" fill="#5b5e66">GPT-2 系列 scaling 曲线 (Pile/OWT 平均 PPL)</text>
+</svg>
+<figcaption>蓝线 (NCP) 全程压在橙线 (NTP) 下方,而且<em>差距随 size 缩小</em> (124M 时 ↓1.5,1.5B 时 ↓0.6 PPL)。这意味着 NCP 在小模型上收益更大,大模型上仍稳赚但绝对差缩小——和 MTP 类工作"3B+ 才显效"的趋势相反。读者要警惕外推: 当前数据无法推断 NCP 在 70B+ 是否仍提供绝对收益。</figcaption>
+</div>
+
+<h3>9.2 Pythia 全尺寸表 (300B token, 选自 Table 1, 平均 PPL ↓)</h3>
+<table>
+<tr><th>尺寸</th><th>Pythia 基线</th><th>ContextLM</th><th>ConceptLM</th><th>提升 vs 基线</th></tr>
+<tr><td>70M</td><td>297.7</td><td>142.7</td><td><strong>137.7</strong></td><td>↓160</td></tr>
+<tr><td>160M</td><td>67.9</td><td>43.1</td><td><strong>34.2</strong></td><td>↓33.5 (最大!)</td></tr>
+<tr><td>410M</td><td>17.84</td><td>15.82</td><td><strong>15.31</strong></td><td>↓2.5</td></tr>
+</table>
+
+<p>注意 160M 这一档跳点最大 (+33.5 PPL),作者归因于 S=head 数 + N=64 的固定配置在这个尺寸最贴合。这暗示 NCP 的 hyperparams 不是 size-agnostic 的,大模型可能需要 N 更大 / S 更大。</p>
+
+<h3>9.3 Continual Pretraining: 在 Llama-3.1-8B 上加 NCP (Table 3, 9.6B token)</h3>
+<table>
+<tr><th>变体</th><th>MMLU</th><th>ARC-C</th><th>AGIEval</th><th>SQuAD2.0</th><th>Avg</th></tr>
+<tr><td>Trained-8B (纯 token)</td><td>64.3</td><td>34.8</td><td>54.2</td><td>36.7</td><td>47.5</td></tr>
+<tr><td>PM-8B (+2 token layers)</td><td>64.5</td><td>35.0</td><td>53.3</td><td>36.1</td><td>47.2</td></tr>
+<tr><td><strong>ConceptLM-8B</strong></td><td><strong>64.6</strong></td><td><strong>35.1</strong></td><td><strong>54.2</strong></td><td>36.5</td><td><strong>47.6</strong></td></tr>
+</table>
+<p>Continual pretrain 的提升只有 +0.4 (vs PM) / +0.1 (vs Trained),不算惊艳——但作者强调:这是<em>从已有 NTP 模型扩出来</em>,新加的 concept 层和原 backbone 对齐难,而且只跑了 9.6B token (相对 Llama-3.1 总训练量微不足道)。LVQ 还在持续下降,说明没收敛。</p>
+
+<h3>9.4 长文实验 (Fig 4)</h3>
+<p>训练长度从 512 → 2048,ConceptLM 比 PM 基线的 loss gap 单调扩大。原因:concept 层运行在 T/k 长度上,attention 二次项缩 16 倍,把"省下来的算力"投到了 long-range dependency 上。这是 NCP 的副产品。</p>
+
+<h3>9.5 计算复杂度 (Table 6, Llama-3.1-8B 实测)</h3>
+<table>
+<tr><th>层类型</th><th>训练 FLOPs</th><th>推理 FLOPs</th></tr>
+<tr><td>Token Layer</td><td>O(T²d + Td²)</td><td>O(Td + d²)</td></tr>
+<tr><td>Concept Layer</td><td>O((T/k)²d + (T/k)d²)</td><td>O((T/k)d + d²)</td></tr>
+</table>
+<p>实测: PM-8B 训练 80h,ConceptLM-8B 71h (↓11.3%);推理 99min vs 86min (↓13.1%)。理论 FLOPs 只省 4.69%,但实测省更多——作者归因于<strong>IO/KV cache</strong>: concept 层处理的序列短了 4 倍,KV cache 直接缩 4 倍,缓解了 memory bandwidth bottleneck。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 与同类工作对比</h2>
+
+<table>
+<tr><th>方法</th><th>预测目标</th><th>潜空间</th><th>是 pretraining objective?</th><th>与 ConceptLM 主要区别</th></tr>
+<tr><td><strong>ConceptLM (本文)</strong></td><td>下一个概念 (k 个 token 的 pooled hidden)</td><td>discrete VQ (product)</td><td>是</td><td>—</td></tr>
+<tr><td>Coconut (Hao 2025)</td><td>CoT 中间步骤换成 hidden vector</td><td>continuous (无量化)</td><td>否,inference-time / fine-tune</td><td>没有离散监督,无概念词表;只是把 CoT 内化进 hidden</td></tr>
+<tr><td>LCM (Meta 2024)</td><td>下一个句子 SONAR embedding</td><td>continuous,外部冻结 embedding</td><td>是,但在 sentence 级</td><td>粒度太粗 (句子 vs 4-token);embedding 是 frozen 的不可联合优化</td></tr>
+<tr><td>BLT (Pagnoni 2024)</td><td>下一个 byte 在 patch 内</td><td>token-free,dynamic patch</td><td>是</td><td>预测目标仍是 byte-level CE,只是结构上把序列变短</td></tr>
+<tr><td>MegaByte (Yu 2023)</td><td>下一个 patch 内的字节</td><td>固定 chunk</td><td>是</td><td>同 BLT,改结构不改 loss</td></tr>
+<tr><td>H-Net (Hwang 2025)</td><td>动态 chunk 的下一 byte</td><td>token-free</td><td>是</td><td>同上</td></tr>
+<tr><td>DeepSeek-V3 MTP</td><td>同时预测下 m 个 token</td><td>token 空间</td><td>是 (auxiliary head)</td><td>仍是 token loss,组合复杂度爆炸,3B 以下不收益</td></tr>
+<tr><td>ContextLM (Dai 2025)</td><td>下一个 context (有 concept 层但无显式预测)</td><td>continuous, implicit</td><td>是</td><td><strong>本文最强基线</strong>: 同款架构但缺少 LVQ + LNCP 显式监督</td></tr>
+<tr><td>Hourglass (Nawrot 2022)</td><td>压缩-解压结构</td><td>continuous</td><td>是</td><td>无 VQ 词表,无概念预测 loss</td></tr>
+<tr><td>VAR (Tian 2024,视觉)</td><td>下一 scale 的 token map</td><td>VQ</td><td>是</td><td>视觉域,token 是 patch latent;NCP 把这套思路搬到语言</td></tr>
+</table>
+
+<p><strong>定位总结:</strong> ConceptLM 占据的"格子"是 [<em>语言域 + pretraining objective + discrete latent + 与 NTP 联合训练</em>],四个维度中前人的工作至少缺一个。最接近的是 ContextLM (同实验室前作),区别就在 <em>显式 VQ + NCP loss</em> vs <em>implicit concept 层</em>——这个差距在 Pythia 实验上稳定值 +1.7 ~ +2.5 Acc。</p>
+
+<hr>
+
+<h2 id="sec11">11 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>11.1 局限</h3>
+<ul>
+  <li><strong>规模不够大。</strong> 主实验最大 1.5B,continual 8B 只跑 9.6B token。MTP 在 3B 以下没收益是已知现象,NCP 在 8B+ 时和 NTP 的 gap 是否扩大或收窄,本文没给。</li>
+  <li><strong>k=4 是固定的。</strong> 没有动态 chunk (BLT 风格),也没考虑数学/代码这种 token 边界刚性的领域 chunk 应不应该跨语法边界。</li>
+  <li><strong>S, N 也是固定的。</strong> 论文承认在不同 size 上不是 size-optimal (160M 跳得最猛,1.5B 几乎没跳)。</li>
+  <li><strong>生成效率 unclear。</strong> 推理时仍要先 forward Encoder 算 c,再过 concept 层预测 ĉ,再 broadcast,再过 decoder——比纯 NTP 多了概念层 forward。Table 6 报告的"推理快"是因为 concept 层<em>替换</em>了 2 个 token 层,不是叠加。如果想要"加而不减",收益要重新算。</li>
+  <li><strong>NCP 的 MSE loss 没有概率解释。</strong> 不像 CE 可以解读为 KL,MSE 在概念词表上的几何意义不直观,调参 (vs L_NTP) 缺少理论指南。</li>
+  <li><strong>没有 SFT / RLHF 阶段实验。</strong> 概念层在 instruction-following 时是否依然提供增益,完全空白。</li>
+</ul>
+
+<h3>11.2 个人 take</h3>
+<ul>
+  <li>这篇的"立场"我很喜欢: 把 high-level prediction 这个口号<strong>真正落到了 pretraining objective 上</strong>,而不是 inference 时的潜推理 trick。这是 Coconut / Token Assorted 这类工作差的那一步。</li>
+  <li>但 8B 上只 +0.4 的提升非常 marginal。如果未来在 70B 上不能继续放大,这个故事就只是"小模型 trick"。</li>
+  <li>VQ + product quantization 已经在视觉 (VAR / MAGVIT) 验证可以 scale,语言侧的 codebook collapse 风险被作者用 SimVQ + 插入深度 (3/4 处) 解决了,工程上看起来稳。</li>
+  <li>跟 DeepSeek-V3 MTP 的关系值得深思: MTP 在 token 空间组合爆炸,NCP 用 VQ 把"组合"压成离散 codebook,本质上是<em>给 MTP 找一个紧凑的预测目标空间</em>。这个思路可以反过来用 — 把 MTP head 的预测目标换成 concept code 而不是 token tuple。</li>
+</ul>
+
+<h3>11.3 待验证问题 (个人想做的实验)</h3>
+<ol>
+  <li>在 Llama-3 70B 上 continual pretrain NCP (而不是 8B),收益是否扩大?如果不扩大,说明 NCP 是"小模型补丁"。</li>
+  <li>k=4 是否对所有 domain 通用?数学代码用 k=2,叙事文用 k=8,可能各有甜点。</li>
+  <li>把 NCP 的 MSE loss 换成<em>对 codebook id 的 cross-entropy</em>,效果 vs 现在的 weighted-sum + MSE 谁好?这是设计选择的核心 ablation。</li>
+  <li>推理时是否可以用 concept ID 做 speculative decoding 风格的"概念前瞻"?比如先采样概念,再投机性地展开 k 个 token,target 模型只验证概念边界。</li>
+  <li>Concept 层<em>插入位置</em>(论文报告 3/4 处最好) 在 8B+ 上是否仍然在 3/4 处? 还是和 backbone 深度相关?</li>
+  <li>Codebook (在多语言 / 多 domain 训练后) 学到的是什么? 一个 concept ID 对应的所有 4-token span 在语义上是否聚类? 这是 interpretability 的核心问题,论文完全没碰。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> NCP 不是 inference-time trick,是新的<em>pretraining objective</em>:NTP+NCP+VQ 三 loss 联合<br>
+  <span class="pill">架构</span> Encoder → mean-pool 每 k=4 token → product VQ (S×N) → 预测下一概念 (weighted sum) → broadcast 后移 k−1 → Decoder NTP<br>
+  <span class="pill">VQ 配置</span> S=heads (~12), N=64, codebook size = N×d, 表达力 N^S ≈ 7×10²² >> V^k<br>
+  <span class="pill">关键 ablation</span> 单加 NCP 或单加 VQ 都<em>掉点</em>,三者齐才赢<br>
+  <span class="pill">scaling</span> 同 PPL 省 37% 参数 / 24% token / 19% FLOPs (Pythia + GPT-2 1.5B 内)<br>
+  <span class="pill">陷阱</span> ĉ 必须是<em>预测</em>而非 ground-truth,且 broadcast 时后移 k−1 防泄漏<br>
+  <span class="pill">为什么 MSE</span> 概念词表 N^S ≈ 10²² 太稀疏,CE 信号太弱;weighted sum + MSE 是 dense 监督<br>
+  <span class="pill">最强基线</span> ContextLM (同实验室,有 concept 层但无 VQ + NCP,Avg 落后 1.7-2.5)
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF: <code>/data/szhang967/papers/paper-notes/models/NCP_2602.08984.pdf</code>
+</p>
+
+</main>
+</body>
+</html>

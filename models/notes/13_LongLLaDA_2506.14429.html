@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · LongLLaDA: Unlocking Long Context in Diffusion LLMs (2506.14429)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>LongLLaDA: Unlocking Long Context Capabilities in Diffusion LLMs</h1>
+<div class="meta">
+  Fudan / SII / Shanghai AI Lab · Xiaoran Liu et al. · AAAI 2026 · arXiv:2506.14429v3 (2025-11-11)<br>
+  关键词: diffusion LLM · LLaDA · length extrapolation · NTK-RoPE · NIAH · training-free
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>第一篇系统比较 dLLM 与 AR LLM 长上下文行为的论文,发现 dLLM 在直接外推下 perplexity 不爆炸、NIAH 上呈"局部感知"滑窗,机制源于 bidirectional attention 让 RoPE 的 trained 范围扩大到 [1−T, T−1];把 AR 时代的 NTK-RoPE 直接拿来即可 6× 扩展(4k → 24k),完全 training-free。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">6×</div><div class="l">最大无训练扩展 (4k→24k)</div></div>
+    <div class="stat"><div class="n">[−T, T]</div><div class="l">dLLM 训练时见过的相对位置范围</div></div>
+    <div class="stat"><div class="n">λ ∈ {4,14,31}</div><div class="l">NTK 缩放因子直接复用 AR 公式</div></div>
+  </div>
+  <p><strong>立场:</strong>这不是新的算法,而是<em>新现象 + 旧工具的迁移验证</em>。论文最大的价值是把 RoPE scaling law 这套 AR 时代的"民间智慧"正式搬到 dLLM,同时用 RoPE 几何解释了 dLLM 的两个怪现象。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 dLLM 的长上下文是个空白</a></li>
+    <li><a href="#sec2">背景速查 (LLaDA / RoPE / NTK)</a></li>
+    <li><a href="#sec3">现象 ①:稳定 perplexity</a></li>
+    <li><a href="#sec4">现象 ②:NIAH 中的局部感知 (local perception)</a></li>
+    <li><a href="#sec5">机制分析:RoPE 在 dLLM 上的几何</a></li>
+    <li><a href="#sec6">方法 LongLLaDA: NTK-RoPE 直接 plug-in</a></li>
+    <li><a href="#sec7">Worked example: 一个 8k 处的 query 在做什么</a></li>
+    <li><a href="#sec8">实验关键结果 (NIAH / LongBench / RULER)</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 dLLM 的长上下文是个"空白"</h2>
+
+<h3>1.1 历史脉络:dLLM 这一年发生了什么</h3>
+<p>2024 下半年到 2025 上半年,<strong>diffusion LLM</strong> (掩码扩散语言模型) 集中爆发: <code>SEDD/MD4</code> 类的理论简化 (Sahoo 2024 / Ou 2024 / Shi 2024)、<code>LLaDA-8B</code> (Nie 2025) 把 mask diffusion 真正 scale 到 8B 参数、<code>Dream-7B</code> (Ye 2025) 从 Qwen2.5 初始化继续 mask diffusion 训练、<code>LLaDA-1.5</code> (Zhu 2025) 加 VRPO 偏好优化。多模态 (MMaDA / LLaDA-V / LaViDa)、推理 (d1 / DCoLT)、加速 (dKV-Cache / Fast-dLLM) 都在上面跑。</p>
+<p>但这一年的研究全是在 <strong>≤ 4k context</strong> 内打转。RLHF、推理 trace、agentic 任务很快会把上下文需求顶到 32k+,而 LLaDA-8B 的 pretrained context 只有 4k。研究者会自然地问:</p>
+<ul>
+  <li>dLLM 直接喂 16k token 会爆吗?(perplexity 会不会像 AR 一样炸)</li>
+  <li>NIAH 这种 retrieval 任务 dLLM 能跑多远?</li>
+  <li>AR 时代积累的那一堆 RoPE 缩放 trick (Linear PI, NTK, YaRN, LongRoPE, ReRoPE...) 在 dLLM 上还成立吗?</li>
+</ul>
+<p>本论文就是来回答这三个问题的。</p>
+
+<h3>1.2 为什么 dLLM 的长上下文行为<em>本来就该</em>不一样</h3>
+
+<p>核心区别一句话: <strong>dLLM 是 bidirectional attention + mask prediction,AR 是 causal attention + next-token</strong>。这两件事联手让 dLLM 在训练时"看到的相对位置"几乎是 AR 的<em>两倍</em>。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <!-- AR side -->
+    <rect x="20" y="20" width="320" height="180" rx="8" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">AR (LLaMA3, Ttrain=8k)</text>
+    <!-- causal mask grid -->
+    <g>
+      <rect x="80" y="60" width="200" height="120" fill="#f3eee0" stroke="#888"/>
+      <!-- Lower-triangular shaded -->
+      <polygon points="80,60 280,180 80,180" fill="#9ec5ff" opacity="0.6"/>
+      <text x="120" y="155" font-size="11" fill="#1f4e8c">attended</text>
+      <text x="200" y="100" font-size="11" fill="#a8353e">masked</text>
+      <text x="180" y="200" text-anchor="middle" font-size="11" fill="#5b5e66">key index s →</text>
+      <text x="65" y="125" text-anchor="middle" font-size="11" fill="#5b5e66" transform="rotate(-90 65 125)">query t</text>
+    </g>
+    <text x="180" y="245" text-anchor="middle" font-size="11" fill="#5b5e66"></text>
+    <!-- relative position range box -->
+    <rect x="50" y="186" width="260" height="18" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="200" text-anchor="middle" font-size="11" fill="#2f6feb">相对位置 (t−s) ∈ [0, 8191]</text>
+
+    <!-- dLLM side -->
+    <rect x="360" y="20" width="320" height="180" rx="8" fill="#fff" stroke="#cc4a1b"/>
+    <text x="520" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">dLLM (LLaDA, Ttrain=4k)</text>
+    <g>
+      <rect x="420" y="60" width="200" height="120" fill="#f3eee0" stroke="#888"/>
+      <rect x="420" y="60" width="200" height="120" fill="#fbb471" opacity="0.5"/>
+      <text x="520" y="125" text-anchor="middle" font-size="11" fill="#7a3000">all-to-all attention</text>
+      <text x="520" y="200" text-anchor="middle" font-size="11" fill="#5b5e66">key index s →</text>
+      <text x="405" y="125" text-anchor="middle" font-size="11" fill="#5b5e66" transform="rotate(-90 405 125)">query t</text>
+    </g>
+    <rect x="390" y="186" width="260" height="18" fill="#fff" stroke="#cc4a1b"/>
+    <text x="520" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b">相对位置 (t−s) ∈ [−4095, +4095]</text>
+  </svg>
+  <figcaption>AR 的 causal mask 让训练时只看到非负相对位置 [0, T−1]; dLLM 的 bidirectional attention 让 t−s 同时取正负,范围扩展到 [−(T−1), T−1]。结果即便 LLaDA 的 T 只有 4k,它见过的<em>有效相对位置</em>跨度反而和 LLaMA3 的 8k 一样宽 — 这是后面所有现象的根源。</figcaption>
+</div>
+
+<p>这个差异看似平淡,但它直接决定了:</p>
+<ul>
+  <li><strong>RoPE 中频维度</strong>在 LLaDA 训练时已经覆盖了一个完整的 sin/cos 周期 ([−4095, 4095]),而 LLaMA3 只覆盖了半个周期 ([0, 8191])。</li>
+  <li><strong>OOD 区域大小</strong>不同。AR 在 [-T, 0] 整片是没见过的;dLLM 把这片"补"上了。所以 dLLM 在外推时,低频维度面对的 OOD 体积更小。</li>
+</ul>
+
+<h3>1.3 别的方案为什么"够呛"</h3>
+
+<table>
+  <tr><th>已有思路</th><th>能解什么</th><th>到 dLLM 还成立吗?</th></tr>
+  <tr><td>Linear PI (Chen 2023)</td><td>位置直接缩放,需要少量 fine-tune</td><td><span class="no">需要训练数据,违背 training-free 目标</span></td></tr>
+  <tr><td>YaRN (Peng 2023)</td><td>分维度缩放 + temperature 调整</td><td><span class="no">用 PPL 调参,但 dLLM 的 PPL 本来就不爆,失去信号</span></td></tr>
+  <tr><td>LongRoPE (Ding 2024)</td><td>2M context,evolutionary search 找最优 λ_n</td><td><span class="no">需要长上下文数据 + search,远远超过 plug-in</span></td></tr>
+  <tr><td>ReRoPE / DCA (Su 2023 / An 2024)</td><td>限制相对位置上限</td><td><span class="no">不解决 OOD 本身,只是 sliding window 化</span></td></tr>
+  <tr><td><strong>NTK-aware RoPE</strong> (bloc97 2023b)</td><td>缩放 rotary base,纯推理时刻 plug-in</td><td><span class="ok">和 dLLM 的"低频维度也已被中频覆盖"高度匹配</span></td></tr>
+</table>
+
+<div class="nb"><strong>关键判断:</strong>YaRN 在 AR 上调参靠 PPL 反馈,但 dLLM 直接外推 PPL <em>本来就不爆</em>,YaRN 的 search loop 失去信号源。NTK 反过来 — 它是<em>纯几何</em>方案 (从 critical dimension 算出 λ),不需要任何 evaluation feedback。这正好对上 dLLM 的特性。</div>
+
+<h3>1.4 为什么"做 training-free"是合理的野心</h3>
+
+<p>外推方案分两档: (a) <strong>continued pretraining</strong> 在长数据上重训,(b) <strong>training-free / inference-time</strong> 只调位置编码。</p>
+<p>论文坚持走 (b) 的原因有三:</p>
+<ol>
+  <li><strong>dLLM 训练昂贵且早期。</strong>LLaDA-8B 已经是 mask diffusion 在 8B 量级的代表作,长上下文继续训练的成本和经验数据都还没有积累。</li>
+  <li><strong>位置编码是一个干净的 lever。</strong>不动权重就不动 mask diffusion 的训练目标,科学上对照清晰。</li>
+  <li><strong>验证 scaling law 可迁移性。</strong>如果 NTK 这套理论是普适的(几何上来自 RoPE 周期性),它应该不依赖训练目标。论文是在做 <em>existence proof</em>。</li>
+</ol>
+
+<p>需要训练才能突破的领域(论文坦言)是 24k 以上 — 后续工作 <strong>UltraLLaDA</strong> 把 LLaDA 扩到 128k,但代价是要做 long-data fine-tuning。本论文画出的是<em>训练-免费的天花板</em>。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Diffusion LLM (dLLM)</span></td><td>非自回归语言模型,用 mask diffusion 训练:把序列局部加 mask,模型并行预测被 mask 的 token</td></tr>
+  <tr><td><span class="term">LLaDA-8B</span></td><td>8B 参数 mask diffusion LLM,Ttrain=4k,β0=500000,bidirectional attention</td></tr>
+  <tr><td><span class="term">Bidirectional attention</span></td><td>每个 token 同时关注前后 token,无 causal mask;相对位置 (t−s) 同时为正负</td></tr>
+  <tr><td><span class="term">Block diffusion / sampling steps</span></td><td>dLLM 推理时把要生成的 block (size B) 分 s 步逐渐去 mask;s 越大越精</td></tr>
+  <tr><td><span class="term">RoPE (Rotary Position Embedding)</span></td><td>把 q/k 切成 d/2 对,每对乘以 2D 旋转矩阵 cos/sin(θ_n · t),θ_n = β0^(−2n/d)</td></tr>
+  <tr><td><span class="term">Rotary base β0</span></td><td>RoPE 的频率基数;LLaMA3=500000, LLaDA=500000</td></tr>
+  <tr><td><span class="term">Critical dimension d_extra</span></td><td>临界维度: 维度 n &lt; d_extra 在训练长度 Ttrain 内已完成至少一个完整 sin/cos 周期</td></tr>
+  <tr><td><span class="term">NTK-aware RoPE</span></td><td>把 β0 → λ·β0,等效于对所有维度做"非线性"位置插值,低维基本不动,高维大量插值</td></tr>
+  <tr><td><span class="term">NIAH</span></td><td>Needle-In-A-Haystack: 把一个事实"针"埋进长文章不同深度,让模型把它捡出来</td></tr>
+  <tr><td><span class="term">Local perception</span></td><td>本论文术语: dLLM 在 NIAH 上对超出 Ttrain 的 context 只能从最近 4k 窗口内 retrieve</td></tr>
+</table>
+
+<h3>2.1 RoPE 的关键公式 (复习)</h3>
+<div class="formula">A_{t,s} = Σₙ [q_t · k_s 的 2D rotation] · cos(θₙ(t−s)) + ... · sin(θₙ(t−s))</div>
+<div class="formula">θₙ = β₀^(−2n/d), &nbsp;&nbsp; Tₙ = 2π·β₀^(2n/d)</div>
+<p>低维 n 小 → Tₙ 短 → 在一个 sequence 内反复转完整周期; 高维 n 大 → Tₙ 长 → 整个序列都不一定转完一圈。</p>
+<div class="formula">d_extra = 2 · ⌊ d/2 · log_{β₀}(T_train / 2π) ⌋</div>
+<p>对 LLaDA: d=128, β0=500000, Ttrain=4096 → d_extra = 64。即前 64 维在训练时见过完整周期, 后 64 维没见过。</p>
+
+<h3>2.2 NTK 缩放公式</h3>
+<div class="formula">λ_t = β₀⁻¹ · (t / 2π)^(d/d_extra)</div>
+<p>对 LLaDA d/d_extra = 128/64 = 2,所以 λ ∝ t² (sup-linear)。代入 t=8k, 16k, 24k, 32k 得 λ ≈ 4, 14, 31, 55。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 现象 ① · dLLM 的 perplexity 在直接外推下不爆</h2>
+
+<p>论文 Figure 1(a): 把 (4k, 8k, 12k, 16k) token 的 PG-19 段直接喂进去算 PPL。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 600 240" width="100%" style="max-width:580px">
+    <!-- axes -->
+    <line x1="60" y1="200" x2="560" y2="200" stroke="#888"/>
+    <line x1="60" y1="20" x2="60" y2="200" stroke="#888"/>
+    <text x="310" y="230" text-anchor="middle" font-size="12" fill="#5b5e66">context length →</text>
+    <text x="20" y="120" font-size="12" fill="#5b5e66" transform="rotate(-90 20 120)">Perplexity</text>
+    <!-- x labels -->
+    <g font-size="10" fill="#5b5e66" text-anchor="middle">
+      <text x="60" y="215">0</text>
+      <text x="185" y="215">4k</text>
+      <text x="310" y="215">8k</text>
+      <text x="435" y="215">12k</text>
+      <text x="560" y="215">16k</text>
+    </g>
+    <!-- y labels -->
+    <g font-size="10" fill="#5b5e66" text-anchor="end">
+      <text x="55" y="200">5</text>
+      <text x="55" y="155">10</text>
+      <text x="55" y="110">20</text>
+      <text x="55" y="65">30</text>
+    </g>
+    <!-- pretrained boundaries -->
+    <line x1="185" y1="20" x2="185" y2="200" stroke="#cc4a1b" stroke-dasharray="4,3" stroke-width="1"/>
+    <text x="185" y="15" text-anchor="middle" font-size="10" fill="#cc4a1b">LLaDA Ttrain=4k</text>
+    <line x1="310" y1="20" x2="310" y2="200" stroke="#2f6feb" stroke-dasharray="4,3" stroke-width="1"/>
+    <text x="310" y="15" text-anchor="middle" font-size="10" fill="#2f6feb">LLaMA3 Ttrain=8k</text>
+
+    <!-- LLaMA3 explosion (blue) -->
+    <path d="M 80 165 Q 200 162 310 158 Q 360 158 400 90 Q 460 35 540 28" stroke="#2f6feb" stroke-width="2.5" fill="none"/>
+    <text x="510" y="48" font-size="12" fill="#2f6feb" font-weight="600">LLaMA3</text>
+
+    <!-- LLaDA flat (orange) -->
+    <path d="M 80 175 Q 200 172 310 174 Q 420 175 540 175" stroke="#cc4a1b" stroke-width="2.5" fill="none"/>
+    <text x="510" y="170" font-size="12" fill="#cc4a1b" font-weight="600">LLaDA</text>
+
+    <!-- legend -->
+    <text x="310" y="100" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">超过 Ttrain 后,AR 的 PPL 立刻飞起,</text>
+    <text x="310" y="115" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">dLLM 几乎贴地</text>
+  </svg>
+  <figcaption>示意复刻论文 Figure 1(a)。LLaMA3 在 8k 之后 PPL 从 ~10 急剧上升到 30+;LLaDA 从 4k 一路到 16k 几乎不动。</figcaption>
+</div>
+
+<h3>3.1 为什么 PPL 不爆?</h3>
+
+<p>原因来自 §1.2 那张图: dLLM 的中频维度在训练时就见过完整 sin/cos 周期,所以即便 |t−s| 超过 Ttrain,中频维度的 cos(θₙ(t−s)) 落在已见过的取值区间内 — 没有 distribution shift。</p>
+
+<p>剩下高频维度 (n &lt; d_extra) 跨多个周期,见过完整值;低频维度 (n ≥ d_extra) OOD,但因为 cos 是偶函数(cos(−x) = cos(x)),AR 没见过的负相对位置在 dLLM 里其实可由对称性"猜测"出来 — OOD 体积只有 AR 的一半。</p>
+
+<p>整体效果:整个 q·k·R_{t-s} 的内积分布几乎不漂移 → 输出 logits 分布不漂移 → PPL 稳。</p>
+
+<div class="nb"><strong>但稳的 PPL 不等于能用</strong>。论文紧接着的发现是: 虽然 PPL 不爆, NIAH 上 dLLM 仍然只能 retrieve 最近 4k。这说明 PPL 是一个<em>不可靠的长上下文 metric</em> — 这点和 Hu et al. 2024 在 AR 上的结论吻合。</div>
+
+<hr>
+
+<h2 id="sec4">4 · 现象 ② · NIAH 中的 local perception</h2>
+
+<p>NIAH 把一个事实("某人最爱的食物是 X")埋在 long context 不同深度,然后问"X 是什么"。score 就是按 (token_limit × depth_percent) 二维网格画热力图。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <!-- LLaMA3 panel -->
+    <rect x="20" y="20" width="320" height="280" rx="8" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">LLaMA3-8B (AR)</text>
+    <text x="180" y="58" text-anchor="middle" font-size="11" fill="#5b5e66">Ttrain = 8k</text>
+    <!-- grid: 6 cols (token limits) × 6 rows (depth %) -->
+    <g>
+      <!-- All cells -->
+      <!-- columns 1-3 (≤8k): green -->
+      <g fill="#2e8a3a">
+        <rect x="50" y="80" width="40" height="30"/>
+        <rect x="92" y="80" width="40" height="30"/>
+        <rect x="134" y="80" width="40" height="30"/>
+        <rect x="50" y="112" width="40" height="30"/>
+        <rect x="92" y="112" width="40" height="30"/>
+        <rect x="134" y="112" width="40" height="30"/>
+        <rect x="50" y="144" width="40" height="30"/>
+        <rect x="92" y="144" width="40" height="30"/>
+        <rect x="134" y="144" width="40" height="30"/>
+        <rect x="50" y="176" width="40" height="30"/>
+        <rect x="92" y="176" width="40" height="30"/>
+        <rect x="134" y="176" width="40" height="30"/>
+        <rect x="50" y="208" width="40" height="30"/>
+        <rect x="92" y="208" width="40" height="30"/>
+        <rect x="134" y="208" width="40" height="30"/>
+        <rect x="50" y="240" width="40" height="30"/>
+        <rect x="92" y="240" width="40" height="30"/>
+        <rect x="134" y="240" width="40" height="30"/>
+      </g>
+      <!-- columns 4-6 (>8k): red -->
+      <g fill="#a8353e">
+        <rect x="176" y="80" width="40" height="30"/>
+        <rect x="218" y="80" width="40" height="30"/>
+        <rect x="260" y="80" width="40" height="30"/>
+        <rect x="176" y="112" width="40" height="30"/>
+        <rect x="218" y="112" width="40" height="30"/>
+        <rect x="260" y="112" width="40" height="30"/>
+        <rect x="176" y="144" width="40" height="30"/>
+        <rect x="218" y="144" width="40" height="30"/>
+        <rect x="260" y="144" width="40" height="30"/>
+        <rect x="176" y="176" width="40" height="30"/>
+        <rect x="218" y="176" width="40" height="30"/>
+        <rect x="260" y="176" width="40" height="30"/>
+        <rect x="176" y="208" width="40" height="30"/>
+        <rect x="218" y="208" width="40" height="30"/>
+        <rect x="260" y="208" width="40" height="30"/>
+        <rect x="176" y="240" width="40" height="30"/>
+        <rect x="218" y="240" width="40" height="30"/>
+        <rect x="260" y="240" width="40" height="30"/>
+      </g>
+      <!-- vertical Ttrain line -->
+      <line x1="174" y1="78" x2="174" y2="270" stroke="#fff" stroke-width="2"/>
+    </g>
+    <!-- axes labels -->
+    <text x="180" y="285" text-anchor="middle" font-size="10" fill="#5b5e66">2k  4k  8k  16k 24k 32k  (token limit)</text>
+    <text x="35" y="170" text-anchor="middle" font-size="10" fill="#5b5e66" transform="rotate(-90 35 170)">depth %</text>
+
+    <!-- LLaDA panel -->
+    <rect x="380" y="20" width="320" height="280" rx="8" fill="#fff" stroke="#cc4a1b"/>
+    <text x="540" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">LLaDA-8B (dLLM)</text>
+    <text x="540" y="58" text-anchor="middle" font-size="11" fill="#5b5e66">Ttrain = 4k</text>
+    <!-- grid: same 6x6 -->
+    <g>
+      <!-- col 1 (2k): all green -->
+      <g fill="#2e8a3a">
+        <rect x="410" y="80" width="40" height="30"/>
+        <rect x="410" y="112" width="40" height="30"/>
+        <rect x="410" y="144" width="40" height="30"/>
+        <rect x="410" y="176" width="40" height="30"/>
+        <rect x="410" y="208" width="40" height="30"/>
+        <rect x="410" y="240" width="40" height="30"/>
+      </g>
+      <!-- col 2 (4k): green -->
+      <g fill="#2e8a3a">
+        <rect x="452" y="80" width="40" height="30"/>
+        <rect x="452" y="112" width="40" height="30"/>
+        <rect x="452" y="144" width="40" height="30"/>
+        <rect x="452" y="176" width="40" height="30"/>
+        <rect x="452" y="208" width="40" height="30"/>
+        <rect x="452" y="240" width="40" height="30"/>
+      </g>
+      <!-- col 3 (8k): top half red, bottom half green (recent 4k recovered) -->
+      <g fill="#a8353e">
+        <rect x="494" y="80" width="40" height="30"/>
+        <rect x="494" y="112" width="40" height="30"/>
+        <rect x="494" y="144" width="40" height="30"/>
+      </g>
+      <g fill="#2e8a3a">
+        <rect x="494" y="176" width="40" height="30"/>
+        <rect x="494" y="208" width="40" height="30"/>
+        <rect x="494" y="240" width="40" height="30"/>
+      </g>
+      <!-- col 4 (16k): top 2/3 red, bottom 1/3 green -->
+      <g fill="#a8353e">
+        <rect x="536" y="80" width="40" height="30"/>
+        <rect x="536" y="112" width="40" height="30"/>
+        <rect x="536" y="144" width="40" height="30"/>
+        <rect x="536" y="176" width="40" height="30"/>
+      </g>
+      <g fill="#2e8a3a">
+        <rect x="536" y="208" width="40" height="30"/>
+        <rect x="536" y="240" width="40" height="30"/>
+      </g>
+      <!-- col 5 (24k): mostly red, sliver green at bottom -->
+      <g fill="#a8353e">
+        <rect x="578" y="80" width="40" height="30"/>
+        <rect x="578" y="112" width="40" height="30"/>
+        <rect x="578" y="144" width="40" height="30"/>
+        <rect x="578" y="176" width="40" height="30"/>
+        <rect x="578" y="208" width="40" height="30"/>
+      </g>
+      <g fill="#cc8a3e">
+        <rect x="578" y="240" width="40" height="30"/>
+      </g>
+      <!-- col 6 (32k): all red -->
+      <g fill="#a8353e">
+        <rect x="620" y="80" width="40" height="30"/>
+        <rect x="620" y="112" width="40" height="30"/>
+        <rect x="620" y="144" width="40" height="30"/>
+        <rect x="620" y="176" width="40" height="30"/>
+        <rect x="620" y="208" width="40" height="30"/>
+        <rect x="620" y="240" width="40" height="30"/>
+      </g>
+    </g>
+    <text x="540" y="285" text-anchor="middle" font-size="10" fill="#5b5e66">2k  4k  8k  16k 24k 32k</text>
+    <text x="395" y="170" text-anchor="middle" font-size="10" fill="#5b5e66" transform="rotate(-90 395 170)">depth %</text>
+    <!-- annotation: sliding window -->
+    <path d="M 660 270 Q 690 250 678 200" stroke="#cc4a1b" fill="none" stroke-width="1.5"/>
+    <text x="690" y="245" font-size="10" fill="#cc4a1b">最近 4k</text>
+    <text x="690" y="258" font-size="10" fill="#cc4a1b">才能召回</text>
+  </svg>
+  <figcaption>NIAH 热力图示意复刻 (论文 Figure 2)。AR 在 Ttrain 之外整片崩溃 (右半全红)。dLLM 不一样: 在 8k/16k/24k 它仍然能 retrieve, 但<strong>只在最靠近 query 的 4k 窗口里</strong> — 所以低 depth (针埋在末尾) 是绿色, 高 depth (针埋在开头) 是红色。这就是 "local perception" / 滑窗效应。</figcaption>
+</div>
+
+<h3>4.1 解释:为什么是"滑窗"而不是"全军覆没"?</h3>
+
+<p>三个观察叠加:</p>
+<ol>
+  <li><strong>长度外推不爆</strong>(§3): query 在 16k 处仍然能产生合理的 attention logits (没有 PPL 爆炸)。所以它能"看见"远方 token 的 representation, 不是 garbage。</li>
+  <li><strong>但 cos 是偶函数</strong>: cos(θ_n · (t−s)) = cos(θ_n · (s−t))。q·k 内积区分不出"前面 4k"和"后面 4k"。</li>
+  <li><strong>monotonic ordering 只到 ±Ttrain</strong>: 训练时见过的相对位置只到 ±4095。一旦 |t−s| 超过 4095,某些低频维度的 cos 值进入未见过的 phase, q·k 不可靠。</li>
+</ol>
+
+<p>结合起来 → query 只能可靠地从 |t−s| ≤ 4095 范围内 retrieve = "最近的 4k 窗口"。所以:</p>
+
+<ul>
+  <li>context = 8k, 针埋在 0-50% (远端): 距离 query 4-8k, OOD → 失败</li>
+  <li>context = 8k, 针埋在 50-100% (近端): 距离 query 0-4k, 训练见过 → 成功</li>
+</ul>
+
+<p>这就是滑窗的几何解释。</p>
+
+<h3>4.2 反向思考:如果是 AR?</h3>
+
+<p>AR 在 Ttrain 之外完全崩溃,是因为 PPL 本身爆,attention logits 已经是 garbage。所以即便针就在 query 旁边,AR 也答不出来 (它的 representation 已经坏了)。dLLM 的优势在于:representation 没坏, 只是位置编码区分能力下降。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 机制分析:RoPE 的几何到底发生了什么</h2>
+
+<h3>5.1 三档维度</h3>
+<table>
+  <tr><th>维度</th><th>周期 Tₙ</th><th>训练时是否完整</th><th>OOD 风险</th></tr>
+  <tr><td>高频 (n 小)</td><td>Tₙ 很短 ≪ Ttrain</td><td>转过几十甚至几百圈</td><td>无</td></tr>
+  <tr><td>中频</td><td>Tₙ ~ Ttrain</td><td>AR 转半圈, dLLM 转一整圈 (因为 [-T, T])</td><td>AR 部分 OOD, dLLM 安全</td></tr>
+  <tr><td>低频 (n ≥ d_extra)</td><td>Tₙ ≫ Ttrain</td><td>不到一圈</td><td>外推都 OOD</td></tr>
+</table>
+
+<p><strong>关键差异在中频。</strong>AR 看到 [0, T] 这半个周期里的 cos/sin → cos 单调递减、sin 单调递增,LLM 学到的是 "线性序号"。换到 [T, 2T] (外推时), cos 进入 OOD,失败。</p>
+<p>dLLM 看到 [-T, T] 整个周期 → cos 已经走完一个完整波形 (0→T→2T→3T→4T 在弧度坐标上), 模型对"走过任意 phase 的 cos"有耐受度。这就是 PPL 不爆的原因。</p>
+
+<h3>5.2 t-SNE 可视化的佐证</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 230" width="100%" style="max-width:680px">
+    <!-- LLaMA3 t-SNE -->
+    <rect x="20" y="20" width="320" height="200" rx="8" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">LLaMA3 final-layer QK · t-SNE</text>
+    <!-- two distinct clusters -->
+    <g>
+      <ellipse cx="115" cy="135" rx="60" ry="40" fill="#9ec5ff" opacity="0.6"/>
+      <text x="115" y="140" text-anchor="middle" font-size="11" fill="#1f4e8c">≤ 8k 集群</text>
+      <ellipse cx="245" cy="120" rx="55" ry="38" fill="#fbb471" opacity="0.6"/>
+      <text x="245" y="125" text-anchor="middle" font-size="11" fill="#7a3000">&gt; 8k 集群</text>
+      <text x="180" y="195" text-anchor="middle" font-size="11" fill="#a8353e" font-style="italic">明显 distribution shift → OOD</text>
+    </g>
+
+    <!-- LLaDA t-SNE -->
+    <rect x="360" y="20" width="320" height="200" rx="8" fill="#fff" stroke="#cc4a1b"/>
+    <text x="520" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">LLaDA final-layer QK · t-SNE</text>
+    <g>
+      <ellipse cx="520" cy="125" rx="100" ry="55" fill="#fbb471" opacity="0.5"/>
+      <!-- gradient dots -->
+      <circle cx="455" cy="120" r="3" fill="#2e8a3a"/>
+      <circle cx="475" cy="135" r="3" fill="#67a443"/>
+      <circle cx="500" cy="110" r="3" fill="#a4c14a"/>
+      <circle cx="525" cy="130" r="3" fill="#dba94a"/>
+      <circle cx="550" cy="115" r="3" fill="#cc8a3e"/>
+      <circle cx="575" cy="125" r="3" fill="#a8353e"/>
+      <text x="520" y="195" text-anchor="middle" font-size="11" fill="#7a3000" font-style="italic">单一连续流形,位置渐变</text>
+    </g>
+  </svg>
+  <figcaption>论文 Figure 5 的概念示意。LLaMA3 上 ≤8k 和 &gt;8k 的 QK states 形成<strong>两个独立 cluster</strong> (分布漂移); LLaDA 上 token 沿位置形成<strong>单一连续流形</strong> — 即便位置超过 4k, 它仍处于已见过的 manifold 上, 这是 PPL 稳定的几何证据。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · 方法 LongLLaDA = LLaDA + NTK-RoPE</h2>
+
+<p>方法本身简单到让人怀疑能不能投 AAAI:<strong>把 NTK-aware RoPE 直接套上 LLaDA, β0 → λ·β0, 不动权重, 不动训练目标</strong>。</p>
+
+<h3>6.1 NTK 在 RoPE 频谱上做什么</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arrL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+    <!-- before: original RoPE -->
+    <text x="50" y="30" font-size="13" font-weight="600" fill="#2f6feb">原始 RoPE (β₀=500000)</text>
+    <line x1="40" y1="60" x2="660" y2="60" stroke="#888"/>
+    <text x="350" y="78" text-anchor="middle" font-size="11" fill="#5b5e66">维度 n: 0 (高频) ───────────────────── d/2 (低频)</text>
+    <!-- frequency dots, more dense low-n, sparse high-n -->
+    <g fill="#2f6feb">
+      <circle cx="60" cy="60" r="3"/>
+      <circle cx="80" cy="60" r="3"/>
+      <circle cx="105" cy="60" r="3"/>
+      <circle cx="135" cy="60" r="3"/>
+      <circle cx="170" cy="60" r="3"/>
+      <circle cx="215" cy="60" r="3"/>
+      <circle cx="270" cy="60" r="3"/>
+      <circle cx="335" cy="60" r="3"/>
+      <circle cx="410" cy="60" r="3"/>
+      <circle cx="495" cy="60" r="3"/>
+      <circle cx="590" cy="60" r="3"/>
+    </g>
+    <!-- d_extra mark -->
+    <line x1="335" y1="40" x2="335" y2="80" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+    <text x="335" y="35" text-anchor="middle" font-size="11" fill="#cc4a1b">d_extra=64</text>
+    <text x="180" y="100" text-anchor="middle" font-size="10" fill="#5b5e66">训练 4k 内见过完整周期</text>
+    <text x="500" y="100" text-anchor="middle" font-size="10" fill="#5b5e66">训练时未完成一圈, OOD 在外推</text>
+
+    <!-- arrow -->
+    <line x1="350" y1="125" x2="350" y2="155" stroke="#666" stroke-width="2" marker-end="url(#arrL)"/>
+    <text x="365" y="145" font-size="11" fill="#5b5e66">β₀ → λ·β₀ (e.g. λ=14)</text>
+
+    <!-- after: NTK-scaled -->
+    <text x="50" y="180" font-size="13" font-weight="600" fill="#cc4a1b">NTK-scaled RoPE (β=14·500000)</text>
+    <line x1="40" y1="210" x2="660" y2="210" stroke="#888"/>
+    <g fill="#cc4a1b">
+      <!-- low-n: barely shifted -->
+      <circle cx="60" cy="210" r="3"/>
+      <circle cx="81" cy="210" r="3"/>
+      <circle cx="107" cy="210" r="3"/>
+      <circle cx="139" cy="210" r="3"/>
+      <!-- mid-n: noticeably shifted -->
+      <circle cx="180" cy="210" r="3"/>
+      <circle cx="232" cy="210" r="3"/>
+      <circle cx="295" cy="210" r="3"/>
+      <!-- high-n: heavily compressed (interpolated) -->
+      <circle cx="370" cy="210" r="3"/>
+      <circle cx="445" cy="210" r="3"/>
+      <circle cx="525" cy="210" r="3"/>
+      <circle cx="615" cy="210" r="3"/>
+    </g>
+    <!-- highlight: high-n now fits within 16k -->
+    <rect x="320" y="195" width="320" height="30" fill="#fff3cd" stroke="#d2a32a" opacity="0.5"/>
+    <text x="480" y="245" text-anchor="middle" font-size="11" fill="#7a5500">低频维度被显著"插值"→ 16k 内仍在见过的 phase</text>
+    <text x="180" y="245" text-anchor="middle" font-size="11" fill="#5b5e66">高频维度几乎不变 → 局部辨识力保留</text>
+  </svg>
+  <figcaption>NTK 的 "non-uniform interpolation" 直觉。把 β0 放大 λ 倍后,θ_n = β^(−2n/d) 整体变小,但变化幅度<em>随 n 指数放大</em>: 低维 (n→0) 几乎不变,高维 (n→d/2) 大幅变小。这相当于"压缩"那些原本一圈都没转完的低频维度的相位增长率,使它们在 t = λ^(d_extra/d)·Ttrain 长度内仍处于已学相位区。</figcaption>
+</div>
+
+<h3>6.2 怎么选 λ</h3>
+<p>论文直接套 Liu et al. 2023b 的<strong>scaling law</strong>:</p>
+<div class="formula">λ_t = β₀⁻¹ · (t / 2π)^(d/d_extra) = (t / 2π)² / 500000</div>
+<p>对 LLaDA (Ttrain=4k, β0=500000, d_extra=64, d=128):</p>
+<table>
+  <tr><th>目标长度 t</th><th>计算 λ</th><th>NIAH overall (Base)</th></tr>
+  <tr><td>8k</td><td>4</td><td>71.33 (vs 直接外推 54.25)</td></tr>
+  <tr><td>16k</td><td>14</td><td>82.33</td></tr>
+  <tr><td>24k</td><td>31</td><td>82.33 (但 lost-in-the-middle 出现)</td></tr>
+  <tr><td>32k</td><td>55</td><td>75.43 (实际外推天花板)</td></tr>
+</table>
+
+<p>论文核心 claim: <strong>AR 时代的 NTK scaling law 数值上原封不动地适用于 dLLM</strong>。Equation 6 里没有任何 dLLM-specific 的项, λ 完全由 RoPE 几何决定。</p>
+
+<h3>6.3 反向论证:为什么不是 YaRN 或 LongRoPE?</h3>
+<table>
+  <tr><th>方案</th><th>核心机制</th><th>对 dLLM 的问题</th></tr>
+  <tr><td>NTK-aware (本论文用)</td><td>纯几何: 由 d_extra 计算 λ</td><td><span class="ok">即插即用,不需 fine-tune,不需 evaluation</span></td></tr>
+  <tr><td>YaRN</td><td>分维度 selective interpolation + temperature, 用 PPL 调参</td><td><span class="no">PPL 在 dLLM 上对长度不敏感, 反馈失效</span></td></tr>
+  <tr><td>LongRoPE</td><td>用 evolutionary search 找出每个维度的最优 λ_n</td><td><span class="no">需要长 context 的 PPL 验证集 + 大量 search</span></td></tr>
+  <tr><td>Linear PI</td><td>位置 t → t/λ, 需 fine-tune</td><td><span class="no">violates training-free</span></td></tr>
+  <tr><td>ReRoPE / DCA</td><td>限制相对位置上限</td><td><span class="no">本质是滑窗,而 LLaDA 已经天然滑窗了</span></td></tr>
+</table>
+
+<div class="nb">论文选 NTK 不是因为它最强, 而是因为它<strong>最干净</strong> — λ 由 (Ttrain, β0, d_extra) 三个数解析地算出来,正好可以用来<em>检验</em> RoPE 几何在 dLLM 上是否仍成立。这是一个科学论证选项,不是工程优化选项。</div>
+
+<hr>
+
+<h2 id="sec7">7 · Worked example: 一个 8k 处的 query 究竟在做什么</h2>
+
+<p>设场景: LLaDA-8B (Ttrain=4k), 输入 16k token 的 NIAH context, "针" 埋在 token 1500 (深度 ~10%), query 在 token 16000 末尾。看 query token (位置 t=16000) 怎么 attend 到针 (位置 s=1500)。相对距离 |t−s| = 14500。</p>
+
+<h3>7.1 没有 LongLLaDA (直接外推)</h3>
+<ol>
+  <li>Query q_{16000} 计算每个 dimension n 的 RoPE-rotated component q_t·R_t。</li>
+  <li>Key k_{1500} 同样旋转得到 k_s·R_s。</li>
+  <li>内积 q·k 涉及 cos(θ_n · 14500), n=0..63。</li>
+  <li>对 n &lt; d_extra=64: θ_n · 14500 落在<strong>已见过的 [-4095, 4095]·θ_n 区间</strong>(因为周期短,反复绕回来) → cos 值合法。</li>
+  <li>对 n ≥ 64 (低频): θ_n · 14500 这个相位<strong>训练时从没见过</strong>(训练时 |t−s| ≤ 4095, 而 14500 远超 4095, 低频维度甚至没走过半个周期) → cos 值 OOD → q·k 内积里这部分维度<em>是 garbage</em>。</li>
+  <li>结果:attention 给针的 logit 是 (合法部分) + (garbage 部分),低频维度噪声主导, 模型分辨不出"针 in 1500 vs distractor in 1700"。</li>
+  <li>NIAH 上回答失败 → 在那个 (16k, 10%-depth) 网格上是红色。</li>
+</ol>
+
+<h3>7.2 加上 LongLLaDA (λ=14)</h3>
+<ol>
+  <li>把 β0 替换为 14·500000 = 7,000,000。</li>
+  <li>θ_n = 7000000^(−2n/128)。对低频 n=64: θ_64 = 1/√7000000 ≈ 0.000378 (旧是 0.001414, ≈ 3.74× 缩小)。</li>
+  <li>对 n=64, 相位 θ_64·14500 ≈ 5.48 弧度 (vs 直接外推时 20.5 弧度)。</li>
+  <li>训练时 LLaDA 见过的最大相位是 θ_64^old · 4095 ≈ 5.79 弧度。<strong>5.48 &lt; 5.79 → 这个相位在已见过的范围内</strong>, q·k 内积合法。</li>
+  <li>对所有 n ≥ d_extra 都做了这个校正 → 全部维度的相位回到训练分布内。</li>
+  <li>高频维度 n=0,1,...: θ 几乎不变 (因为 λ 的 (−2n/d) 次方在 n 小时趋近 1), 局部辨识力保持。</li>
+  <li>结果: q·k 是 clean 的内积, attention 找到针, NIAH 答出来。</li>
+</ol>
+
+<table>
+  <tr><th>项</th><th>直接外推</th><th>LongLLaDA (λ=14)</th></tr>
+  <tr><td>低频维度相位</td><td>5×~25× 训练最大值</td><td>≈ 训练最大值</td></tr>
+  <tr><td>q·k 内积质量</td><td>低频部分是噪声</td><td>所有维度合法</td></tr>
+  <tr><td>NIAH @16k 80% depth</td><td>失败 (≈0%)</td><td>近 100%</td></tr>
+  <tr><td>NIAH overall (8k 评测)</td><td>54.25</td><td>71.33 (λ=4)</td></tr>
+</table>
+
+<p>这就是为什么 NTK 这一个简单的 β 缩放,能把 NIAH 全表激活。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 NIAH 扩展 (论文 Figure 6, LLaDA-Base)</h3>
+<table>
+  <tr><th>设定</th><th>2k</th><th>4k</th><th>8k</th><th>16k</th><th>24k</th><th>overall</th></tr>
+  <tr><td>无 LongLLaDA</td><td>100</td><td>100</td><td>local only</td><td>local only</td><td>local only</td><td>54.25</td></tr>
+  <tr><td>λ=4 (8k 目标)</td><td>100</td><td>100</td><td>~100</td><td>local only</td><td>local only</td><td>71.33</td></tr>
+  <tr><td>λ=14 (16k 目标)</td><td>100</td><td>100</td><td>~100</td><td>~100</td><td>local only</td><td>82.33</td></tr>
+  <tr><td>λ=31 (24k 目标)</td><td>100</td><td>100</td><td>~100</td><td>~100</td><td>~100*</td><td>82.33</td></tr>
+  <tr><td>λ=55 (32k 目标)</td><td colspan="6">退化, 接近不可用 (overall 75.43, 但 lost-in-the-middle 严重)</td></tr>
+</table>
+<p>* λ=31 时 24k 已经能 retrieve, 但中间深度出现 lost-in-the-middle (类似 AR LLM 也有的现象)。</p>
+<p><strong>读出:</strong>NTK scaling law 不仅形式上适用,数值上 λ ∈ {4, 14, 31} 在 LLaDA 上和 LLaMA 完全等同。这强烈支持论文的核心 claim。</p>
+
+<h3>8.2 LongBench (论文 Table 1)</h3>
+<p>LongBench 8k 平均分: LLaMA3-Instruct 41.9, LLaDA-Instruct+λ=4 <strong>40.6</strong>。基本打平。说明 dLLM 在通用长文档任务上不弱于 AR。</p>
+
+<h3>8.3 RULER (论文 Table 2) — 最有意思的部分</h3>
+<table>
+  <tr><th>任务类型</th><th>dLLM 表现</th><th>AR 表现</th><th>结论</th></tr>
+  <tr><td>NIAH (Single/Multi-Key)</td><td>+λ=14 在 16k 上 ≈ AR</td><td>+λ=13 在 16k 上同水平</td><td>持平</td></tr>
+  <tr><td>Aggregation (Variable Trace, Word Extraction)</td><td><strong>显著弱</strong> (16k 时 48-62 vs 78-90)</td><td>更强</td><td><span class="no">dLLM 弱项</span></td></tr>
+  <tr><td>QA (SQuAD, Hotpot)</td><td><strong>显著强</strong> (16k 时 82-84 vs 56-63)</td><td>较弱</td><td><span class="ok">dLLM 强项</span></td></tr>
+</table>
+<p><strong>读出:</strong>这是论文的"附赠彩蛋"。dLLM 的 bidirectional attention 在 QA-style "回头读"任务上反而占优, 但在 sequential aggregation 这种本质需要 ordering 的任务上吃亏 — 因为 cos 是偶函数,前后向量分不出。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>方法</th><th>训练?</th><th>覆盖长度</th><th>核心差异</th></tr>
+  <tr><td>NTK-aware RoPE (bloc97 2023b)</td><td>β₀ → λ·β₀</td><td>无</td><td>2-6× (AR)</td><td>AR 时代的原型,本论文搬到 dLLM</td></tr>
+  <tr><td>YaRN (Peng 2023)</td><td>分维度 + temperature</td><td>少量</td><td>2-4× (AR)</td><td>需 PPL 反馈, 在 dLLM 上反馈无效</td></tr>
+  <tr><td>LongRoPE (Ding 2024)</td><td>evolutionary λ_n search</td><td>是</td><td>2M (AR)</td><td>需要长 corpus, 离 plug-in 远</td></tr>
+  <tr><td>Liu et al. 2023b 的 scaling law</td><td>给出 λ 的解析公式</td><td>无</td><td>解析</td><td>本论文验证它在 dLLM 上仍成立</td></tr>
+  <tr><td><strong>LongLLaDA (本文)</strong></td><td>NTK-RoPE on LLaDA</td><td>无</td><td>6× (4k→24k)</td><td>第一个 dLLM 长上下文方法 + 现象学</td></tr>
+  <tr><td>UltraLLaDA (后续工作)</td><td>continued long-context pretraining</td><td>是</td><td>32× (4k→128k)</td><td>需要长数据训练, 推到极致</td></tr>
+  <tr><td>VideoRoPE (Wei 2025)</td><td>video diffusion 的时空 RoPE</td><td>是</td><td>视频域</td><td>另一种 modality 上的 RoPE 调整</td></tr>
+  <tr><td>DCA, ReRoPE, LM-Infinite</td><td>限制相对位置 / sliding</td><td>无</td><td>滑窗</td><td>不解决 OOD 而是绕开,与 dLLM 天然滑窗冗余</td></tr>
+</table>
+
+<div class="nb">
+  <strong>位置:</strong>LongLLaDA 是 dLLM 长上下文的<em>低门槛起跑线</em>。要继续突破必须做 fine-tuning (UltraLLaDA 路线),但本论文证明:在不训练之前就能拿到 24k,这块"训练-免费"红利对 dLLM 同样存在。
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>主要在 LLaDA Series 验证, Dream-v0 因为是从 Qwen2.5 (AR) initialization, 行为不那么纯。</li>
+  <li>未做 fine-tuning 实验 — UltraLLaDA 后续工作填了这个坑。</li>
+  <li>对 dLLM 特有的 sampling strategy / step count 影响只做了简单 ablation。</li>
+  <li>aggregation 弱项没给解药 (只是观察到了)。</li>
+</ul>
+
+<h3>我的疑问 / 想验证的</h3>
+<ol>
+  <li><strong>Bidirectional 特性可量化吗?</strong>论文只对比 LLaMA3 vs LLaDA, 但理论上 GPT 系列、Mistral 也会因为 RoPE 几何不同而表现不同。希望看到 d_extra / Ttrain / β0 三维 ablation。</li>
+  <li><strong>NIAH 滑窗的 4k 究竟是怎么决定的?</strong>是 Ttrain 决定还是 cos 偶函数决定?如果在 LLaDA 上把 RoPE 改成 NoPE,滑窗还在吗?</li>
+  <li><strong>Aggregation 弱项</strong>是否真的源自 cos 偶函数?能否用一个非对称 PE 来修?(类似 ALiBi 的 directional bias)</li>
+  <li><strong>λ=55 失败是因为外推天花板还是 attention entropy?</strong>论文引用 Han 2023 / Wang 2024 说 attention entropy 限制 NTK,但这个机制在 dLLM 上是否同样适用还没系统测过。</li>
+  <li><strong>dLLM 的 PPL 不爆和 mask diffusion 训练目标的关系</strong>。如果换成 SEDD 这种 score-based diffusion 而非 mask diffusion, bidirectional 仍在,RoPE 几何相同, 是否同样 PPL 稳定?</li>
+  <li><strong>local perception 在 chat / instruct fine-tuning 后是否会消失?</strong>表格显示 LLaDA-Instruct 还是有滑窗, 但程度有变化。SFT 数据的长度分布可能放大或抑制这个特性。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> dLLM 的长上下文行为本质源于 bidirectional attention 让 RoPE 见过 [-T, T] 完整周期<br>
+  <span class="pill">现象1</span> 直接外推 PPL 不爆 (中频维度已学完整周期)<br>
+  <span class="pill">现象2</span> NIAH 呈 4k 滑窗 (cos 偶函数 + monotonic ordering 边界)<br>
+  <span class="pill">公式</span> λ_t = β₀⁻¹ · (t/2π)^(d/d_extra), 对 LLaDA 即 λ ∝ t²<br>
+  <span class="pill">数据点</span> λ ∈ {4, 14, 31} 直接复用 AR 数值, NIAH overall 54.25 → 82.33<br>
+  <span class="pill">天花板</span> 训练-免费 6× (4k→24k); 再多需要 fine-tune (→UltraLLaDA 128k)<br>
+  <span class="pill">彩蛋</span> dLLM 在 RULER QA 任务上反超 AR, 但 aggregation 显著弱 — bidirectional 的双面性
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF 在 <code>/data/szhang967/papers/paper-notes/models/LongLLaDA_2506.14429.pdf</code>
+</p>
+
+</main>
+</body>
+</html>

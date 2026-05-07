@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · When Hidden States Drift / KVShot (2604.26412)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>When Hidden States Drift: Can KV Caches Rescue Long-Range Speculative Decoding?</h1>
+<div class="meta">
+  Alibaba Qwen Applications · Tianyu Liu et al. · 2026-04-29 · arXiv:2604.26412<br>
+  关键词: speculative decoding · long-range decay · hidden state · KV cache · context preservation · KVShot · TTT · EAGLE-3 · Qwen3-8B
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>EAGLE-3/MTP 这类 hidden-state-reuse drafter 的 long-range decay,本质并不只是 train-infer mismatch,而是 <strong>context information preservation</strong> 问题——hidden state 是按当前 query 做的"有偏压缩",而 KV cache 保留 token-level 全息信息;作者用 KVShot 框架统一比较 hidden-only / KV-only / 门控混合三种 reuse,发现 KV reuse 在长 horizon 衰减更慢,但端到端加速被 autoregressive TTT 的训练管线本身卡住。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">+0.17 MAT</div><div class="l">step-wise hybrid vs EAGLE-3 (70k)</div></div>
+    <div class="stat"><div class="n">+0.03 HF MAT</div><div class="l">端到端 (280k) — 缩到几乎为零</div></div>
+    <div class="stat"><div class="n">α₆ 0.514 vs 0.469</div><div class="l">长程接受率显著提升</div></div>
+  </div>
+  <p><strong>立场:</strong>这是一篇<em>诊断性</em>论文,不是新 SOTA。它把"为什么 hidden-state drafter 长程衰减"这个问题从"训练目标不对"改写成"reuse 哪种表征对",并用受控实验暴露了 autoregressive TTT 管线的三个结构性瓶颈,指向 block-wise training 才是下一代 drafter 的方向。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:long-range decay 的第二种解释</a></li>
+    <li><a href="#sec2">背景速查 (术语 / 符号 / 关键公式)</a></li>
+    <li><a href="#sec3">Hidden state 是有偏压缩 (信息论视角)</a></li>
+    <li><a href="#sec4">KV-Reuse Hypothesis 与三个 prediction</a></li>
+    <li><a href="#sec5">KVShot 框架: 三种 reuse 的受控对比</a></li>
+    <li><a href="#sec6">实验关键结果与读数</a></li>
+    <li><a href="#sec7">三个结构性 bottleneck (为什么端到端拿不到)</a></li>
+    <li><a href="#sec8">与同类工作对比</a></li>
+    <li><a href="#sec9">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec10">Memory Points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:long-range decay 的第二种解释</h2>
+
+<h3>1.1 历史脉络:从 hidden-state reuse 的胜利到长程墙</h3>
+<p>2024 年开始,<strong>hidden-state reuse</strong> 已经是 speculative decoding 的事实标准:EAGLE / EAGLE-2 / EAGLE-3 把 target 模型的 top-layer hidden state 作为 drafter 的输入,Medusa / MTP / DeepSeek-V3 内部的 multi-token prediction head 也走同一条路。这条路赢在两点:① drafter 只要 1 层就足够预测,因为最重的 prefix 编码已经在 target 那里做完了;② 训练目标可以直接用 hidden state 的 L2 + cross-entropy,信号丰富。</p>
+
+<p>但所有这些 drafter 都共享同一个失败模式 —— <strong>long-range decay</strong>:接受率 α<sub>k</sub> 随推测步 k 单调下降。论文 Figure 1 给出的 Qwen3.5-4B 数字非常具体:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 620 220" width="100%" style="max-width:600px">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <line x1="60" y1="190" x2="600" y2="190" stroke="#5b5e66" stroke-width="1"/>
+    <line x1="60" y1="190" x2="60" y2="20" stroke="#5b5e66" stroke-width="1"/>
+    <text x="320" y="210" text-anchor="middle" font-size="12" fill="#5b5e66">speculative step k</text>
+    <text x="20" y="105" text-anchor="middle" font-size="12" fill="#5b5e66" transform="rotate(-90 20 105)">α_k</text>
+    <!-- EAGLE-3 line -->
+    <polyline fill="none" stroke="#2f6feb" stroke-width="2"
+      points="80,38 160,68 240,84 320,90 400,96 480,103 560,109"/>
+    <!-- MTP line -->
+    <polyline fill="none" stroke="#cc4a1b" stroke-width="2" stroke-dasharray="4,3"
+      points="80,90 160,114 240,128 320,137 400,144 480,150 560,156"/>
+    <!-- points + labels EAGLE-3 -->
+    <g font-size="11" fill="#2f6feb">
+      <circle cx="80" cy="38" r="3"/><text x="80" y="30" text-anchor="middle">.858</text>
+      <circle cx="320" cy="90" r="3"/><text x="320" y="82" text-anchor="middle">.740</text>
+      <circle cx="560" cy="109" r="3"/><text x="560" y="100" text-anchor="middle">.698</text>
+    </g>
+    <g font-size="11" fill="#cc4a1b">
+      <circle cx="80" cy="90" r="3"/><text x="80" y="105" text-anchor="middle">.741</text>
+      <circle cx="560" cy="156" r="3"/><text x="560" y="170" text-anchor="middle">.594</text>
+    </g>
+    <!-- x ticks -->
+    <g font-size="11" fill="#5b5e66">
+      <text x="80" y="200" text-anchor="middle">0</text>
+      <text x="160" y="200" text-anchor="middle">1</text>
+      <text x="240" y="200" text-anchor="middle">2</text>
+      <text x="320" y="200" text-anchor="middle">3</text>
+      <text x="400" y="200" text-anchor="middle">4</text>
+      <text x="480" y="200" text-anchor="middle">5</text>
+      <text x="560" y="200" text-anchor="middle">6</text>
+    </g>
+    <!-- legend -->
+    <rect x="430" y="32" width="14" height="3" fill="#2f6feb"/>
+    <text x="450" y="36" font-size="11" fill="#1f2024">EAGLE-3 (Δ=−19.8%)</text>
+    <rect x="430" y="50" width="14" height="3" fill="#cc4a1b"/>
+    <text x="450" y="54" font-size="11" fill="#1f2024">MTP (Δ=−16.0%)</text>
+  </svg>
+  <figcaption>α<sub>k</sub> 随 k 单调下降:EAGLE-3 从 0.858 跌到 0.698,MTP 从 0.741 跌到 0.594。这种衰减直接限制 draft tree 的可用深度,从而封顶端到端 speedup。</figcaption>
+</div>
+
+<p>这个曲线决定 draft tree 能伸多深。如果 α 在 k=6 已经低于 0.6,你再多猜也几乎全被 reject。所以"修长程"是 speculative decoding 的核心瓶颈。</p>
+
+<h3>1.2 别的方案为什么不够</h3>
+
+<p>领域里对 long-range decay 的标准解释只有一个: <strong>train-inference mismatch</strong>。训练时 drafter 看到的是 target 的真实 hidden state,推理时它必须 condition 在自己递归生成的 hidden state 上,这两者会逐步 drift。 HASS / EAGLE-3 引入 <strong>autoregressive TTT</strong>(test-time training)把训练时也喂 drafter 自己的 drift trajectory,确实把 α 抬高一截。</p>
+
+<p>但作者点了一刀:<strong>就算用了 TTT,decay 依然存在</strong>(Figure 1 那两条曲线都是 TTT-trained 的)。这意味着 drift 只解释了一部分,还有一个独立的损失源没人讨论。下表把所有候选解释摆出来:</p>
+
+<table>
+  <thead>
+    <tr><th>candidate explanation</th><th>修了哪一块</th><th>为什么仍不够</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>train-infer mismatch (HASS / EAGLE-3 TTT)</td>
+      <td>E<sub>drift</sub>(k):drafter recursive 生成 vs ground-truth hidden state 的 gap</td>
+      <td>把 drafter 暴露给自己的轨迹只是<em>局部修复</em>,不能把 target 已经 throw away 的信息找回来</td>
+    </tr>
+    <tr>
+      <td>multi-layer fusion (EAGLE-3 把多层 hidden state 拼起来)</td>
+      <td>不同层 attend 不同子空间,部分弥补单层 compression</td>
+      <td>仍是固定维度的聚合,跨层都被 weak-attend 的 token 信息仍丢失</td>
+    </tr>
+    <tr>
+      <td>更大 / 更深 drafter</td>
+      <td>表达力</td>
+      <td>drafter 越大,推测开销越大,得不偿失;且 hidden state 已经把信息压扁,加深 drafter 也复原不了</td>
+    </tr>
+    <tr>
+      <td>加更长 horizon 的 loss</td>
+      <td>训练目标</td>
+      <td>仍然 condition 在 ℎ<sub>𝑡</sub><sup>L</sup> 这个 query-biased summary 上,瓶颈还在 input 侧</td>
+    </tr>
+    <tr>
+      <td><strong>本文:换 reuse 的<em>表征</em>(KV cache)</strong></td>
+      <td>把 E<sub>comp</sub> 这块独立干掉</td>
+      <td>引入新瓶颈 E<sub>q</sub>(query estimation),还要看训练管线能否给到信号</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>1.3 为什么这事不平凡:context preservation 是另一种透镜</h3>
+
+<p>核心 insight 用一句话讲透:<strong>target 的 ℎ<sub>𝑡</sub><sup>L</sup> 是一个 query-biased compression,它对 t+1 优化,所以对 t+k 而言,被它压扁掉的那些 token 信息可能正好是关键。</strong></p>
+
+<p>这是一个 <em>information-theoretic</em> 视角而不是 <em>distributional</em> 视角。前人都在解决"训练分布和推理分布不一样"这个 distributional gap;作者改去问"reuse 哪种 representation 才能<em>保留</em>足够 prefix 信息"。一旦把问题这么 reformulate,KV cache 就成了一个非常自然的 candidate:它是 attention 之前的 raw token-wise 表征,没有被 q<sub>t</sub> 加权聚合过,等价于把"recovery 问题"换成"function approximation 问题"——drafter 不必"挖出"被压扁的信息,而只需要估计未来位置的 q′ 然后<em>重新</em>对 KV 做 attention。</p>
+
+<p>这个角度的非平凡之处在于 <strong>reframe</strong> 而不是新方法本身。GLIDE+CAPE / LongSpec 早就用过 cross-attention 接 target KV,但都把它当作"减少 drafter 计算"或"长 context 内存效率"的工程手段;没人把它当作长程衰减的<em>解释</em>来做受控对照。本文的贡献是先建一个统一对照框架(KVShot)把 hidden-only / KV-only / 混合放在<em>同一</em> TTT pipeline 下比 ,然后把"是不是 representation 问题"这个 hypothesis 实证出来。</p>
+
+<div class="nb"><strong>反直觉点:</strong>如果你只看 MAT,KV-only 4 层 (2.34) 还输给 EAGLE-3 1 层 (2.37);看起来 KV reuse 没赢。但分步看 α<sub>6</sub>:KV-only 4 层 0.495 反超 EAGLE-3 0.469。短程吃亏(无 hidden 的语义先验)、长程占优(无 compression),两者抵消导致 aggregate 看不出来。这正是为什么作者强调要看 retention ratio α<sub>6</sub>/α<sub>0</sub> 而不是只看 MAT。</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+  <thead><tr><th>术语</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>α<sub>k</sub></code></td><td>第 k 步推测的 draft token 接受率(0 步 = drafter 第一个预测)</td></tr>
+    <tr><td><code>MAT</code></td><td>mean accepted tokens, 1 + Σ ∏ α<sub>j</sub>;step-wise 期望接受长度</td></tr>
+    <tr><td><code>HF MAT</code></td><td>HuggingFace speculative decoding pipeline 在 (depth=8, top-k=10, total≤60) tree 下测得的 MAT;近似端到端 speedup 代理</td></tr>
+    <tr><td><code>retention</code></td><td>α<sub>6</sub>/α<sub>0</sub>;长程衰减的归一化指标(越高 = 衰减越慢)</td></tr>
+    <tr><td><code>TTT</code></td><td>autoregressive test-time training;HASS/EAGLE-3 用法,训练时让 drafter condition 在自己的 drift trajectory 上</td></tr>
+    <tr><td><code>E<sub>comp</sub></code></td><td>compression loss:target attention 把弱 attend 的 token 信息丢掉造成的损失,k=1 时已存在</td></tr>
+    <tr><td><code>E<sub>drift</sub>(k)</code></td><td>recursive drift:drafter 用自己生成 hidden state 反复 condition 累积的偏差</td></tr>
+    <tr><td><code>E<sub>q</sub></code></td><td>query estimation error:KV reuse 下 drafter 估计未来 q′ 的难度</td></tr>
+    <tr><td><code>L<sub>s</sub></code></td><td>从 target 抽几层 KV 来 inject 到 drafter;本文默认 3,等同 EAGLE-3 fuse 的层数</td></tr>
+  </tbody>
+</table>
+
+<h3>关键公式回顾</h3>
+
+<div class="formula">
+  ℎ<sub>𝑡</sub><sup>ℓ</sup> = Σ<sub>𝑖=1..𝑡</sub> α<sub>𝑖</sub> · 𝑣<sub>𝑖</sub><sup>ℓ</sup>, &nbsp;&nbsp; α<sub>𝑖</sub> = softmax(𝑞<sub>𝑡</sub><sup>ℓ</sup> · 𝑘<sub>𝑖</sub><sup>ℓ</sup>)
+</div>
+<p>这是 self-attention 的标准式。论文的整个观点都建在这一个公式上:<strong>α<sub>𝑖</sub> 由 𝑞<sub>𝑡</sub> 决定,而 𝑞<sub>𝑡</sub> 是为了预测 𝑡+1 优化的</strong>;只要你信这一句,后面的 KV-Reuse Hypothesis 就是它的逻辑后果。</p>
+
+<div class="formula">
+  E<sub>HS</sub><sup>(𝑘)</sup> ≈ E<sub>comp</sub> + E<sub>drift</sub><sup>(𝑘)</sup> &nbsp;&nbsp;||&nbsp;&nbsp; E<sub>KV</sub> ≈ E<sub>q</sub>
+</div>
+<p>HS 误差有两块:压缩损失(k 无关、靠 target 自己产生)+ drift(k 越大越严重);KV 误差则把第一块清零,只剩下 query 估计这一块。TTT 只能压第二块,所以 hidden-only 即便 TTT 训得再好,也压不掉 E<sub>comp</sub>。</p>
+
+<hr>
+
+<h2 id="sec3">3 · Hidden state 是有偏压缩 (concrete walk-through)</h2>
+
+<p>这一节把 §1.3 的论证落到一个具体例子。设想一段 prefix:</p>
+
+<pre>「The patient was prescribed <span style="background:#ffe1e1">aspirin</span> for chest pain.
+ He visited the clinic on <span style="background:#fff3cb">Monday</span>.
+ Today he reports <span style="background:#d4edda">nausea</span> and tells the doctor: ___」</pre>
+
+<p>target 在最后一个位置 𝑡 计算 𝑞<sub>𝑡</sub> 是为了预测下一个 token(可能是 "I", "the", "my")。它的 attention 大概率会重权 "doctor"、"reports"、"nausea"(都是局部句法 / 语义相关),而 "aspirin"、"Monday" 拿到 α≈0.01。所以 ℎ<sub>𝑡</sub> 这个 4096 维向量里关于 aspirin 的信息已经几乎被擦掉了。</p>
+
+<p>现在 drafter 想猜未来若干步。假设第 k=4 步真实下一个 token 是 "But aspirin upset my stomach"——这一步未来的 q<sub>𝑡+4</sub> 会强烈 attend 到 "aspirin"(α=0.65)。drafter 只拿到压扁后的 ℎ<sub>𝑡</sub>,它必须在 ℝ<sup>4096</sup> 里"挖出"那个被弱权值压下的信息。这是<em>ill-conditioned</em> 的反问题。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 660 280" width="100%" style="max-width:640px">
+    <defs>
+      <marker id="ah1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- left: hidden reuse -->
+    <text x="160" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">(a) Hidden-State Reuse</text>
+    <!-- KV row -->
+    <g font-size="11">
+      <rect x="40" y="40" width="40" height="34" fill="#fff" stroke="#5b5e66"/><text x="60" y="60" text-anchor="middle">k₁v₁</text><text x="60" y="88" text-anchor="middle" fill="#a8353e">α=.01</text>
+      <rect x="90" y="40" width="40" height="34" fill="#fff" stroke="#5b5e66"/><text x="110" y="60" text-anchor="middle">k₂v₂</text><text x="110" y="88" text-anchor="middle" fill="#a8353e">α=.01</text>
+      <rect x="140" y="40" width="40" height="34" fill="#ffe9e0" stroke="#cc4a1b"/><text x="160" y="60" text-anchor="middle">k₃v₃</text><text x="160" y="88" text-anchor="middle" fill="#1f7a4a">α=.20</text>
+      <rect x="190" y="40" width="40" height="34" fill="#ffd0bd" stroke="#cc4a1b"/><text x="210" y="60" text-anchor="middle">k₄v₄</text><text x="210" y="88" text-anchor="middle" fill="#1f7a4a">α=.79</text>
+    </g>
+    <!-- compress arrow -->
+    <line x1="135" y1="100" x2="135" y2="135" stroke="#5b5e66" marker-end="url(#ah1)"/>
+    <text x="155" y="120" font-size="11" fill="#5b5e66">attention 聚合</text>
+    <!-- hidden -->
+    <rect x="100" y="140" width="120" height="32" fill="#fdebd2" stroke="#cc4a1b"/>
+    <text x="160" y="160" text-anchor="middle" font-size="13">ℎ<sub>𝑡</sub>  (lossy)</text>
+    <!-- drafter -->
+    <line x1="160" y1="180" x2="160" y2="210" stroke="#5b5e66" marker-end="url(#ah1)"/>
+    <rect x="60" y="215" width="200" height="40" fill="#e9efff" stroke="#2f6feb"/>
+    <text x="160" y="232" text-anchor="middle" font-size="12">drafter 想用 q′₄ (实际偏 v₂)</text>
+    <text x="160" y="248" text-anchor="middle" font-size="11" fill="#a8353e">v₂ 信息已丢失 → 反 ill-conditioned</text>
+
+    <!-- divider -->
+    <line x1="340" y1="20" x2="340" y2="270" stroke="#e2dfd5" stroke-dasharray="4,3"/>
+
+    <!-- right: KV reuse -->
+    <text x="500" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#1f7a4a">(b) KV-Cache Reuse</text>
+    <g font-size="11">
+      <rect x="380" y="40" width="40" height="34" fill="#fff" stroke="#5b5e66"/><text x="400" y="60" text-anchor="middle">k₁v₁</text>
+      <rect x="430" y="40" width="40" height="34" fill="#fff" stroke="#5b5e66"/><text x="450" y="60" text-anchor="middle">k₂v₂</text>
+      <rect x="480" y="40" width="40" height="34" fill="#fff" stroke="#5b5e66"/><text x="500" y="60" text-anchor="middle">k₃v₃</text>
+      <rect x="530" y="40" width="40" height="34" fill="#fff" stroke="#5b5e66"/><text x="550" y="60" text-anchor="middle">k₄v₄</text>
+    </g>
+    <text x="475" y="95" text-anchor="middle" font-size="11" fill="#1f7a4a">KV 完整传给 drafter</text>
+    <line x1="475" y1="105" x2="475" y2="140" stroke="#5b5e66" marker-end="url(#ah1)"/>
+    <rect x="395" y="145" width="160" height="32" fill="#dff0e0" stroke="#1f7a4a"/>
+    <text x="475" y="166" text-anchor="middle" font-size="12">drafter 用 q′ 重做 attention</text>
+    <line x1="475" y1="183" x2="475" y2="213" stroke="#5b5e66" marker-end="url(#ah1)"/>
+    <rect x="375" y="218" width="200" height="40" fill="#dff0e0" stroke="#1f7a4a"/>
+    <text x="475" y="234" text-anchor="middle" font-size="12">α′₂=.65 → v₂ 完整可达</text>
+    <text x="475" y="251" text-anchor="middle" font-size="11" fill="#1f7a4a">问题退化为 q′ 的 function approx</text>
+  </svg>
+  <figcaption>同一段 prefix 下两种 reuse 的信息流。左:target 用当前 q<sub>𝑡</sub> 把 prefix 压成单一 ℎ;v₂ 在 α=0.01 处被丢掉,drafter 需要预测的未来 step 反而需要 v₂(理想 α=0.65),信息已经不可逆地丢失。右:KV 整套传过去,drafter 自己产生 q′ 重做 attention,所有位置仍可访问;残余误差全部归到"q′ 估得准不准"这个函数逼近问题上。</figcaption>
+</div>
+
+<p><strong>反向论证:为什么"光做多层 fusion (EAGLE-3 那样)"还不够?</strong> 不同层的 q 不一样,某一层 α=0.01 的 token,在另一层可能 α=0.3,所以 multi-layer fuse 能把部分信息找回来。但只要存在<em>跨所有 fused layer 都被弱 attend</em> 的 token,它在 fused hidden state 里仍然是被压扁的。而 KV reuse 是<em>不做聚合</em>地把所有 token 都暴露出来,理论上更彻底。</p>
+
+<details>
+  <summary>但是 KV 难道不就是 hidden state 经过线性投影来的吗?为什么说不等价?</summary>
+  <p>论文 §2.3 专门回应这个反对。三条:</p>
+  <ol>
+    <li><strong>Last-layer gap</strong>: drafter reuse 的是 ℎ<sub>𝑡</sub><sup>L</sup>(top layer),而 layer L 的 KV 已经被 layer L 的 attention 消耗掉了产出 ℎ<sup>L</sup>;不存在一个"layer L+1 的 KV"对应到 ℎ<sup>L</sup>。EAGLE 系工作都说 top layer 信号最强,所以正好是这一层的 KV 信息被锁死。</li>
+    <li><strong>Projection gap</strong>: 即使是中间层,从 ℎ<sup>ℓ</sup> 反推 (k<sup>ℓ+1</sup>, v<sup>ℓ+1</sup>) 需要 𝑊<sub>𝐾</sub>, 𝑊<sub>𝑉</sub> 这两个非平凡投影。GQA 模型里 hidden dim 通常是 per-head KV dim 的 4–8 倍,1 层 drafter 隐式学这个映射很吃力。</li>
+    <li><strong>Capacity competition</strong>: hidden-state reuse 让 drafter 同时干"估 q′"和"恢复 KV 投影"两件事,KV-only reuse 把后一件直接给掉,drafter 全部容量集中在估 q′ 上。Appendix D 的对照实验表明,直接给 target KV 显著好过让 drafter 从 hidden 学投影。</li>
+  </ol>
+</details>
+
+<hr>
+
+<h2 id="sec4">4 · KV-Reuse Hypothesis 与三个 prediction</h2>
+
+<p>把 §3 的论证形式化,作者抛出 KV-Reuse Hypothesis 并拆出三条<em>可证伪</em>的预测,后面 §5–6 的所有实验都是在 verify / falsify 这三条。</p>
+
+<table>
+  <thead><tr><th>Prediction</th><th>主张</th><th>对应实验</th><th>结论</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>P1 长程优势</td>
+      <td>k 越大,KV reuse 越占优(因为 𝑞<sub>𝑡+𝑘</sub> 离 𝑞<sub>𝑡</sub> 越远,hidden compression 越偏)</td>
+      <td>Tab.2 retention ratio</td>
+      <td><span class="ok">支持</span> KV-only 4层 retention 80.6% > EAGLE-3 73.5%;α₆ 反超</td>
+    </tr>
+    <tr>
+      <td>P2 query-est 瓶颈</td>
+      <td>1 层 drafter 估不出 q′,需要更深 drafter</td>
+      <td>Tab.2 depth scaling 1→2→3→4 层</td>
+      <td><span class="ok">支持</span> 1→2 层 ΔMAT=+0.39(最大跳),后续递减</td>
+    </tr>
+    <tr>
+      <td>P3 短程劣势</td>
+      <td>k=0,1 时 hidden 仍占优(语义信息丰富)</td>
+      <td>Tab.2 α₀:0.494 vs 0.638</td>
+      <td><span class="ok">支持</span> KV-only 短程持续输给 EAGLE-3</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>三条加起来直接<em>暗示</em>了正确的设计形态:不是替换,而是<strong>混合</strong>——hidden-state path 锚定短程,KV path 做长程的 correction。这就是 §5 的 hybrid drafter 的来源。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 620 230" width="100%" style="max-width:600px">
+    <line x1="60" y1="190" x2="600" y2="190" stroke="#5b5e66"/>
+    <line x1="60" y1="190" x2="60" y2="20" stroke="#5b5e66"/>
+    <text x="320" y="210" text-anchor="middle" font-size="12" fill="#5b5e66">speculative step k</text>
+    <text x="20" y="105" text-anchor="middle" font-size="12" fill="#5b5e66" transform="rotate(-90 20 105)">α_k</text>
+    <!-- EAGLE-3 -->
+    <polyline fill="none" stroke="#2f6feb" stroke-width="2" points="80,42 160,72 240,90 320,108 400,124 480,140 560,150"/>
+    <!-- KV-only 4-layer (lower at k=0, higher at k=6) -->
+    <polyline fill="none" stroke="#1f7a4a" stroke-width="2" stroke-dasharray="5,3" points="80,55 160,85 240,103 320,118 400,128 480,138 560,143"/>
+    <!-- Hybrid -->
+    <polyline fill="none" stroke="#cc4a1b" stroke-width="2" points="80,32 160,60 240,76 320,92 400,108 480,122 560,132"/>
+    <g font-size="11">
+      <text x="80" y="33" text-anchor="middle" fill="#cc4a1b">.665</text>
+      <text x="80" y="55" text-anchor="middle" fill="#2f6feb">.638</text>
+      <text x="80" y="78" text-anchor="middle" fill="#1f7a4a">.614</text>
+      <text x="560" y="125" text-anchor="middle" fill="#cc4a1b">.514</text>
+      <text x="560" y="158" text-anchor="middle" fill="#2f6feb">.469</text>
+      <text x="560" y="170" text-anchor="middle" fill="#1f7a4a">.495</text>
+    </g>
+    <!-- legend -->
+    <rect x="380" y="32" width="14" height="3" fill="#cc4a1b"/><text x="400" y="36" font-size="11">Hybrid (gated)</text>
+    <rect x="380" y="50" width="14" height="3" fill="#2f6feb"/><text x="400" y="54" font-size="11">EAGLE-3 (hidden)</text>
+    <rect x="380" y="68" width="14" height="3" fill="#1f7a4a" stroke-dasharray="3,2"/><text x="400" y="72" font-size="11">KV-only (4 层)</text>
+    <g font-size="11" fill="#5b5e66">
+      <text x="80" y="200" text-anchor="middle">0</text>
+      <text x="320" y="200" text-anchor="middle">3</text>
+      <text x="560" y="200" text-anchor="middle">6</text>
+    </g>
+  </svg>
+  <figcaption>三种 reuse 的 α 曲线对照(70k ShareGPT 的真实数字)。Hybrid 在所有 k 上压住其它两条,验证了"短程靠 hidden,长程靠 KV correction"的直觉;KV-only 与 EAGLE-3 在 k≈4–5 处交叉:左侧 hidden 强,右侧 KV 强。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · KVShot 框架: 三种 reuse 的受控对比</h2>
+
+<p>KVShot 不是一个模型,是一套<strong>诊断性测试床</strong>。所有变体都在<em>同一</em>条 EAGLE-3 TTT pipeline 下训练,target 都是 Qwen3-8B,这样比较的是 representation 选择而不是别的 confound。</p>
+
+<h3>5.1 KV-Only Reuse:把 hidden 完全踢掉</h3>
+
+<p>架构: drafter input 只剩 input embedding,然后做 cross-attention 到 target 的 KV。多层 KV 怎么注入需要选:</p>
+
+<table>
+  <thead><tr><th>策略</th><th>做法</th><th>α₀ / α₆ / MAT</th></tr></thead>
+  <tbody>
+    <tr><td>① head concat</td><td>把 L<sub>s</sub>=3 层 KV 直接拼,扩 drafter 的 KV head</td><td>.489 / .305 / 1.78</td></tr>
+    <tr><td>② linear projection</td><td>用 𝑊<sub>𝐾</sub><sup>proj</sup> ∈ ℝ<sup>d×L<sub>s</sub>·d</sup> 把多层 KV 投回 1 层维度</td><td>.488 / .354 / 1.83</td></tr>
+    <tr><td>③ proj + RoPE re-apply</td><td>投影后重新打 RoPE(投影破坏了位置编码)</td><td>.494 / .353 / 1.84</td></tr>
+    <tr><td>baseline EAGLE-3 1层</td><td>hidden-only</td><td>.638 / .469 / 2.37</td></tr>
+  </tbody>
+</table>
+
+<p>读法:linear projection 比 head concat 好(单 query attend 一个 unified KV 比 attend 多个 disjoint KV 容易);RoPE 修复几乎没区别(说明位置不是主瓶颈)。但都比 EAGLE-3 差很多:α₀ 永远过不了 0.50。<strong>这就是 P3 的实验证据</strong>——短程 hidden 提供的语义先验是 input embedding 给不出的。</p>
+
+<h4>具体 trace:一个 1 层 drafter 在 KV-only 下做了什么?</h4>
+<p>drafter 收到 input_emb ∈ ℝ<sup>4096</sup> → 1 个 transformer block → 出 q′ ∈ ℝ<sup>128</sup>(per head)。这个 q′ 是 input_emb 的 <em>线性</em>(再加 LayerNorm)投影,本质上没法 capture "我现在要预测的是 t+3 位置的 query"这种复杂依赖。所以"加深"是必需的。</p>
+
+<h3>5.2 Depth scaling:验证 P2</h3>
+
+<table>
+  <thead><tr><th>层数</th><th>α₀</th><th>α₃</th><th>α₆</th><th>retention</th><th>MAT</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>.494</td><td>.381</td><td>.353</td><td>71.5%</td><td>1.84</td></tr>
+    <tr><td>2</td><td>.594</td><td>.497</td><td>.463</td><td>77.9%</td><td>2.23</td></tr>
+    <tr><td>3</td><td>.609</td><td>.518</td><td>.487</td><td>80.0%</td><td>2.31</td></tr>
+    <tr><td>4</td><td>.614</td><td>.527</td><td>.495</td><td>80.6%</td><td>2.34</td></tr>
+    <tr><td>EAGLE-3 (1层)</td><td>.638</td><td>.511</td><td>.469</td><td>73.5%</td><td>2.37</td></tr>
+  </tbody>
+</table>
+
+<p>读法非常微妙:</p>
+<ol>
+  <li>1→2 层 ΔMAT=+0.39 是<em>最大</em>跳跃 → 第二层让 q′ 变成 context-aware 而不是简单的 input embedding 线性变换。这正面回答了 P2。</li>
+  <li>2→3, 3→4 几乎平了(+0.08, +0.03),递减很快。</li>
+  <li>4 层 KV-only(MAT 2.34)<em>仍</em>稍输 1 层 EAGLE-3(2.37),代价还更高。</li>
+  <li>但 retention 80.6% 已经显著超过 EAGLE-3 73.5%,α₆ 0.495 反超 0.469。<strong>这就是 P1 落地</strong>。</li>
+</ol>
+
+<h3>5.3 Hybrid Reuse:门控 delta correction</h3>
+
+<p>架构: 在 EAGLE-3 self-attention 旁挂一条平行的 cross-attention 分支接 target KV。两路输出用 <strong>gated delta rule</strong> 融合:</p>
+
+<div class="formula">
+  𝑛<sub>𝑖</sub> = SelfAttn(𝑥<sub>𝑖</sub>) &nbsp;|&nbsp; 𝑜<sub>𝑖</sub> = CrossAttn(𝑥<sub>𝑖</sub>, M<sub>𝑖</sub>) &nbsp;|&nbsp; Δ<sub>𝑖</sub> = 𝑜<sub>𝑖</sub> − 𝑛<sub>𝑖</sub><br>
+  𝑔<sub>𝑖</sub> = σ(𝑊<sub>𝑔</sub>[𝑛<sub>𝑖</sub>; 𝑜<sub>𝑖</sub>; Δ<sub>𝑖</sub>] + 𝑏<sub>𝑔</sub>) &nbsp;|&nbsp; ℎ<sub>𝑖</sub> = 𝑛<sub>𝑖</sub> + 𝑔<sub>𝑖</sub> ⊙ 𝑊<sub>Δ</sub> Δ<sub>𝑖</sub>
+</div>
+
+<p>核心设计点:</p>
+<ul>
+  <li><strong>不做直接 sum</strong>: 𝑛+𝑜 形式允许 cross-attention 覆盖 self-attention,可能毁掉 EAGLE-3 已有的短程精度。</li>
+  <li><strong>用 delta = 𝑜 − 𝑛</strong>: 把 cross-attention 的输出当作"差异 / 修正",而不是绝对答案。</li>
+  <li><strong>shared gate</strong>: 𝑔 ∈ [0,1]<sup>d</sup> 跨所有 draft step 共享(简单 + 验证 mechanism 是否本身有效)。</li>
+  <li><strong>warm-start</strong>: self-attention / MLP / norm 全部从 EAGLE-3 checkpoint 加载,只有新加的 cross-attention proj、gate、𝑊<sub>Δ</sub> 是随机初始化。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 660 280" width="100%" style="max-width:640px">
+    <defs>
+      <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- input -->
+    <rect x="280" y="15" width="100" height="30" fill="#fff" stroke="#5b5e66"/>
+    <text x="330" y="35" text-anchor="middle" font-size="12">𝑥<sub>𝑖</sub> (input)</text>
+    <line x1="330" y1="48" x2="200" y2="78" stroke="#5b5e66" marker-end="url(#ah2)"/>
+    <line x1="330" y1="48" x2="460" y2="78" stroke="#5b5e66" marker-end="url(#ah2)"/>
+    <!-- self-attn -->
+    <rect x="120" y="80" width="160" height="38" fill="#e9efff" stroke="#2f6feb"/>
+    <text x="200" y="103" text-anchor="middle" font-size="12">SelfAttn → 𝑛<sub>𝑖</sub> (warm-start)</text>
+    <!-- cross-attn -->
+    <rect x="380" y="80" width="200" height="38" fill="#dff0e0" stroke="#1f7a4a"/>
+    <text x="480" y="103" text-anchor="middle" font-size="12">CrossAttn(𝑥<sub>𝑖</sub>, M<sub>𝑖</sub>=target KV) → 𝑜<sub>𝑖</sub></text>
+    <!-- delta -->
+    <line x1="200" y1="120" x2="280" y2="155" stroke="#5b5e66" marker-end="url(#ah2)"/>
+    <line x1="480" y1="120" x2="370" y2="155" stroke="#5b5e66" marker-end="url(#ah2)"/>
+    <rect x="280" y="158" width="120" height="34" fill="#fdebd2" stroke="#cc4a1b"/>
+    <text x="340" y="180" text-anchor="middle" font-size="12">Δ<sub>𝑖</sub> = 𝑜<sub>𝑖</sub> − 𝑛<sub>𝑖</sub></text>
+    <!-- gate -->
+    <rect x="430" y="158" width="160" height="34" fill="#fff8e8" stroke="#d2a32a"/>
+    <text x="510" y="180" text-anchor="middle" font-size="12">𝑔<sub>𝑖</sub> = σ(𝑊<sub>𝑔</sub>[𝑛;𝑜;Δ])</text>
+    <!-- combine -->
+    <line x1="340" y1="195" x2="340" y2="225" stroke="#5b5e66" marker-end="url(#ah2)"/>
+    <line x1="510" y1="195" x2="370" y2="225" stroke="#5b5e66" marker-end="url(#ah2)"/>
+    <line x1="200" y1="120" x2="305" y2="225" stroke="#5b5e66" stroke-dasharray="4,3" marker-end="url(#ah2)"/>
+    <rect x="200" y="228" width="280" height="38" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="340" y="252" text-anchor="middle" font-size="13" fill="#cc4a1b">ℎ<sub>𝑖</sub> = 𝑛<sub>𝑖</sub> + 𝑔<sub>𝑖</sub> ⊙ 𝑊<sub>Δ</sub> Δ<sub>𝑖</sub></text>
+  </svg>
+  <figcaption>Hybrid drafter 的 gated delta rule。Self-attention 路径(蓝)是 EAGLE-3 的精确复刻并 warm-start;cross-attention 路径(绿)读 target KV;两者的差作为 correction Δ,门控 𝑔 决定要不要、用多少。当 𝑔→0 时退化为纯 EAGLE-3,所以这个设计是<em>strictly dominant</em>(理论上不会比 EAGLE-3 差)。</figcaption>
+</div>
+
+<h3>5.4 Hybrid 结果:第一次正向</h3>
+
+<table>
+  <thead><tr><th>method</th><th>init</th><th>α₀</th><th>α₆</th><th>retention</th><th>MAT</th></tr></thead>
+  <tbody>
+    <tr><td>EAGLE-3</td><td>—</td><td>.638</td><td>.469</td><td>73.5%</td><td>2.37</td></tr>
+    <tr><td>Hybrid</td><td>random</td><td>.650</td><td>.490</td><td>75.4%</td><td>2.44</td></tr>
+    <tr><td><strong>Hybrid</strong></td><td><strong>EAGLE-3 ckpt</strong></td><td><strong>.665</strong></td><td><strong>.514</strong></td><td><strong>77.3%</strong></td><td><strong>2.54</strong></td></tr>
+    <tr><td>Cross-only</td><td>random</td><td>.634</td><td>.450</td><td>71.0%</td><td>2.34</td></tr>
+    <tr><td>Cross-only</td><td>EAGLE-3 ckpt</td><td>.637</td><td>.442</td><td>69.4%</td><td>2.35</td></tr>
+  </tbody>
+</table>
+
+<p>三条 takeaway:</p>
+<ul>
+  <li>Hybrid (ckpt init) <strong>+0.17 MAT</strong>,α₆ 抬 +9.6%,retention 77.3% > 73.5%——这是论文里第一次明确正向、且每个 k 都涨。</li>
+  <li><strong>Init 重要</strong>: warm-start 比 random 多 +0.10 MAT,说明 self-attention anchor 给了 cross-attention 一个稳定的 baseline 去学修正。</li>
+  <li><strong>Self-attn anchor 不可去</strong>: cross-only(即便 ckpt init)直接掉到 EAGLE-3 baseline 之下。"KV reuse 替代 hidden reuse"这条路走不通,只能"补充"。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · 实验关键结果与读数</h2>
+
+<h3>端到端的"小坑":+0.17 → +0.03</h3>
+
+<p>Step-wise 看一切都对——直到把训练数据从 70k(ShareGPT)放大到 280k(ShareGPT + UltraChat regenerated)再用 HF tree decoding (8,10,60) 测 MAT:</p>
+
+<table>
+  <thead><tr><th>setting</th><th>HF MAT</th><th>vs EAGLE-3 (ckpt 重训)</th></tr></thead>
+  <tbody>
+    <tr><td>EAGLE-3 existing ckpt(原始)</td><td>4.43</td><td>—</td></tr>
+    <tr><td>EAGLE-3 train from scratch (280k)</td><td>4.76</td><td>—</td></tr>
+    <tr><td>EAGLE-3 train from ckpt (280k)</td><td>5.01</td><td>baseline</td></tr>
+    <tr><td>Hybrid train from ckpt (280k)</td><td><strong>5.04</strong></td><td><strong>+0.03 (+0.6%)</strong></td></tr>
+  </tbody>
+</table>
+
+<p>+0.03 加上 cross-attention 多带来的 5–10% drafting latency,基本 <span class="no">wash</span>。这是这篇论文最诚实的一段:他们把负面结果放在正文,然后专门写了 §7 拆为什么。</p>
+
+<p>为什么从 +0.17 缩到 +0.03? 三条<em>合力</em>:</p>
+<ol>
+  <li><strong>更大数据让 EAGLE-3 自己也强了</strong>:baseline MAT 4.43→5.01,那个 +0.17 里有相当一部分本来就是 hidden-state 也能从更好数据中拿到。</li>
+  <li><strong>Tree verification 把分步差异压扁</strong>: (8,10,60) 已经探索很多候选路径,即使每步 α 略低也可以 fall back 到 sibling 候选。</li>
+  <li><strong>Cross-attn 的 latency 直接吃掉收益</strong>。</li>
+</ol>
+
+<div class="nb"><strong>读这张表的方式:</strong>不要把"+0.03"读成"KV reuse 没用",而要读成"在 autoregressive TTT 这条管线下,KV reuse 的可学信号被严重低估了"。Step-wise 实验已经证明 representation 是有用的;管线才是瓶颈。这个区分是这篇论文的灵魂。</div>
+
+<hr>
+
+<h2 id="sec7">7 · 三个结构性 bottleneck</h2>
+
+<p>§7 是一篇潜在 followup 的 roadmap,作者把 autoregressive TTT 不适合 KV reuse 的原因拆成三个独立 issue。</p>
+
+<h3>7.1 Query estimation 实际比预想更难</h3>
+
+<p>理论上 E<sub>q</sub> 是函数逼近问题,听起来"更简单"。实际:target 的 q<sub>t+k</sub> 是 L 层非线性变换 over full prefix 的产物。1 层 drafter 的 q′ 只是 input embedding 的线性变换,根本没有<em>组合性</em>。Tab.2 已经显示从 1→2 层是大跳,但 4 层也碰不到 1 层 EAGLE-3——hidden-state reuse 实质上"借走"了 target 那 L 层算 q 的工作。这是 KV reuse 短程一直输的根源。</p>
+
+<h3>7.2 Draft-side KV projection 训练信号稀疏</h3>
+
+<p>这是最微妙的一条,值得展开。Hybrid 的 cross-attention 分支里有两个新参数 𝑊<sup>cross</sup><sub>𝐾</sub>, 𝑊<sup>cross</sup><sub>𝑉</sub>。它们的工作是给"draft 自己生成的"那部分 token 算 K/V(prefix 部分的 K/V 直接 copy 自 target,免费)。</p>
+
+<p>问题:autoregressive TTT 一个 batch 一般只有 K=7 个 draft token,而 prefix 长度可能几百上千。所以这两个 projection 矩阵<strong>每步只有 7 个 token 的梯度</strong>,而 𝑊<sub>𝑄</sub> 每个位置都更新。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 620 180" width="100%" style="max-width:600px">
+    <text x="20" y="30" font-size="13" font-weight="600" fill="#1f2024">𝑊<sub>𝑄</sub> (dense gradient)</text>
+    <g>
+      <!-- 100 prefix + 7 draft positions, all give Q gradient -->
+      <g fill="#2f6feb"><!-- many blue squares -->
+        <rect x="20" y="40" width="540" height="14" opacity="0.4"/>
+      </g>
+      <text x="290" y="51" text-anchor="middle" font-size="11" fill="#fff">prefix + draft 全部位置 → 梯度</text>
+    </g>
+    <text x="20" y="90" font-size="13" font-weight="600" fill="#1f2024">𝑊<sup>cross</sup><sub>𝐾</sub>, 𝑊<sup>cross</sup><sub>𝑉</sub> (sparse gradient)</text>
+    <g>
+      <rect x="20" y="100" width="500" height="14" fill="#e2dfd5"/>
+      <text x="270" y="111" text-anchor="middle" font-size="11" fill="#5b5e66">prefix 部分:KV 直接从 target copy,不反传</text>
+      <rect x="525" y="100" width="40" height="14" fill="#cc4a1b"/>
+      <text x="545" y="111" text-anchor="middle" font-size="10" fill="#fff">draft 7</text>
+    </g>
+    <text x="20" y="145" font-size="11" fill="#5b5e66">→ 𝑊<sup>cross</sup><sub>𝐾,𝑉</sub> 仅由 draft 端的 ~7 个 token 更新,且这些 token 的模式高度同质化,导致<strong>训练信号稀疏 + 多样性低</strong>。作者尝试 50× scale gradient:MAT 2.21 vs 2.18,几乎无效——所以问题不是 gradient magnitude,是 diversity。</text>
+  </svg>
+  <figcaption>𝑊<sub>𝑄</sub> 每个位置贡献梯度,𝑊<sub>𝐾,𝑉</sub><sup>cross</sup> 只有 draft 端少数位置贡献。Autoregressive TTT 把 draft 限制在 K≤7,因此 KV proj 永远是欠训练的。</figcaption>
+</div>
+
+<h3>7.3 Gate-induced gradient starvation</h3>
+
+<p>Hybrid (ckpt init) 时 self-attention 是预训练好的,cross-attention 完全随机。早期 cross 输出近乎噪声,SGD 最快的 loss 下降方向就是"把 gate 𝑔 推到 0",让模型退化为 EAGLE-3。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 620 180" width="100%" style="max-width:600px">
+    <line x1="60" y1="150" x2="600" y2="150" stroke="#5b5e66"/>
+    <line x1="60" y1="150" x2="60" y2="20" stroke="#5b5e66"/>
+    <text x="320" y="170" text-anchor="middle" font-size="12" fill="#5b5e66">training step (×10⁴)</text>
+    <text x="20" y="90" text-anchor="middle" font-size="12" fill="#5b5e66" transform="rotate(-90 20 90)">mean ḡ</text>
+    <!-- gate trajectory: starts at 0.5, drops fast to 0.02, slowly recovers to 0.10 -->
+    <polyline fill="none" stroke="#cc4a1b" stroke-width="2"
+      points="65,30 80,80 100,130 130,142 200,140 300,135 400,128 500,118 580,110"/>
+    <g font-size="11" fill="#5b5e66">
+      <text x="65" y="28">ḡ≈0.5</text>
+      <text x="135" y="156">ḡ≈0.02</text>
+      <text x="580" y="105">ḡ≈0.10</text>
+      <text x="60" y="200" text-anchor="start"></text>
+    </g>
+    <line x1="60" y1="40" x2="600" y2="40" stroke="#e2dfd5" stroke-dasharray="3,2"/>
+    <text x="68" y="38" font-size="10" fill="#5b5e66">init</text>
+  </svg>
+  <figcaption>gate ḡ 的训练轨迹:从 0.5 在前几千步暴跌到 0.02,然后用整整 6 万步才慢慢爬回 0.10。一旦 gate 关上,流回 cross-branch 的梯度也被 𝑔 缩放,所以 cross 学不动 → gate 不开 → 自我 reinforcing。</figcaption>
+</div>
+
+<p><strong>有趣的细节</strong>:小 ḡ 不等于 cross 被忽略,因为 ḡ 是 element-wise 平均,某些 dim 的 gate 可能非常大。即便 ḡ≈0.1,Hybrid 仍能拿到 +0.17 MAT,说明这个机制的"上限"远超目前的训练状态。</p>
+
+<h3>7.4 共同根因:autoregressive 本身</h3>
+
+<p>三条 bottleneck 都源于"一次生成一个 token"这个序列结构:</p>
+<ul>
+  <li>串行生成 → drafter 没法堆深(开销线性翻倍)→ q′ 估不准</li>
+  <li>每步 K=7 → KV proj 信号稀疏</li>
+  <li>warm-start + 序列训练 → gate 早期看到的 cross 输出全是噪声</li>
+</ul>
+
+<p>作者直接指向 <strong>block-wise training</strong>(具体引用 DFlash, arXiv:2602.06036,见<a href="07_DFlash_2602.06036.html">07_DFlash</a>):一次并行生成一整块 draft token,既允许 drafter 加深(mask-token parallel 摊薄成本),又给 KV proj 提供 dense diverse 梯度,还能 warm-start 时同时让两路获得有意义信号。这是这篇 paper 留给社区的"下一步该这么做"。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 与同类工作对比</h2>
+
+<table>
+  <thead><tr><th>方法</th><th>reuse 的对象</th><th>架构</th><th>训练目标</th><th>聚焦问题</th><th>本文差异</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>EAGLE-3</strong></td>
+      <td>multi-layer hidden state</td>
+      <td>1-layer drafter, self-attn</td>
+      <td>autoregressive TTT</td>
+      <td>drafting 速度</td>
+      <td>本文把它当 hidden-only 极端的 baseline,共享 TTT 训管线</td>
+    </tr>
+    <tr>
+      <td><strong>MTP / Medusa</strong></td>
+      <td>top-layer hidden state</td>
+      <td>parallel heads</td>
+      <td>teacher-forced CE</td>
+      <td>多 token 预测</td>
+      <td>同样受限于 hidden-state compression(Fig.1)</td>
+    </tr>
+    <tr>
+      <td><strong>GLIDE+CAPE</strong></td>
+      <td>top-layer KV(上一 verification block)</td>
+      <td>shallow drafter w/ cross-attn</td>
+      <td>teacher-forced CE</td>
+      <td>低开销 drafting</td>
+      <td>没有把 KV reuse 与 hidden reuse 在同一 pipeline 受控对比;没用 TTT</td>
+    </tr>
+    <tr>
+      <td><strong>LongSpec</strong></td>
+      <td>target KV + anchor offset RoPE</td>
+      <td>cross-attn drafter</td>
+      <td>flash noisy training</td>
+      <td>长 context 内存</td>
+      <td>动机是 memory bound,不是 long-range decay;固定选 KV reuse</td>
+    </tr>
+    <tr>
+      <td><strong>HASS</strong></td>
+      <td>hidden state(同 EAGLE)</td>
+      <td>drafter + harmonized obj</td>
+      <td>train-decode aligned</td>
+      <td>train-infer mismatch</td>
+      <td>修 E<sub>drift</sub>,未触及 E<sub>comp</sub></td>
+    </tr>
+    <tr>
+      <td><strong>DFlash</strong> (arXiv 2602.06036)</td>
+      <td>hidden state(目前)</td>
+      <td>5 层 block diffusion adapter</td>
+      <td>block-wise (parallel)</td>
+      <td>autoregressive 瓶颈</td>
+      <td>本文的"建议方向":pipeline 改了,KV reuse 才有机会发力(详见 <a href="07_DFlash_2602.06036.html">07_DFlash</a>)</td>
+    </tr>
+    <tr>
+      <td><strong>vanilla rejection</strong></td>
+      <td>—(不 reuse target 表征)</td>
+      <td>独立 small LM</td>
+      <td>standard LM training</td>
+      <td>原始 spec decoding</td>
+      <td>对照基线,无 long-range decay 但接受率低</td>
+    </tr>
+    <tr>
+      <td><strong>本文 KVShot</strong></td>
+      <td>hidden / KV / hybrid</td>
+      <td>统一 1-layer (depth ablation 1–4)</td>
+      <td>同一 EAGLE-3 TTT</td>
+      <td>long-range decay 来源诊断</td>
+      <td>诊断框架,不是新 SOTA</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>关于 EAGLE-3 evolution 整条线和 DFlash 怎么用 block diffusion,可以参看姊妹笔记 <a href="02_EAGLE_evolution_DFlash.html">02_EAGLE_evolution_DFlash</a> 与 <a href="07_DFlash_2602.06036.html">07_DFlash</a>。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>局限</h3>
+<ul>
+  <li><strong>负面结果</strong>:核心 +0.03 HF MAT 实在太小,严格意义上无法支持端到端 speedup claim。论文也承认。</li>
+  <li><strong>Single target model</strong>:全部 Qwen3-8B,没在更大模型(70B+)上验证,而 hidden compression 的严重程度可能与模型规模 / depth 相关。</li>
+  <li><strong>KV layer 选择</strong>:L<sub>s</sub>=3 默认值,Appendix 说"varying has negligible effect",但没系统扫,我会想看 L<sub>s</sub>=L (全部层) 的极限。</li>
+  <li><strong>没真正实现 block-wise 验证</strong>:Section 7.4 把 block training 当"可能解",但没做实验对照,只能 cite DFlash。这个 promise 是欠的。</li>
+  <li><strong>Tree verification 的影响没拆开</strong>:HF (8,10,60) 把分步差异压扁这个 claim 是定性的,没给 ablation,但理论上很合理。</li>
+</ul>
+
+<h3>个人 take</h3>
+<ul>
+  <li>这篇论文最大的价值是 <strong>reframe</strong>:把 long-range decay 从"训练目标问题"重新定义成"reuse 表征问题",是一个干净的 conceptual contribution,即使具体方法没赢。</li>
+  <li>三个 bottleneck 写得非常诚实,任何想接着做 KV-aware drafter 的人都应该先读 §4。<strong>Gate starvation</strong> 是我之前没意识到的、warm-start 加 sigmoid gate 的常见陷阱,值得抽出来单独研究 mitigation(比如 GLU 风格 hard init、gate annealing、cross-branch warmup-then-merge)。</li>
+  <li>"hidden state 是 query-biased compression"这个观点在很多其它场景也适用,比如 RAG retriever 训练、prefix tuning,都可以重新审视。</li>
+  <li>个人猜测真正能拿到端到端的关键是 <strong>block-wise + KV reuse</strong>(DFlash 的 5 层 + hybrid 形态)。这个 paper 实际上为这个 combination 提供了独立的 motivation。</li>
+</ul>
+
+<h3>待验证问题</h3>
+<ol>
+  <li>把 Hybrid 移植到 DFlash 的 block diffusion pipeline,KV gain 会不会从 +0.03 涨到显著?</li>
+  <li>是否存在 KV-only + 大 drafter(8 层)+ block training 这条 path,能彻底超过 EAGLE-3? §5 depth scaling 已经接近,管线一改也许就过线。</li>
+  <li>Gate starvation 的诊断:gate 只是延迟开了,如果训练 3× 更长,Hybrid 端到端 gain 会不会回来?</li>
+  <li>KV proj 稀疏问题:能否在训练时人为<em>注入</em>更多 draft 位置(比如插入 noise tokens 模拟 draft prefix),让 W_K,V<sup>cross</sup> 拿到更多多样性梯度,而不动 inference?</li>
+  <li>更大 target model(Qwen3-72B)上,E<sub>comp</sub> 是更严重还是更轻?直觉上 hidden 越宽信息密度越高,可能 compression loss 反而摊薄,但 layer 越多 q<sub>𝑡+𝑘</sub> 离 q<sub>𝑡</sub> 越远,趋势相反。需要实验。</li>
+  <li>Retention 这个 metric 是不是合适的"长程决策"指标?如果 α₀ 本身已经低,retention 高没意义(论文也承认 "No target info" retention 99.6% 但 MAT 1.31)。需要一个组合指标。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec10">10 · Memory Points</h2>
+
+<div class="kv"><span class="pill">立场</span><strong>Long-range decay ≠ 单纯 train-infer mismatch</strong>。即使 TTT 训过,decay 仍在;还要看 reuse 哪种 representation。</div>
+
+<div class="kv"><span class="pill">关键观察</span>Hidden state 是 <strong>query-biased compression</strong>:由当前 q<sub>𝑡</sub> 决定哪些 v<sub>𝑖</sub> 被 keep,对未来 q<sub>𝑡+𝑘</sub> 必有偏。</div>
+
+<div class="kv"><span class="pill">假设</span>KV cache 保留 token-level prefix info,把<strong>信息恢复问题</strong>退化为<strong>函数逼近问题</strong> (E<sub>HS</sub>=E<sub>comp</sub>+E<sub>drift</sub> → E<sub>KV</sub>≈E<sub>q</sub>)。</div>
+
+<div class="kv"><span class="pill">三条预测</span>P1 长程 KV 占优 / P2 query 估计是瓶颈 (深 drafter 需要) / P3 短程 hidden 占优 (语义先验)。 三条全验证。</div>
+
+<div class="kv"><span class="pill">框架</span>KVShot = 同一 EAGLE-3 TTT pipeline 下做 hidden-only / KV-only / gated hybrid 受控对比。</div>
+
+<div class="kv"><span class="pill">最佳设计</span>Gated delta hybrid (𝑔⊙𝑊<sub>Δ</sub>(𝑜−𝑛)) + EAGLE-3 ckpt warm-start = 短程靠 hidden、长程靠 KV correction。</div>
+
+<div class="kv"><span class="pill">step-wise 数字</span>EAGLE-3 → Hybrid: MAT 2.37 → 2.54 (+0.17), α₆ 0.469 → 0.514 (+9.6%), retention 73.5%→77.3%。</div>
+
+<div class="kv"><span class="pill">端到端坑</span>HF MAT 5.01 → 5.04 (+0.03),加上 5–10% drafting latency,几乎 wash。 +0.17 vs +0.03 的差异由数据放大、tree verify、latency 共同造成。</div>
+
+<div class="kv"><span class="pill">三个 bottleneck</span>① shallow drafter 估不出 q′ ② draft-side W<sub>K,V</sub><sup>cross</sup> 训练信号稀疏 (K≤7) ③ gate 早期被压到 0,陷入 gradient starvation。</div>
+
+<div class="kv"><span class="pill">下一步</span>三条 bottleneck 共因:autoregressive 序列训练。<strong>Block-wise training (DFlash 风格)</strong> 是被推荐的破局方向。</div>
+
+<div class="kv"><span class="pill">读法</span>Retention ratio α<sub>k</sub>/α<sub>0</sub> 比 MAT 更能反映长程衰减;但要和 α<sub>0</sub> 一起看(否则 "No target info" 的 99.6% 也好看,但 MAT 1.31 没用)。</div>
+
+<div class="kv"><span class="pill">概念输出</span>"What information is available" vs "Whether the pipeline can learn to use it" — KVShot 的诊断价值就在拆开这两件事。</div>
+
+</main>
+</body>
+</html>

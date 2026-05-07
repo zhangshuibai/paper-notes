@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Spatial Metaphors for LLM Memory: MemPalace Audit (2604.21284)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Spatial Metaphors for LLM Memory: A Critical Analysis of the MemPalace Architecture</h1>
+<div class="meta">
+  Robin Dey, Panyanon Viradecha · OpenHub Research · 2026-04-23 · arXiv:2604.21284<br>
+  关键词: AI memory · method of loci · vector database · ChromaDB · LongMemEval · audit / critique
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>MemPalace 在 LongMemEval 上拿到的 96.6% Recall@5 几乎全部来自<em>逐字存原文 + ChromaDB 默认 all-MiniLM-L6-v2 embedding</em>,而不是论文宣传的"记忆宫殿"空间隐喻;Wings/Rooms/Drawers 在实现上只是一个 <code>WHERE</code> metadata filter。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">96.6%</div><div class="l">R@5 (= ChromaDB + 原文)</div></div>
+    <div class="stat"><div class="n">~170 tok</div><div class="l">L0+L1 wakeup cost</div></div>
+    <div class="stat"><div class="n">$0</div><div class="l">写入时 LLM 调用费用</div></div>
+  </div>
+  <p><strong>立场:</strong>这是一篇<em>审计 / critique</em> 论文,不是新方法论文。作者把"被高估的部分"和"被低估的部分"都拆开摆桌面上 — "significant architectural insight wrapped in overstated claims"。值得读,因为它示范了 agent-memory 这种"宣传跑得比科学快"的赛道里,一个清醒读者该怎么解构 README。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么这篇 audit 论文重要</a></li>
+    <li><a href="#sec2">背景速查 (LLM memory landscape + 术语)</a></li>
+    <li><a href="#sec3">MemPalace 实际是什么:架构拆解</a></li>
+    <li><a href="#sec4">归因分解:96.6% 到底是哪部分挣的?</a></li>
+    <li><a href="#sec5">Worked example: 一次查询走完 4 层</a></li>
+    <li><a href="#sec6">~170 token wakeup vs 抽取派系统</a></li>
+    <li><a href="#sec7">为什么 verbatim 比 LLM 抽取赢?</a></li>
+    <li><a href="#sec8">与同类工作对比 (Mem0, Letta, Zep, A-MEM …)</a></li>
+    <li><a href="#sec9">应该抄什么 / 应该丢什么</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机</h2>
+
+<h3>1.1 为什么 LLM long-term memory 是一个真问题</h3>
+<p>2026 年初,即便是 Claude Opus / GPT-5 系列也只有 128K–1M 的上下文窗口,且没有"跨 session 自动持久化"的机制。每开一个新对话,模型对你这个用户的全部已知,要么<strong>放进 system prompt</strong>(占 token、贵),要么<strong>外挂检索</strong>(RAG / memory store)。</p>
+<p>外挂检索这件事,在 2024–2026 这两年从"边角料"变成了一个独立赛道:Mem0、Letta(原 MemGPT)、Zep/Graphiti、LangMem、A-MEM、ByteRover、Hindsight、Supermemory ASMR…… GitHub 上挂着 "AI memory" 的项目数以百计。每家在卖的差异化,基本都围绕几个轴:</p>
+<ul>
+  <li><strong>写时做不做 LLM 抽取</strong>(extract-then-store vs store-then-retrieve)</li>
+  <li><strong>是否构建知识图谱</strong>(节点-边-实体消歧 vs 纯向量)</li>
+  <li><strong>是否分层 / 分级</strong>(MemGPT 的 core/archival/recall, Letta 的 self-edit)</li>
+  <li><strong>检索时召回口径</strong>(单跳向量 vs multi-hop graph traversal)</li>
+</ul>
+<p>对一个工程化的 RAG / 长记忆系统来说,真正决定上限的几乎从来不是"我用了多么炫的 organizing metaphor",而是 <em>embedding 质量 + chunking 策略 + filter scope + 重排</em>。可惜在产品宣传里,前者(metaphor)比后者听起来"性感"得多。这就给了 audit 论文存在的空间。</p>
+
+<h3>1.2 audit 论文为什么有价值</h3>
+<p>纯方法论文回答"我做了什么新东西";audit 论文回答"那个被吹爆的东西真有那么强吗?贡献该归给谁?"在一个 GitHub stars 两周破 4.7 万、技术细节被各种二手帖子"翻译"过的赛道里,这是稀缺的。具体到 MemPalace:</p>
+<ul>
+  <li>它的 README 把 96.6% Recall@5 与"method of loci 空间隐喻"绑定营销。</li>
+  <li>它声称 "+34% retrieval improvement from palace structure",听起来像一种新的检索算法。</li>
+  <li>它声称 AAAK dialect 是 "30x compression, zero information loss"。</li>
+  <li>它声称实现了 "contradiction detection"(语义级冲突检测)。</li>
+</ul>
+<p>本论文的工作就是对每一条做<strong>独立复现 + 代码归因</strong>:96.6% 是 ChromaDB + 原文就能跑出的;+34% 是普通的 metadata filter scope narrowing;AAAK 实测 84.2% R@5,是有损的;contradiction detection 实际是 md5-based 完全字面去重。这种"不刻薄但精确"的拆解,比另写一个新系统更能推动场域诚实化。</p>
+
+<h3>1.3 "空间隐喻"声称的到底是什么?</h3>
+<p>method of loci(记忆宫殿)是公元前 5 世纪希腊诗人 Simonides of Ceos 留下的助记法。神经科学(Dresler 2017, Ondřej 2025)有强证据表明:人类用 MoL 训练后,海马体 place cells / grid cells 确实被激活,记忆能力翻倍。MemPalace 的隐含 sales pitch 是:<em>把这个对人脑有效的组织方式搬给 AI,AI 也会受益</em>。</p>
+<p>但作者(对的,这是 audit 论文最锋利的一刀)指出:</p>
+<blockquote>
+LLMs do not have hippocampi, place cells, or spatial navigation circuits. ChromaDB's HNSW operates on cosine similarity in 384-dim embedding space. The spatial metaphor does not and cannot improve the mathematical quality of this retrieval operation. A "Wing" in MemPalace is a string metadata filter on a ChromaDB query, not a spatial location that activates neural navigation circuits.
+</blockquote>
+<p>换成工程语言:把 <code>where wing="programming"</code> 写成"<em>站在编程之翼的走廊上,推开第三扇门……</em>",输出的是同一个 SQL-like predicate,数学上没区别。MoL 对 AI 的作用顶多是"<strong>给人类用户提供一个心智模型(human-computer interaction 改善)</strong>",不是"提升 retrieval 算法精度"。</p>
+<p>这一点把整篇论文的<strong>立场</strong>立住了:不是"骂",是"分清楚哪些功劳归隐喻,哪些归底层 primitive"。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">LongMemEval</span></td><td>Wu et al. 2024,500 个跨多 session 对话的 QA;评测 LLM 长期记忆系统的 retrieval 能力</td></tr>
+  <tr><td><span class="term">LoCoMo</span></td><td>Long Conversation Memory benchmark,长对话记忆评测</td></tr>
+  <tr><td><span class="term">Recall@k</span></td><td>top-k 结果中至少一个命中正确答案 session 的比例(<em>recall any@k</em>,最宽松口径)</td></tr>
+  <tr><td><span class="term">all-MiniLM-L6-v2</span></td><td>Sentence-Transformers 的 384 维通用 embedding,ChromaDB 默认</td></tr>
+  <tr><td><span class="term">HNSW</span></td><td>Hierarchical Navigable Small World — 近似最近邻索引</td></tr>
+  <tr><td><span class="term">Method of Loci (MoL)</span></td><td>"记忆宫殿"古老助记法,把记忆挂在心理空间地标上</td></tr>
+  <tr><td><span class="term">Verbatim storage</span></td><td>原文逐字存,不做 LLM 抽取/总结</td></tr>
+  <tr><td><span class="term">Extraction-based memory</span></td><td>用 LLM 从对话中抽 facts,存抽出来的(Mem0 早期版本)</td></tr>
+  <tr><td><span class="term">MCP</span></td><td>Model Context Protocol — Anthropic 2024 推的 LLM ↔ tool 协议</td></tr>
+  <tr><td><span class="term">AAAK</span></td><td>MemPalace 自创的有损摘要格式(原文承认非 lossless)</td></tr>
+  <tr><td><span class="term">PALACE PROTOCOL</span></td><td>注入到 MCP status output 的系统级指令,引导 LLM 怎么用 palace</td></tr>
+</table>
+
+<h3>2.2 LLM memory 系统大致流派</h3>
+<table>
+  <tr><th>流派</th><th>代表</th><th>关键操作</th></tr>
+  <tr><td>Extraction-based</td><td>Mem0 (early), LangMem</td><td>写时 LLM 抽 facts,存抽出来的</td></tr>
+  <tr><td>Knowledge Graph</td><td>Zep / Graphiti</td><td>Neo4j 实体-关系图,multi-hop traversal,community detection</td></tr>
+  <tr><td>Tiered self-editing</td><td>MemGPT / Letta</td><td>core / archival / recall 三层,LLM 自己决定 promote/demote</td></tr>
+  <tr><td>Verbatim + flat RAG</td><td><strong>MemPalace</strong>, A-MEM</td><td>原文存进 vector DB,检索时排序</td></tr>
+  <tr><td>Multi-agent agentic</td><td>Supermemory ASMR</td><td>多次 LLM 调用做 reranking 与组合</td></tr>
+</table>
+
+<h3>2.3 一个 vector DB 长什么样(防止有人不熟)</h3>
+<p>ChromaDB / Pinecone / Weaviate 这种 vector DB,本质上是:</p>
+<ul>
+  <li>每条 document 算 embedding 向量(本文中 384 维)</li>
+  <li>HNSW 建索引,支持 ≈ k-NN 查询(cosine 或 L2)</li>
+  <li>每条 document 可以挂任意 metadata(key-value),查询时支持 <code>where</code> filter</li>
+  <li>查询返回 top-k,带 distance / metadata / 原文</li>
+</ul>
+<p>"分层组织" + "metadata filter" 在每一个 vector DB 教程的第二章就讲了。这是后面归因分析的基础。</p>
+
+<hr>
+
+<h2 id="sec3">3 · MemPalace 实际是什么:架构拆解</h2>
+
+<h3>3.1 隐喻 vs 实现的对照表(本文最关键的图)</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- left: metaphor -->
+    <rect x="20" y="20" width="280" height="240" rx="10" fill="#fef9e6" stroke="#d2a32a"/>
+    <text x="160" y="44" text-anchor="middle" font-size="14" font-weight="700" fill="#cc4a1b">隐喻 (marketing)</text>
+
+    <rect x="50" y="60" width="220" height="34" rx="6" fill="#fff" stroke="#d2a32a"/>
+    <text x="160" y="82" text-anchor="middle" font-size="12">Palace (整座宫殿)</text>
+
+    <rect x="60" y="100" width="200" height="32" rx="6" fill="#fff" stroke="#d2a32a"/>
+    <text x="160" y="121" text-anchor="middle" font-size="12">Wing (大区,如 "programming")</text>
+
+    <rect x="70" y="138" width="180" height="32" rx="6" fill="#fff" stroke="#d2a32a"/>
+    <text x="160" y="159" text-anchor="middle" font-size="12">Room (主题,如 "rust")</text>
+
+    <rect x="80" y="176" width="160" height="32" rx="6" fill="#fff" stroke="#d2a32a"/>
+    <text x="160" y="197" text-anchor="middle" font-size="12">Hall / Closet (走廊/壁橱)</text>
+
+    <rect x="90" y="214" width="140" height="32" rx="6" fill="#fff" stroke="#d2a32a"/>
+    <text x="160" y="235" text-anchor="middle" font-size="12">Drawer (一条记忆)</text>
+
+    <!-- arrow between -->
+    <line x1="305" y1="140" x2="375" y2="140" stroke="#cc4a1b" stroke-width="2" marker-end="url(#arrM)"/>
+    <text x="340" y="130" text-anchor="middle" font-size="11" fill="#cc4a1b">实际是</text>
+
+    <!-- right: implementation -->
+    <rect x="380" y="20" width="320" height="240" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="540" y="44" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6feb">实现 (code)</text>
+
+    <rect x="400" y="60" width="280" height="34" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="540" y="82" text-anchor="middle" font-size="12" font-family="SF Mono,Menlo,monospace">collection: mempalace_drawers</text>
+
+    <rect x="400" y="100" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="540" y="121" text-anchor="middle" font-size="11.5" font-family="SF Mono,Menlo,monospace">where={"wing": "programming"}</text>
+
+    <rect x="400" y="138" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="540" y="159" text-anchor="middle" font-size="11.5" font-family="SF Mono,Menlo,monospace">where={"room": "rust"}</text>
+
+    <rect x="400" y="176" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="540" y="197" text-anchor="middle" font-size="11.5" font-family="SF Mono,Menlo,monospace">where={"hall": "..."}  (optional)</text>
+
+    <rect x="400" y="214" width="280" height="32" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="540" y="235" text-anchor="middle" font-size="11.5" font-family="SF Mono,Menlo,monospace">ChromaDB document (1 row)</text>
+
+    <defs>
+      <marker id="arrM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>左侧是 README 上的"宫殿"层级,右侧是 ChromaDB 里它实际长什么样: <strong>所有 drawer 全部在<em>同一个</em> collection 里,层级仅靠 metadata 字段表达</strong>。论文原话:"the palace hierarchy is entirely flat in storage." 也就是说 wing/room 不是空间分区,是 SQL <code>WHERE</code> 子句里的字符串 predicate。</figcaption>
+</div>
+
+<h3>3.2 整体子系统</h3>
+<p>v3.1.0 共 32 个 .py、约 11,139 行代码,功能模块按论文 Table 1:</p>
+<table>
+  <tr><th>层</th><th>组件</th><th>作用</th></tr>
+  <tr><td>Ingestion</td><td>miner.py / convo_miner.py</td><td>file → drawer (chunk 800 char/overlap 100,LangChain 默认是 1000/200)</td></tr>
+  <tr><td>Storage</td><td>palace.py / backends/chroma.py</td><td>ChromaDB collection 管理</td></tr>
+  <tr><td>Organization</td><td>general_extractor / room_detector</td><td>regex 自动分类到 wing/room</td></tr>
+  <tr><td>Search</td><td>searcher.py</td><td>72 行的 ChromaDB query + optional where filter</td></tr>
+  <tr><td>KG</td><td>knowledge_graph.py (401 LOC)</td><td>SQLite 两表 (entities, triples),只支持 single-hop</td></tr>
+  <tr><td>Compression</td><td>dialect.py (1075 LOC)</td><td>AAAK 有损摘要(原文承认 NOT lossless)</td></tr>
+  <tr><td>Memory Stack</td><td>layers.py (493 LOC)</td><td>L0/L1/L2/L3 渐进加载</td></tr>
+  <tr><td>Interface</td><td>mcp_server.py (784+ LOC)</td><td>29 个 MCP tool</td></tr>
+</table>
+
+<h3>3.3 4 层 memory stack — 这才是真正的工程亮点</h3>
+<table>
+  <tr><th>Layer</th><th>内容</th><th>大小</th><th>何时加载</th></tr>
+  <tr><td>L0 Identity</td><td>用户写的 identity 文本</td><td>~100 tok</td><td>始终</td></tr>
+  <tr><td>L1 Essential</td><td>从 top drawers 自动生成的概要</td><td>~500–800 tok(but doc 也写 ~70 tok 部分)</td><td>始终</td></tr>
+  <tr><td>L2 On-Demand</td><td>主题/wing 相关 context</td><td>~200–500/topic</td><td>检测到话题时</td></tr>
+  <tr><td>L3 Deep Search</td><td>完整 semantic search 结果</td><td>无上限</td><td>每次查询</td></tr>
+</table>
+<p>L0+L1 合起来 wakeup ≈ <strong>170 tokens</strong>。这是一个具体的、实测的工程指标,后面 §6 会专门和抽取派对比。</p>
+
+<h3>3.4 ingestion 的 drawer ID 设计</h3>
+<div class="formula">drawer_{wing}_{room}_{md5(content)[:12]}</div>
+<p>这意味着完全相同的 content 会被映射到同一个 ID → 天然字面去重。注意论文反复指出:这是 <strong>md5 字面 dedup,不是 contradiction detection</strong>。声称"识别出 'Max 喜欢下棋' 与 'Max 讨厌下棋'矛盾"的能力实际不存在。</p>
+
+<h3>3.5 search() 的全部</h3>
+<pre>def search_memories(query, palace_path, wing=None, room=None,
+                    n_results=5, max_distance=0.0):
+    col = get_collection(palace_path, create=False)
+    where = build_where_filter(wing, room)   # ← 这就是"宫殿结构"
+    results = col.query(
+        query_texts=[query],
+        n_results=n_results,
+        include=["documents","metadatas","distances"],
+        **({'where': where} if where else {})
+    )
+    return results</pre>
+<p>72 行,完。所谓 "+34% retrieval improvement from palace structure" 就是<strong>知道 wing 之后把搜索域缩小到 wing 内</strong>带来的 metadata filter benefit—— Pinecone / Weaviate 文档第二章就有的功能。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 归因分解:96.6% 到底是哪部分挣的?</h2>
+
+<p>这是论文最有 surgery 风味的部分。把"端到端 96.6%"这个数字拆给各个 design choice。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 320" width="100%" style="max-width:680px">
+    <!-- waterfall-style decomposition -->
+    <text x="350" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#3a3b40">96.6% Recall@5 的归因 waterfall</text>
+
+    <!-- baseline 0% -->
+    <line x1="60" y1="280" x2="640" y2="280" stroke="#888"/>
+    <line x1="60" y1="60" x2="60" y2="280" stroke="#888"/>
+    <text x="55" y="285" text-anchor="end" font-size="10" fill="#5b5e66">0%</text>
+    <text x="55" y="200" text-anchor="end" font-size="10" fill="#5b5e66">50%</text>
+    <text x="55" y="120" text-anchor="end" font-size="10" fill="#5b5e66">90%</text>
+
+    <!-- bar 1: bare ChromaDB + verbatim -->
+    <rect x="80" y="73" width="100" height="207" fill="#1f6feb"/>
+    <text x="130" y="68" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">~96.6%</text>
+    <text x="130" y="298" text-anchor="middle" font-size="10.5" fill="#3a3b40">bare ChromaDB</text>
+    <text x="130" y="312" text-anchor="middle" font-size="10.5" fill="#3a3b40">+ verbatim</text>
+
+    <!-- delta arrow up -->
+    <text x="200" y="140" font-size="11" fill="#5b5e66">+ palace</text>
+    <text x="200" y="153" font-size="11" fill="#5b5e66">  metadata</text>
+    <text x="200" y="166" font-size="11" fill="#5b5e66">  filter</text>
+    <text x="200" y="179" font-size="11" fill="#5b5e66">  ≈ 0%</text>
+    <text x="200" y="192" font-size="11" fill="#cc4a1b">  (= "+34%"</text>
+    <text x="200" y="205" font-size="11" fill="#cc4a1b">    被解读)</text>
+
+    <!-- bar 2: + palace -->
+    <rect x="280" y="73" width="100" height="207" fill="#1f6feb"/>
+    <rect x="280" y="73" width="100" height="3" fill="#cc4a1b"/>
+    <text x="330" y="68" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">~96.6%</text>
+    <text x="330" y="298" text-anchor="middle" font-size="10.5" fill="#3a3b40">+ palace</text>
+    <text x="330" y="312" text-anchor="middle" font-size="10.5" fill="#3a3b40">filtering</text>
+
+    <!-- bar 3: AAAK -->
+    <rect x="430" y="200" width="100" height="80" fill="#a8353e"/>
+    <text x="480" y="195" text-anchor="middle" font-size="11" font-weight="600" fill="#a8353e">84.2% ↓</text>
+    <text x="480" y="298" text-anchor="middle" font-size="10.5" fill="#3a3b40">AAAK</text>
+    <text x="480" y="312" text-anchor="middle" font-size="10.5" fill="#3a3b40">(lossy!)</text>
+
+    <!-- bar 4: hybrid v4 -->
+    <rect x="540" y="60" width="100" height="220" fill="#1f7a4a"/>
+    <text x="590" y="55" text-anchor="middle" font-size="11" font-weight="600" fill="#1f7a4a">98.4%</text>
+    <text x="590" y="298" text-anchor="middle" font-size="10.5" fill="#3a3b40">hybrid v4</text>
+    <text x="590" y="312" text-anchor="middle" font-size="10.5" fill="#3a3b40">(+ LLM rerank)</text>
+  </svg>
+  <figcaption><strong>读图:</strong>第 1 根柱子已经把 96.6% 拿下了 — 仅用 ChromaDB 默认 + 原文 chunk,不需要任何 palace 结构。第 2 根柱子加上 palace metadata filtering,数字几乎没变(LongMemEval 这个评测里 wing/room 信息没特别帮上忙 — 但作者承认在<em>知道 wing</em> 的实际产品场景中可以缩搜索域、提速)。第 3 根柱子是用 AAAK 摘要替代原文 — 立刻掉到 84.2%,说明原文 vs 摘要才是 12.4 个点的真正分水岭。第 4 根柱子要求 LLM 多次 rerank,变成 hybrid v4,98.4%。</figcaption>
+</div>
+
+<h3>4.1 论文给出的"诚实表"(Table 5 重排)</h3>
+<table>
+  <tr><th>设置</th><th>R@5</th><th>是否需要 LLM</th><th>归因</th></tr>
+  <tr><td>bare ChromaDB + verbatim text</td><td>96.6%</td><td>否</td><td><strong>这就是头条数字</strong></td></tr>
+  <tr><td>+ palace metadata filter (LongMemEval 设置下)</td><td>≈ 96.6%</td><td>否</td><td>论文实测无显著贡献</td></tr>
+  <tr><td>AAAK 有损摘要替代 verbatim</td><td>84.2%</td><td>否</td><td>掉 12.4 个点 = "30x 无损压缩"被打脸</td></tr>
+  <tr><td>Hybrid v4 (LLM rerank held-out)</td><td>98.4%</td><td>是</td><td>多次 LLM 调用</td></tr>
+  <tr><td>原 100% LongMemEval 头条</td><td>—</td><td>—</td><td>需多轮 LLM rerank,曾被作为 single-shot 宣传</td></tr>
+  <tr><td>原 100% LoCoMo 头条</td><td>—</td><td>—</td><td>用 top_k=50 实际等于检索<em>整个对话</em></td></tr>
+</table>
+
+<h3>4.2 一句话归因总结</h3>
+<div class="nb">
+  <strong>96.6% Recall@5 ≈ verbatim chunking × all-MiniLM-L6-v2 × LongMemEval 题目特性</strong>。Wings/Rooms/Drawers 的"空间隐喻"在数字上贡献 ≈ 0;它的真正功劳在<em>UX</em> 与<em>用户输入对应</em>(让用户可以在 query 时主动 narrow scope)。
+</div>
+
+<h3>4.3 dial481 issue #29:六条被承认的 finding</h3>
+<ol>
+  <li>96.6% R@5 = ChromaDB 默认 + verbatim,不需 palace</li>
+  <li>"100% LongMemEval" 实为多次 LLM rerank 后的迭代结果,非 single-run</li>
+  <li>"100% LoCoMo" 用 top_k=50 ≈ 取整段对话</li>
+  <li>"AAAK 30x 压缩 zero info loss" 是有损,84.2% vs 96.6%</li>
+  <li>"contradiction detection" 是 md5 字面 dedup</li>
+  <li>"+34% boost" 是普通 metadata filter</li>
+</ol>
+<p>这 6 条,maintainer 都<strong>认了并修文档</strong>。论文专门夸了这一点("a positive example of responsible benchmarking" + intellectual honesty)。所以这是建设性 audit,不是揭批。</p>
+
+<hr>
+
+<h2 id="sec5">5 · Worked example:一次查询走完 4 层</h2>
+
+<p>假设一个 research engineer 用户。Wing 设了 <code>programming</code> 和 <code>research</code>;Room 在 <code>programming</code> 下有 <code>rust</code>、<code>python</code>、<code>cuda</code> 等。某天他问:</p>
+<blockquote><em>"上次我说要把 KV cache 拆成 prefix-shared 的那个 PR,有结论了吗?"</em></blockquote>
+<p>这条 query 走 MemPalace 4 层的过程如下:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 380" width="100%" style="max-width:700px">
+    <!-- query box -->
+    <rect x="20" y="15" width="680" height="40" rx="8" fill="#fef9e6" stroke="#d2a32a"/>
+    <text x="360" y="40" text-anchor="middle" font-size="12.5" fill="#3a3b40">Query: "上次我说要把 KV cache 拆成 prefix-shared 的那个 PR,有结论了吗?"</text>
+
+    <!-- L0 -->
+    <rect x="20" y="75" width="680" height="50" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="50" y="98" font-size="12" font-weight="600" fill="#2f6feb">L0</text>
+    <text x="50" y="115" font-size="10" fill="#5b5e66">~100 tok</text>
+    <text x="120" y="98" font-size="12" fill="#3a3b40">Identity (始终在): "用户是 ML 系统工程师,熟悉 vLLM / EAGLE / KV cache,正在做 spec-decoding 项目"</text>
+    <text x="120" y="115" font-size="11" fill="#cc4a1b">→ 已经在 prompt 里,query 不必再加</text>
+
+    <!-- L1 -->
+    <rect x="20" y="135" width="680" height="60" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="50" y="158" font-size="12" font-weight="600" fill="#2f6feb">L1</text>
+    <text x="50" y="175" font-size="10" fill="#5b5e66">~500 tok</text>
+    <text x="120" y="156" font-size="12" fill="#3a3b40">Essential (始终在): top drawers 的概要</text>
+    <text x="120" y="172" font-size="11" fill="#3a3b40">"近期话题: speculative decoding, vLLM paged KV, RL rollout 加速…"</text>
+    <text x="120" y="188" font-size="11" fill="#cc4a1b">→ 让 LLM 知道"KV cache" 大概率落在 wing=programming 下,可主动调用 L2</text>
+
+    <!-- L2 -->
+    <rect x="20" y="205" width="680" height="80" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="50" y="228" font-size="12" font-weight="600" fill="#cc4a1b">L2</text>
+    <text x="50" y="245" font-size="10" fill="#5b5e66">~300 tok</text>
+    <text x="120" y="226" font-size="12" fill="#3a3b40">On-Demand: 检测到 "KV cache" 关键词 → load wing=programming, room=cuda 的 context</text>
+    <text x="120" y="244" font-size="11" fill="#3a3b40">返回 5–10 条相关 drawer headlines: "vLLM PagedAttention 文档摘要 / KV cache 拆分思路 / ..."</text>
+    <text x="120" y="262" font-size="11" fill="#3a3b40" font-family="SF Mono,Menlo,monospace">这一步是 ChromaDB query(query_text, where={wing: "programming"}, n_results=10)</text>
+    <text x="120" y="278" font-size="11" fill="#cc4a1b">→ 从 wing 全部 N 条 drawer 缩到 N_wing 条 (例如 N=20k → N_wing=2k)</text>
+
+    <!-- L3 -->
+    <rect x="20" y="295" width="680" height="80" rx="8" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="50" y="318" font-size="12" font-weight="600" fill="#a8353e">L3</text>
+    <text x="50" y="335" font-size="10" fill="#5b5e66">无上限</text>
+    <text x="120" y="316" font-size="12" fill="#3a3b40">Deep Search: 把<em>原 query</em> embed,在 L2 缩小后的 candidates 上做 cosine top-5</text>
+    <text x="120" y="334" font-size="11" fill="#3a3b40">返回 5 条 drawer 全文,其中第 2 条是去年那条 PR 讨论原文(因为<strong>原文存的</strong>,query 中"prefix-shared"原词在这条里出现过 → cosine 高)</text>
+    <text x="120" y="352" font-size="11" fill="#cc4a1b">→ 这一步靠的: ① 原文里有 "prefix-shared" 字面 ② all-MiniLM-L6-v2 384d cos sim</text>
+    <text x="120" y="368" font-size="11" fill="#cc4a1b">→ 空间隐喻在这一步贡献 = 0(它在 L2 帮缩了 scope,但那是 metadata filter)</text>
+  </svg>
+  <figcaption>真实查询的 4 层经历。L0/L1 几乎是 system prompt 一样的"常驻状态",L2 利用<em>用户已声明的 wing</em> 来 scope down,L3 才是真正的 ANN top-k。空间隐喻的具体作用: 在 L2 提供"这个 query 该 narrow 到哪个 wing/room"的<em>启发式</em>(可以用 keyword,也可以用 LLM 看 query 决定);它<em>没有</em>改变 L3 的 ranking 算法。</figcaption>
+</div>
+
+<h3>5.1 反向思考:把 wing/room 全删掉会怎样?</h3>
+<p>把 4 层 stack 全部退化为"一个 ChromaDB collection + verbatim chunk + 默认 embedding",直接 <code>col.query(query_texts=[q], n_results=5)</code>。在 LongMemEval 上仍然得 96.6%(论文 Appendix B 给的复现配方)。这说明:</p>
+<ul>
+  <li>对 LongMemEval 这种<em>每个问题已知答案 session</em> 的题目,ANN 一把就能命中,不需要 narrow scope。</li>
+  <li>palace 结构的真正价值在<strong>更大规模(>1M drawers)</strong>+ <strong>多 wing 用户场景</strong>下:把搜索 collection 从 N 缩到 N_wing,延迟更低、噪声更少。</li>
+  <li>但这个价值不是 96.6% 这个数字所证明的。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · ~170 token wakeup vs 抽取派的代价</h2>
+
+<p>"wakeup cost"指的是:每次 session 开始,要往 LLM 的 prompt 里灌多少 token 才能让它"上下文上线"。这是一个非常工程化、非常实在的指标——直接决定<strong>每次对话的固定 token 开销</strong>。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 270" width="100%" style="max-width:700px">
+    <text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#3a3b40">Wakeup token 横向对比 (示意,不同系统配置不同)</text>
+
+    <!-- axis -->
+    <line x1="220" y1="240" x2="690" y2="240" stroke="#888"/>
+    <line x1="220" y1="50" x2="220" y2="240" stroke="#888"/>
+
+    <!-- ticks -->
+    <text x="220" y="258" text-anchor="middle" font-size="10" fill="#5b5e66">0</text>
+    <text x="335" y="258" text-anchor="middle" font-size="10" fill="#5b5e66">500</text>
+    <text x="450" y="258" text-anchor="middle" font-size="10" fill="#5b5e66">1k</text>
+    <text x="565" y="258" text-anchor="middle" font-size="10" fill="#5b5e66">2k</text>
+    <text x="680" y="258" text-anchor="middle" font-size="10" fill="#5b5e66">3k+</text>
+
+    <!-- bars -->
+    <!-- MemPalace L0+L1 = 170 -->
+    <rect x="220" y="60" width="40" height="22" fill="#1f7a4a"/>
+    <text x="265" y="76" font-size="11" fill="#3a3b40">MemPalace L0+L1 ≈ <tspan font-weight="700">170 tok</tspan></text>
+
+    <!-- MemPalace L0+L1 high estimate = 900 -->
+    <rect x="220" y="92" width="160" height="22" fill="#5996ff"/>
+    <text x="385" y="108" font-size="11" fill="#3a3b40">MemPalace L0+L1 高位 ≈ 900 tok</text>
+
+    <!-- Mem0 (extract): typical context inject -->
+    <rect x="220" y="124" width="280" height="22" fill="#cc4a1b"/>
+    <text x="505" y="140" font-size="11" fill="#3a3b40">Mem0 (抽取派): inject N facts ≈ 1.5k tok</text>
+
+    <!-- Letta core memory typical -->
+    <rect x="220" y="156" width="370" height="22" fill="#cc4a1b"/>
+    <text x="595" y="172" font-size="11" fill="#3a3b40">Letta core mem: ~2k tok 常驻</text>
+
+    <!-- Zep KG textualized -->
+    <rect x="220" y="188" width="450" height="22" fill="#a8353e"/>
+    <text x="675" y="204" font-size="11" fill="#3a3b40" text-anchor="end">Zep KG textualized: 2.5k+ tok</text>
+
+    <!-- annotation -->
+    <text x="220" y="40" font-size="11" fill="#5b5e66">越短越省 prompt 预算 →</text>
+  </svg>
+  <figcaption>不同 memory 系统在 session 开始时,需要往 LLM context 里塞的"常驻"信息量。MemPalace 把详细信息<strong>延迟</strong>到 L2/L3,不主动 inject;抽取派往往要把"关于该用户的 N 个 fact"全部 inject 才能让 LLM 上下文。这是 4 层 stack 设计真正的<em>工程贡献</em>—— deferred loading,token 预算友好。</figcaption>
+</div>
+
+<h3>6.1 为什么这个数字重要</h3>
+<p>每次对话开头额外的 1.5k–2.5k token,不只是钱(GPT-5 输入 token 也要钱),更是:</p>
+<ul>
+  <li><strong>稀释 attention</strong> — context 越满,模型对"用户当前真正问的事"权重越低</li>
+  <li><strong>挤压输出 budget</strong> — 长 reasoning trace 模型,wakeup 占完了就少了 reasoning 空间</li>
+  <li><strong>固定开销</strong> — 不论用户当前问的是不是用得上这些 fact,都要先付费</li>
+</ul>
+<p>MemPalace 把这件事拆开了: L0+L1 始终在(<em>知道有这个能力可用</em>),L2 按主题<em>触发</em>,L3 只在<em>用户问</em>的时候才掏。这是一个被低估的设计 — 论文称之为"genuinely novel contribution #3"。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 为什么 verbatim 能赢 LLM 抽取?</h2>
+
+<p>这是论文的另一个核心论点。Mem0 早期版本(LLM 抽取派)在 LongMemEval 上 ~49%,MemPalace verbatim 96.6%——为什么差这么多?2026 年 4 月 Mem0 出了新的"token-efficient memory algorithm"才把分数拉到 93.4%。但理论上的解释仍然成立:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <!-- write time -->
+    <rect x="20" y="20" width="320" height="280" rx="10" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="180" y="44" text-anchor="middle" font-size="13" font-weight="700" fill="#cc4a1b">写时(extraction-based)</text>
+
+    <rect x="40" y="60" width="280" height="44" rx="6" fill="#fff" stroke="#888"/>
+    <text x="180" y="86" text-anchor="middle" font-size="11">原对话: "...所以那个 prefix-shared 的 PR 我合了,</text>
+    <text x="180" y="100" text-anchor="middle" font-size="11">现在 KV cache 占用降了 22%..."</text>
+
+    <line x1="180" y1="106" x2="180" y2="125" stroke="#cc4a1b" marker-end="url(#arrV)"/>
+    <text x="200" y="120" font-size="10" fill="#cc4a1b">LLM extract</text>
+
+    <rect x="40" y="130" width="280" height="44" rx="6" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="180" y="155" text-anchor="middle" font-size="11" fill="#a8353e">extracted fact: "用户合并了一个 KV cache</text>
+    <text x="180" y="169" text-anchor="middle" font-size="11" fill="#a8353e">优化的 PR" ← 措辞已变</text>
+
+    <text x="180" y="200" text-anchor="middle" font-size="11" fill="#3a3b40" font-style="italic">两类 error 注入:</text>
+
+    <rect x="40" y="208" width="280" height="38" rx="6" fill="#fff" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <text x="180" y="225" text-anchor="middle" font-size="10.5" fill="#a8353e">① false negative: "22%" 被丢掉</text>
+    <text x="180" y="240" text-anchor="middle" font-size="10.5" fill="#a8353e"> 但用户日后可能问 "降了多少?"</text>
+
+    <rect x="40" y="252" width="280" height="40" rx="6" fill="#fff" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <text x="180" y="270" text-anchor="middle" font-size="10.5" fill="#a8353e">② semantic distortion: "prefix-shared"</text>
+    <text x="180" y="285" text-anchor="middle" font-size="10.5" fill="#a8353e">被改写为"KV cache 优化",cos sim 降</text>
+
+    <!-- query time -->
+    <rect x="370" y="20" width="330" height="280" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="535" y="44" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6feb">读时(verbatim)</text>
+
+    <rect x="390" y="60" width="290" height="60" rx="6" fill="#fff" stroke="#888"/>
+    <text x="535" y="80" text-anchor="middle" font-size="11">原对话<strong>原封不动</strong>存进 ChromaDB</text>
+    <text x="535" y="98" text-anchor="middle" font-size="11">"...所以那个 prefix-shared 的 PR 我合了,</text>
+    <text x="535" y="113" text-anchor="middle" font-size="11">现在 KV cache 占用降了 22%..."</text>
+
+    <line x1="535" y1="120" x2="535" y2="145" stroke="#2f6feb" marker-end="url(#arrV)"/>
+    <text x="555" y="138" font-size="10" fill="#2f6feb">query 时</text>
+
+    <rect x="390" y="148" width="290" height="48" rx="6" fill="#fff" stroke="#1f7a4a"/>
+    <text x="535" y="170" text-anchor="middle" font-size="11" fill="#1f7a4a">用户问: "上次那个 prefix-shared 的 PR..."</text>
+    <text x="535" y="186" text-anchor="middle" font-size="11" fill="#1f7a4a">原词出现 → embedding 高度匹配</text>
+
+    <rect x="390" y="204" width="290" height="44" rx="6" fill="#d4edda" stroke="#1f7a4a" stroke-dasharray="3,2"/>
+    <text x="535" y="223" text-anchor="middle" font-size="10.5" fill="#1f7a4a">✓ "22%"也被一并取回:</text>
+    <text x="535" y="238" text-anchor="middle" font-size="10.5" fill="#1f7a4a">  原文里就在那条 chunk 里</text>
+
+    <rect x="390" y="254" width="290" height="38" rx="6" fill="#d4edda" stroke="#1f7a4a" stroke-dasharray="3,2"/>
+    <text x="535" y="271" text-anchor="middle" font-size="10.5" fill="#1f7a4a">✓ 不需要预测"用户日后会问什么"</text>
+    <text x="535" y="285" text-anchor="middle" font-size="10.5" fill="#1f7a4a">  retrieval 是 query-driven,不是 write-driven</text>
+
+    <defs>
+      <marker id="arrV" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>写时抽取派 vs 读时检索派的对比。论文用"数据库社区从预计算视图迁到 query-time aggregation"作类比 — 在<em>查询分布未知</em>的开放域 conversation 场景里,write-time decision 永远是 lossy bet。</figcaption>
+</div>
+
+<h3>7.1 两个 error 来源(论文 §5.5 的核心)</h3>
+<ol>
+  <li><strong>False negative</strong>:LLM 抽取时不知道未来会被问什么,所以一定会丢掉某些 detail。具体数字、专有名词、罕见缩写,容易被压扁成"用户讨论了 X 项目"这样的概要。</li>
+  <li><strong>Semantic distortion</strong>:LLM 改写措辞会让 embedding 漂移。query 时用户大概率会用<strong>原对话里的原词</strong>("prefix-shared"),verbatim 存的就还是这个词,cos sim 直接命中。改写过的"KV cache 优化"在 cos sim 下分数低不少。</li>
+</ol>
+
+<h3>7.2 这个洞察的 generality</h3>
+<p>论文把它总结成: "<em>retrieval problem is better solved at read time than write time</em>"。这其实是 RAG 圈一个被低估很久的 design principle:任何形式的<strong>预压缩</strong>(LLM summarize / extract / paraphrase)在 retrieval 任务上都注定要付精度税。除非你<em>明确</em>知道下游 query 分布(如垂直域 FAQ),否则 verbatim + embedding 几乎总是更稳。</p>
+
+<div class="nb">
+  <strong>注意:</strong>verbatim 派也有自己的代价 — 存储膨胀(原文 vs 抽取后的 fact 体积差 10–100×)、retrieval 上下文里要拼整段(L3 不限大小)、对 needle-in-haystack QA 不如人类好查。所以"verbatim is always better"不成立;只是在 LongMemEval 这种"找出哪一段提到了 X"的任务上,verbatim 是天然胜者。
+</div>
+
+<hr>
+
+<h2 id="sec8">8 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>系统</th><th>R@5 LongMemEval</th><th>架构特点</th><th>写时 LLM</th><th>对比 MemPalace</th></tr>
+  <tr><td><strong>MemPalace (raw)</strong></td><td>96.6%</td><td>ChromaDB + verbatim + 4-layer stack + spatial metadata</td><td><span class="ok">否</span></td><td>—</td></tr>
+  <tr><td>Supermemory ASMR</td><td>~99%</td><td>multi-agent agentic search + LLM rerank</td><td><span class="no">是</span></td><td>更准但每查询多次 LLM 调用,贵</td></tr>
+  <tr><td>Mastra (GPT-5-mini observ.)</td><td>94.9%</td><td>LLM "observational" 模式</td><td><span class="no">是</span></td><td>持续 LLM 推理,non-zero cost</td></tr>
+  <tr><td>Mem0 (token-efficient, 2026-04)</td><td>93.4%</td><td>hierarchical extract + multi-signal retrieval</td><td><span class="no">是</span></td><td>新算法把抽取派拉回竞争线</td></tr>
+  <tr><td>Hindsight</td><td>91.4%</td><td>Retain → Recall → Reflect 三阶段</td><td><span class="no">是</span></td><td>多次 LLM pass</td></tr>
+  <tr><td>Zep / Graphiti</td><td>~85%</td><td>Neo4j 时间知识图,multi-hop, community detection</td><td><span class="no">是</span></td><td>关系密集任务更强,verbatim 召回弱</td></tr>
+  <tr><td>Mem0 (pre-2026)</td><td>~49%</td><td>纯 LLM fact extraction</td><td><span class="no">是</span></td><td>extraction 派的旧版本,verbatim 完胜</td></tr>
+  <tr><td>Letta (= MemGPT)</td><td>未报</td><td>3 层 self-editing(core/archival/recall)</td><td><span class="no">是</span></td><td>self-edit 设计有意思,但 R@5 没公开</td></tr>
+  <tr><td>LangMem</td><td>未报</td><td>LangChain memory primitives</td><td><span class="no">是</span></td><td>抽取派</td></tr>
+  <tr><td>A-MEM</td><td>—</td><td>Zettelkasten 风格,verbatim + LLM 链接</td><td>部分</td><td>同 verbatim 阵营,但加了关系图</td></tr>
+</table>
+
+<h3>8.1 维度雷达(论文 Table 7 重排)</h3>
+<table>
+  <tr><th>维度</th><th>MemPalace</th><th>Zep</th><th>Mem0 (new)</th><th>Supermemory</th></tr>
+  <tr><td>Fidelity (信息保真)</td><td class="ok">★★★★★</td><td>★★★☆☆</td><td>★★★☆☆</td><td>★★★★☆</td></tr>
+  <tr><td>Retrieval 精度</td><td>★★★★☆</td><td>★★★★☆</td><td>★★★★☆</td><td class="ok">★★★★★</td></tr>
+  <tr><td>Write cost</td><td class="ok">★★★★★ ($0)</td><td>★☆☆☆☆</td><td>★★☆☆☆</td><td>★☆☆☆☆</td></tr>
+  <tr><td>Wakeup cost</td><td class="ok">★★★★★ (170)</td><td>★★☆☆☆</td><td>★★★☆☆</td><td>★★☆☆☆</td></tr>
+  <tr><td>Relational depth</td><td class="no">★★☆☆☆</td><td class="ok">★★★★★</td><td>★★★★☆</td><td>★★★★☆</td></tr>
+  <tr><td>Privacy / locality</td><td class="ok">★★★★★</td><td>★★★☆☆</td><td>★★★☆☆</td><td>★★☆☆☆</td></tr>
+  <tr><td>Deployability</td><td class="ok">★★★★★ (2 dep)</td><td>★★☆☆☆</td><td>★★★☆☆</td><td>★★☆☆☆</td></tr>
+</table>
+
+<div class="nb">
+  <strong>读法:</strong>没有 dominate everything 的系统。MemPalace 在 fidelity / write cost / wakeup / privacy / deployability 上是 frontier,在 relational depth 上是末位 — 对"Max 是不是 Alice 的同事"这种关系 query 它没什么招(只能纯 vector 搜)。Zep 是反过来。Supermemory 用钱换精度。<strong>所以"哪个 memory 系统最好"是 ill-posed 问题</strong>,要看 workload。
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · 应该抄什么 / 应该丢什么</h2>
+
+<p>把 audit 论文的结论落到自己工程实践上,这是最有价值的部分。</p>
+
+<table>
+  <tr><th>从 MemPalace <strong>抄</strong></th><th>从 MemPalace <strong>丢</strong></th></tr>
+  <tr>
+    <td>
+      <strong>① Verbatim-first 默认值</strong><br>
+      除非有明确理由(token 预算极紧 / 隐私脱敏 / KG 化),不要写时 LLM 抽取。原文 + 好 embedding 是基线。
+    </td>
+    <td>
+      <strong>① "空间隐喻就是检索算法"的叙事</strong><br>
+      Wing/Room 是 metadata filter,实事求是讲就够了。别给它戴 hippocampus / place cells 的科学帽子。
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <strong>② Deterministic, zero-LLM 写路径</strong><br>
+      可重现、可离线、$0 调用。只要不用 LLM 抽取,这条天然就有。
+    </td>
+    <td>
+      <strong>② AAAK 这种"自创 dialect"</strong><br>
+      1075 LOC,实测掉 12.4 个点,文档承认 lossy。要压缩,就用 LLM summary 或 BM25 keyword,别造新格式。
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <strong>③ 4 层 deferred loading</strong><br>
+      L0 identity 常驻 / L1 概要常驻 / L2 主题触发 / L3 query 触发。把 wakeup 压到 ~170 token。
+    </td>
+    <td>
+      <strong>③ "30x 无损压缩"这种宣传</strong><br>
+      凡是涉及"无损"两个字,不严格证明就不要在 README 写。
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <strong>④ MCP-first 设计 + PALACE PROTOCOL 风格的 directive</strong><br>
+      用 MCP server 做接口,system prompt 里教 LLM 怎么用工具。Behavioral 优化比 algorithmic 优化便宜得多。
+    </td>
+    <td>
+      <strong>④ 单一 ChromaDB collection 当万灵药</strong><br>
+      &gt;1M drawer 时要 sharding。MemPalace v3.2 已经在搞 backend abstraction,可以接 LanceDB / pgvector。
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <strong>⑤ 元数据-扁平存储 + 用户主导 narrow scope</strong><br>
+      让用户/agent 在 query 时主动声明 wing/room,缩小 ANN 搜索域,提速且降噪。
+    </td>
+    <td>
+      <strong>⑤ "contradiction detection" 这种字眼</strong><br>
+      除非真做了语义级冲突检测,只有 md5 dedup 就老老实实叫 "exact-match deduplication"。
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <strong>⑥ 被挑战时认账 + 修文档</strong><br>
+      maintainer 收到 issue #29 后逐条认了。这是 audit 论文给 maintainer 加分的关键。
+    </td>
+    <td>
+      <strong>⑥ 用 top_k=50 跑"100% benchmark"</strong><br>
+      LoCoMo 这条事故的教训:报 benchmark 一定附 k 值与是否带 rerank。
+    </td>
+  </tr>
+</table>
+
+<h3>9.1 audit 论文的方法论可复用部分</h3>
+<p>对其他"novel architecture in agent memory"声称,可以套同一套拆解模板:</p>
+<ol>
+  <li>把<strong>组件 → ChromaDB / SQLite / LLM call</strong> 的映射表画出来,看 metaphor 落地是哪种 primitive。</li>
+  <li>用<strong>最简 baseline</strong> (bare vector DB + verbatim) 复现 headline number,看它能拿到多少。</li>
+  <li>把每个 design choice 做 <strong>ablation</strong>:删 metadata、删 chunking、删 rerank 各看下降几个点。</li>
+  <li>检查 benchmark 报告里的 <strong>k 值 / 是否多次 LLM 调用 / 是否 held-out</strong>。</li>
+  <li>区分 <strong>retrieval 改善</strong> 与 <strong>HCI 改善</strong> — 对人有用 ≠ 对算法有用。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文自己的局限</h3>
+<ul>
+  <li>分析的是 v3.1.0,v3.2/v3.3 已经引入 backend abstraction、Closet pointer 层、BM25 hybrid search、cosine 距离 bug 修复 — 论文用 changelog 增量分析,没全量 re-run benchmark。</li>
+  <li>v3.3 暴露了一个 <strong>hnsw:space=cosine</strong> 的 bug — 此前默认是 L2!幸亏 all-MiniLM-L6-v2 输出已 normalize,L2 与 cosine ranking 等价,但 96.6% 数字"严格说"是在 L2 距离下测的。</li>
+  <li>LongMemEval 本身评测的是 retrieval 不是 end-to-end QA(QA 准确率约 67.2%),论文呼吁社区造更贴真实场景的 benchmark。</li>
+  <li>没有针对 multilingual / non-English 场景的复现(MemPalace v3.2 已支持 13 种语言但 audit 没追踪)。</li>
+</ul>
+
+<h3>我的个人 take</h3>
+<ul>
+  <li>这篇论文最大的<strong>方法论价值</strong>不在"打 MemPalace",而在示范"vector-DB 时代 agent memory 怎么做归因 audit"。同一套模板可以直接套到 Zep、Letta、Mem0、Supermemory 上,会有类似的"故事 vs 实现"裂缝。</li>
+  <li>verbatim-first 这条洞察其实很久以前的 RAG 文献(2020 NeurIPS Lewis et al.)就在卖,但 agent-memory 圈子被 Mem0 的"LLM 抽取"叙事带偏了 18 个月。MemPalace 的真贡献是<em>用一个流量产品把这件事重新带回来</em>。</li>
+  <li>"170 token wakeup"是被严重低估的工程指标。生产环境里,假设一个 agent 每天有 1000 次 conversation,每次省 1.5k token,1.5M token/天 ≈ $5/天($3.5/M input)。一年下来不可忽略。</li>
+  <li>"宫殿"这个词在 marketing 上对了 — 它<em>对人</em>有效,即便对 ANN 索引无效。这是 HCI 视角,工程师不要用算法洁癖去否定它。</li>
+  <li>但要警惕的是同样的策略在下一个项目可能不灵 — readers should sanity check 任何 "method-of-X-applied-to-Y" 的声称,问"X 在 human cognition 里有效是因为某个具体机制 (e.g. hippocampal place cells),那个机制的 AI 类比是什么?"。在 MemPalace 这里答案是"没有",所以隐喻只剩 UX 价值。</li>
+</ul>
+
+<h3>待验证问题</h3>
+<ol>
+  <li>用更强 embedding(e.g. bge-large-en, 1024 维)替换 all-MiniLM-L6-v2,96.6% 是会涨到 99% 还是早就饱和?这决定 verbatim 路线的天花板。</li>
+  <li>把 chunk size 从 800 char 调到 1500/200,LongMemEval 还能保持 96.6% 吗?如果保持,说明这个数字几乎与 chunking 无关,完全是 dataset 特性 + verbatim 决定。</li>
+  <li>在 LoCoMo 这种"长对话 + 关系密集"的题目上,扁平 ChromaDB 是不是必然弱于 Zep 的 Neo4j 多跳?Zep 在 LoCoMo 的实测应该公开。</li>
+  <li>v3.3.0 的 BM25 hybrid 上线后,MemPalace 在 LoCoMo 的非 rerank 模式 R@10 是不是会从 60.3% 涨上去?</li>
+  <li>Mem0 token-efficient 算法 93.4% 是怎么做的(hierarchical extract + multi-signal retrieval)?如果它用的"hierarchical extract"已经把 verbatim 派的 false-negative 问题部分解决,verbatim 派的护城河还剩什么?</li>
+  <li>"4 层 stack" 设计 isolated 应用到 Mem0 / Letta 上,是否能立刻给它们减一半 wakeup token?这是一个易复制的工程改动。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> "significant architectural insight wrapped in overstated claims" — audit 不是揭批,是归因<br>
+  <span class="pill">归因</span> 96.6% R@5 = ChromaDB + all-MiniLM-L6-v2 + verbatim,palace 隐喻贡献 ≈ 0<br>
+  <span class="pill">真贡献</span> verbatim-first 哲学 / 170 token wakeup / zero-LLM 写路径 / spatial 隐喻 UX<br>
+  <span class="pill">伪贡献</span> "+34% from palace" = metadata filter / "30x 无损压缩" = 12.4 点掉 / "contradiction" = md5 dedup<br>
+  <span class="pill">教训</span> retrieval 的 lossy decision 应放 query 时,不放 write 时(数据库视图 → query-time aggregation 的类比)<br>
+  <span class="pill">方法</span> 任何"X-applied-to-Y" 隐喻,要追问:X 在源域里有效的机制,Y 里有对应物吗?
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF 在 <code>/data/szhang967/papers/paper-notes/agents/MemPalace_2604.21284.pdf</code>
+</p>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · LiteResearcher (2604.17931)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>LiteResearcher: A Scalable Agentic RL Training Framework for Deep Research Agent</h1>
+<div class="meta">
+  Zhejiang University × Simplex AI × HKPU · Wanli Li, Bince Qu et al. · 2026-04-22 · arXiv:2604.17931<br>
+  关键词: Agentic RL · Deep Research · ReAct · curriculum · synthetic web · GRPO · Qwen3-4B
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> 把整个 web 复刻进一个本地"虚拟世界"(32M 真实网页 + 本地 BGE-M3 检索),让 4B 模型在零边际成本的稳定环境里跑 700+ 步 on-policy GRPO,绕过 live web 的噪声和成本,首次让小模型在 GAIA / Xbench 上反超 30B 同类。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">71.3% / 78.0%</div><div class="l">GAIA-Text / Xbench-DS (4B)</div></div>
+    <div class="stat"><div class="n">73.2M</div><div class="l">RL 中 tool 调用次数 (零边际成本)</div></div>
+    <div class="stat"><div class="n">10–46×</div><div class="l">本地 search/browse 比线上快</div></div>
+  </div>
+  <p><strong>立场:</strong>不是新算法,是<em>一套数据 + 环境 + 课程的"训练基础设施"</em>。它的真正贡献是把 deep research RL 从"赌运气式"的 live-web 训练变成像 SWE-RL 那样可重复、可扩展的实验科学。和 sibling note <code>01_DR-Venus_2604.19859.html</code> 是 4B deep research 的另一面(算法/采样侧 vs 环境/数据侧),建议对照读。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 deep research 的 RL 之前不 scale</a></li>
+    <li><a href="#sec2">背景速查 (ReAct / GRPO / 术语)</a></li>
+    <li><a href="#sec3">架构总览: 三个支柱 + 一个虚拟世界</a></li>
+    <li><a href="#sec4">数据合成:五种 atomic capability 与"信源遮蔽"</a></li>
+    <li><a href="#sec5">本地 tool 环境: 32M 网页 + 页级索引</a></li>
+    <li><a href="#sec6">Curriculum RL: 难度过滤 + 两段式</a></li>
+    <li><a href="#sec7">Worked example: 一道 GAIA 风格题在虚拟世界中的 ReAct 走完</a></li>
+    <li><a href="#sec8">实验关键结果与剖析</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec11">记忆点 (Memory points)</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 deep research 的 RL 之前不 scale</h2>
+
+<h3>1.1 历史脉络:从闭门 reasoning 到开放 web 的鸿沟</h3>
+<p>2024–2025 沿着 DeepSeek-R1 的 RLVR(reinforcement learning with verifiable rewards)路径,closed-world reasoning(数学、代码题)上 RL 已经能稳定地 scale——只要有 verifier、有合适难度,reward 曲线就一直涨。但<strong>一旦把 reasoning 接到外部世界</strong>(deep research 需要联网搜东西、读网页、跨源核对),先前所有工作(WebSailor、WebDancer、Search-R1、ZeroSearch 等)都遭遇了同一个困境: <span class="term">training saturation</span> ——奖励曲线很快进入平台期,继续训反而下降。</p>
+
+<p>论文给出的诊断很锋利: <strong>瓶颈不在 RL 算法,在环境</strong>。就像 SWE-RL / R2E-Gym 把代码 agent 关进确定性的 sandbox 才让代码 RL 开始 scale,deep research 也需要一个"sandbox 化的 web"。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 240" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+      <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+    <!-- left: live web -->
+    <rect x="20" y="20" width="280" height="200" fill="#fff" stroke="#cc4a1b" stroke-dasharray="4 3" rx="10"/>
+    <text x="160" y="40" text-anchor="middle" font-size="13" fill="#cc4a1b" font-weight="bold">A. 真 · 在线 web 上做 RL</text>
+    <circle cx="80" cy="100" r="18" fill="#9aa6c4"/><text x="80" y="105" text-anchor="middle" font-size="11" fill="#fff">policy</text>
+    <circle cx="240" cy="100" r="22" fill="#cc4a1b"/><text x="240" y="98" text-anchor="middle" font-size="10" fill="#fff">live</text><text x="240" y="110" text-anchor="middle" font-size="10" fill="#fff">internet</text>
+    <line x1="100" y1="95" x2="218" y2="95" stroke="#cc4a1b" marker-end="url(#arrR)"/>
+    <line x1="218" y1="108" x2="100" y2="108" stroke="#cc4a1b" marker-end="url(#arrR)"/>
+    <text x="160" y="135" text-anchor="middle" font-size="10" fill="#5b5e66">$0.001–$0.01 / turn · 7.9s · 答案非确定</text>
+    <text x="160" y="160" text-anchor="middle" font-size="10" fill="#a8353e">↘ reward 噪声 · 训练 variance 爆炸</text>
+    <text x="160" y="180" text-anchor="middle" font-size="10" fill="#a8353e">↘ 每次结果不同 → 难复现</text>
+    <text x="160" y="200" text-anchor="middle" font-size="10" fill="#a8353e">↘ 长 horizon × 大 batch ⇒ $59K–$243K</text>
+
+    <!-- right: virtual web -->
+    <rect x="400" y="20" width="280" height="200" fill="#fff" stroke="#1f7a4a" rx="10"/>
+    <text x="540" y="40" text-anchor="middle" font-size="13" fill="#1f7a4a" font-weight="bold">B. Lite Virtual World</text>
+    <circle cx="460" cy="100" r="18" fill="#9aa6c4"/><text x="460" y="105" text-anchor="middle" font-size="11" fill="#fff">policy</text>
+    <rect x="600" y="78" width="56" height="44" fill="#1f7a4a" rx="6"/>
+    <text x="628" y="96" text-anchor="middle" font-size="9" fill="#fff">BGE-M3</text>
+    <text x="628" y="110" text-anchor="middle" font-size="9" fill="#fff">+ Postgres</text>
+    <line x1="480" y1="95" x2="598" y2="95" stroke="#1f7a4a" marker-end="url(#arr)"/>
+    <line x1="598" y1="108" x2="480" y2="108" stroke="#1f7a4a" marker-end="url(#arr)"/>
+    <text x="540" y="135" text-anchor="middle" font-size="10" fill="#5b5e66">$0 / turn · 0.15–0.17s · 完全确定</text>
+    <text x="540" y="160" text-anchor="middle" font-size="10" fill="#1f7a4a">↗ reward 来自固定 corpus + 静态 ranker</text>
+    <text x="540" y="180" text-anchor="middle" font-size="10" fill="#1f7a4a">↗ 32M 真实网页 → 仍涵盖 real-web 分布</text>
+    <text x="540" y="200" text-anchor="middle" font-size="10" fill="#1f7a4a">↗ 73.2M tool calls 全程零边际成本</text>
+  </svg>
+  <figcaption>Live web RL (左) 把 policy 直接耦合到不可控外部系统 — 每条 trajectory 在不同时间会拿到不同结果,reward signal 本身就在漂。LiteResearcher (右) 把整个 web 的"行为"复刻到本地静态 corpus + 检索器,policy 在确定性环境里更新,等训完再迁回 live web 评测。</figcaption>
+</div>
+
+<h3>1.2 别的方案为什么不够</h3>
+<p>论文按"环境是怎么做的"把已有工作分成三类,每类各有结构性短板:</p>
+
+<table>
+  <tr><th>派系</th><th>代表</th><th>怎么做</th><th>短板</th></tr>
+  <tr><td>Online real-web RL</td><td>WebExplorer-RL · WebThinker · DeepResearcher · AgentCPM-Explore</td><td>训练时直接调 Google/Serper/Jina</td><td><span class="no">每 turn 几秒 + 几美分,reward 噪声大;AgentCPM 自己报告 RL 只比 SFT +3.8%</span></td></tr>
+  <tr><td>Local retrieval-only</td><td>Search-R1 · Search-o1 · ZeroSearch (LLM 仿真)</td><td>关在 Wikipedia 之类窄 corpus 内</td><td><span class="no">domain 单一 (只覆盖百科),无法复现 cross-verification / 跨源举证</span></td></tr>
+  <tr><td>Synthetic-only data</td><td>WebSailor 系合成图谱、Search-R1 早期</td><td>用 LLM 手工编 multi-hop QA + 给定推理结构</td><td><span class="no">"过度工程化"的推理图,合成时已隐含答案路径,练不出 atomic 能力</span></td></tr>
+  <tr><td><strong>LiteResearcher (本文)</strong></td><td>—</td><td>合成 QA + 抓真页 + 本地化为 tool</td><td><span class="ok">确定性 + 真 web 分布 + 不预设解法</span></td></tr>
+</table>
+
+<div class="nb">
+<strong>论文最有意思的一句论断 (Section 4.1):</strong> 与其精心设计 multi-hop 题目的逻辑结构,不如<em>把信息源 scale 到真实 web 量级</em>,然后让"简单到不能再简单"的 QA 抽取规则直接在 32M 页上跑——分布的多样性自然涌现,反而比手搓的复杂图谱更接近真实用户 query 分布。
+</div>
+
+<h3>1.3 为什么这事并不平凡</h3>
+<p>看上去就是"把网爬下来 + 起个本地 search service",但要让训出来的策略<strong>不仅在虚拟世界 work、还能迁回 live web</strong>,需要解决几个互相纠缠的工程 + 算法问题:</p>
+
+<ul>
+  <li><strong>Corpus 与 task 必须 co-evolve。</strong> 如果先合成 task 再去爬网页,task 已经定了,corpus 是补丁;如果先爬完整 corpus 再合成 task,task 容易过度依赖局部信息源。本文做的是<em>循环放大</em>: 抽 QA → 用 question 当 query 抓相关页 → 扩 corpus → 再抽更复杂的 QA。</li>
+  <li><strong>必须做"信源遮蔽" (Information Source Masking)。</strong> 否则 agent 学到的 policy 是"找当初合成 QA 用的那一页"——这是 corpus 内捷径,迁到 live web 立刻崩。本文每生成一个 QA 就<em>从 corpus 删掉源页</em>,逼 agent 必须从"周围相关页"去三角验证。</li>
+  <li><strong>课程的轴是什么?</strong> 不是简单的 token 长度,而是 (a) 同时放大 max response length (32K → 48K) + 容许 turn 数 (40 → 60),让 agent 有空间学长 horizon;(b) 用 pass@8 当难度过滤器,只保留 1≤c≤7 的样本——零梯度 (c=0 或 c=8) 的题被丢掉。</li>
+  <li><strong>本地 retrieval 必须和 live search 行为同构。</strong> RAG 普遍用 chunk-level 索引,但 chunk 索引在 32M 页规模下会膨胀 10×、且和 commercial search engine 行为差异大。本文用<em>页级索引</em> (page = title + summary 的单一向量),配合 BGE-M3 hybrid (dense + learned sparse) — 模仿真实 search engine 返回 page-level snippet 列表的行为。</li>
+  <li><strong>On-policy 与 long-horizon 的耦合。</strong> 多 turn ReAct 里,off-policy mini-batch 反复 update 会让早期 turn 的 trajectory 跟当前 policy mismatch 累积放大;本文实测 off-policy 训完掉到 66.8%,strict on-policy 到 68.9%。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">ReAct</span></td><td>Yao 2022, agent 在每 turn 交替输出 thought τ → action a → 拿 observation o,history H<sub>t</sub> = (q, τ<sub>1</sub>, a<sub>1</sub>, o<sub>1</sub>, …)</td></tr>
+  <tr><td><span class="term">Action space</span></td><td>本文只两个原子动作: <code>Search(q')</code> 返回 ranked snippets+URLs;<code>Browse(u, q')</code> 返回 query-conditioned summary</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>DeepSeekMath 提出,无 value model 的 PPO 变体;一个 prompt 采 K 条 rollout,advantage = (r<sub>i</sub> − μ) / σ,只用 clipped surrogate</td></tr>
+  <tr><td><span class="term">Pass@K filter</span></td><td>对每个候选 query 跑 K=8 条 rollout,只留正确数 1 ≤ c ≤ 7 的样本(有梯度信号)</td></tr>
+  <tr><td><span class="term">Atomic search capabilities</span></td><td>本文的五元组: Direct / Aggregation / Enumeration / Cross-verify / Statistics — 既是数据维度也是评测维度</td></tr>
+  <tr><td><span class="term">Information Source Masking</span></td><td>QA 合成后从 corpus 删掉来源页,逼 agent 从相关页拼凑答案</td></tr>
+  <tr><td><span class="term">BGE-M3</span></td><td>同一前向同时输出 dense + learned sparse 两个 embedding,可融合做 hybrid retrieval</td></tr>
+  <tr><td><span class="term">DiskANN</span></td><td>Microsoft 的 disk-based ANN 索引,能在单机上对十亿点做近邻搜索;本文存盘 + mmap</td></tr>
+  <tr><td><span class="term">Page-level vs chunk-level index</span></td><td>本文每页只一条向量(title+summary),不切 chunk,牺牲精度换 10× 索引规模缩小、并且<em>更像真 search engine</em></td></tr>
+  <tr><td><span class="term">TIS Correction</span></td><td>Trajectory Importance Sampling,纠正 SGLang (BF16) rollout 与 FSDP (FP32) trainer 的精度 drift</td></tr>
+  <tr><td><span class="term">Training saturation</span></td><td>RL 训不动了 — 简单题全对、难题全错,gradient ≈ 0</td></tr>
+</table>
+
+<h3>2.1 GRPO 复习</h3>
+<div class="formula">J<sub>GRPO</sub>(θ) = E [ (1/K) Σᵢ min( rᵢ(θ)·Aᵢ , clip(rᵢ(θ), 1−ε<sub>low</sub>, 1+ε<sub>high</sub>)·Aᵢ ) ]</div>
+<p>r<sub>i</sub>(θ) = π<sub>θ</sub>(o<sub>i</sub>|q) / π<sub>θrollout</sub>(o<sub>i</sub>|q),<strong>没有 KL,没有 entropy</strong>。Advantage 是 group-normalized:<code>Aᵢ = (rᵢ − mean) / std</code>。本文严格 on-policy: 每个 rollout batch 用一次就丢。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 架构总览: 三个支柱 + 一个虚拟世界</h2>
+<p>整个系统可以理解为三件事接力:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+      </marker>
+    </defs>
+    <!-- pillar 1 -->
+    <rect x="20" y="40" width="200" height="180" fill="#fff" stroke="#2f6feb" rx="10"/>
+    <text x="120" y="60" text-anchor="middle" font-weight="bold" fill="#2f6feb" font-size="13">① Co-construct 数据 ↔ Corpus</text>
+    <text x="120" y="90" text-anchor="middle" font-size="11">Wikipedia / BBC seed</text>
+    <text x="120" y="108" text-anchor="middle" font-size="11">↓ 抽 QA (LLM)</text>
+    <text x="120" y="126" text-anchor="middle" font-size="11">↓ 7-rubric 过滤</text>
+    <text x="120" y="144" text-anchor="middle" font-size="11">↓ 信源遮蔽</text>
+    <text x="120" y="162" text-anchor="middle" font-size="11">↓ 用 Q 当 query 抓真页</text>
+    <text x="120" y="180" text-anchor="middle" font-size="11">↓ corpus 扩充 → 再合成</text>
+    <text x="120" y="205" text-anchor="middle" font-size="10" fill="#cc4a1b">10M → 21M → 32M pages</text>
+
+    <!-- pillar 2 -->
+    <rect x="260" y="40" width="200" height="180" fill="#fff" stroke="#2f6feb" rx="10"/>
+    <text x="360" y="60" text-anchor="middle" font-weight="bold" fill="#2f6feb" font-size="13">② Local Tool Env</text>
+    <rect x="280" y="80" width="160" height="40" fill="#f3eee0" stroke="#e2dfd5" rx="4"/>
+    <text x="360" y="96" text-anchor="middle" font-size="11">Local Search Engine</text>
+    <text x="360" y="112" text-anchor="middle" font-size="9" fill="#5b5e66">BGE-M3 + Milvus + DiskANN</text>
+    <rect x="280" y="130" width="160" height="40" fill="#f3eee0" stroke="#e2dfd5" rx="4"/>
+    <text x="360" y="146" text-anchor="middle" font-size="11">Local Browse Tool</text>
+    <text x="360" y="162" text-anchor="middle" font-size="9" fill="#5b5e66">PostgreSQL Markdown store</text>
+    <text x="360" y="195" text-anchor="middle" font-size="10" fill="#cc4a1b">0.15s / 0.17s 每次调用</text>
+
+    <!-- pillar 3 -->
+    <rect x="500" y="40" width="200" height="180" fill="#fff" stroke="#2f6feb" rx="10"/>
+    <text x="600" y="60" text-anchor="middle" font-weight="bold" fill="#2f6feb" font-size="13">③ Curriculum RL</text>
+    <text x="600" y="90" text-anchor="middle" font-size="11">每 stage 前 pass@8 过滤</text>
+    <text x="600" y="108" text-anchor="middle" font-size="11">保留 1≤c≤7</text>
+    <text x="600" y="130" text-anchor="middle" font-size="11">Stage 1: 32K · 40 turns · T=0.7</text>
+    <text x="600" y="148" text-anchor="middle" font-size="11">Stage 2: 48K · 60 turns · T=1.0</text>
+    <text x="600" y="166" text-anchor="middle" font-size="11">strict on-policy GRPO</text>
+    <text x="600" y="195" text-anchor="middle" font-size="10" fill="#cc4a1b">700+ 步无饱和</text>
+
+    <line x1="220" y1="130" x2="258" y2="130" stroke="#2f6feb" marker-end="url(#a2)" stroke-width="2"/>
+    <line x1="460" y1="130" x2="498" y2="130" stroke="#2f6feb" marker-end="url(#a2)" stroke-width="2"/>
+
+    <text x="360" y="245" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">三者闭环: 数据吃 corpus,corpus 吃 task,RL 吃 (data, env),反过来 RL 的 difficulty filter 又决定下一轮 task 怎么挑</text>
+  </svg>
+  <figcaption>整套 LiteResearcher 的逻辑链路。数据合成 (①) 不是一次性产出 dataset,而是<em>持续</em>把新 query 用作 search seed 去抓页扩 corpus,再生成更复杂的 task,这就是"co-construct"的含义。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · 数据合成: 五种 atomic capability + 信源遮蔽</h2>
+
+<h3>4.1 五种 atomic search capability</h3>
+<p>论文把"deep research"分解成五个原子能力。这是它的概念基石——后面 corpus 扩充、curriculum 都围绕"覆盖这五种"设计:</p>
+<table>
+  <tr><th>能力</th><th>例题</th><th>Golden path</th></tr>
+  <tr><td>Direct</td><td>2025 全球总人口?</td><td>1 search → 1 browse</td></tr>
+  <tr><td>Aggregation</td><td>"Apollo Belvedere 2024年10月修复中,使用传统技术的 Andrea Felice 用什么材料做了用来替换原雕像缺失左手的复制品?"</td><td>列出多 constraint → 各自找 → 取交集</td></tr>
+  <tr><td>Enumeration</td><td>2023年11月4日 Edmonton Valley Line 东南段开通时共有多少站?</td><td>多源穷举 → 取并集</td></tr>
+  <tr><td>Cross-verify</td><td>某品牌奶粉是否含蔗糖?多少?</td><td>多源比对一致性</td></tr>
+  <tr><td>Statistics</td><td>某地某模型的 R² 值?</td><td>找原始数据 → 重新算</td></tr>
+</table>
+
+<h3>4.2 数据合成流水线 (重点: 信源遮蔽)</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 260" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- step 1 seed page -->
+    <rect x="20" y="60" width="100" height="60" fill="#fff" stroke="#e2dfd5" rx="6"/>
+    <text x="70" y="85" text-anchor="middle" font-size="11">Wiki/BBC 页</text>
+    <text x="70" y="103" text-anchor="middle" font-size="9" fill="#5b5e66">Fiat Tagliero 1938</text>
+
+    <line x1="120" y1="90" x2="158" y2="90" stroke="#5b5e66" marker-end="url(#a3)"/>
+
+    <!-- step 2 LLM extract -->
+    <rect x="160" y="60" width="100" height="60" fill="#fff" stroke="#e2dfd5" rx="6"/>
+    <text x="210" y="80" text-anchor="middle" font-size="11">LLM 抽 QA</text>
+    <text x="210" y="98" text-anchor="middle" font-size="9" fill="#5b5e66">"谁是 1938 在</text>
+    <text x="210" y="110" text-anchor="middle" font-size="9" fill="#5b5e66">厄立特里亚的现代主义</text>
+    <text x="210" y="120" text-anchor="middle" font-size="9" fill="#5b5e66">建筑设计师?"</text>
+
+    <line x1="260" y1="90" x2="298" y2="90" stroke="#5b5e66" marker-end="url(#a3)"/>
+
+    <!-- step 3 7-rubric -->
+    <rect x="300" y="60" width="100" height="60" fill="#fff" stroke="#e2dfd5" rx="6"/>
+    <text x="350" y="80" text-anchor="middle" font-size="11">7-rubric 过滤</text>
+    <text x="350" y="98" text-anchor="middle" font-size="9" fill="#5b5e66">独立性/可验证</text>
+    <text x="350" y="110" text-anchor="middle" font-size="9" fill="#5b5e66">无歧义/非简单</text>
+
+    <line x1="400" y1="90" x2="438" y2="90" stroke="#5b5e66" marker-end="url(#a3)"/>
+
+    <!-- step 4 mask source -->
+    <rect x="440" y="60" width="100" height="60" fill="#fff8e8" stroke="#d2a32a" stroke-width="2" rx="6"/>
+    <text x="490" y="80" text-anchor="middle" font-size="11" font-weight="bold" fill="#cc4a1b">信源遮蔽</text>
+    <text x="490" y="100" text-anchor="middle" font-size="9" fill="#5b5e66">从 corpus 删除</text>
+    <text x="490" y="112" text-anchor="middle" font-size="9" fill="#5b5e66">原始页</text>
+
+    <line x1="540" y1="90" x2="578" y2="90" stroke="#5b5e66" marker-end="url(#a3)"/>
+
+    <!-- step 5 expand corpus -->
+    <rect x="580" y="60" width="120" height="60" fill="#fff" stroke="#1f7a4a" rx="6"/>
+    <text x="640" y="80" text-anchor="middle" font-size="11" fill="#1f7a4a">扩 corpus</text>
+    <text x="640" y="98" text-anchor="middle" font-size="9" fill="#5b5e66">用 Q 调 Serper</text>
+    <text x="640" y="110" text-anchor="middle" font-size="9" fill="#5b5e66">抓 ~100 相关页</text>
+
+    <!-- loop arrow -->
+    <path d="M 640,120 Q 640,200 70,200 L 70,125" fill="none" stroke="#cc4a1b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a3)"/>
+    <text x="360" y="216" text-anchor="middle" font-size="10" fill="#cc4a1b" font-style="italic">下一轮: 新增页又能抽出新 QA → corpus 越长越大</text>
+
+    <!-- annotation -->
+    <text x="360" y="245" text-anchor="middle" font-size="11" fill="#5b5e66">关键: 第 4 步遮蔽源 + 第 5 步留下"周围真实相关页",合起来逼出 atomic capabilities</text>
+  </svg>
+  <figcaption>合成 → 过滤 → 遮蔽 → 扩 corpus 的循环。每条 QA 的源页被删,但<em>其语义周围的真实相关页</em>(由 Serper 通过该 question 找到)被保留 — 这正是模型在线上做 search 时会遭遇的分布。</figcaption>
+</div>
+
+<h3>4.3 Worked example (合成视角): 那道 Fiat Tagliero 题怎么诞生的</h3>
+
+<details>
+<summary>展开看一条 QA 走完整个 pipeline</summary>
+<ol>
+  <li><strong>Seed 页:</strong> Wikipedia 关于 Fiat Tagliero service station 的页面,包含事实 "Located in Eritrea / Completed 1938 / Designed by Giuseppe Pettazzi"。</li>
+  <li><strong>LLM 抽取:</strong> Q="Who is the designer of the famous modernist building in Eritrea that completed in 1938?" / A="Giuseppe Pettazzi"。注意这个 Q 用了<em>三个 attribute</em>(modernist + Eritrea + 1938),不是直接问 "Fiat Tagliero 的设计师" — 这就是 LLM 被 prompt 引导避免直接 keyword leak。</li>
+  <li><strong>7-rubric 评:</strong> Independence ✓ / Specificity ✓ (人名) / Unambiguity ✓ / Answerability ✓ / Not open-ended ✓ / Not common-sense ✓ / Time specificity ✓ ("1938")。通过。</li>
+  <li><strong>遮蔽:</strong> Wikipedia "Fiat Tagliero" 这一页从 corpus 删除。</li>
+  <li><strong>扩 corpus:</strong> 用整个 question 当 query 调 Serper,返回 top-100 URL,可能包含 "Eritrea modernist architecture"、"Italian colonial architecture in East Africa"、"Asmara UNESCO" 等页 — 都加入 corpus。</li>
+  <li><strong>训练时:</strong> agent 看到 question,本地 search 结果里没有 "Fiat Tagliero" 直接命中,但有 "Asmara modernist architecture overview" → browse 后发现"1938年完工的著名现代主义加油站是 Fiat Tagliero,设计师 Pettazzi" → cross-verify 一下其他页 → 输出。<em>它学到的是 aggregation,不是 keyword recall</em>。</li>
+</ol>
+</details>
+
+<p>反向论证: <strong>如果不做信源遮蔽会怎样?</strong> agent 学到的最优策略是 "用 question 里的关键词组(modernist + Eritrea + 1938)直接搜",一击命中原始 Wikipedia 页。这条 policy 在 corpus 里 reward = 1,但迁到 live web 上当用户问真实问题(query 关键词不那么对齐时),立刻 fail —— 即所谓"corpus shortcut"。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 本地 tool 环境: 32M 网页 + 页级索引</h2>
+
+<h3>5.1 为什么用 page-level 而不是 chunk-level</h3>
+<p>这是个看似工程、实则关乎"虚拟世界保真度"的决策。常规 RAG 会把每页切成 ~512 token 的 chunk,每 chunk 独立 embed,这样精度更高(细粒度匹配)但:</p>
+<ul>
+  <li>32M 页 × 平均 20 chunks = 6.4 亿向量 → 索引体积 ≈ 1TB+,DiskANN 难以单机服务。</li>
+  <li>更关键: 真实 search engine (Google/Serper) 返回的就是 page-level snippet。chunk 索引让模型能拿到"页内某一段精准片段",这是它在 live web 上得不到的能力 — 训练时学会的 policy 会过拟合于 chunk 级精度。</li>
+</ul>
+<p>所以 LiteResearcher 选 <strong>page = title + summary 单向量</strong>,索引大小压到 ~3 千万向量(约 100GB 量级),BGE-M3 hybrid (dense + learned sparse) 用 Milvus 融合,DiskANN + mmap 实现 ~150ms 查询延迟。Browse tool 单独用 PostgreSQL 存 Markdown 全文,1000 并发,~170ms 返页。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 230" width="100%" style="max-width:680px">
+    <!-- search side -->
+    <rect x="20" y="20" width="320" height="190" fill="#fff" stroke="#e2dfd5" rx="8"/>
+    <text x="180" y="40" text-anchor="middle" font-weight="bold" font-size="13" fill="#2f6feb">Local Search Engine</text>
+    <text x="40" y="65" font-size="11">Query: "Eritrea modernist 1938"</text>
+    <rect x="40" y="80" width="280" height="30" fill="#f3eee0" stroke="#e2dfd5" rx="4"/>
+    <text x="180" y="100" text-anchor="middle" font-size="11">BGE-M3 (dense + learned sparse)</text>
+    <line x1="180" y1="110" x2="180" y2="125" stroke="#5b5e66"/>
+    <rect x="40" y="125" width="280" height="30" fill="#f3eee0" stroke="#e2dfd5" rx="4"/>
+    <text x="180" y="145" text-anchor="middle" font-size="11">Milvus hybrid · DiskANN mmap</text>
+    <line x1="180" y1="155" x2="180" y2="170" stroke="#5b5e66"/>
+    <rect x="40" y="170" width="280" height="30" fill="#fff" stroke="#1f7a4a" rx="4"/>
+    <text x="180" y="190" text-anchor="middle" font-size="11" fill="#1f7a4a">Top-K page snippets (~150ms)</text>
+
+    <!-- browse side -->
+    <rect x="380" y="20" width="320" height="190" fill="#fff" stroke="#e2dfd5" rx="8"/>
+    <text x="540" y="40" text-anchor="middle" font-weight="bold" font-size="13" fill="#2f6feb">Local Browse Tool</text>
+    <text x="400" y="65" font-size="11">Browse(url, "designer name")</text>
+    <rect x="400" y="80" width="280" height="30" fill="#f3eee0" stroke="#e2dfd5" rx="4"/>
+    <text x="540" y="100" text-anchor="middle" font-size="11">Postgres KV: url → markdown</text>
+    <line x1="540" y1="110" x2="540" y2="125" stroke="#5b5e66"/>
+    <rect x="400" y="125" width="280" height="30" fill="#f3eee0" stroke="#e2dfd5" rx="4"/>
+    <text x="540" y="145" text-anchor="middle" font-size="11">LLM 提炼 query-conditioned 摘要</text>
+    <line x1="540" y1="155" x2="540" y2="170" stroke="#5b5e66"/>
+    <rect x="400" y="170" width="280" height="30" fill="#fff" stroke="#1f7a4a" rx="4"/>
+    <text x="540" y="190" text-anchor="middle" font-size="11" fill="#1f7a4a">Page summary (~170ms)</text>
+  </svg>
+  <figcaption>两个 service 的微架构。注意 Browse 不是直接返回原 markdown(那会爆 context),而是<em>用 LLM 做 query-conditioned summary</em> — 这本身和 Jina Reader / Tongyi 系的 browse tool 行为一致,保持迁移性。</figcaption>
+</div>
+
+<h3>5.2 数字感受</h3>
+<p>整个 RL run 内累计 <strong>45.8M search + 27.4M browse = 73.2M tool call</strong>。如果走 Serper + Jina 的线上 API,光这部分账单 ~$59K (用便宜的 Serper) 到 $243K (SerpAPI)。本地化后 <code>$0</code>,而且 latency 10–46×,真正让 hundreds of concurrent rollout 成为可能。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Curriculum RL: 难度过滤 + 两段式</h2>
+
+<h3>6.1 难度轴是什么</h3>
+<p>论文 curriculum 不是 token 复杂度 / 题目长度,而是<strong>沿三轴同时升档</strong>:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 250" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+    <!-- stage 1 -->
+    <rect x="40" y="40" width="240" height="180" fill="#fff" stroke="#2f6feb" rx="10"/>
+    <text x="160" y="60" text-anchor="middle" font-size="14" fill="#2f6feb" font-weight="bold">Stage 1 (steps 0–220)</text>
+    <text x="60" y="88" font-size="11">Max response: <b>32K</b></text>
+    <text x="60" y="110" font-size="11">Max turns: <b>40</b></text>
+    <text x="60" y="132" font-size="11">Temperature: <b>0.7</b></text>
+    <text x="60" y="154" font-size="11">Data: 73% own + 27% multi-hop</text>
+    <text x="60" y="176" font-size="11">10,398 queries (pass@8 留)</text>
+    <text x="60" y="200" font-size="11" fill="#cc4a1b">→ GAIA 64.7% 平台</text>
+
+    <line x1="285" y1="130" x2="345" y2="130" stroke="#cc4a1b" stroke-width="2" marker-end="url(#a4)"/>
+    <text x="315" y="120" text-anchor="middle" font-size="10" fill="#cc4a1b">饱和 → 升档</text>
+
+    <!-- stage 2 -->
+    <rect x="350" y="40" width="280" height="180" fill="#fff" stroke="#cc4a1b" rx="10"/>
+    <text x="490" y="60" text-anchor="middle" font-size="14" fill="#cc4a1b" font-weight="bold">Stage 2 (steps 220–700+)</text>
+    <text x="370" y="88" font-size="11">Max response: <b>48K</b> (+16K)</text>
+    <text x="370" y="110" font-size="11">Max turns: <b>60</b> (+20)</text>
+    <text x="370" y="132" font-size="11">Temperature: <b>1.0</b> (升熵)</text>
+    <text x="370" y="154" font-size="11">Data: 69% own + 20% multi-hop + 11% science</text>
+    <text x="370" y="176" font-size="11">16,199 queries (重新 pass@8 过滤)</text>
+    <text x="370" y="200" font-size="11" fill="#1f7a4a">→ GAIA 68.3% (+3.6%)</text>
+  </svg>
+  <figcaption>课程一升,三件事一起动: <em>更长 context</em> 给 long-horizon 留空间;<em>更多 turn</em> 让原本 truncate 的题能完成;<em>更高温度</em> 配合更多样数据增加 exploration。同时 pass@8 重新筛一遍 — 老模型已经全对的题这时被剔除。</figcaption>
+</div>
+
+<h3>6.2 为什么 pass@8 + 1≤c≤7 是关键</h3>
+<p>很简单的 GRPO 算法直觉: 如果 K=8 条 rollout 全对,A<sub>i</sub> = (1−1)/0 全是 0,gradient = 0;全错也是 0。<strong>只有部分对部分错,才有 group-normalized advantage 来推策略动</strong>。所以 difficulty filter 的存在不是为了"加难度",而是<em>为了保证每个 step 的 batch 里都有可学的对比信号</em>。</p>
+
+<p>反向论证: 如果不做 pass@8 过滤,Stage 1 训到 220 步时,corpus 里大量 direct-information 题已经全 pass,但 enumeration 题还全 fail,batch 里大半 sample 提供 0 gradient,等价于 batch size 缩水 + 信号高方差 → 训练 stuck。</p>
+
+<h3>6.3 严格 on-policy 的另一面</h3>
+<p>论文用一个对照实验把这一点说死了:</p>
+<table>
+  <tr><th>变体</th><th>每 batch 更新次数</th><th>初期 reward</th><th>训完 GAIA</th></tr>
+  <tr><td>Off-policy</td><td>4 (256 / 4 mini-batch)</td><td><span class="ok">涨得快</span></td><td><span class="no">66.75% (后期回落)</span></td></tr>
+  <tr><td>On-policy</td><td>1 (整 batch)</td><td>慢一点</td><td><span class="ok">68.89% (持续涨)</span></td></tr>
+</table>
+<p>论文给的解释: long-horizon trajectory 上,policy lag 沿 turn 累积放大 — 一条 30-turn 的 rollout,在第 20 turn 时与 current θ 的 KL 已经远超普通 single-turn RL 的 mismatch。off-policy 复用相当于把这个 mismatch 的样本喂多次。</p>
+
+<hr>
+
+<h2 id="sec7">7 · Worked example: 一条 GAIA-style 题在虚拟世界中的 ReAct trace</h2>
+
+<p>选一道前面提的 aggregation 题: <em>"In the Apollo Belvedere statue restoration project completed in October 2024, what was the material used by Andrea Felice, who employed traditional techniques, to create the replica that was used to replace the missing left hand of the original statue?"</em></p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <!-- timeline -->
+    <line x1="60" y1="40" x2="60" y2="340" stroke="#e2dfd5" stroke-width="2"/>
+
+    <!-- turn 1 -->
+    <circle cx="60" cy="60" r="6" fill="#2f6feb"/>
+    <text x="80" y="55" font-size="12" font-weight="bold">τ₁: 拆解 constraint</text>
+    <text x="80" y="72" font-size="11" fill="#5b5e66">"4 个限定: Apollo Belvedere / 修复 / 2024.10 / Andrea Felice"</text>
+    <rect x="80" y="80" width="600" height="22" fill="#f3eee0" rx="4"/>
+    <text x="90" y="96" font-size="11" font-family="monospace">a₁: Search("Apollo Belvedere restoration 2024 missing hand")</text>
+
+    <circle cx="60" cy="120" r="6" fill="#1f7a4a"/>
+    <text x="80" y="115" font-size="12">o₁: 5 篇 page snippet · 含 "Vatican Museums announce Belvedere project"</text>
+
+    <!-- turn 2 -->
+    <circle cx="60" cy="150" r="6" fill="#2f6feb"/>
+    <text x="80" y="145" font-size="12" font-weight="bold">τ₂: 第 1 篇看起来对,但没提材料</text>
+    <rect x="80" y="155" width="600" height="22" fill="#f3eee0" rx="4"/>
+    <text x="90" y="171" font-size="11" font-family="monospace">a₂: Browse(url1, "Andrea Felice material left hand")</text>
+
+    <circle cx="60" cy="195" r="6" fill="#1f7a4a"/>
+    <text x="80" y="190" font-size="12">o₂: "Felice 用 traditional sculpting technique,材料未明确"</text>
+
+    <!-- turn 3 -->
+    <circle cx="60" cy="225" r="6" fill="#2f6feb"/>
+    <text x="80" y="220" font-size="12" font-weight="bold">τ₃: 改 query,加 sculptor 名字</text>
+    <rect x="80" y="230" width="600" height="22" fill="#f3eee0" rx="4"/>
+    <text x="90" y="246" font-size="11" font-family="monospace">a₃: Search("Andrea Felice sculptor Carrara marble Apollo")</text>
+
+    <circle cx="60" cy="270" r="6" fill="#1f7a4a"/>
+    <text x="80" y="265" font-size="12">o₃: 一篇意大利新闻 + Vatican 报告 → "Carrara marble" 命中两次</text>
+
+    <!-- turn 4 -->
+    <circle cx="60" cy="300" r="6" fill="#cc4a1b"/>
+    <text x="80" y="295" font-size="12" font-weight="bold" fill="#cc4a1b">τ₄: cross-verify 通过 → 给答案</text>
+    <rect x="80" y="305" width="600" height="22" fill="#fff8e8" stroke="#d2a32a" rx="4"/>
+    <text x="90" y="321" font-size="11" font-family="monospace">final: &lt;answer&gt;Carrara marble&lt;/answer&gt;  · reward = 1</text>
+
+    <text x="60" y="355" font-size="10" fill="#5b5e66">注: 4 turn,~3K token 输出,&lt;1s 总 tool 延迟 (本地 search/browse 加起来 ~600ms)</text>
+  </svg>
+  <figcaption>一条典型 trajectory。RL 训练目标只看最后 reward(LLM-judge 判 "Carrara marble" 与标答语义等价 → 1)。中间 4 turn 的所有 token 共享这个 reward 的 advantage。注意 τ₃ 的 "改 query 加新约束"是 atomic capability "aggregation" 的核心,模型靠 pass@8 过滤里那些"前两 turn 失败、后面成功"的样本反复学到的。</figcaption>
+</div>
+
+<p>反向论证: 如果数据合成时<em>没遮蔽源页</em>,那 turn 1 直接命中 Vatican 原页 → 1 turn 答完;模型从此学不到 "改 query 加约束 + cross-verify"。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果与剖析</h2>
+
+<h3>8.1 主表 (节选)</h3>
+<table>
+  <tr><th>Model</th><th>Size</th><th>GAIA</th><th>Frames</th><th>WebWalker</th><th>Xbench-DS</th></tr>
+  <tr><td>Claude-4.5-Sonnet</td><td>?</td><td>71.2%</td><td>85.0%</td><td>—</td><td>66.0%</td></tr>
+  <tr><td>GPT-5-high</td><td>?</td><td>76.4%</td><td>—</td><td>—</td><td>77.8%</td></tr>
+  <tr><td>Tongyi DeepResearch</td><td>30B</td><td>70.9%</td><td>90.6%</td><td>72.2%</td><td>75.0%</td></tr>
+  <tr><td>WebSailor</td><td>30B</td><td>53.2%</td><td>—</td><td>—</td><td>53.3%</td></tr>
+  <tr><td>SFR-DeepResearch</td><td>?</td><td>66.0%</td><td>82.8%</td><td>—</td><td>—</td></tr>
+  <tr><td>AgentCPM-Explore</td><td>4B</td><td>63.9%</td><td>82.7%</td><td>68.1%</td><td>70.0%</td></tr>
+  <tr><td><strong>LiteResearcher</strong></td><td><strong>4B</strong></td><td><strong>71.3%</strong></td><td><strong>83.1%</strong></td><td><strong>72.7%</strong></td><td><strong>78.0%</strong></td></tr>
+</table>
+
+<p>读法: 4B 在 GAIA 上 <em>match</em> Claude-4.5-Sonnet,<em>超过</em> Tongyi 30B (70.9% → 71.3%);Xbench-DS 上 <em>78% 超过 GPT-5-high 的 77.8%</em>(开源最高)。WebWalker 上 72.7% 也压住 Tongyi 30B 的 72.2%。</p>
+
+<h3>8.2 SFT vs RL 拆解</h3>
+<p>论文的 SFT 用 Tongyi DeepResearch (30B) 当 teacher 蒸出 68K 条 trajectory。SFT 完成后 GAIA 只有 55.6% — <em>比老师本人 70.9% 低 15.3 个点</em>(典型 distillation gap)。然后 RL 训练把这条曲线推到 71.3%,反而<em>反超 teacher</em>。</p>
+
+<div class="nb">
+<strong>这里的论点很重要。</strong>它说明 4B 能赢 30B 的来源不是 "蒸馏 + 一点 RL 调优",而是 "RL 训练框架本身"。teacher 的能力在 SFT 后已经被压缩到 4B 容量上限,但 RL + 难度课程让 4B 在 deep research 这个特定能力空间里超越了它见过的 trajectory。</p>
+</div>
+
+<h3>8.3 4B 何以胜 30B —— 论文的 attribution</h3>
+<p>把所有 ablation 拼起来,论文的因果链是:</p>
+<ol>
+  <li><strong>数据多样性</strong>: 73% 自合成 (覆盖 5 atomic) vs WebSailor 那种结构化合成 (只覆盖 multi-hop) → +8.1% GAIA (Table 4: 58.7 → 66.8)</li>
+  <li><strong>本地稳定环境</strong>: 700 步 monotonic 提升 vs AgentCPM 在 live web 训只 +3.8% / 整体 63.9%</li>
+  <li><strong>严格 on-policy</strong>: +2.1% GAIA over off-policy (66.75 → 68.89)</li>
+  <li><strong>两阶段 curriculum</strong>: +3.6% GAIA over Stage 1 plateau</li>
+</ol>
+<p>合起来 ~+15.7% over SFT baseline。<em>没有一项是新算法;每一项都是工程/方法论的设计</em>。</p>
+
+<h3>8.4 "为什么不做 KL/entropy?"</h3>
+<p>这点论文一带而过但值得停一下: GRPO 默认有 KL 项约束 πθ ≈ π_ref。本文<em>显式去掉</em>。原因可能是: SFT init 已经离 base 很远,KL→ref 没意义;同时 outcome reward 噪声小、reward shaping 已由难度过滤替代,不需要 entropy 防 collapse。但这也意味着该 recipe 对 reward 设计非常敏感 — 没有 reward hacking 防护。</p>
+
+<h3>8.5 Long-context 是 4B 的真痛点</h3>
+<p>BrowseComp 任务 ~20+ 页/题,128K context 直接爆。论文用了一个<em>memory mechanism</em>: 64K 上限,撞限就调 summarization model 把每个旧 turn 压成一句话。这个 trick 把 BrowseComp 从 20.3% 推到 27.5%,但仍然弱于 30B 同行 (DeepSeek 67.6%)。<strong>模型容量在长 horizon 下确实是瓶颈</strong>—— 4B 能赢主要赢在 GAIA / Xbench 这种 ~10 turn 的中等长度任务。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>项</th><th>LiteResearcher</th><th>DR-Venus (sibling note)</th><th>SFR-DeepResearch</th><th>WebSailor v2</th><th>Tongyi DeepResearch</th></tr>
+  <tr><td>规模</td><td>4B</td><td>4B</td><td>未明指 (中等)</td><td>30B</td><td>30B</td></tr>
+  <tr><td>训练环境</td><td><strong>本地 32M 真页 mirror</strong></td><td>(见 sibling)</td><td>Online live web</td><td>Online + 合成图谱</td><td>Online live web</td></tr>
+  <tr><td>数据合成</td><td>Co-evolve corpus + 信源遮蔽</td><td>(见 sibling)</td><td>—</td><td>结构化 multi-hop graph</td><td>大规模合成</td></tr>
+  <tr><td>RL 算法</td><td>strict on-policy GRPO, 无 KL/entropy</td><td>(见 sibling)</td><td>GRPO 变体</td><td>GRPO</td><td>GRPO + 工程优化</td></tr>
+  <tr><td>课程</td><td>2 stage (32K→48K, 40→60 turn, T 0.7→1.0)</td><td>(见 sibling)</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>GAIA</td><td><strong>71.3%</strong></td><td>(见 sibling)</td><td>66.0%</td><td>53.2%</td><td>70.9%</td></tr>
+  <tr><td>关键 insight</td><td>环境稳定 + 数据 atomic 覆盖率</td><td>(见 sibling)</td><td>RL 单 agent 即可</td><td>合成图谱够用</td><td>scale + 工程</td></tr>
+</table>
+
+<p>对比要点:</p>
+<ul>
+  <li><strong>vs WebSailor</strong>: WebSailor 走的是"精心设计 multi-hop 合成图谱",本文反其道用"信源 scale + 简单合成"——结果 4B 反超 WebSailor 30B 接近 18 个点。这是论文最直接的 attribution。</li>
+  <li><strong>vs Tongyi 30B</strong>: 几乎是 8× 参数差,LiteResearcher 在 GAIA / WebWalker / Xbench 上全部追平或反超,只在 Frames (90.6 vs 83.1) 输 — Tongyi 工程优化和 scale 优势在长事实链上还在。</li>
+  <li><strong>vs SFR-DeepResearch</strong>: SFR 强调 "single agent + RL 就够",但其在 live web 训练,GAIA 66.0% 已经被本文 71.3% 拉开。</li>
+  <li><strong>vs AgentCPM-Explore</strong> (concurrent 4B baseline): 同样 4B,LiteResearcher 在所有 8 个 benchmark 全胜。AgentCPM 自己承认线上环境噪声让 RL 只 +3.8%,本文用本地环境实现 +15.7% — 这是两条工作的核心差异。</li>
+  <li><strong>vs DR-Venus</strong> (sibling note): 都是 4B 的 deep research 工作,角度互补 — 详见 <code>01_DR-Venus_2604.19859.html</code>。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>10.1 局限</h3>
+<ul>
+  <li><strong>Long-context 是硬伤。</strong>BrowseComp 27.5% 仍弱于 30B 同行;memory summarization 是补丁不是解决方案。</li>
+  <li><strong>"虚拟世界 ↔ live web"的迁移性论文只用 final benchmark 验证,没做 distribution shift 的细粒度分析</strong> — 比如 corpus 里没有的最新事件 (2025+) 上 policy 表现如何?</li>
+  <li><strong>无 KL / entropy 的 GRPO 对 reward 设计极敏感</strong>。本文 LLM judge (Qwen3-30B-A3B) 的判错率是多少?有没有可被 hack 的模式?论文未量化。</li>
+  <li><strong>BGE-M3 自身是 fixed retriever。</strong>训练中 retriever 不更新,长期会成 ceiling — 真 web 用 Google 时排序逻辑不同,本地 ranker 学到的"哪些 query phrasing 检索效果好"的 policy 未必迁移。</li>
+  <li><strong>$220 的 Serper 投资被宣传为"零成本"</strong>,但 corpus 扩张是离线一次性,如果要持续追加新内容(news / 时事题),边际成本会回来。</li>
+  <li><strong>5 个 atomic capability 的覆盖均衡度</strong>: 数据 ablation 只对比 "ours vs multi-hop only",没拆开 5 个能力哪个对哪个 benchmark 提升最大。</li>
+</ul>
+
+<h3>10.2 个人 take</h3>
+<ul>
+  <li>论文的"故事"对得上 SWE-RL 的成功 — <em>稳定的 sandbox 才让 RL scale</em>,不是新 RL 算法的功劳。Deep research 这个领域之前没 sandbox,所以一直没起来。</li>
+  <li>"page-level index"是个被低估的工程决策 — 它把"虚拟世界保真度"和"本地服务可行性"绑成一致,本质上是在主动选择"和真 search engine 行为同构"而非"检索精度最高"。</li>
+  <li>4B 反超 30B 的最强证据其实在 Table 9: SFT 后比 teacher 低 15 个点,RL 后高 0.4 个点 → RL 不是 "fine-tune teacher",是 "在 4B 能力空间内独立学到一种更紧凑的 policy"。这一点对 model-size scaling law 是个反例。</li>
+  <li>对 plane 上离线读者: 这篇值得抄的不是哪一行公式,是它的<em>3-pillar 工程思路</em> — co-construct data/corpus、page-level mirror、curriculum-pass@K 过滤。这套设计模式可以直接迁移到 coding / scientific research / 客服等其他需要 deep tool-use 的 domain。</li>
+</ul>
+
+<h3>10.3 待验证问题</h3>
+<ol>
+  <li>把 corpus 扩到 100M+ 页(覆盖更多 long-tail domain)会继续涨吗,还是 4B 容量 saturate?</li>
+  <li>把 Stage 2 之后再加 Stage 3 (64K context, 80 turns) 还会涨吗?Stage 1→2 +3.6% 之后是否进入新平台?</li>
+  <li>retriever (BGE-M3) 也加到 RL 训练循环里(joint 学 retriever),效果会怎样?</li>
+  <li>5 个 atomic capability 的<em>独立</em> ablation: 只去掉 enumeration 数据,enumeration benchmark 掉多少?</li>
+  <li>"信源遮蔽"的强度可调吗?如果只删一半源页,corpus shortcut 与多样性的 trade-off 在哪?</li>
+  <li>把 LiteResearcher 的本地 tool 直接接到现有的 Search-R1 / WebSailor 上做 RL,能不能等比例提升?换言之,"环境"和"模型"的解耦程度。</li>
+  <li>LLM judge 改成基于 exact match / multiple-choice 后,reward variance 会怎么变?on-policy 是否还稳?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec11">11 · 记忆点 (Memory points)</h2>
+
+<div class="kv"><span class="pill">立场</span> <strong>环境而非算法</strong>: deep research RL 之前不 scale,瓶颈是 live web 噪声 + 成本,不是 GRPO 不行。</div>
+<div class="kv"><span class="pill">核心招</span> <strong>Lite Virtual World</strong>: 32M 真实网页 + 页级 BGE-M3 索引 + Postgres browse → 0 边际成本、10–46× 加速。</div>
+<div class="kv"><span class="pill">数据招</span> <strong>Co-construct + 信源遮蔽</strong>: 抽 QA 后从 corpus 删源页,逼出 aggregation/cross-verify 等 atomic capability。</div>
+<div class="kv"><span class="pill">课程招</span> <strong>pass@8 1≤c≤7 + 三轴升档</strong>: response length / max turns / temperature 同时升,确保 group advantage 永不为 0。</div>
+<div class="kv"><span class="pill">算法招</span> <strong>strict on-policy GRPO,无 KL/entropy</strong>: long-horizon trajectory 上 policy lag 累积,off-policy 反而后期掉点。</div>
+<div class="kv"><span class="pill">工程数字</span> 73.2M tool calls / 700 steps · 32K→48K context · K=8 rollouts/query · global batch 128 · lr 1e-6.</div>
+<div class="kv"><span class="pill">主结果</span> Qwen3-4B-Thinking 起步 → SFT 55.6% → RL <strong>71.3% GAIA / 78.0% Xbench</strong>,反超 Tongyi 30B、match Claude-4.5。</div>
+<div class="kv"><span class="pill">最弱处</span> BrowseComp (深度浏览链 20+ 页) 27.5%,memory summarization 是补丁,长 context 仍是 4B 瓶颈。</div>
+<div class="kv"><span class="pill">对照</span> See also <code>01_DR-Venus_2604.19859.html</code> — 同期另一条 4B deep research 路线,数据/算法侧的互补视角。</div>
+
+</main>
+</body>
+</html>

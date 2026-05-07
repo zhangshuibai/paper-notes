@@ -1,8 +1,8 @@
 # Paper Notes — 中文精读笔记合集
 
-离线可读的中文精读笔记 + 论文 PDF。两个主题分别放在子目录里。
+离线可读的中文精读笔记 + 论文 PDF。三个主题分别放在子目录里。
 
-## 🔵 spec-rl/ — Speculative Decoding × RL (6 篇)
+## 🔵 spec-rl/ — Speculative Decoding × RL (8 篇)
 
 | # | 笔记 | 主题 | 大小 |
 |---|---|---|---|
@@ -12,13 +12,12 @@
 | 04 | [ReSpec](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/04_ReSpec_2510.26475.html) | 三个 gap + reward-weighted KD | 50 KB |
 | 05 | [DAS](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/05_DAS_2511.13841.html) | suffix tree + length-aware budget | 40 KB |
 | 06 | [SRT](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/06_SRT_2601.09083.html) | per-prompt token-frequency trie + run-ahead | 40 KB |
-| 07 | [DFlash 详细版](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/07_DFlash_2602.06036.html) | 块扩散 drafter / 5 层 K/V 注入 / EAGLE-3 范式分叉(深度版) | 80 KB |
+| 07 | [DFlash 详细版](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/07_DFlash_2602.06036.html) | 块扩散 drafter / 5 层 K/V 注入 / EAGLE-3 范式分叉 | 80 KB |
+| 08 | [Hidden States Drift](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/08_HiddenStatesDrift_2604.26412.html) | KV-only reuse vs hidden reuse / KVShot 框架 | 52 KB |
 
-建议阅读顺序: **02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT)**
+建议阅读顺序: **02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift)**
 
-ReSpec 三个 gap 分析最系统;SPEC-RL 思路最简洁;DAS suffix tree + length-aware budget 工程最优雅;NVIDIA 是产品级集成;SRT 最 niche(model-free + 利用 long-tail bubble)。
-
-## 🟡 models/ — 前沿模型 / 训练系统技术报告 (8 篇)
+## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (13 篇)
 
 | # | 笔记 | 主题 | 大小 |
 |---|---|---|---|
@@ -30,12 +29,26 @@ ReSpec 三个 gap 分析最系统;SPEC-RL 思路最简洁;DAS suffix tree + leng
 | 06 | [Kimi K2.5](https://zhangshuibai.github.io/paper-notes/models/notes/06_KimiK2.5_2602.02276.html) | 多模态 agentic / Agent Swarm / PARL | 53 KB |
 | 07 | [INTELLECT-2](https://zhangshuibai.github.io/paper-notes/models/notes/07_INTELLECT2_2505.07291.html) | 全球去中心化 RL / PRIME-RL / TOPLOC / SHARDCAST | 59 KB |
 | 08 | [INTELLECT-3](https://zhangshuibai.github.io/paper-notes/models/notes/08_INTELLECT3_2512.16144.html) | 106B MoE agentic RL / prime-rl 三件套 / IcePop | 57 KB |
+| 09 | [OmniHuman 1.5](https://zhangshuibai.github.io/paper-notes/models/notes/09_OmniHuman1.5_2508.19209.html) | 数字人 / Sys1+Sys2 / Pseudo Last Frame | 48 KB |
+| 10 | [TOP](https://zhangshuibai.github.io/paper-notes/models/notes/10_TOP_2508.19228.html) | Token Order Prediction / learning-to-rank LM 损失 | 48 KB |
+| 11 | [TIDE](https://zhangshuibai.github.io/paper-notes/models/notes/11_TIDE_2604.26951.html) | 跨架构 dLLM 蒸馏 / TIDAL+CompDemo+Reverse CALM | 51 KB |
+| 12 | [NCP / ConceptLM](https://zhangshuibai.github.io/paper-notes/models/notes/12_NCP_2602.08984.html) | Next Concept Prediction / VQ 离散 latent | 50 KB |
+| 13 | [LongLLaDA](https://zhangshuibai.github.io/paper-notes/models/notes/13_LongLLaDA_2506.14429.html) | 扩散 LLM 长上下文 / NTK-RoPE training-free | 46 KB |
 
 ### INTELLECT 系列阅读建议
 
 I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC + SHARDCAST) → I-3 (**agentic RL** on top of GLM-4.5-Air-Base / 务实转向)。
 
 三代叙事曲线: 从证明跨地理预训练可行,到证明跨地理 RL 可信,到放弃 from-scratch 而转向 agentic 实用。
+
+## 🟢 agents/ — Agent 训练 / 环境 / 内存 (4 篇)
+
+| # | 笔记 | 主题 | 大小 |
+|---|---|---|---|
+| 01 | [DR-Venus](https://zhangshuibai.github.io/paper-notes/agents/notes/01_DR-Venus_2604.19859.html) | 4B 边缘部署 deep research agent / IGPO + 信息增益 reward | 52 KB |
+| 02 | [LiteResearcher](https://zhangshuibai.github.io/paper-notes/agents/notes/02_LiteResearcher_2604.17931.html) | Lite 虚拟 Web 世界 / 4B GAIA 71.3% 反超 30B | 50 KB |
+| 03 | [Agent-World](https://zhangshuibai.github.io/paper-notes/agents/notes/03_AgentWorld_2604.18292.html) | 1,978 真实环境 / 19,822 工具 / self-evolving arena | 60 KB |
+| 04 | [MemPalace 审视](https://zhangshuibai.github.io/paper-notes/agents/notes/04_MemPalace_2604.21284.html) | 空间隐喻 LLM 内存的批判分析 / 96.6% 主要来自哪 | 52 KB |
 
 ## 论文清单 (按时间)
 
@@ -52,8 +65,9 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | SRT | — | 2026-01 | [2601.09083](https://arxiv.org/abs/2601.09083) |
 | DFlash | — | 2026-02 | [2602.06036](https://arxiv.org/abs/2602.06036) |
 | NVIDIA NeMo-RL + EAGLE-3 | NVIDIA | 2026-04 | [2604.26779](https://arxiv.org/abs/2604.26779) |
+| Hidden States Drift (KVShot) | — | 2026-04 | [2604.26412](https://arxiv.org/abs/2604.26412) |
 
-### 前沿模型 / 训练系统
+### 前沿模型 / 训练系统 / LM 方法
 
 | 论文 | 团队 | 日期 | arXiv |
 |---|---|---|---|
@@ -61,10 +75,24 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | MiniMax-01 | MiniMax | 2025-01 | [2501.08313](https://arxiv.org/abs/2501.08313) |
 | INTELLECT-2 | Prime Intellect | 2025-05 | [2505.07291](https://arxiv.org/abs/2505.07291) |
 | MiniMax-M1 | MiniMax | 2025-06 | [2506.13585](https://arxiv.org/abs/2506.13585) |
+| LongLLaDA | OpenMOSS / SJTU | 2025-06 | [2506.14429](https://arxiv.org/abs/2506.14429) |
+| OmniHuman 1.5 | ByteDance | 2025-08 | [2508.19209](https://arxiv.org/abs/2508.19209) |
+| TOP | Zuhri et al | 2025-08 | [2508.19228](https://arxiv.org/abs/2508.19228) |
 | INTELLECT-3 | Prime Intellect | 2025-12 | [2512.16144](https://arxiv.org/abs/2512.16144) |
 | MiMo-V2-Flash | Xiaomi LLM-Core | 2026-01 | [2601.02780](https://arxiv.org/abs/2601.02780) |
 | MARS | gradient + 港大 + McGill 等 | 2026-01 | [2601.15498](https://arxiv.org/abs/2601.15498) |
+| NCP / ConceptLM | — | 2026-02 | [2602.08984](https://arxiv.org/abs/2602.08984) |
 | Kimi K2.5 | Kimi Team | 2026-02 | [2602.02276](https://arxiv.org/abs/2602.02276) |
+| TIDE | PKU YuanGroup | 2026-04 | [2604.26951](https://arxiv.org/abs/2604.26951) |
+
+### Agent 训练 / 环境 / 内存
+
+| 论文 | 团队 | 日期 | arXiv |
+|---|---|---|---|
+| LiteResearcher | — | 2026-04 | [2604.17931](https://arxiv.org/abs/2604.17931) |
+| Agent-World | — | 2026-04 | [2604.18292](https://arxiv.org/abs/2604.18292) |
+| DR-Venus | inclusionAI | 2026-04 | [2604.19859](https://arxiv.org/abs/2604.19859) |
+| MemPalace 审视 | — | 2026-04 | [2604.21284](https://arxiv.org/abs/2604.21284) |
 
 ## 设计原则
 
@@ -78,10 +106,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 ```
 .
 ├── README.md
-├── spec-rl/                              # Speculative decoding × RL
-│   ├── *.pdf (9 篇)
-│   └── notes/ (6 个 HTML)
-└── models/                               # 前沿模型 / 训练系统
-    ├── *.pdf (8 篇)
-    └── notes/ (8 个 HTML)
+├── spec-rl/        # Speculative decoding × RL  — 10 PDFs / 8 HTML
+├── models/         # 前沿模型 / 训练系统 / LM 方法 — 14 PDFs / 13 HTML
+└── agents/         # Agent 训练 / 环境 / 内存    — 4 PDFs / 4 HTML
 ```

@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · TIDE: Cross-Architecture Distillation for dLLMs (2604.26951)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Turning the TIDE: Cross-Architecture Distillation for Diffusion Large Language Models</h1>
+<div class="meta">
+  PKU YuanGroup · Gongbo Zhang, Wen Wang, Ye Tian, Li Yuan · 2026-04-29 · arXiv:2604.26951<br>
+  关键词: dLLM · Knowledge Distillation · cross-architecture · cross-tokenizer · BD3LM · LLaDA2 · WeDLM
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>第一个把 8B/16B dLLM 教师跨架构、跨 tokenizer 蒸到 0.6B dLLM 学生的框架。三个解耦组件:<em>TIDAL</em>(timestep × training 进度双轴 λ)、<em>CompDemo</em>(互补掩码二次前向)、<em>Reverse CALM</em>(反向 chunk-BCE,梯度有界)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">+1.53</div><div class="l">8 benchmark 平均提升</div></div>
+    <div class="stat"><div class="n">48.78</div><div class="l">HumanEval (vs AR 32.30)</div></div>
+    <div class="stat"><div class="n">22×</div><div class="l">vs 16B 教师 内存压缩</div></div>
+  </div>
+  <p><strong>立场:</strong>把"AR-KD 老问题"(MiniLLM/DistillBERT/TAID)系统地搬到 dLLM,但<em>不是直接套</em>——三个组件各自针对 dLLM 独有的"timestep 不可靠 / 重度掩码贫信号 / vocabulary 错位"三个 bug。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 dLLM 需要跨架构 KD</a></li>
+    <li><a href="#sec2">背景速查 (dLLM / BD3LM / CALM 等)</a></li>
+    <li><a href="#sec3">总览:三个组件的角色分工</a></li>
+    <li><a href="#sec4">TIDAL — 双轴 λ 调度</a></li>
+    <li><a href="#sec5">CompDemo — 互补掩码二次前向</a></li>
+    <li><a href="#sec6">Reverse CALM — 反向 chunk BCE</a></li>
+    <li><a href="#sec7">实验关键结果与读图</a></li>
+    <li><a href="#sec8">为什么 HumanEval 涨幅最大?</a></li>
+    <li><a href="#sec9">与同类工作对比 (DistilBERT / MiniLM / dLLM-KD / EAGLE-3)</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 dLLM 需要跨架构 KD</h2>
+
+<h3>1.1 历史脉络:dLLM 的"规模诅咒"</h3>
+<p>Diffusion language model (dLLM) 这条线,从 D3PM (2021) → MDLM (2024) 到最近的 LLaDA / Dream / WeDLM,走的是一条"<em>用 iterative denoising 替代左到右 AR</em>"的路。它的卖点是<strong>双向 context + 并行 decoding</strong>——对 code、structured generation 这种"全局一致性"任务理论上更友好。</p>
+<p>但有个尴尬现实: 想拿到 SOTA 必须烧到 8B 起步。具体看:</p>
+<ul>
+  <li>LLaDA-8B / Dream-7B → 至少 8B,LLaDA 2.0 已经冲到 100B</li>
+  <li>WeDLM-8B-Instruct → 8B dense,15.5 GB 显存</li>
+  <li>LLaDA2.0-mini → 16B MoE,31.3 GB 显存,生成 7.8 tokens/s</li>
+</ul>
+<p>对比同尺寸的 AR Qwen3-0.6B (1.2 GB / 51 tokens/s),<strong>dLLM 在小尺寸上一直没竞争力</strong>。0.6B 的 BD3LM 平均分只有 32.67,被 0.6B AR 的 40.91 甩开 8 分。这是部署侧的硬墙。</p>
+<p>2024–2026 年同期,AR 阵营已经把 KD 玩成熟了:DistilBERT (2019)、MiniLM (2020)、MiniLLM (2024)、DistiLLM、GKD (2024)、TAID (2025)。<em>TAID 那条"逐步把 target 从 student 拉到 teacher"</em>的渐进路线特别有启发性,但它只活在 AR 世界。</p>
+
+<h3>1.2 为什么"跨架构 KD"是自然解法?— 别的方案为什么不够</h3>
+
+<table>
+  <tr><th>方案</th><th>核心动作</th><th>对 dLLM 0.6B 的代价</th></tr>
+  <tr><td>从头训一个 0.6B dLLM</td><td>纯 SFT,不用教师</td><td><span class="no">就是那个 32.67 baseline,瓶颈没破</span></td></tr>
+  <tr><td>同架构 step distillation (CDLM, DDD, LSD, SDTT)</td><td>同一个 model,只压<em>denoising 步数</em></td><td><span class="no">不缩参数量,16B 还是 16B</span></td></tr>
+  <tr><td>把 8B AR 蒸到 0.6B AR (MiniLLM, GKD)</td><td>AR-to-AR token KL</td><td><span class="no">学生还是 AR,丢掉了 dLLM 的并行/双向优势</span></td></tr>
+  <tr><td>从 dLLM 教师蒸到 dLLM 学生 + <em>不同架构</em></td><td>本文 TIDE</td><td><span class="ok">同时拿到 dLLM 性质 + 小尺寸</span></td></tr>
+</table>
+
+<p>关键洞察: dLLM 社区已有的 KD 方法<strong>全部假设 teacher = student</strong>,只在 step 维度做压缩。这是"多走几步等价于多调几次"的物理观点。但 deployment 真正的痛点是<em>参数量</em>(决定显存 / 移动端可达性),不是 step 数。</p>
+
+<h3>1.3 为什么这事不平凡 — dLLM 跨架构 KD 的三个独有难点</h3>
+
+<p>把"AR 的 KL-distillation 直接套到 dLLM"会撞上 AR 世界根本不存在的三堵墙。论文把这三堵墙总结为<em>temporal / spatial / vocabulary</em> barriers,我把它翻译成更工程的语言:</p>
+
+<h4>难点 ①: Teacher 的可靠性随 timestep 剧烈变化(temporal)</h4>
+<p>dLLM 训练时 timestep <code>t ∈ [ε, 1)</code> 是<strong>随机采样</strong>的。<code>t ≈ 0</code> 时几乎不掩码,教师看着完整句子做预测,可靠;<code>t ≈ 1</code> 时几乎全掩码,教师就是<em>瞎猜</em>。如果学生一视同仁地 mimic 教师,在高 t 这一片段实际上是在学噪声。</p>
+<p>AR 世界没这个问题——AR 教师永远看到完整 left context,可靠性恒定。</p>
+
+<h4>难点 ②: 重度掩码下的 spatial 信号贫乏(spatial)</h4>
+<p>就算我们只在低 t 区间蒸,中等 t (e.g. 0.5) 时教师看到一半掩码 [M]、一半 token,产出的 logits 仍然<em>抖</em>。教师自己也是在猜——"这个被掩盖位置应该是 ya 还是 sé?"它给的 distribution 信息含量低,蒸不出什么 spatial knowledge。</p>
+
+<h4>难点 ③: 不同 tokenizer 让 token-level KL 数学上不存在(vocabulary)</h4>
+<p>LLaDA2 用 Ling-series 的 V_T,BD3LM/Qwen3 用 Qwen 的 V_S。两个词表不同 → 同一个文本被切成不同 token 序列、不同长度、连<strong>分布的支撑集都不同</strong>。<code>KL(p_T || p_S)</code> 的两个分布根本不在同一个空间,这是 type error,不是数值精度问题。</p>
+
+<div class="nb">
+<strong>论文的解题策略很干净:</strong>三个组件 = 三个独立 patch:
+TIDAL 修 ① temporal · CompDemo 修 ② spatial · Reverse CALM 修 ③ vocabulary。
+模块解耦,任意 pipeline 可以挑组合。同 tokenizer 的就不用 Reverse CALM,跨 tokenizer 的就不用 TIDAL+CompDemo(实验证实)。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">dLLM</span></td><td>Diffusion language model: 通过迭代 denoising 一个全 mask 序列来生成文本</td></tr>
+  <tr><td><span class="term">Diffusion timestep t</span></td><td>t ∈ [0, 1),掩码比例。t=1 几乎全掩码,t=0 几乎不掩码</td></tr>
+  <tr><td><span class="term">[MASK] token</span></td><td>占位符;dLLM 在这些位置做预测</td></tr>
+  <tr><td><span class="term">BD3LM</span></td><td>Block diffusion: AR 与 diffusion 之间插值,按 block 内部 bidirectional、block 之间 AR</td></tr>
+  <tr><td><span class="term">LLaDA / LLaDA2</span></td><td>Ant + Renmin Univ. 的大尺寸 dLLM;LLaDA2.0-mini 是 16B MoE</td></tr>
+  <tr><td><span class="term">WeDLM-8B</span></td><td>8B dense dLLM,从 Qwen3-8B-Base 初始化(因此与 BD3LM 学生<em>同 tokenizer</em>)</td></tr>
+  <tr><td><span class="term">CALM / ALM</span></td><td>Chunk-level / Approximate Likelihood Matching: 跨 tokenizer KD 的对齐技术</td></tr>
+  <tr><td><span class="term">tokenkit</span></td><td>Minixhofer 的工具,做 byte-level chunk 对齐</td></tr>
+  <tr><td><span class="term">TAID</span></td><td>"Temporally Adaptive Interpolated Distillation" — 用 (1-λ)·s + λ·t 插值 target,λ 沿 training 进度走 — 本文 TIDAL 是它的 dLLM 扩展</td></tr>
+  <tr><td><span class="term">mode-covering / mode-seeking</span></td><td>KL(p||q) 是 mode-covering(q 要覆盖 p 所有 mode);KL(q||p) 是 mode-seeking(q 集中到一个 mode)</td></tr>
+  <tr><td><span class="term">forward / reverse BCE</span></td><td>BCE(p_t || p_s) vs BCE(p_s || p_t):谁是"真值",谁是"被训"</td></tr>
+</table>
+
+<h3>2.2 dLLM 训练流程速复习</h3>
+<ol>
+  <li>从 dataset 取 clean sequence x = (x₁, ..., x_L)</li>
+  <li>采样 timestep t ∈ [ε, 1)</li>
+  <li>按比例 t 随机掩码 → x_t,被掩位置集合 M</li>
+  <li>模型 forward x_t,只在 M 位置 log-softmax 预测原 token</li>
+  <li>Loss = CE(model_prediction[M], x[M]) — 即只在 mask 位置算交叉熵</li>
+</ol>
+<p>蒸馏额外: 教师 forward 同样的 x_t,产出 logits;学生不仅匹配 ground-truth,还匹配教师 logits。"什么时候、用谁的 logits、怎么算 loss"就是本文要解决的三个问题。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 总览:三个组件的角色分工</h2>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- pipeline horizontal -->
+    <!-- input -->
+    <rect x="20" y="150" width="100" height="60" rx="8" fill="#fff" stroke="#888"/>
+    <text x="70" y="178" text-anchor="middle" font-size="12" font-weight="600">x_t</text>
+    <text x="70" y="196" text-anchor="middle" font-size="10" fill="#5b5e66">noised input</text>
+
+    <!-- TIDAL block -->
+    <rect x="150" y="20" width="180" height="100" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="240" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6feb">① TIDAL</text>
+    <text x="240" y="66" text-anchor="middle" font-size="11" fill="#3a3b40">when to learn</text>
+    <text x="240" y="84" text-anchor="middle" font-size="10" fill="#5b5e66">λ_t = λ_train × (1−t)</text>
+    <text x="240" y="100" text-anchor="middle" font-size="10" fill="#5b5e66">timestep × progress</text>
+    <text x="240" y="115" text-anchor="middle" font-size="10" fill="#cc4a1b">→ 修 temporal bug</text>
+
+    <!-- CompDemo block -->
+    <rect x="150" y="135" width="180" height="100" rx="10" fill="#fff3cd" stroke="#d2a32a" stroke-width="1.5"/>
+    <text x="240" y="161" text-anchor="middle" font-size="13" font-weight="700" fill="#cc4a1b">② CompDemo</text>
+    <text x="240" y="181" text-anchor="middle" font-size="11" fill="#3a3b40">what context</text>
+    <text x="240" y="199" text-anchor="middle" font-size="10" fill="#5b5e66">M = M_A ⊔ M_B</text>
+    <text x="240" y="215" text-anchor="middle" font-size="10" fill="#5b5e66">2× teacher forward</text>
+    <text x="240" y="230" text-anchor="middle" font-size="10" fill="#cc4a1b">→ 修 spatial bug</text>
+
+    <!-- Reverse CALM block -->
+    <rect x="150" y="250" width="180" height="100" rx="10" fill="#f8d7da" stroke="#a8353e" stroke-width="1.5"/>
+    <text x="240" y="276" text-anchor="middle" font-size="13" font-weight="700" fill="#a8353e">③ Reverse CALM</text>
+    <text x="240" y="296" text-anchor="middle" font-size="11" fill="#3a3b40">how to project</text>
+    <text x="240" y="314" text-anchor="middle" font-size="10" fill="#5b5e66">BCE(p_s || p_t)</text>
+    <text x="240" y="330" text-anchor="middle" font-size="10" fill="#5b5e66">bounded gradient</text>
+    <text x="240" y="345" text-anchor="middle" font-size="10" fill="#cc4a1b">→ 修 vocabulary bug</text>
+
+    <!-- arrows from input to each -->
+    <line x1="120" y1="180" x2="150" y2="70" stroke="#888" stroke-dasharray="3,2"/>
+    <line x1="120" y1="180" x2="150" y2="180" stroke="#888"/>
+    <line x1="120" y1="180" x2="150" y2="295" stroke="#888" stroke-dasharray="3,2"/>
+
+    <!-- combined into student loss -->
+    <rect x="430" y="135" width="160" height="90" rx="10" fill="#e8f5e9" stroke="#1f7a4a" stroke-width="1.5"/>
+    <text x="510" y="160" text-anchor="middle" font-size="13" font-weight="700" fill="#1f7a4a">Student Loss</text>
+    <text x="510" y="180" text-anchor="middle" font-size="11" fill="#3a3b40">L_CE + w · L_dist</text>
+    <text x="510" y="200" text-anchor="middle" font-size="10" fill="#5b5e66">(at masked positions)</text>
+    <text x="510" y="216" text-anchor="middle" font-size="10" fill="#5b5e66">→ 0.6B BD3LM 学生</text>
+
+    <!-- arrows from each block to loss -->
+    <line x1="330" y1="70" x2="430" y2="160" stroke="#2f6feb" stroke-width="1.5" marker-end="url(#arrM)"/>
+    <line x1="330" y1="185" x2="430" y2="180" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#arrM)"/>
+    <line x1="330" y1="295" x2="430" y2="200" stroke="#a8353e" stroke-width="1.5" marker-end="url(#arrM)"/>
+
+    <!-- output -->
+    <rect x="620" y="150" width="80" height="60" rx="8" fill="#fff" stroke="#888"/>
+    <text x="660" y="178" text-anchor="middle" font-size="12" font-weight="600">∇θ_S</text>
+    <text x="660" y="196" text-anchor="middle" font-size="10" fill="#5b5e66">student grad</text>
+    <line x1="590" y1="180" x2="620" y2="180" stroke="#888" marker-end="url(#arrM)"/>
+
+    <defs>
+      <marker id="arrM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>三个组件的解耦关系。TIDAL 决定<em>什么时候</em>多听教师(low t、训练后期);CompDemo 给教师补 context 让它<em>说点有用的</em>;Reverse CALM 提供一个跨 tokenizer 也能算的代理 loss。三者可以独立开关——同 tokenizer 不需要 ③,跨 tokenizer 论文实验里发现 ① ② 反而起反作用(后面 §6 解释)。</figcaption>
+</div>
+
+<p>从 pipeline 角度看,论文做了两条 pipeline 的实验:</p>
+<ul>
+  <li><strong>Pipeline A (cross-tokenizer):</strong> LLaDA2.0-mini (16B MoE, Ling tokenizer) → BD3LM-0.6B (Qwen tokenizer)。<em>必须</em>用 Reverse CALM。最佳配置 = baseline CALM + Reverse,<em>不</em>开 TIDAL+CompDemo。</li>
+  <li><strong>Pipeline B (shared-tokenizer):</strong> WeDLM-8B (Qwen tokenizer) → BD3LM-0.6B (Qwen tokenizer)。直接 token-level KL 即可。最佳 = TIDAL + CompDemo,<em>不</em>需要 Reverse(没 cross-tokenizer 不稳定问题)。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec4">4 · TIDAL — Time-Iteration Dual-Axis Lambda 双轴调度</h2>
+
+<h3>4.1 问题再叙述</h3>
+<p>TAID (Shing 2025, AR-only) 提出一个干净的想法:学生不要直接 mimic 教师,而是 mimic 一个"<em>插值 target</em>" <code>r = (1−λ)·s + λ·t</code>。λ 从训练开始的 ~0.1 慢慢升到 ~0.9,等价于"先让学生信自己,再慢慢把自信交给教师"——避免训练早期学生还很弱时被教师强行带跑造成 representation collapse。</p>
+
+<p>把 TAID 直接套到 dLLM 的问题: <strong>λ 只沿 training-progress 一个轴变,不感知 timestep</strong>。dLLM 里有些 batch 是 t=0.05(教师可靠),有些是 t=0.95(教师瞎猜),用同一个 λ 对待是错的。</p>
+
+<h3>4.2 TIDAL 的双轴公式</h3>
+<div class="formula">λ_t = λ_train × (1 − t)</div>
+<div class="formula">λ_train = λ_init + (λ_max − λ_init) × ½ (1 − cos(π·p))</div>
+
+<p>解读:</p>
+<ul>
+  <li>第二式 — λ_train 沿 training progress p ∈ [0,1] 走 cosine schedule,从 0.1 升到 0.9。这是 TAID 的部分。</li>
+  <li>第一式 — 再乘以 (1−t)。t 越大(掩码越重)、教师越不可靠,(1−t) 越小,λ_t 越小,target 越靠学生自己。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 600 320" width="100%" style="max-width:580px">
+    <!-- title -->
+    <text x="300" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">TIDAL: λ_t 沿两个轴的曲面</text>
+
+    <!-- x axis: t -->
+    <line x1="60" y1="270" x2="540" y2="270" stroke="#888"/>
+    <text x="300" y="295" text-anchor="middle" font-size="11" fill="#5b5e66">diffusion timestep t (0 = 不掩码 → 1 = 全掩码)</text>
+
+    <!-- y axis: λ_t -->
+    <line x1="60" y1="40" x2="60" y2="270" stroke="#888"/>
+    <text x="20" y="155" font-size="11" fill="#5b5e66" transform="rotate(-90 20 155)">λ_t (教师权重)</text>
+
+    <!-- horizontal grid -->
+    <line x1="60" y1="80" x2="540" y2="80" stroke="#eee"/>
+    <line x1="60" y1="120" x2="540" y2="120" stroke="#eee"/>
+    <line x1="60" y1="160" x2="540" y2="160" stroke="#eee"/>
+    <line x1="60" y1="200" x2="540" y2="200" stroke="#eee"/>
+    <line x1="60" y1="240" x2="540" y2="240" stroke="#eee"/>
+
+    <!-- y labels -->
+    <text x="55" y="84" text-anchor="end" font-size="10" fill="#5b5e66">0.9</text>
+    <text x="55" y="124" text-anchor="end" font-size="10" fill="#5b5e66">0.7</text>
+    <text x="55" y="164" text-anchor="end" font-size="10" fill="#5b5e66">0.5</text>
+    <text x="55" y="204" text-anchor="end" font-size="10" fill="#5b5e66">0.3</text>
+    <text x="55" y="244" text-anchor="end" font-size="10" fill="#5b5e66">0.1</text>
+
+    <!-- x labels -->
+    <text x="60" y="285" text-anchor="middle" font-size="10" fill="#5b5e66">0</text>
+    <text x="180" y="285" text-anchor="middle" font-size="10" fill="#5b5e66">0.25</text>
+    <text x="300" y="285" text-anchor="middle" font-size="10" fill="#5b5e66">0.5</text>
+    <text x="420" y="285" text-anchor="middle" font-size="10" fill="#5b5e66">0.75</text>
+    <text x="540" y="285" text-anchor="middle" font-size="10" fill="#5b5e66">1.0</text>
+
+    <!-- p=0.1 curve λ_train=0.14 → λ_t = 0.14*(1-t) -->
+    <path d="M 60 248 L 540 264" stroke="#bcc3d6" stroke-width="2" fill="none"/>
+    <text x="555" y="266" font-size="10" fill="#bcc3d6">p=0.1</text>
+
+    <!-- p=0.5 curve λ_train=0.5 → λ_t = 0.5*(1-t)  starts λ=0.5 (at y=160) ends 0 (270) -->
+    <path d="M 60 160 L 540 270" stroke="#9aa6c4" stroke-width="2" fill="none"/>
+    <text x="555" y="272" font-size="10" fill="#9aa6c4">p=0.5</text>
+
+    <!-- p=0.9 curve λ_train=0.86 → λ_t = 0.86*(1-t) -->
+    <path d="M 60 88 L 540 270" stroke="#2f6feb" stroke-width="2.5" fill="none"/>
+    <text x="555" y="92" font-size="10" fill="#2f6feb">p=0.9</text>
+
+    <!-- annotation: high t = small λ_t -->
+    <rect x="380" y="50" width="155" height="42" fill="#fff3cd" stroke="#d2a32a" rx="5"/>
+    <text x="457" y="68" text-anchor="middle" font-size="10.5" fill="#cc4a1b">t→1: 教师瞎猜</text>
+    <text x="457" y="84" text-anchor="middle" font-size="10.5" fill="#cc4a1b">→ λ_t→0, 不蒸</text>
+
+    <rect x="80" y="50" width="155" height="42" fill="#e8f5e9" stroke="#1f7a4a" rx="5"/>
+    <text x="158" y="68" text-anchor="middle" font-size="10.5" fill="#1f7a4a">t→0: 教师可靠</text>
+    <text x="158" y="84" text-anchor="middle" font-size="10.5" fill="#1f7a4a">→ λ_t→λ_train</text>
+
+    <!-- midrange weight w(t) Gaussian shading -->
+    <path d="M 60 270 Q 180 270 240 240 Q 300 215 360 240 Q 480 270 540 270 Z" fill="#cc4a1b" opacity="0.08"/>
+    <text x="300" y="225" text-anchor="middle" font-size="10" fill="#cc4a1b" font-style="italic">可选 w(t)=exp(−(t−0.5)²/(2·0.15²)) 强调中段</text>
+  </svg>
+  <figcaption>三条曲线对应训练早期 (p=0.1)、中期 (p=0.5)、后期 (p=0.9)。每条线沿 t 单调下降,t=1 处一律为 0(不蒸)。后期训练 + 低噪声(左上)是教师权重最高的 sweet spot。背景的 Gaussian 阴影展示 optional 的 midrange weight w(t),用 σ=0.15 加权 t≈0.5 附近。</figcaption>
+</div>
+
+<h3>4.3 公式细节: Loss</h3>
+<div class="formula">r_t = softmax((1−λ_t)·s + λ_t·t / T) — detached</div>
+<div class="formula">L_TIDAL = D_KL( r_t || softmax(s/T) ) × T²</div>
+
+<p>注意几点:</p>
+<ul>
+  <li>r_t 走 <code>.detach()</code>:保证梯度只通过 student logits 反传(防止"间接更新教师"或者引入虚假梯度路径)</li>
+  <li><code>× T²</code>:Hinton 经典 KD 的温度补偿,使得不同 T 下梯度量级一致</li>
+  <li>只在 mask 位置算 — dLLM 的 standard 做法</li>
+</ul>
+
+<h3>4.4 Worked example: 一个具体 token 的 λ_t 计算</h3>
+<p>训练第 5000 step / 共 50000 step,所以 p = 0.1 → λ_train = 0.1 + (0.9−0.1) × ½(1−cos(0.1π)) ≈ 0.1 + 0.8×0.024 ≈ <strong>0.119</strong>。</p>
+<p>本 batch 采样到 t = 0.3(掩码 30%)。所以 λ_t = 0.119 × (1−0.3) = <strong>0.083</strong>。</p>
+<p>假设某 mask 位置(原 token 是"是"):</p>
+<ul>
+  <li>student logits s 给出: {"是": 0.4, "为": 0.2, "在": 0.15, ...}</li>
+  <li>teacher logits t 给出: {"是": 0.85, "为": 0.05, "在": 0.04, ...}</li>
+  <li>插值 target r = softmax( 0.917 × s + 0.083 × t ),"是" 概率 ≈ 0.4×0.917 + 0.85×0.083 ≈ 0.437</li>
+</ul>
+<p>这时学生几乎完全 mimic 自己当前预测,只被教师轻轻"拽"了一点。这正是 p=0.1 早期训练应该的行为——避免还没学好就被强行同化。</p>
+
+<p>到了 p=0.9, t=0.05 的情形: λ_train ≈ 0.876, λ_t ≈ 0.832,target 的 86% 能量来自教师 — 学生此时已经成熟,被教师"猛拽"也学得动。</p>
+
+<h3>4.5 反向论证:不要双轴会怎样?</h3>
+<p>Ablation Table 2 给的硬数据:</p>
+<table>
+  <tr><th>变体</th><th>HumanEval</th><th>Avg</th></tr>
+  <tr><td>w/o timestep axis (退化为 TAID 单轴)</td><td>43.90</td><td>32.88</td></tr>
+  <tr><td>w/o training axis</td><td>44.51</td><td>32.97</td></tr>
+  <tr><td><strong>Full TIDAL</strong></td><td><strong>46.95</strong></td><td><strong>33.14</strong></td></tr>
+</table>
+<p>移除 timestep 轴 HumanEval 掉 3.05 分——是<em>所有 ablation 里最大的</em>。这反过来说明:dLLM-KD 里 timestep 不是 nice-to-have,是<strong>load-bearing</strong>。</p>
+
+<hr>
+
+<h2 id="sec5">5 · CompDemo — 互补掩码二次前向</h2>
+
+<h3>5.1 问题</h3>
+<p>就算我们用 TIDAL 把高 t 区间下采,中等 t (0.4–0.6) 还是要蒸——这一段教师面对一半 token / 一半 [M],预测<em>有信息但不够锐</em>。能不能想办法让教师在<em>不增加学生输入信息</em>的前提下,看到更多 context?</p>
+
+<h3>5.2 解法:互补掩码,跑两次教师</h3>
+<p>把 mask 集合 M 随机切成两半 M_A ⊔ M_B,|M_A| ≈ |M_B| ≈ |M|/2。然后:</p>
+
+<ul>
+  <li><strong>Pass 1:</strong> 揭示 M_A 的真值给教师当 context,只让教师预测 M_B 的 logits → t⁽¹⁾[M_B]</li>
+  <li><strong>Pass 2:</strong> 揭示 M_B 的真值给教师,让教师预测 M_A 的 logits → t⁽²⁾[M_A]</li>
+  <li><strong>合并:</strong> t_final[M_B] ← t⁽¹⁾[M_B], t_final[M_A] ← t⁽²⁾[M_A]</li>
+</ul>
+
+<p>关键:<strong>每个被蒸的位置,教师都比学生少看了 ~一半的 [M]</strong>(因为另一半被揭开了)。等价于教师在<em>更低的有效 timestep</em> 下做预测。学生还是面对原始 x_t,没作弊。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <!-- title -->
+    <text x="350" y="18" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">CompDemo: M = M_A ⊔ M_B,跑两次教师</text>
+
+    <!-- original x_t row -->
+    <text x="60" y="55" font-size="11" fill="#5b5e66">学生看到:</text>
+    <g font-size="13" font-family="SF Mono,monospace">
+      <rect x="60" y="65" width="40" height="32" fill="#fff" stroke="#888"/>
+      <text x="80" y="86" text-anchor="middle">No</text>
+      <rect x="100" y="65" width="40" height="32" fill="#f3eee0" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="120" y="86" text-anchor="middle" fill="#cc4a1b">[M]</text>
+      <rect x="140" y="65" width="40" height="32" fill="#f3eee0" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="160" y="86" text-anchor="middle" fill="#cc4a1b">[M]</text>
+      <rect x="180" y="65" width="40" height="32" fill="#fff" stroke="#888"/>
+      <text x="200" y="86" text-anchor="middle">la</text>
+      <rect x="220" y="65" width="40" height="32" fill="#f3eee0" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="240" y="86" text-anchor="middle" fill="#cc4a1b">[M]</text>
+      <rect x="260" y="65" width="40" height="32" fill="#f3eee0" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+      <text x="280" y="86" text-anchor="middle" fill="#cc4a1b">[M]</text>
+    </g>
+    <text x="320" y="86" font-size="10" fill="#5b5e66">x_t (4 个 [M] 位置)</text>
+
+    <!-- partition annotation -->
+    <text x="60" y="115" font-size="11" fill="#5b5e66">随机划分 M = M_A ⊔ M_B(假设 idx {1,2}∈A, {4,5}∈B):</text>
+
+    <!-- Pass 1 -->
+    <text x="60" y="148" font-size="11" font-weight="600" fill="#2f6feb">Pass 1 (reveal M_A):</text>
+    <g font-size="13" font-family="SF Mono,monospace">
+      <rect x="60" y="158" width="40" height="32" fill="#fff" stroke="#888"/>
+      <text x="80" y="179" text-anchor="middle">No</text>
+      <rect x="100" y="158" width="40" height="32" fill="#e8f5e9" stroke="#1f7a4a"/>
+      <text x="120" y="179" text-anchor="middle" fill="#1f7a4a">sé</text>
+      <rect x="140" y="158" width="40" height="32" fill="#e8f5e9" stroke="#1f7a4a"/>
+      <text x="160" y="179" text-anchor="middle" fill="#1f7a4a">ya</text>
+      <rect x="180" y="158" width="40" height="32" fill="#fff" stroke="#888"/>
+      <text x="200" y="179" text-anchor="middle">la</text>
+      <rect x="220" y="158" width="40" height="32" fill="#f3eee0" stroke="#cc4a1b"/>
+      <text x="240" y="179" text-anchor="middle" fill="#cc4a1b">[M]</text>
+      <rect x="260" y="158" width="40" height="32" fill="#f3eee0" stroke="#cc4a1b"/>
+      <text x="280" y="179" text-anchor="middle" fill="#cc4a1b">[M]</text>
+    </g>
+    <text x="320" y="179" font-size="10" fill="#5b5e66">→ teacher 取 M_B 处 logits = t⁽¹⁾</text>
+
+    <!-- Pass 2 -->
+    <text x="60" y="210" font-size="11" font-weight="600" fill="#2f6feb">Pass 2 (reveal M_B):</text>
+    <g font-size="13" font-family="SF Mono,monospace">
+      <rect x="60" y="220" width="40" height="32" fill="#fff" stroke="#888"/>
+      <text x="80" y="241" text-anchor="middle">No</text>
+      <rect x="100" y="220" width="40" height="32" fill="#f3eee0" stroke="#cc4a1b"/>
+      <text x="120" y="241" text-anchor="middle" fill="#cc4a1b">[M]</text>
+      <rect x="140" y="220" width="40" height="32" fill="#f3eee0" stroke="#cc4a1b"/>
+      <text x="160" y="241" text-anchor="middle" fill="#cc4a1b">[M]</text>
+      <rect x="180" y="220" width="40" height="32" fill="#fff" stroke="#888"/>
+      <text x="200" y="241" text-anchor="middle">la</text>
+      <rect x="220" y="220" width="40" height="32" fill="#e8f5e9" stroke="#1f7a4a"/>
+      <text x="240" y="241" text-anchor="middle" fill="#1f7a4a">ni</text>
+      <rect x="260" y="220" width="40" height="32" fill="#e8f5e9" stroke="#1f7a4a"/>
+      <text x="280" y="241" text-anchor="middle" fill="#1f7a4a">fa</text>
+    </g>
+    <text x="320" y="241" font-size="10" fill="#5b5e66">→ teacher 取 M_A 处 logits = t⁽²⁾</text>
+
+    <!-- merge box -->
+    <rect x="490" y="120" width="180" height="135" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="580" y="142" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">合并</text>
+    <text x="580" y="162" text-anchor="middle" font-size="10" fill="#3a3b40">t_final[M_A] ← t⁽²⁾[M_A]</text>
+    <text x="580" y="178" text-anchor="middle" font-size="10" fill="#3a3b40">t_final[M_B] ← t⁽¹⁾[M_B]</text>
+    <text x="580" y="200" text-anchor="middle" font-size="10" fill="#5b5e66">每个 mask 位置都得到</text>
+    <text x="580" y="214" text-anchor="middle" font-size="10" fill="#5b5e66">"另一半被 reveal"的</text>
+    <text x="580" y="228" text-anchor="middle" font-size="10" fill="#5b5e66">教师预测,context 增加</text>
+    <text x="580" y="248" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="600">cost: 2× teacher forward</text>
+  </svg>
+  <figcaption>例子:6 token 序列,4 个 mask。划分后 Pass 1 揭示 M_A={pos 1,2} → 教师在剩下两个 [M] 上预测;Pass 2 对称。最终每个 mask 位置都拿到了"对方 mask 已揭"条件下的教师预测,等效于把教师面对的 timestep 砍半。<br>成本: 教师 forward 翻倍 → 总训练时间 +50%(教师 frozen,不算 backward)。</figcaption>
+</div>
+
+<h3>5.3 反向论证</h3>
+<p>移除 CompDemo 在 ablation 里掉 0.17 平均分,HumanEval 掉 2.44 分。结构化输出(代码)对"教师是否给出锐利预测"特别敏感——code 的 syntax 经常需要严格匹配,教师在重度掩码下乱猜会污染学生的 code 认知。</p>
+
+<div class="nb">
+<strong>这条 trick 在 dLLM 之外没有等价物。</strong>AR 教师本来就看着完整 left context,无所谓"补 context";只有 dLLM 的 bidirectional + masked 设定才能玩"互补掩码"这套。
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · Reverse CALM — 反向 chunk-level BCE</h2>
+
+<h3>6.1 问题再细化</h3>
+<p>LLaDA2 (Ling tokenizer) 和 BD3LM (Qwen tokenizer) 编码同一段文本:</p>
+<pre>"I don't wanna"
+Ling tokenizer:  ["I", "don", "'t", "wanna"]      → 4 tokens, V_T 词表
+Qwen tokenizer:  ["I", "do", "n't", "wan", "na"]  → 5 tokens, V_S 词表</pre>
+
+<p><code>KL(p_T(·|x) || p_S(·|x))</code> 数学上不存在——两个 token 不在同一空间。怎么办?</p>
+
+<h3>6.2 CALM 的核心 idea: chunk-level scalar 概率</h3>
+<p>用 tokenkit 在<strong>字节</strong>层面对齐两条 token 序列,找出最小的"对齐单位":两边都能被整数个 token 切完的最小 byte span,称为 chunk。</p>
+
+<table>
+  <tr><th>Chunk c</th><th>Teacher tokens</th><th>Student tokens</th></tr>
+  <tr><td>c₁ = "I"</td><td>"I"</td><td>"I"</td></tr>
+  <tr><td>c₂ = "don't"</td><td>"don" + "'t"</td><td>"do" + "n't"</td></tr>
+  <tr><td>c₃ = "wanna"</td><td>"wanna"</td><td>"wan" + "na"</td></tr>
+</table>
+
+<p>对每个 chunk,定义其概率为 chunk 内所有 token 的<strong>联合 log-probability 之和</strong>(再 exp/temperature 化):</p>
+<div class="formula">LP_S = lp_S · A_S, &nbsp; LP_T = lp_T · A_T &nbsp; (matrix mult, A 是 binary 对齐)</div>
+<div class="formula">p_s^c = exp(LP_S^c / T), &nbsp; p_t^c = exp(LP_T^c / T)</div>
+
+<p>关键:p_s^c 和 p_t^c 都是 [0,1] 之间的<strong>标量</strong>(不是分布),代表"模型生成这个 chunk 的概率"。两边都是同样的物理量,可以直接比较。</p>
+
+<h3>6.3 Forward CALM 的 bug</h3>
+<p>自然 baseline = 在 p^c 上做 BCE,把 teacher 的 chunk 概率当 soft label:</p>
+<div class="formula">L_Fwd-CALM = − [ p_t^c · log p_s^c + (1−p_t^c) · log(1−p_s^c) ]</div>
+
+<p>梯度有个问题:对 p_s^c 求导,系数 ∝ <code>p_t^c / p_s^c − (1−p_t^c)/(1−p_s^c)</code>。Cross-tokenizer 对齐本身有噪声(byte 切分不完美 / 教师对某 chunk 概率高但学生还没学到)→ <code>p_t^c → 1, p_s^c → 0</code> 的情况频繁,<strong>gradient 直接爆炸</strong>。</p>
+
+<h3>6.4 Reverse CALM:把 BCE 翻过来</h3>
+<div class="formula">L_Rev-CALM = − [ p_s^c · log p_t^c + (1−p_s^c) · log(1−p_t^c) ]</div>
+
+<p>把 p_s 和 p_t 的角色互换。对 p_s^c 求导:</p>
+<div class="formula">∂L / ∂p_s^c = −[log p_t^c − log(1−p_t^c)] = −logit(p_t^c)</div>
+
+<p>这个梯度系数<strong>只依赖于 fixed teacher 的 p_t</strong>,与 p_s 无关 → 天然有界。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 600 300" width="100%" style="max-width:580px">
+    <text x="300" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#a8353e">Forward vs Reverse CALM 的梯度行为</text>
+
+    <!-- Forward panel -->
+    <text x="150" y="50" text-anchor="middle" font-size="12" font-weight="600" fill="#a8353e">Forward CALM (爆炸)</text>
+    <line x1="40" y1="240" x2="260" y2="240" stroke="#888"/>
+    <line x1="40" y1="60" x2="40" y2="240" stroke="#888"/>
+    <text x="150" y="265" text-anchor="middle" font-size="10" fill="#5b5e66">p_s^c</text>
+    <text x="20" y="155" font-size="10" fill="#5b5e66" transform="rotate(-90 20 155)">|grad|</text>
+
+    <!-- forward grad curve: blows up as p_s -> 0 with p_t fixed at 0.9 -->
+    <path d="M 50 70 Q 80 90 110 130 Q 140 170 170 200 Q 200 220 240 230" stroke="#a8353e" stroke-width="2.5" fill="none"/>
+    <text x="60" y="65" font-size="10" fill="#a8353e">→ ∞</text>
+    <text x="245" y="235" font-size="10" fill="#5b5e66">→ 0</text>
+
+    <!-- annotation -->
+    <text x="150" y="190" font-size="9" fill="#5b5e66" font-style="italic">p_t=0.9 fixed</text>
+
+    <!-- divider -->
+    <line x1="290" y1="50" x2="290" y2="270" stroke="#ddd"/>
+
+    <!-- Reverse panel -->
+    <text x="450" y="50" text-anchor="middle" font-size="12" font-weight="600" fill="#1f7a4a">Reverse CALM (有界)</text>
+    <line x1="340" y1="240" x2="560" y2="240" stroke="#888"/>
+    <line x1="340" y1="60" x2="340" y2="240" stroke="#888"/>
+    <text x="450" y="265" text-anchor="middle" font-size="10" fill="#5b5e66">p_s^c</text>
+    <text x="320" y="155" font-size="10" fill="#5b5e66" transform="rotate(-90 320 155)">|grad|</text>
+
+    <!-- reverse grad: constant -log(p_t/(1-p_t)) for any p_s -->
+    <line x1="350" y1="120" x2="555" y2="120" stroke="#1f7a4a" stroke-width="2.5"/>
+    <text x="565" y="124" font-size="10" fill="#1f7a4a">|logit(p_t)|</text>
+
+    <!-- legend explaining filtering -->
+    <rect x="40" y="280" width="520" height="14" fill="none"/>
+
+    <!-- bottom: dual-end filtering -->
+    <text x="300" y="288" text-anchor="middle" font-size="11" fill="#3a3b40" font-style="italic">且 p_t≈0.5 时 logit(p_t)≈0 → 自动过滤"教师不确定"的 chunk</text>
+  </svg>
+  <figcaption>左:Forward CALM 在 p_s→0 时梯度爆炸——这正是训练初期、cross-tokenizer 对齐有噪声时的常态。右:Reverse CALM 的梯度系数与 p_s 无关,且 p_t≈0.5 时自动趋零(教师对该 chunk 没把握 → 不传梯度)。这就是论文说的 "dual-end noise filtering"。</figcaption>
+</div>
+
+<h3>6.5 Worked example 数字</h3>
+<p>设 chunk c = "don't",T=1。某 step 时:</p>
+<ul>
+  <li>教师概率 p_t^c = 0.92</li>
+  <li>学生概率 p_s^c = 0.05(初期还没学好)</li>
+</ul>
+
+<p><strong>Forward CALM:</strong></p>
+<ul>
+  <li>L = −(0.92·log(0.05) + 0.08·log(0.95)) ≈ 2.76</li>
+  <li>∂L/∂p_s = −0.92/0.05 + 0.08/0.95 ≈ <strong>−18.32</strong> ← 巨大,容易炸</li>
+</ul>
+
+<p><strong>Reverse CALM:</strong></p>
+<ul>
+  <li>L = −(0.05·log(0.92) + 0.95·log(0.08)) ≈ 2.40</li>
+  <li>∂L/∂p_s = −(log(0.92) − log(0.08)) ≈ <strong>−2.44</strong> ← 有界</li>
+</ul>
+
+<p>学生在不同 p_s 下,Reverse 的梯度始终 ≈ 2.44(只看 teacher),而 Forward 的梯度可以从 −∞ 变到 +很大,数值不稳定。</p>
+
+<h3>6.6 第二个 bonus: 噪声过滤</h3>
+<p>如果某 chunk 在 cross-tokenizer 对齐里是"伪 chunk"(byte 切分歧义),教师对它的 p_t^c 应该接近 0.5(教师也不确定)。Reverse CALM 此时 logit(p_t) ≈ 0 → 梯度 ≈ 0,该 chunk 不参与训练。这就是免费的 noise filter。</p>
+
+<p>另一头:学生对该 chunk 还没信心(p_s^c 小),∂p_s^c/∂θ 小,grad 小——再过滤一次。这是"dual-end" 的含义。</p>
+
+<h3>6.7 数学小注:Reverse CALM = Bernoulli KL</h3>
+<p>论文 Appendix C 推导:</p>
+<div class="formula">L_Rev-CALM (up to const) = KL_Bern(p_s^c || p_t^c)</div>
+<p>所以 Reverse CALM 是<strong>mode-seeking</strong> 的(student 的 chunk 概率应该 collapse 到 teacher 的某一个)。这与 Forward(mode-covering)对应,呼应 MiniLLM 那条"AR-KD 应该用 reverse KL"的研究线。但这里换到了 scalar Bernoulli 空间,而不是 token-level distribution 空间。</p>
+
+<div class="nb">
+<strong>为什么 TIDAL 与 Reverse CALM 是 incompatible 的?</strong>论文里的解释:TIDAL 是"混合 target"(progressive curriculum),它假设直接的 forward 蒸馏存在不稳定问题,需要慢慢拉。Reverse CALM 本身已经是 bounded + mode-seeking,再加 TIDAL 等于"二次保险",反而可能阻止学生收敛到正确 mode。实验里 cross-tokenizer + Reverse CALM + TIDAL 的组合(TIDE-Shared 在 cross-tokenizer pipeline 上)平均分 33.83,比纯 Reverse(34.20)还低。
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · 实验关键结果与读图</h2>
+
+<h3>7.1 主表精读 (8 benchmark, two pipelines)</h3>
+
+<table>
+  <tr><th>Bench</th><th>AR Qwen-0.6B</th><th>BD3LM (no distill)</th><th>Cross-tok TIDE-Cross (best)</th><th>Shared-tok TIDE-Shared (best)</th></tr>
+  <tr><td>GSM8K</td><td>59.60</td><td>45.56</td><td>52.24 ↑</td><td>48.98 ↑</td></tr>
+  <tr><td>MATH</td><td>32.40</td><td>13.08</td><td>13.20</td><td>11.16</td></tr>
+  <tr><td>BBH</td><td>41.50</td><td>26.32</td><td>27.37 ↑</td><td>26.79 ↑</td></tr>
+  <tr><td>MMLU-Pro</td><td>24.70</td><td>13.80</td><td>14.52 ↑</td><td>14.48 ↑</td></tr>
+  <tr><td>HellaSwag</td><td>47.40</td><td>39.28</td><td>39.88 ↑</td><td>40.50 ↑</td></tr>
+  <tr><td>MMLU</td><td>52.80</td><td>39.15</td><td>39.59 ↑</td><td>39.92 ↑</td></tr>
+  <tr><td>HumanEval</td><td><span class="no">32.30</span></td><td>46.34</td><td><strong class="ok">48.17</strong></td><td><strong class="ok">48.78</strong></td></tr>
+  <tr><td>MBPP</td><td>36.60</td><td>37.80</td><td>38.60</td><td>37.80</td></tr>
+  <tr><th>Avg</th><th>40.91</th><th>32.67</th><th><strong>34.20</strong></th><th><strong>33.55</strong></th></tr>
+</table>
+
+<h4>关键观察</h4>
+<ol>
+  <li><strong>Reasoning task 上 BD3LM 学生远不如同尺寸 AR</strong>(GSM8K 45.56 vs 59.60,MATH 13.08 vs 32.40)。蒸馏只能挽回一部分(GSM8K 到 52.24,MATH 几乎不动)。dLLM 在小尺寸上的 reasoning 短板 KD 救不全。</li>
+  <li><strong>Code task 上 BD3LM 学生反而压过 AR</strong>(HumanEval 46.34 vs 32.30 已经赢了,蒸到 48.78 进一步扩大优势)。这是 dLLM 真正发光的领域。</li>
+  <li><strong>每个 pipeline 偏爱自己的 native 策略</strong>。Cross-tokenizer 用 Reverse CALM(TIDE-Cross 列)拿 34.20;Shared-tokenizer 用 TIDAL+CompDemo(TIDE-Shared 列)拿 33.55。交叉用 (TIDE-Cross 在 shared,TIDE-Shared 在 cross)各掉 ~2.7 / ~0.4 分,符合方法论预期。</li>
+</ol>
+
+<h3>7.2 推理效率 (Table 3)</h3>
+<table>
+  <tr><th>Model</th><th>Params</th><th>Peak Mem</th><th>256-tok Latency</th><th>Tokens/s</th></tr>
+  <tr><td>BD3LM-0.6B (distilled)</td><td>0.6B</td><td><strong>1.4 GB</strong></td><td>6.25 s</td><td>41.0</td></tr>
+  <tr><td>WeDLM-8B</td><td>8.2B</td><td>15.5 GB</td><td>6.79 s</td><td>37.7</td></tr>
+  <tr><td>LLaDA2.0-mini</td><td>16.3B</td><td>31.3 GB</td><td>32.55 s</td><td>7.8</td></tr>
+  <tr><td>AR Qwen3-0.6B</td><td>0.6B</td><td>1.2 GB</td><td>4.99 s</td><td>51.3</td></tr>
+</table>
+
+<p>0.6B 学生 vs 16B 教师: <strong>22× 显存压缩 + 5× 加速</strong>。但相比同尺寸 AR (51.3 tokens/s) 还慢 ~20%——这是 BD3LM 多步 denoising 的开销,KD 改不了。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 为什么 HumanEval 涨幅最大?</h2>
+
+<p>这是论文最有意思的结果,但作者的解释比较短(就一段:"parallel generation 维护 global coherence,适合 structured output")。我想细化一下:</p>
+
+<ol>
+  <li><strong>Code 是高度结构化的 — bidirectional context 是真有用</strong>。函数体的开头和结尾要配对(<code>def f():</code> 和 <code>return ...</code>),括号要平衡。AR 模型从左到右生成时,生成 <code>return</code> 时还看不到后续可能的 <code>except:</code>。BD3LM 在一个 block 内同时知道前后位置,优势天生。</li>
+  <li><strong>Code 的 token-level distribution 比自然语言更尖锐</strong>。"<code>for i in</code>" 之后大概率是 "<code>range</code>"——教师概率分布有明显 mode。Reverse CALM 的 mode-seeking 性质正中这个特性。</li>
+  <li><strong>HumanEval 的 prompt+test 长度短 (256 tokens 内能搞定),恰好是 BD3LM 512 序列长度的甜点</strong>。MATH 和 GSM8K 的推理过程很长,会走出 BD3LM 训练的 block 范围,multi-block 的 AR 跳跃式生成削弱 bidirectional 优势。</li>
+  <li><strong>CompDemo 在 code 上收益最大</strong>(ablation 移除 CompDemo,HumanEval 掉 2.44 — 八个任务里第二大)。原因猜测:code 的 syntax 严格,教师在重度掩码下乱猜带来很大损失;给教师补一半 context,教师才能给出锐利的 code-specific 概率分布。</li>
+  <li><strong>蒸馏后的 0.6B BD3LM 在 HumanEval 上 (48.78) 甚至超过了 8B 教师 WeDLM</strong>?论文没明示 WeDLM 的 HumanEval,但从 Table 1 推测教师并非压倒性强 — 教师本身 + 学生的 BD3LM 结构 + dataset 重组合,最终甚至能<em>提纯</em> code 能力。</li>
+</ol>
+
+<div class="nb">
+<strong>反过来想为什么 MATH 涨不动?</strong>MATH 13.08 → 13.20,几乎 noise。可能原因: MATH 答题需要长链推理(CoT 几百 token),BD3LM 的 block diffusion 在 chain-of-thought 上没有 AR 那么自然。教师本身也没那么强(8B/16B 教师在 MATH 上未必比 0.6B AR 的 32.40 高很多)。蒸馏改不了"学生架构本身就不擅长这个任务"的事。
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>方法</th><th>架构假设</th><th>Tokenizer</th><th>关键 trick</th><th>与 TIDE 对位</th></tr>
+  <tr><td>DistilBERT (2019)</td><td>BERT → BERT (减层)</td><td>同</td><td>token-level KL + masked LM loss</td><td>同 tokenizer + 同架构,无 dLLM 特性</td></tr>
+  <tr><td>MiniLM (2020)</td><td>BERT → 小 BERT</td><td>同</td><td>self-attention KD(QKV scaled dot)</td><td>关注 attention map 对齐,不动 logits;不适合 dLLM 的 timestep 不可靠问题</td></tr>
+  <tr><td>MiniLLM (2024)</td><td>AR → AR</td><td>同</td><td>Reverse KL,避免 mode-covering 的"mean over modes"</td><td>本文 Reverse CALM 的精神继承者(reverse 比 forward 好),但搬到 chunk-scalar 空间</td></tr>
+  <tr><td>TAID (2025)</td><td>AR → AR</td><td>同</td><td>training-progress 上单轴 λ 插值 target</td><td>TIDAL 的 1D 前身;TIDE 加了 timestep 第二轴</td></tr>
+  <tr><td>ALM / CALM (2024–25)</td><td>AR cross-tokenizer</td><td><strong>不同</strong></td><td>byte-level chunk 对齐 + chunk-prob BCE</td><td>本文 Reverse CALM 的<em>原始基础</em>,TIDE 把它改成 reverse 方向 + 引入 dLLM mask</td></tr>
+  <tr><td>CDLM / DDD / LSD / SDTT (2024–25)</td><td>dLLM → dLLM <em>同架构</em></td><td>同</td><td>step compression(把 N 步压到 K 步)</td><td>不动参数量,只压步数 — 与 TIDE 正交</td></tr>
+  <tr><td>EAGLE-3 (speculative decoding)</td><td>AR(verifier) + 小 draft</td><td>同</td><td>multi-layer hidden KD + training-time test</td><td>层级 KD(hidden states),inference 时用;TIDE 是 logit-level KD,training 时用 — 本质不同</td></tr>
+</table>
+
+<h3>9.1 与 EAGLE-3 多层 KD 的具体差异</h3>
+<p>有读者可能会问: EAGLE-3 也是 KD,也是大教师 → 小学生(draft head 比 base 小得多),为什么不能直接套?</p>
+<ul>
+  <li>EAGLE-3 的 draft head <strong>共享教师的 hidden states</strong>(dim 4096+),它本质是"借用教师的 representation 做 next-token 预测"。Draft 不是独立模型,是教师的"附属预测头"。</li>
+  <li>TIDE 的学生是<strong>独立的 0.6B 模型</strong>,有自己的 4096 → 1024 维 hidden,不依赖教师 forward。两个模型可以分别部署。</li>
+  <li>EAGLE-3 应用场景是<em>同架构 inference 加速</em>(教师永远在线);TIDE 应用场景是<em>替换教师</em>(教师永远离线)。</li>
+</ul>
+
+<h3>9.2 与同期 dLLM-KD 工作的真正新意</h3>
+<p>2024–2025 的 dLLM-KD(CDLM/DDD/LSD/SDTT)<strong>全部</strong>假设 student = teacher 同架构(只压 step)。本文是<em>第一个</em>承认 cross-architecture 才是更值钱的方向 + 把它跑通。这是 framework 级别的开拓,不是 incremental 改进。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>学生只跑到 0.6B。Future work 提到 "scaling student capacity" — 1.5B/3B 是否还能维持比例增益未验证。</li>
+  <li>只在 discrete diffusion(masked dLLM)上验证。Continuous-state diffusion LM(类似 SEDD)需要不同设计。</li>
+  <li>序列长度只到 512 + block size 32。长 context (4k+) 下 BD3LM 的 attention pattern 是否仍能享受蒸馏增益未知。</li>
+  <li>Pipeline B 用的 WeDLM-8B 本身是从 Qwen3-8B 转过来的,与学生 BD3LM(也从 Qwen3-0.6B 转过来)的 representation space <em>已经</em>很对齐。这个 "shared-arch within shared-tokenizer" 设定其实有"作弊"嫌疑。真正"完全异构 + 完全 cross-tokenizer"只有 LLaDA2 那条 pipeline。</li>
+</ul>
+
+<h3>我的 take</h3>
+<ol>
+  <li>论文最 underrated 的贡献其实是<strong>把 ALM 的 forward 翻成 reverse 这个微小改动</strong>。Forward CALM 是 ALM 原版,本文做的核心<em>新</em>事情就是分析 forward 的梯度爆炸 + 用 reverse 修。这个 trick 可以直接搬到任何 cross-tokenizer KD(不只是 dLLM)。</li>
+  <li>TIDAL 的两个轴本质上是 TAID(progress 轴)+ "教师可靠性 mask"(timestep 轴)。timestep 这个轴是 dLLM specific 的,但思想是普适的:<em>任何"教师可靠性随时间变化"的 KD</em> 都可以加这一轴。例如 RL-distillation 里教师在某些 state 上不可靠,就该降 λ。</li>
+  <li>CompDemo 是非常 dLLM-native 的 trick,搬不走。但成本 +50%(虽然论文说"忽略不计")在 100B+ 教师上会很贵。</li>
+  <li>整篇论文最反直觉的发现:cross-tokenizer pipeline 用 native 策略只赢 0.37 分,shared-tokenizer 用 native 策略赢 2.76 分。这意味着 Reverse CALM 鲁棒性强(任何 pipeline 都能接近最佳),而 TIDAL+CompDemo 的好处更"挑剔"——只有当 token-level KL 本身可以算时才能完全发挥。</li>
+</ol>
+
+<h3>想验证的问题</h3>
+<ol>
+  <li>把 Reverse CALM 单独搬到 AR 跨 tokenizer KD(e.g. Llama → Qwen),是否依然有显著增益?预期 yes,这是 free transfer。</li>
+  <li>TIDAL 的 timestep 轴是否对所有 dLLM 教师都通用?对 reasoning-heavy 教师(教师在 high-t 上不那么差),timestep 轴的好处会缩小吗?</li>
+  <li>CompDemo 的 ρ=0.5 是默认,但 ρ=0.25 / 0.75 没扫。极端 ρ(几乎全揭/几乎不揭)的退化模式是什么?</li>
+  <li>能否在 RL post-training 之后再做 TIDE?论文只做 SFT 蒸馏。如果教师是 RLHF 后的(更像最终目标),学生能否进一步提升?</li>
+  <li>当前 pipeline B 是 same-arch within same-tokenizer-family(Qwen3-8B WeDLM → Qwen3-0.6B BD3LM)。如果换成<em>真正异构</em>(LLaDA2 → BD3LM 同 tokenizer 假想版本),数字会怎样?</li>
+  <li>HumanEval 48.78 vs MBPP 38.60 的差距:为什么 MBPP 涨幅小很多?MBPP 的 prompt 风格更口语化,可能 chunk 对齐噪声更大?</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> 第一个 cross-architecture dLLM-KD framework,3 模块解耦设计<br>
+  <span class="pill">三 bug</span> ① timestep 教师不可靠 ② 重度掩码贫信号 ③ tokenizer 错位<br>
+  <span class="pill">三 patch</span> TIDAL(双轴 λ) · CompDemo(互补掩码 2× 教师 forward) · Reverse CALM(反向 BCE,梯度有界)<br>
+  <span class="pill">公式</span> λ_t = λ_train(p) × (1−t);  L_Rev-CALM 梯度 = −logit(p_t),恒有界<br>
+  <span class="pill">数据</span> +1.53 avg / HumanEval 48.78 (vs AR 32.30) / 22× mem / 5× speed<br>
+  <span class="pill">陷阱</span> TIDAL 与 Reverse CALM 不应同时开 — 二次保险反而拖 0.4 分<br>
+  <span class="pill">可移植</span> Reverse CALM 是 free transfer,可搬到任何 cross-tokenizer KD
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 配套论文 PDF: <code>/data/szhang967/papers/paper-notes/models/TIDE_2604.26951.pdf</code>
+</p>
+
+</main>
+
+</body>
+</html>

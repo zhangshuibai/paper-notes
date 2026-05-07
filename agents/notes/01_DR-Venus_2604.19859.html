@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · DR-Venus: 4B 边缘级 Deep Research Agent (2604.19859)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>DR-Venus: Towards Frontier Edge-Scale Deep Research Agents with Only 10K Open Data</h1>
+<div class="meta">
+  Venus Team, Ant Group · 2026-04-21 · arXiv:2604.19859 · inclusionAI<br>
+  关键词: deep research agent · edge-scale 4B · agentic SFT · agentic RL · IGPO · turn-level info-gain reward
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>用约 10K 全开源数据,训出一个 4B 级 deep research agent;两段式 recipe = 严格清洗 + 长程轨迹重采样的 agentic SFT,接 IGPO 上的 turn-level information-gain reward + format-aware 正则,把 4B 推到 sub-9B SOTA、逼近 30B 班级。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">10K</div><div class="l">SFT 原始 trajectory 数</div></div>
+    <div class="stat"><div class="n">4B</div><div class="l">Qwen3-4B-Thinking-2507 主干</div></div>
+    <div class="stat"><div class="n">29.1 / 37.7</div><div class="l">BrowseComp / BC-ZH (Pass@1)</div></div>
+  </div>
+  <p><strong>立场:</strong>不是模型创新,是<em>数据 × 算法 × 监督密度</em>的精打细算。"4B + 10K open data"已经够用,真正缺的是怎么把每条 trajectory 榨干、怎么在长达 200 turn 的稀疏 reward 下做 credit assignment。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 edge-scale + 10K 这条路值得走</a></li>
+    <li><a href="#sec2">背景速查 (术语 / GRPO / IGPO 的关系)</a></li>
+    <li><a href="#sec3">两阶段 recipe 全景图</a></li>
+    <li><a href="#sec4">Stage-1: Agentic SFT 的四步数据清洗 + turn-aware 重采样</a></li>
+    <li><a href="#sec5">Stage-2: IGPO + turn-level info-gain reward</a></li>
+    <li><a href="#sec6">公式拆解:IG reward / IG-Scale / 折扣累加</a></li>
+    <li><a href="#sec7">Worked Example: 一个 BrowseComp 查询 8 turn 的 IG 轨迹</a></li>
+    <li><a href="#sec8">实验关键结果 + Pass@K 上限</a></li>
+    <li><a href="#sec9">与同类工作对比 (SFR-DR / WebSailor / Tongyi-DR / OpenDR / DAPO)</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec11">Memory points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 edge-scale + 10K 这条路值得走</h2>
+
+<h3>1.1 历史脉络:deep research 的"巨型化"惯性</h3>
+<p>2024 → 2026 的 deep research 赛道走的是<em>越大越好</em>的路线。Tongyi-DR-30B、WebSailor-V2-30B、DeepMiner-32B-RL、REDSearcher-30B-A3B 几乎清一色 30B 起步,要么 dense 要么 MoE A3B。原因看上去也合理:long-horizon 任务(BrowseComp 平均 ~50 turn,xBench-DS 也 30+ turn)对 reasoning depth 和 tool-use 稳定性都极挑剔,小模型做不到 200 turn 不"漂"。</p>
+<p>但产业落地侧的现实<strong>反过来</strong>:</p>
+<ul>
+  <li><strong>Cost</strong>: 一次 BrowseComp 评测 30B 模型上 200 turn × 256K context,推理成本是 4B 的 ~10×;真要部署在企业内部的"研究助手",30B 是单卡装不下、双卡也勉强的尺寸。</li>
+  <li><strong>Latency</strong>: 长 trajectory 下 user 等不起;4B 在 H100 上单卡可达 100+ tok/s,30B-A3B 即使 MoE 仍要 2× 以上延迟。</li>
+  <li><strong>Privacy</strong>: 金融、医疗、法律领域的 deep research 不能把 query 送到 OpenAI / Gemini;边缘部署是硬需求。</li>
+</ul>
+<p>过去的小模型尝试(WebSailor-7B、DeepDive-9B、WebExplorer-8B-RL、AgentCPM-Explore-4B)在 BrowseComp 上停留在 5–24 分,跟 30B 班级有 20+ 分差距。社区<em>默认</em>"小模型做不动 deep research",DR-Venus 的核心就是要打破这个默认。</p>
+
+<h3>1.2 为什么纯 SFT 对 deep research 不够 — 也为什么纯 RL 也不够</h3>
+<p>常见的两个极端方案各有死结,论文用一张对比表把它们都判了死刑:</p>
+<table>
+  <tr><th>路线</th><th>具体做法</th><th>对小模型的致命伤</th></tr>
+  <tr><td>纯 SFT (DeepDive-9B-SFT, WebSailor-7B)</td><td>大量教师 trajectory 模仿</td><td><span class="no">format / tool-call 仍不稳;长程时一旦走偏没有自纠机制</span></td></tr>
+  <tr><td>纯 RL from scratch</td><td>直接在 base 上跑 GRPO</td><td><span class="no">小模型 rollout 几乎全失败,advantage collapse(整组 reward = 0)</span></td></tr>
+  <tr><td>SFT + 稀疏 trajectory-level RL (GRPO 原版)</td><td>只用最终答案对错给 reward</td><td><span class="no">200 turn 一个 scalar,credit 无从分配;论文实测 GRPO 在 BC 上 -1.5</span></td></tr>
+  <tr><td>SFT + dense per-token reward (RM 打分)</td><td>用 reward model 给每 token 打分</td><td><span class="no">需要高质量 RM,本身就比 4B 大;reward hacking 风险</span></td></tr>
+  <tr><td><strong>SFT + IGPO turn-level IG (本文)</strong></td><td>用 ground-truth 的 log-prob 增量当 turn reward</td><td><span class="ok">无需额外模型,信号密度直接 = turn 数,200 turn 自带 200 个学习信号</span></td></tr>
+</table>
+<div class="nb">
+  <strong>关键 insight:</strong>不是 RL 不行,是 reward 太稀疏 → 给小模型的训练几乎等于"告诉它走 200 步以后对/错"。Information Gain 把它变成"每走一步告诉它有没有更接近 GT",密度提升 ~200×。
+</div>
+
+<h3>1.3 为什么这事不平凡:三个深坑</h3>
+<p>"用 IG 当 turn reward"听上去简单,但在实际工程里有几个非平凡的复杂度:</p>
+<ol>
+  <li><strong>Reward scale 不平衡。</strong>turn-level IG reward 是 log-prob 差,scale ~0.001 量级;outcome reward 是 0/1,normalize 后仍有数量级差。如果直接相加,IG 完全淹没 outcome 或反过来。论文设计了 <code>IG-Scale</code> 自适应缩放,在 outcome 弱(整 group 全错)时<em>压低</em> IG 权重,避免被 IG 误导收敛到 local optimum。</li>
+  <li><strong>Search vs browse 的 IG 不同质。</strong>search 给的 snippet 是噪声大的探索性信号,browse 才能拿到具体证据。如果对所有 turn 都算 IG,容易奖励"反复搜索但不深读"的捷径。论文的 browse-aware 分配把 IG 锁定在 browse turn 上,且把它<em>归功</em>到该 browse 之前的所有 search turn(类似 reverse credit),这是 DAPO/GRPO 都没考虑的。</li>
+  <li><strong>Format penalty 的粒度。</strong>200-turn trajectory 里只要 1 个 turn format 错,trajectory-level format penalty 会把所有 199 个正确 turn 一起惩罚。turn-level format penalty 用 <code>−λ_fmt</code> 替换该 turn 的 reward,实现外科手术式监督。</li>
+</ol>
+<p>这三件事 + IGPO 本身 + 数据 pipeline,组合起来才让 4B 跑得动 deep research。任意一项缺位都会塌。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Deep Research Agent</span></td><td>通过多轮 search/browse 在外部环境收集证据再合成答案的 agent;典型 trajectory 30–200 turn</td></tr>
+  <tr><td><span class="term">Edge-scale</span></td><td>≤ 4B 参数,可在单卡 / 端侧部署</td></tr>
+  <tr><td><span class="term">Agentic SFT</span></td><td>对包含 reasoning + tool call + observation 的多轮序列做 next-token 监督,只在 assistant token 上算 loss,observation token mask 掉</td></tr>
+  <tr><td><span class="term">Agentic RL</span></td><td>policy 自己在真实 tool 环境里 rollout,基于 outcome / turn reward 优化</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>DeepSeekMath 提的 group-relative PPO,无需 value model;同 prompt 采样 G 个 trajectory 互相做 advantage baseline</td></tr>
+  <tr><td><span class="term">DAPO</span></td><td>字节版 GRPO 改良:dynamic sampling + clip-higher;主要解决 entropy collapse 与训练不稳</td></tr>
+  <tr><td><span class="term">IGPO</span></td><td>Wang et al. 2026 (ICLR'26) 提出,在 GRPO 框架里用 information gain 作为 turn-level reward 的 RL 算法,本文直接 build on 它</td></tr>
+  <tr><td><span class="term">Information Gain (IG) reward</span></td><td><code>r_IG = log π(g | h≤t) − log π(g | h≤t-1)</code>,即新增一个 turn 后模型对 ground truth 的 log-prob 提升</td></tr>
+  <tr><td><span class="term">REDSearcher trajectory</span></td><td>本文 SFT 数据来源(Chu et al. 2026, 30B-A3B 系统的训练数据);10K 条 raw trajectory,Apache 2.0</td></tr>
+  <tr><td><span class="term">BrowseComp / BrowseComp-ZH</span></td><td>OpenAI 推的 long-horizon web browsing benchmark,英文 / 中文版;每题平均要 30–50+ turn</td></tr>
+  <tr><td><span class="term">Pass@K</span></td><td>独立采样 K 次中至少一次正确的概率;衡量"capability ceiling"而非"reliability"</td></tr>
+</table>
+
+<h3>2.2 GRPO → IGPO 的演化路径(一图回顾)</h3>
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <rect x="20" y="40" width="140" height="80" rx="10" fill="#f3eee0" stroke="#cc4a1b"/>
+    <text x="90" y="65" font-size="13" text-anchor="middle" font-weight="bold">PPO</text>
+    <text x="90" y="85" font-size="11" text-anchor="middle">+ value model</text>
+    <text x="90" y="103" font-size="11" text-anchor="middle">token-level GAE</text>
+
+    <rect x="200" y="40" width="140" height="80" rx="10" fill="#e7eefb" stroke="#2f6feb"/>
+    <text x="270" y="65" font-size="13" text-anchor="middle" font-weight="bold">GRPO</text>
+    <text x="270" y="85" font-size="11" text-anchor="middle">group baseline</text>
+    <text x="270" y="103" font-size="11" text-anchor="middle">trajectory reward</text>
+
+    <rect x="380" y="40" width="140" height="80" rx="10" fill="#e7eefb" stroke="#2f6feb"/>
+    <text x="450" y="65" font-size="13" text-anchor="middle" font-weight="bold">DAPO</text>
+    <text x="450" y="85" font-size="11" text-anchor="middle">dynamic sampling</text>
+    <text x="450" y="103" font-size="11" text-anchor="middle">clip-higher</text>
+
+    <rect x="540" y="30" width="140" height="100" rx="10" fill="#fff7e0" stroke="#d2a32a" stroke-width="2"/>
+    <text x="610" y="55" font-size="13" text-anchor="middle" font-weight="bold">IGPO (本文 build-on)</text>
+    <text x="610" y="76" font-size="11" text-anchor="middle">turn-level IG reward</text>
+    <text x="610" y="93" font-size="11" text-anchor="middle">+ format penalty</text>
+    <text x="610" y="110" font-size="11" text-anchor="middle">+ IG-Scale + γ-discount</text>
+
+    <line x1="160" y1="80" x2="195" y2="80" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="340" y1="80" x2="375" y2="80" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="520" y1="80" x2="538" y2="80" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <text x="90" y="155" font-size="10" fill="#5b5e66" text-anchor="middle">2017 OpenAI</text>
+    <text x="270" y="155" font-size="10" fill="#5b5e66" text-anchor="middle">2024 DeepSeek</text>
+    <text x="450" y="155" font-size="10" fill="#5b5e66" text-anchor="middle">2025 ByteDance</text>
+    <text x="610" y="155" font-size="10" fill="#5b5e66" text-anchor="middle">2026 (ICLR)</text>
+
+    <text x="350" y="195" font-size="11" fill="#5b5e66" text-anchor="middle" font-style="italic">问题轴: reward 越来越 dense, supervision 粒度越来越细</text>
+  </svg>
+  <figcaption>DR-Venus 没有再造 RL 算法,而是把 IGPO 这个 GRPO 派系的 turn-reward 变体,进一步配上 browse-aware 分配、format-aware 正则、IG-Scale,使其在长程 deep research 上稳定。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · 两阶段 recipe 全景图</h2>
+
+<p>论文的方法可以被压成下面这张图。注意 stage 1 输出的不是 checkpoint 本身,而是<em>已经会做基本 tool use 的格式化 agent</em>;stage 2 的核心是把这些 trajectory 的执行可靠性拉到能拿到 outcome reward 的地步。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+
+    <!-- raw data -->
+    <rect x="10" y="20" width="150" height="60" rx="8" fill="#f3eee0" stroke="#cc4a1b"/>
+    <text x="85" y="42" font-size="12" text-anchor="middle" font-weight="bold">REDSearcher 10,001</text>
+    <text x="85" y="60" font-size="11" text-anchor="middle">raw trajectory</text>
+
+    <!-- cleaning -->
+    <rect x="190" y="10" width="200" height="240" rx="10" fill="#fff" stroke="#2f6feb" stroke-dasharray="4 3"/>
+    <text x="290" y="30" font-size="12" text-anchor="middle" font-weight="bold" fill="#2f6feb">Stage 1: Agentic SFT</text>
+
+    <rect x="205" y="45" width="170" height="32" rx="5" fill="#e7eefb"/>
+    <text x="290" y="65" font-size="11" text-anchor="middle">①格式对齐 → 10001</text>
+
+    <rect x="205" y="83" width="170" height="32" rx="5" fill="#e7eefb"/>
+    <text x="290" y="103" font-size="11" text-anchor="middle">②非法工具 / 重复剪除 → 10000</text>
+
+    <rect x="205" y="121" width="170" height="32" rx="5" fill="#e7eefb"/>
+    <text x="290" y="141" font-size="11" text-anchor="middle">③correctness 过滤 → 9365</text>
+
+    <rect x="205" y="159" width="170" height="32" rx="5" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="290" y="173" font-size="11" text-anchor="middle" font-weight="bold">④turn-aware 重采样</text>
+    <text x="290" y="187" font-size="10" text-anchor="middle">9365 → 18745 (1×/2×/5×)</text>
+
+    <rect x="205" y="200" width="170" height="40" rx="5" fill="#cc4a1b" opacity="0.85"/>
+    <text x="290" y="218" font-size="11" text-anchor="middle" fill="#fff" font-weight="bold">SFT loss on assistant tokens only</text>
+    <text x="290" y="232" font-size="10" text-anchor="middle" fill="#fff">(observation tokens masked)</text>
+
+    <!-- arrow to RL -->
+    <line x1="395" y1="130" x2="425" y2="130" stroke="#5b5e66" stroke-width="2" marker-end="url(#arr2)"/>
+
+    <!-- RL stage -->
+    <rect x="430" y="10" width="280" height="290" rx="10" fill="#fff" stroke="#cc4a1b" stroke-dasharray="4 3"/>
+    <text x="570" y="30" font-size="12" text-anchor="middle" font-weight="bold" fill="#cc4a1b">Stage 2: Agentic RL via IGPO</text>
+
+    <rect x="445" y="45" width="250" height="32" rx="5" fill="#f3eee0"/>
+    <text x="570" y="65" font-size="11" text-anchor="middle">1K query-answer pair → rollout group G=8</text>
+
+    <rect x="445" y="85" width="250" height="50" rx="5" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="570" y="103" font-size="11" text-anchor="middle" font-weight="bold">Turn-level reward 三件套</text>
+    <text x="570" y="120" font-size="10" text-anchor="middle">IG reward · browse-aware · format penalty</text>
+
+    <rect x="445" y="143" width="250" height="40" rx="5" fill="#e7eefb"/>
+    <text x="570" y="161" font-size="11" text-anchor="middle">归一化 + IG-Scale (η=0.3, s_max=10)</text>
+    <text x="570" y="176" font-size="10" text-anchor="middle">+ γ=0.95 折扣累加</text>
+
+    <rect x="445" y="191" width="250" height="40" rx="5" fill="#e7eefb"/>
+    <text x="570" y="208" font-size="11" text-anchor="middle">IGPO objective (GRPO-style)</text>
+    <text x="570" y="224" font-size="10" text-anchor="middle">clip ε, β·D_KL(π_θ ‖ π_ref)</text>
+
+    <rect x="445" y="240" width="250" height="40" rx="5" fill="#cc4a1b" opacity="0.85"/>
+    <text x="570" y="258" font-size="11" text-anchor="middle" fill="#fff" font-weight="bold">DR-Venus-4B-RL</text>
+    <text x="570" y="272" font-size="10" text-anchor="middle" fill="#fff">29.1 / 37.7 / 64.4 / 74.7 / 40.7 / 39.6</text>
+
+    <!-- raw -> SFT -->
+    <line x1="160" y1="50" x2="190" y2="60" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <text x="85" y="280" font-size="11" fill="#5b5e66">10K raw 数据</text>
+    <text x="85" y="295" font-size="11" fill="#5b5e66">单一来源, Apache 2.0</text>
+  </svg>
+  <figcaption>整条 pipeline 的"狭窄入口":只有 ~10K open-data。所有的工作都集中在两个动作上 —— ① 把 SFT 数据洗干净,② 把 RL 信号搞稠密。两个 stage 用的训练数据其实是<em>不同切片</em>:SFT 用 10K trajectory,RL 用 1K query-answer 对。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · Stage-1: Agentic SFT 的四步数据清洗 + turn-aware 重采样</h2>
+
+<p>"为什么 10K 够"——单看数据量是不够的,关键是数据<em>怎么用</em>。论文的四步 pipeline 配合一个非平凡的重采样,把 9365 条有效 trajectory "扩容"到 18745 条<em>分布上更长程</em>的训练样本。</p>
+
+<h3>4.1 四步清洗(数字都是论文里的)</h3>
+<table>
+  <tr><th>步骤</th><th>动作</th><th>输入→输出</th><th>关键效果</th></tr>
+  <tr><td>① Environment alignment</td><td>把 raw trajectory 重写成线上 inference 用的 message schema / system prompt / tool 协议</td><td>10001 → 10001</td><td>消除 train/inference mismatch,这一步对小模型尤其关键</td></tr>
+  <tr><td>② Disallowed tool prune + dedup</td><td>移除 search/browse 之外的 tool call(主要是 Python-Interpreter,3378 条),去重 search/browse(15728 条 dup,大部分是 browse 重复)</td><td>10001 → 10000</td><td>防止小模型学到"call PythonInterpreter"等 deploy 时不存在的工具;1064 条 trajectory 受影响</td></tr>
+  <tr><td>③ Correctness filter</td><td>用 Qwen3-235B-A22B-Instruct-2507 当 judge,丢弃最终答案错的 trajectory</td><td>10000 → 9365 (93.65%)</td><td>避免"模仿错误 reasoning"</td></tr>
+  <tr><td>④ Turn-aware resampling</td><td>0–50 turn ×1, 51–100 turn ×2, &gt;100 turn ×5</td><td>9365 → 18745</td><td>&gt;50 turn 占比 60.28% → 80.15%; &gt;100 turn 占比 13.29% → 33.21%</td></tr>
+</table>
+
+<h3>4.2 为什么 turn-aware 重采样这么管用</h3>
+<p>这是<strong>本文 SFT 阶段的核心 trick</strong>。一般"upsample 长样本"的方法在普通 SFT 里效果有限,但对 deep research 是正中靶心:</p>
+<ul>
+  <li>BrowseComp 类任务 reward 完全集中在 long-horizon trajectory 上,trajectory 越长,该样本里"必须正确 plan / 不漂移 / 不 forget"的监督密度越高。</li>
+  <li>原始 dataset 的长度分布偏短(60% 在 0–50 turn),如果不重采样,模型容易被"短 trajectory 噪声"主导,学出"快答型"行为。</li>
+  <li>论文的 ablation:不重采样的版本在 BrowseComp 22.8 → 重采样 26.8(+4.0),BC-ZH 33.9 → 35.7(+1.8)。这是<em>不改任何模型架构</em>纯靠数据分布换回来的 4 个点。</li>
+</ul>
+
+<h3>4.3 Worked example: 一条 raw trajectory 的"清洗 → 重采样"轨迹</h3>
+<div class="fig">
+  <svg viewBox="0 0 720 230" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+    <text x="360" y="20" font-size="12" text-anchor="middle" fill="#5b5e66" font-style="italic">假设原始 trajectory: 130 turn, 含 2 次 PythonInterpreter, 5 次重复 browse, 答案正确</text>
+
+    <rect x="10" y="40" width="120" height="60" rx="6" fill="#f3eee0" stroke="#cc4a1b"/>
+    <text x="70" y="60" font-size="11" text-anchor="middle" font-weight="bold">RAW</text>
+    <text x="70" y="76" font-size="10" text-anchor="middle">130 turn</text>
+    <text x="70" y="90" font-size="10" text-anchor="middle">含非法 tool</text>
+
+    <line x1="130" y1="70" x2="155" y2="70" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+    <rect x="160" y="40" width="120" height="60" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="220" y="60" font-size="11" text-anchor="middle" font-weight="bold">①格式对齐</text>
+    <text x="220" y="76" font-size="10" text-anchor="middle">130 turn (不变)</text>
+    <text x="220" y="90" font-size="10" text-anchor="middle">schema 改写</text>
+
+    <line x1="280" y1="70" x2="305" y2="70" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+    <rect x="310" y="40" width="120" height="60" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="370" y="60" font-size="11" text-anchor="middle" font-weight="bold">②剪非法+去重</text>
+    <text x="370" y="76" font-size="10" text-anchor="middle">130 → 118 turn</text>
+    <text x="370" y="90" font-size="10" text-anchor="middle">2+5 turn 删掉</text>
+
+    <line x1="430" y1="70" x2="455" y2="70" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+    <rect x="460" y="40" width="120" height="60" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="520" y="60" font-size="11" text-anchor="middle" font-weight="bold">③correctness</text>
+    <text x="520" y="76" font-size="10" text-anchor="middle">通过 (答案对)</text>
+    <text x="520" y="90" font-size="10" text-anchor="middle">→ 留 118 turn</text>
+
+    <line x1="580" y1="70" x2="605" y2="70" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+    <rect x="610" y="40" width="100" height="60" rx="6" fill="#cc4a1b" opacity="0.85"/>
+    <text x="660" y="60" font-size="11" text-anchor="middle" font-weight="bold" fill="#fff">④×5 重采样</text>
+    <text x="660" y="76" font-size="10" text-anchor="middle" fill="#fff">118&gt;100 → ×5</text>
+    <text x="660" y="90" font-size="10" text-anchor="middle" fill="#fff">5 份训练样本</text>
+
+    <text x="360" y="135" font-size="11" fill="#5b5e66" text-anchor="middle">结果: 这条 trajectory 在 epoch 内被见 5 次,而短 trajectory 只见 1 次。</text>
+    <text x="360" y="155" font-size="11" fill="#5b5e66" text-anchor="middle">SFT loss 自然就被"长程行为"主导了。</text>
+
+    <rect x="100" y="180" width="520" height="40" rx="6" fill="#fff8e8" stroke="#d2a32a"/>
+    <text x="360" y="205" font-size="11" text-anchor="middle">SFT objective: −∑ log π_θ(x_i | x_&lt;i) over assistant tokens only (observation 全部 mask)</text>
+  </svg>
+  <figcaption>从 raw trajectory 到 SFT batch 的全流程。注意 ② 的剪枝是"turn-level"的——只删非法 turn 不删整条 trajectory,这样 1064 条本来要被丢的 trajectory 被救回来了。</figcaption>
+</div>
+
+<h3>4.4 反向论证: 不做重采样会怎样</h3>
+<p>看 ablation:DR-Venus-4B-SFT (w/o Resampling) 在 BC 上只有 22.8。同样 9365 条数据,只是分布偏短,小模型就更倾向于"看完前 30 turn 直接 finalize"。这种偏好对 BrowseComp 致命——很多正确答案要 100+ turn 的 cross-source verification。</p>
+
+<hr>
+
+<h2 id="sec5">5 · Stage-2: IGPO + turn-level info-gain reward</h2>
+
+<p>SFT 给的是"会做"的 baseline,RL 要解决"做对"的稳定性。论文最有特色的就是<strong>奖励信号的设计</strong>——不是发明 RL 算法,是发明 dense reward。</p>
+
+<h3>5.1 IG reward 的物理直觉</h3>
+<p>定义重温(论文 Eq. 3):</p>
+<div class="formula">r<sub>IG</sub><sup>i,t</sup> = log π<sub>θ</sub>(g | h<sub>i,≤t</sub>) − log π<sub>θ</sub>(g | h<sub>i,≤t-1</sub>),  1 ≤ t &lt; T<sub>i</sub></div>
+<p>把 ground truth answer <code>g</code> 包装成跟 model response 同 schema(<code>&lt;think&gt;Now there's enough information to answer&lt;/think&gt;&lt;answer&gt;G&lt;/answer&gt;</code>),然后看模型 condition 在前 t turn 的 history 上,生成这串 g 的 log-prob 提升了多少。</p>
+<ul>
+  <li>提升 = 这一 turn 找到了有用证据 → 正 reward</li>
+  <li>下降 = 这一 turn 误导了模型(read 到无关页面、tool call 失败注入 noise)→ 负 reward</li>
+  <li>持平 = 这一 turn 啥也没干 → 0</li>
+</ul>
+<p><strong>关键:reward 的"密度" = trajectory 长度。</strong>200 turn 自动得到 200 个 reward signal,无需任何 reward model 也无需人工标注。这是把 GRPO 那种 "trajectory 一个 scalar reward" 直接变成 "每 turn 一个 reward"。</p>
+
+<h3>5.2 Browse-aware IG 分配</h3>
+<p>但 search turn 给的 reward 是噪声大的——一次 search 返回的是 snippet 列表,模型对 g 的 log-prob 可能小幅震荡。论文观察:browse turn 才是真正"读到证据"的 turn,IG 信号在 browse 上更可靠。</p>
+<p>方案:</p>
+<ol>
+  <li>只在 browse turn 计算 IG。</li>
+  <li>把这个 IG 同时归功给 <em>该 browse turn 自己 + 所有上一个 browse 之后的 search turn</em>。</li>
+</ol>
+<p>这相当于把 search 当作"在为下一次 browse 做准备工作",reward 来自 browse 的成功——一种粗粒度 credit 反向分配。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 200" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#1f7a4a"/>
+      </marker>
+    </defs>
+    <!-- timeline -->
+    <line x1="40" y1="100" x2="680" y2="100" stroke="#5b5e66" stroke-width="2"/>
+    <text x="40" y="135" font-size="11" fill="#5b5e66">turn 1</text>
+    <text x="660" y="135" font-size="11" fill="#5b5e66">turn 8</text>
+
+    <!-- turns -->
+    <g font-size="11" text-anchor="middle">
+      <circle cx="80" cy="100" r="14" fill="#e7eefb" stroke="#2f6feb"/><text x="80" y="104">S</text>
+      <circle cx="160" cy="100" r="14" fill="#e7eefb" stroke="#2f6feb"/><text x="160" y="104">S</text>
+      <circle cx="240" cy="100" r="14" fill="#fff7e0" stroke="#cc4a1b"/><text x="240" y="104">B</text>
+      <circle cx="320" cy="100" r="14" fill="#e7eefb" stroke="#2f6feb"/><text x="320" y="104">S</text>
+      <circle cx="400" cy="100" r="14" fill="#e7eefb" stroke="#2f6feb"/><text x="400" y="104">S</text>
+      <circle cx="480" cy="100" r="14" fill="#e7eefb" stroke="#2f6feb"/><text x="480" y="104">S</text>
+      <circle cx="560" cy="100" r="14" fill="#fff7e0" stroke="#cc4a1b"/><text x="560" y="104">B</text>
+      <circle cx="640" cy="100" r="14" fill="#cc4a1b"/><text x="640" y="104" fill="#fff">A</text>
+    </g>
+
+    <!-- IG arrows -->
+    <text x="240" y="50" font-size="11" text-anchor="middle" fill="#1f7a4a">IG = +0.012</text>
+    <line x1="240" y1="55" x2="240" y2="82" stroke="#1f7a4a" stroke-width="2" marker-end="url(#arr4)"/>
+    <line x1="240" y1="55" x2="160" y2="82" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr4)" stroke-dasharray="3 2"/>
+    <line x1="240" y1="55" x2="80" y2="82" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr4)" stroke-dasharray="3 2"/>
+
+    <text x="560" y="50" font-size="11" text-anchor="middle" fill="#1f7a4a">IG = +0.034</text>
+    <line x1="560" y1="55" x2="560" y2="82" stroke="#1f7a4a" stroke-width="2" marker-end="url(#arr4)"/>
+    <line x1="560" y1="55" x2="480" y2="82" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr4)" stroke-dasharray="3 2"/>
+    <line x1="560" y1="55" x2="400" y2="82" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr4)" stroke-dasharray="3 2"/>
+    <line x1="560" y1="55" x2="320" y2="82" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr4)" stroke-dasharray="3 2"/>
+
+    <text x="640" y="50" font-size="11" text-anchor="middle" fill="#cc4a1b">outcome r_O</text>
+    <line x1="640" y1="55" x2="640" y2="82" stroke="#cc4a1b" stroke-width="2" marker-end="url(#arr4)"/>
+
+    <text x="360" y="170" font-size="11" fill="#5b5e66" text-anchor="middle">S=search, B=browse, A=answer; 实线箭头表示该 turn 自己的 IG, 虚线表示从 browse 反向归功到此前的 search turn</text>
+  </svg>
+  <figcaption>browse-aware IG 分配的具体形态:第一段 (S, S, B) 共享 +0.012,第二段 (S, S, S, B) 共享 +0.034,answer turn A 由 outcome reward r_O 决定(0 或 1)。</figcaption>
+</div>
+
+<h3>5.3 Turn-level format penalty</h3>
+<p>Eq. 4 简洁但 powerful:</p>
+<div class="formula">r̂<sub>i,t</sub> = r<sub>i,t</sub> if format(t) valid, else −λ<sub>fmt</sub></div>
+<p>具体实现:任何一个 turn 的 <code>&lt;think&gt;...&lt;/think&gt;&lt;tool_call&gt;...&lt;/tool_call&gt;</code> schema 不合法、JSON 解析失败、tool name 错拼,就把<em>那个 turn 的 reward</em>替换成 <code>−λ_fmt</code>(论文用 1.0)。论文实测 λ_fmt = 1.0 是 IG/outcome 同尺度 normalize 之后的合理值。</p>
+<p><strong>对比 trajectory-level format penalty:</strong>后者会给整条 200 turn trajectory 一个 -1 的 scalar,即使只是第 87 turn 错了一个 JSON 引号——前 86 turn 的正确行为也被打压。turn-level 把惩罚 surgical 化,只罚那一 turn。</p>
+
+<h3>5.4 IG-Scale: 解决 reward 不平衡</h3>
+<p>归一化后 (Eq. 5),IG reward 和 outcome reward 都是 ~N(0,1) scale。但当 group 里全错(outcome 全 0,normalize 后 σ_O ≈ 0,μ_O = 0,数值上整组 r̃_O ≈ 0)时,outcome 完全失声,policy 被 IG 单独驱动,容易学到"refine reasoning 但永远不答对"的 local optimum。</p>
+<p>IG-Scale 的做法(Eq. 6–8):</p>
+<div class="formula">s = min( max(M<sub>O</sub>, η) / (M<sub>IG</sub> + δ),  s<sub>max</sub> )</div>
+<p>其中 η=0.3, δ=10⁻⁸, s_max=10。直觉:</p>
+<ul>
+  <li>当 outcome 强(<code>M_O</code> 大): s 大 → IG 被放大,turn 信号充分发力。</li>
+  <li>当 outcome 弱(<code>M_O ≈ 0</code>): s ≈ η/M_IG,小到 0.3 / 1 = 0.3 量级,压低 IG 影响,避免被噪声 IG 带跑。</li>
+</ul>
+<p>"weak outcome → 谨慎更新"是经典的 RL 鲁棒性设计,这里把它做到了 turn-reward 缩放上。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 公式拆解:从 IG reward 到 IGPO objective</h2>
+
+<h3>6.1 各步公式 + 物理含义</h3>
+<table>
+  <tr><th>公式</th><th>含义</th><th>关键参数</th></tr>
+  <tr><td>Eq. 2: <code>log π_θ(g|h≤t) = (1/L)∑ log π_θ(g_j|h≤t,g&lt;j)</code></td><td>归一化的 ground-truth log-prob,除 L 避免长答案权重过大</td><td>L = answer 的 token 数</td></tr>
+  <tr><td>Eq. 3: <code>r_IG = Δ log π_θ(g)</code></td><td>turn 级信息增益</td><td>stop-gradient(论文脚注 1, IG 不参与反传)</td></tr>
+  <tr><td>Eq. 4: format-adjusted reward</td><td>format 错则 reward = −λ_fmt</td><td>λ_fmt = 1.0</td></tr>
+  <tr><td>Eq. 5: 组内 normalize</td><td>IG 和 outcome 分别在 group 内 (μ, σ) 归一</td><td>G = 8</td></tr>
+  <tr><td>Eq. 6–7: IG-Scale s</td><td>自适应缩放系数</td><td>η=0.3, δ=1e-8, s_max=10</td></tr>
+  <tr><td>Eq. 9: <code>R̃_i,t = ∑_{k≥t} γ^{k-t} r̄_i,k</code></td><td>折扣累加,把未来 turn 的 reward 折现给当前 turn</td><td>γ = 0.95</td></tr>
+  <tr><td>Eq. 10: IGPO objective</td><td>GRPO 风格的 ratio·advantage 形式 + clip + KL</td><td>ε(clip), β(KL)</td></tr>
+</table>
+
+<h3>6.2 IGPO objective 的梯度长什么样</h3>
+<p>Eq. 10 形式上跟 GRPO 完全一样,差异只在 advantage:</p>
+<div class="formula">
+  J<sub>IGPO</sub>(θ) = E [ (1/G)∑<sub>i</sub> (1/|u<sub>i</sub>|)∑<sub>k</sub> min(ρ<sub>i,k</sub> R̃<sub>i,k</sub>, clip(ρ<sub>i,k</sub>, 1±ε) R̃<sub>i,k</sub>) − β D<sub>KL</sub>(π<sub>θ</sub> ‖ π<sub>ref</sub>) ]
+</div>
+<p>其中 <code>ρ_i,k = π_θ(u_i,k|c_i,k) / π_θ_old(u_i,k|c_i,k)</code> 是 token-level importance ratio,<code>R̃_i,k</code> 是该 token 所属 turn 的折扣累加 reward——<strong>同 turn 内所有 token 共享 R̃</strong>(论文明确说 "for tokens from turn t, we set R̃_i,k = R̃_i,t")。</p>
+<p>等于说:turn 是 reward 单位,但 ratio / clip 是 token-level 算的;这是个干净的 hybrid granularity。</p>
+
+<h3>6.3 数值敏感性: γ 怎么影响 reward 累加</h3>
+<table>
+  <tr><th>γ</th><th>turn 距离 = 50 时折扣</th><th>实际效果</th></tr>
+  <tr><td>0.99</td><td>0.61</td><td>太"长视" — 早期 search 几乎拿到末端 outcome 全部 reward,credit 被稀释</td></tr>
+  <tr><td><strong>0.95 (本文)</strong></td><td>0.077</td><td>50 turn 折扣到 ~7.7%,相当于"看 30–50 turn 的视野"</td></tr>
+  <tr><td>0.9</td><td>0.005</td><td>折太狠 — 末端 outcome 几乎传不到中段 turn,IG 必须独立支撑学习</td></tr>
+  <tr><td>0.0</td><td>0</td><td>退化为 myopic per-turn,完全不传播 outcome</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec7">7 · Worked Example: 一个 BrowseComp 查询的 8-turn IG 轨迹</h2>
+
+<p>让我们看一个具体的 BrowseComp 风格问题怎么走完一条 trajectory,以及 IG reward 在每一 turn 长什么样。</p>
+
+<blockquote>
+  <strong>Query:</strong>"一位在 1980 年代曾代表美国参加奥运会铁饼项目、退役后转入大学教练岗位、且其学生在 2000 年悉尼奥运会上拿过铁饼银牌的运动员叫什么名字?"
+  <br><strong>Ground truth (g):</strong> John Powell
+</blockquote>
+
+<p>设 baseline log π_θ(g | q) = −7.20(模型一开始毫无线索)。我们追踪 8 个 turn 的 IG。</p>
+
+<table>
+  <tr><th>t</th><th>action</th><th>具体内容(简述)</th><th>log π_θ(g | h≤t)</th><th>r_IG</th><th>format ok?</th><th>r̂(归一前)</th></tr>
+  <tr><td>0</td><td>—</td><td>history = q</td><td>−7.20</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>1</td><td>search</td><td>"USA discus throw 1980s Olympic"</td><td>−6.95</td><td>(归并到 t=3)</td><td>✓</td><td>—</td></tr>
+  <tr><td>2</td><td>search</td><td>"American discus thrower coach Sydney 2000"</td><td>−6.83</td><td>(归并到 t=3)</td><td>✓</td><td>—</td></tr>
+  <tr><td>3</td><td>browse</td><td>读 Wikipedia "John Powell (discus thrower)"</td><td>−5.10</td><td><strong>+2.10</strong></td><td>✓</td><td>+2.10 (分给 t=1,2,3)</td></tr>
+  <tr><td>4</td><td>search</td><td>"Adam Setliff coach silver medal Sydney"</td><td>−5.05</td><td>(归并到 t=6)</td><td>✓</td><td>—</td></tr>
+  <tr><td>5</td><td>search</td><td>"Sydney 2000 discus silver medalist"</td><td>−4.92</td><td>(归并到 t=6)</td><td>✓</td><td>—</td></tr>
+  <tr><td>6</td><td>browse</td><td>读 "2000 Olympics men's discus throw" — 看到 silver = Lars Riedel(德), bronze = Frantz Kruger;Powell 学生没拿牌</td><td>−5.40</td><td><strong>−0.30</strong></td><td>✓</td><td>−0.30(modify search/browse 路径)</td></tr>
+  <tr><td>7</td><td>browse</td><td>重新读 "John Powell coaching career" → 发现 Mac Wilkins 是其训练伙伴,但学生层面不符 → 模型决定 reframe 问题(也许"代表美国"不严格)</td><td>−4.31</td><td><strong>+1.09</strong></td><td>✓</td><td>+1.09</td></tr>
+  <tr><td>8</td><td>answer</td><td><code>&lt;answer&gt;John Powell&lt;/answer&gt;</code></td><td>—</td><td>—</td><td>✓</td><td>r_O = 1 (judged correct on the basis of teaching career match)</td></tr>
+</table>
+
+<p><strong>关键观察:</strong></p>
+<ol>
+  <li>turn 6 的 IG <em>负</em>了 — 模型发现自己读到的页面跟 g 不符,这在 IG 框架里是正常信号:它说"这条 browse 让我对 g 的 confidence 反而下降",policy 学到"以后类似上下文不要走这条路"。</li>
+  <li>browse-aware 把 t=3 的 +2.10 平分给 t=1, 2, 3 —— 之前那两次 search query 被回溯地确认为"对最终找到 Powell Wikipedia 有用"。</li>
+  <li>整条 trajectory 8 个 turn 拿到 4 个非零 reward(t=3, 6, 7 的 IG + t=8 的 outcome)。如果用 GRPO 的 trajectory-level reward,只有 t=8 一个 +1,前 7 turn 全是 0,GRPO 没法分辨"turn 1 的 search 是好还是坏"。</li>
+  <li>IG-Scale: 这一条 trajectory outcome = 1, group 里如果其它 trajectory 也是 1 居多,M_O 就大,IG 被放大;如果其它都失败(outcome=0),IG-Scale 会自动压低 IG 防止过激更新。</li>
+</ol>
+
+<div class="nb">
+  <strong>反向论证:</strong>如果没有 turn-level IG,把这条 trajectory 整体打 +1 reward 平均到所有 token,policy 会把"<em>包括 turn 6 那次失败的 browse</em>"也学下来。这就是 trajectory-level RL 在 long-horizon 上 advantage 难以分配的核心痛点。
+</div>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 主表(精简版)</h3>
+<table>
+  <tr><th>Model</th><th>Params</th><th>BrowseComp</th><th>BC-ZH</th><th>GAIA</th><th>xBench-2505</th><th>xBench-2510</th><th>DeepSearchQA</th></tr>
+  <tr><td>WebExplorer-8B-RL</td><td>8B</td><td>15.7</td><td>32.0</td><td>50.0</td><td>53.7</td><td>23.0</td><td>17.8</td></tr>
+  <tr><td>AgentCPM-Explore-4B</td><td>4B</td><td>24.1</td><td>29.1</td><td>63.9</td><td>70.0</td><td>34.0</td><td>32.8</td></tr>
+  <tr><td><strong>DR-Venus-4B-SFT</strong></td><td>4B</td><td>26.8</td><td>35.7</td><td>65.4</td><td>69.0</td><td>35.3</td><td>37.7</td></tr>
+  <tr><td><strong>DR-Venus-4B-RL</strong></td><td>4B</td><td><strong>29.1</strong></td><td><strong>37.7</strong></td><td>64.4</td><td><strong>74.7</strong></td><td><strong>40.7</strong></td><td><strong>39.6</strong></td></tr>
+  <tr><td colspan=8 style="background:#f3eee0;text-align:center;font-style:italic">— 30B 班级参考 —</td></tr>
+  <tr><td>Tongyi-DR-30B</td><td>30B</td><td>43.4</td><td>46.7</td><td>70.9</td><td>75.0</td><td>55.0</td><td>—</td></tr>
+  <tr><td>WebSailor-V2-30B-RL</td><td>30B</td><td>35.3</td><td>44.1</td><td>74.1</td><td>73.7</td><td>—</td><td>—</td></tr>
+  <tr><td>REDSearcher-30B-A3B</td><td>30B-A3B</td><td>42.1</td><td>49.8</td><td>80.1</td><td>—</td><td>—</td><td>—</td></tr>
+</table>
+
+<p><strong>读法:</strong>RL 在 6 项里 5 项跑赢 SFT(GAIA 是 -1.0,文中归因为 GAIA 偏知识问答而非 long-browse)。在 xBench-DS-2505 上,DR-Venus-4B-RL 74.7 已经触到 Tongyi-DR-30B 的 75.0,7.5× 的参数差被吃掉了。</p>
+
+<h3>8.2 GRPO vs IGPO ablation(最 load-bearing 的一张表)</h3>
+<table>
+  <tr><th>Model</th><th>BrowseComp</th><th>BC-ZH</th></tr>
+  <tr><td>SFT (w/o Resampling)</td><td>22.8</td><td>33.9</td></tr>
+  <tr><td>SFT (w/ Resampling, ours)</td><td>26.8 (+4.0)</td><td>35.7 (+1.8)</td></tr>
+  <tr><td>SFT + RL with <strong>GRPO</strong></td><td>25.3 <span class="no">(−1.5)</span></td><td>35.6 (−0.1)</td></tr>
+  <tr><td>SFT + RL with <strong>IGPO</strong> (ours)</td><td>29.1 <span class="ok">(+2.3)</span></td><td>37.7 <span class="ok">(+2.0)</span></td></tr>
+</table>
+<p><strong>这张表是论文的 punch line</strong>:同样 RL infra、同样数据、同样 base,GRPO 在 BrowseComp 上甚至<em>退化</em>(−1.5),IGPO 反而 +2.3。证明 long-horizon agentic RL 的瓶颈是 reward 信号设计而不是优化算法本身。</p>
+
+<h3>8.3 Pass@K 揭示的 capability ceiling</h3>
+<div class="fig">
+  <svg viewBox="0 0 720 220" width="100%" style="max-width:700px">
+    <!-- axes -->
+    <line x1="60" y1="180" x2="680" y2="180" stroke="#333"/>
+    <line x1="60" y1="20" x2="60" y2="180" stroke="#333"/>
+    <text x="360" y="210" font-size="11" text-anchor="middle">K (Pass@K, BrowseComp-ZH)</text>
+    <text x="20" y="100" font-size="11" text-anchor="middle" transform="rotate(-90 20 100)">Accuracy %</text>
+
+    <!-- x ticks -->
+    <g font-size="10" text-anchor="middle">
+      <text x="100" y="195">1</text>
+      <text x="220" y="195">2</text>
+      <text x="340" y="195">4</text>
+      <text x="460" y="195">8</text>
+      <text x="580" y="195">16</text>
+    </g>
+    <!-- y ticks -->
+    <g font-size="10" text-anchor="end">
+      <text x="55" y="180">30</text>
+      <text x="55" y="140">45</text>
+      <text x="55" y="100">60</text>
+      <text x="55" y="60">75</text>
+      <text x="55" y="20">90</text>
+    </g>
+
+    <!-- DR-Venus-SFT: 35.7 52.9 65.7 74.0 78.5 → y = 180 - (v-30)*(160/60) -->
+    <polyline points="100,164 220,119 340,85 460,63 580,51" fill="none" stroke="#2f6feb" stroke-width="2"/>
+    <g fill="#2f6feb">
+      <circle cx="100" cy="164" r="3"/><circle cx="220" cy="119" r="3"/><circle cx="340" cy="85" r="3"/>
+      <circle cx="460" cy="63" r="3"/><circle cx="580" cy="51" r="3"/>
+    </g>
+    <text x="600" y="51" font-size="11" fill="#2f6feb">DR-Venus-4B-SFT (78.5 @16!)</text>
+
+    <!-- DR-Venus-RL -->
+    <polyline points="100,158 220,118 340,89 460,65 580,55" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+    <g fill="#cc4a1b">
+      <circle cx="100" cy="158" r="3"/><circle cx="220" cy="118" r="3"/><circle cx="340" cy="89" r="3"/>
+      <circle cx="460" cy="65" r="3"/><circle cx="580" cy="55" r="3"/>
+    </g>
+    <text x="600" y="65" font-size="11" fill="#cc4a1b">DR-Venus-4B-RL</text>
+
+    <!-- Tongyi-30B: 46.7 @1 (single point) -->
+    <circle cx="100" cy="135" r="4" fill="#5b5e66"/>
+    <text x="110" y="132" font-size="10" fill="#5b5e66">Tongyi-DR-30B (46.7 @1)</text>
+
+    <!-- GPT-5 / Gemini reference -->
+    <line x1="60" y1="69" x2="680" y2="69" stroke="#1f7a4a" stroke-dasharray="4 3"/>
+    <text x="500" y="64" font-size="10" fill="#1f7a4a">Gemini-3-Pro Pass@1 = 66.8</text>
+
+    <line x1="60" y1="74" x2="680" y2="74" stroke="#a8353e" stroke-dasharray="4 3"/>
+    <text x="500" y="83" font-size="10" fill="#a8353e">GPT-5 High Pass@1 = 65.0</text>
+  </svg>
+  <figcaption>BrowseComp-ZH Pass@K 曲线:DR-Venus-4B-SFT 在 K=8 已超 Gemini-3-Pro Pass@1,K=16 (78.5) 大幅领先 GPT-5 High Pass@1 (65.0) 与 Tongyi-DR-30B Pass@1 (46.7)。这是论文最 punchy 的"test-time scaling 在小模型上的杠杆"证据。</figcaption>
+</div>
+
+<p>论文的 take:Pass@1 这种"reliability"指标低估了小模型的 capability ceiling。RL 主要把 Pass@1 / @2 拉起来——即 reliability;Pass@16 的 ceiling 反而 SFT 已经接近极限(BC-ZH SFT @16 = 78.5,RL @16 = 76.5,RL 略低,论文归因为 RL 数据全英文导致中文分布漂移)。</p>
+
+<h3>8.4 Tool use 分析:correct trajectory 的 browse ratio 更高</h3>
+<p>聚合数:overall browse ratio SFT 17.49% → RL 22.46%;correct trajectory 的 browse ratio 23.71% → 28.96%。RL 不是简单"少 search 多 browse",而是把 tool-use 行为<em>校准</em>到 success 模式上。xBench-DS-2510 上 SFT 反常("wrong browse 多于 correct browse"),RL 把这个反常修正了。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>系统</th><th>规模</th><th>数据</th><th>RL 算法</th><th>Reward 粒度</th><th>跟 DR-Venus 的差异</th></tr>
+  <tr><td><strong>DR-Venus (本文)</strong></td><td>4B dense</td><td>10K open SFT + 1K open RL</td><td>IGPO</td><td>turn-level IG + outcome + format</td><td>—</td></tr>
+  <tr><td>SFR-DeepResearch (Salesforce)</td><td>14B/32B</td><td>合成 + 闭源</td><td>GRPO 变体</td><td>trajectory outcome</td><td>规模大 1 个数量级,reward 稀疏,需 self-correction loop 弥补</td></tr>
+  <tr><td>WebSailor-V2-30B</td><td>30B dense</td><td>合成 + 闭源</td><td>GRPO + DAPO 风格 sampling</td><td>trajectory outcome</td><td>30B 起步,本质上"放大模型解决 reward 稀疏"</td></tr>
+  <tr><td>Tongyi-DR-30B</td><td>30B-A3B MoE</td><td>大规模合成</td><td>多阶段 SFT + RL</td><td>trajectory outcome + 部分 process reward</td><td>更复杂的多阶段 pipeline,数据量是 DR-Venus 的几十倍</td></tr>
+  <tr><td>Open Deep Research (HF)</td><td>各种 base</td><td>开源数据</td><td>无 / 简单 SFT</td><td>—</td><td>主要是 prompting + scaffold 框架,不做 RL</td></tr>
+  <tr><td>OpenSeeker-30B-SFT</td><td>30B-A3B</td><td>全开源,大量合成</td><td>纯 SFT</td><td>—</td><td>"靠数据量胜",DR-Venus 选了"靠 RL 信号密度胜"</td></tr>
+  <tr><td>DAPO (ByteDance)</td><td>不限</td><td>—</td><td>DAPO</td><td>trajectory outcome</td><td>关注的是 RL <em>稳定性</em>(clip-higher, dynamic sampling),没有 turn-level dense reward;跟 IGPO 是正交的改进</td></tr>
+  <tr><td>REDSearcher-30B-A3B</td><td>30B-A3B</td><td>10K 一样</td><td>SFT 主</td><td>—</td><td>同源数据但用 30B,DR-Venus-4B-SFT 在 BC-ZH 已超它(35.7 vs 26.8)说明数据 utilization 更重要</td></tr>
+</table>
+
+<p><strong>定位总结:</strong>DAPO 解决"RL 怎么稳定地训",IGPO/DR-Venus 解决"RL 信号怎么足够 dense"。两条线可以叠加 — 论文没做但理论上 DAPO 的 dynamic sampling + IGPO 的 turn-level IG 可以共存。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>10.1 论文里 explicit 的局限</h3>
+<ul>
+  <li>RL 训练数据全英文,导致 BC-ZH Pass@K 大 K 上 RL 略输 SFT(distribution mismatch)。</li>
+  <li>γ=0.95 / λ_fmt=1.0 / s_max=10 的超参没有 sensitivity ablation,工程上是手调出来的。</li>
+  <li>外部 tool 只暴露 search + browse,没探索 code execution / file ops 等更复杂动作,跟 GAIA 的某些子任务不完全契合(GAIA 上 RL 反而 -1.0)。</li>
+</ul>
+
+<h3>10.2 我的个人 take</h3>
+<ul>
+  <li><strong>"4B + 10K"是论文最有价值的定位声明,而不是数字本身。</strong>它说明 deep research 不是"必须 30B"的赛道。这对端侧、私有部署是一个非常实用的论点。</li>
+  <li><strong>IGPO 不是 DR-Venus 发明的,但 DR-Venus 把它"产品化"。</strong>browse-aware 分配 + format penalty + IG-Scale 是把原始 IGPO 拉到能在 200-turn 长 trajectory 下不崩的关键工程胶水。</li>
+  <li><strong>turn-aware 重采样的 +4 在 BC 上 比 RL 的 +2.3 都大。</strong>这暗示 SFT 数据分布的工程价值被严重低估;社区在追 reward shaping 时容易忽视"我的训练分布到底长什么样"。</li>
+  <li><strong>Pass@K 揭示的 ceiling 是 future direction 信号:</strong>4B 模型 Pass@16 在 BC-ZH 已经 78.5,比 GPT-5 High Pass@1(65.0)高一截,说明 small model + verifier-based test-time scaling 是潜力巨大的研究方向(但本文没做这一步)。</li>
+  <li><strong>对 GRPO 失败的解读值得警惕:</strong>论文说 "GRPO 在长 trajectory 上不行" 主要是因为 reward 太稀疏;但这并不证明 GRPO 算法本身不对——给它一个 dense reward(就像 IG 这样),GRPO objective(Eq. 10 几乎跟 IGPO 同形)也能 work。所以读论文时要分清"算法 vs reward 设计"。</li>
+</ul>
+
+<h3>10.3 待验证问题</h3>
+<ol>
+  <li>IG-Scale 对结果到底贡献多少?论文用了它,但没单独 ablate。η=0.3 这个数字怎么来的?</li>
+  <li>browse-aware vs all-turn IG 的 ablation 缺失。如果在 search turn 也算 IG,效果是更差还是相当?</li>
+  <li>γ ∈ {0.9, 0.95, 0.99, 1.0} 的扫描没看到。在 200-turn 任务里,折扣窗口是关键超参。</li>
+  <li>SFT 数据如果不是 REDSearcher 而是 Tongyi-DR / WebSailor 的 trajectory,recipe 还成立吗?(数据源对 IG-reward 的相关性的影响)</li>
+  <li>RL 的 1K query-answer 对来源也是 REDSearcher,跟 SFT 数据存在分布同源性。如果 RL query 来自不同分布(BrowseComp 的 train split 等),还能稳定吗?</li>
+  <li>4B 已经触到 Pass@16 = 78.5(BC-ZH),那 8B / 14B 在同 recipe 下的 Pass@K ceiling 是多少?有没有 diminishing returns 的拐点?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec11">11 · Memory points (冷启动复述)</h2>
+
+<div class="kv"><span class="pill">立场</span><strong>4B + 10K open data 也能做 frontier deep research,关键不是规模、是数据 quality + RL signal density。</strong></div>
+<div class="kv"><span class="pill">主干</span>Qwen3-4B-Thinking-2507,SFT 用 verl FSDP,RL 用 verl + vLLM,8 → 16 张 A100,256K context。</div>
+<div class="kv"><span class="pill">数据</span>10001 raw → 9365 cleaned → 18745 重采样后(0–50/51–100/&gt;100 turn ×1/2/5)。RL 用 1K query-answer。</div>
+<div class="kv"><span class="pill">核心算法</span>IGPO(GRPO 框架 + IG turn reward),G=8,γ=0.95,λ_fmt=1.0,IG-Scale 自适应。</div>
+<div class="kv"><span class="pill">IG reward</span><code>r_IG = log π(g|h≤t) − log π(g|h≤t-1)</code>,ground truth 包成同 schema,stop-gradient,只在 browse turn 算并反向归功到前面 search turn。</div>
+<div class="kv"><span class="pill">format penalty</span>turn-level: 错则 reward = -1.0,不连坐其他 turn。</div>
+<div class="kv"><span class="pill">关键 ablation</span>SFT 重采样 +4.0; GRPO −1.5; IGPO +2.3 (BrowseComp)。说明 reward design > optimizer design。</div>
+<div class="kv"><span class="pill">最强结果</span>DR-Venus-4B-RL: BC 29.1 / BC-ZH 37.7 / xBench-DS-2505 74.7(逼近 Tongyi-DR-30B 75.0)。</div>
+<div class="kv"><span class="pill">test-time scaling</span>BC-ZH Pass@16: SFT 78.5,远超 GPT-5 High Pass@1 (65.0)、Gemini-3-Pro (66.8)、Tongyi-DR-30B (46.7)。</div>
+<div class="kv"><span class="pill">Tool use</span>RL 把 browse ratio 从 17.5% 推到 22.5%,且 correct trajectory 比 wrong 的 browse 比例更高,RL 在做"tool calibration"而不是"tool 多用"。</div>
+<div class="kv"><span class="pill">vs DAPO</span>DAPO 解决稳定性(clip-higher, dynamic sampling),IGPO 解决信号密度(turn-level IG)。两者正交。</div>
+<div class="kv"><span class="pill">局限</span>RL 数据全英文 → BC-ZH 大 K 上吃亏;γ/η/λ_fmt 没 sensitivity 扫描;只暴露 search+browse 两种 tool。</div>
+
+</main>
+</body>
+</html>

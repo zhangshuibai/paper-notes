@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · TOP: Token Order Prediction (2508.19228)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Predicting the Order of Upcoming Tokens Improves Language Modeling</h1>
+<div class="meta">
+  MBZUAI · Zayd M. K. Zuhri, Erland Hilman Fuadi, Alham Fikri Aji · 2026-02-17 · arXiv:2508.19228v2<br>
+  关键词: token order prediction · learning-to-rank · ListNet · MTP · DS-MTP · auxiliary loss · pretraining
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 MTP 那种"精确预测 t+1…t+k 个 token"的辅助任务<em>松弛</em>为"按 proximity 排序未来 W 个 token"——一个 ListNet 风格的 learning-to-rank loss,只额外加 <strong>一层 unembedding</strong>,在 340M / 1.8B / 7B 的 pretrain + 续训中全面胜过 NTP / MTP / DS-MTP。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">2DV</div><div class="l">每 token 训练 FLOPs(MTP 是 (N−1)·24D²)</div></div>
+    <div class="stat"><div class="n">G(5,5) 100%</div><div class="l">星图任务 TOP 唯一全对</div></div>
+    <div class="stat"><div class="n">α=0.9</div><div class="l">TOP loss 权重越大越好</div></div>
+  </div>
+  <p><strong>立场:</strong>MTP 不灵的根因不是 look-ahead 思路错,而是<em>把 look-ahead 任务定得太死</em>(精确预测某个 offset 上的 token)。改成排序就把分类问题降成相对位置问题,representation 反而学得更好。架构成本几乎为零,值得作为通用 NTP 的低风险替代去试。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 MTP 不够用</a></li>
+    <li><a href="#sec2">背景速查 (NTP / MTP / DS-MTP / ListNet)</a></li>
+    <li><a href="#sec3">方法 · TOP target 是怎么造的</a></li>
+    <li><a href="#sec4">方法 · 损失函数与架构</a></li>
+    <li><a href="#sec5">复杂度对比 · 为什么"只加一层"是对的尺度</a></li>
+    <li><a href="#sec6">具体例子 · TOP 和 MTP 在哪一步分道扬镳</a></li>
+    <li><a href="#sec7">实验关键结果</a></li>
+    <li><a href="#sec8">星图任务 · 最干净的可分性证明</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec11">Memory Points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1. 动机:为什么 MTP 不够用</h2>
+
+<h3>1.1 历史脉络:NTP 的批评与 MTP 的兴起</h3>
+
+<p>故事要从 NTP 的批评说起。NTP(next-token prediction)是 Shannon 时代就奠定的 objective,简单粗暴地最小化 <code>−Σ log P(x_{t+1} | x_{0:t})</code>。但近年它收到两路质疑:</p>
+
+<ul>
+  <li><strong>LeCun 的批评(2024):</strong>NTP 在<em>推理时</em>误差会逐 token 累积,长序列必然崩。</li>
+  <li><strong>Bachmann & Nagarajan 的反驳(ICML 2024):</strong>问题不在推理时累积,而在<em>训练时 teacher forcing 让模型根本学不会一个准确的 next token predictor</em>。换句话说,模型学到的并不是真正"看清未来"的表征,只是"在给定真实前缀时蒙下一个 token"的近视器。他们设计的 <span class="term">star graph pathfinding</span> 任务把这个缺陷放大成一个二分判别题——后面 §8 会详谈。</li>
+</ul>
+
+<p>第二种批评更棘手,因为它指向 representation 本身。社区于是开始找<strong>能逼模型多看几步</strong>的辅助 objective。<span class="term">ProphetNet</span>(2020)预测未来 n-gram,<span class="term">MTP</span>(Gloeckle 2024 / Meta)在 transformer trunk 之上叠 N 个并行的 transformer block 头,每头预测 t+n;<span class="term">DS-MTP</span>(DeepSeek-V3)把头改成顺序串联,每一头吃前一头的隐状态加 RMSNorm 后的下一个 ground-truth embedding。</p>
+
+<p>问题是:<strong>MTP 的收益不稳定</strong>。原 MTP 论文 Appendix G 自承在 standard NLP benchmark 上不一定占优;只有在 coding / math 这类需要 look-ahead 的生成任务上、而且模型 ≥1B–3B 时,它才稳定胜过 NTP。DeepSeek-V3 干脆只用 N=3,这本身就是承认大 N 不 work。</p>
+
+<h3>1.2 别的方案为什么不够 — 多 token 预测的"看得越远学得越烂"陷阱</h3>
+
+<p>作者用一个 16M 的小 transformer 训了带 16 个 MTP 头的模型,把每个头的训练 loss 单独画出来(Figure 2)。结果非常干净:</p>
+
+<div class="fig">
+<svg viewBox="0 0 640 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- axes -->
+  <line x1="60" y1="200" x2="610" y2="200" stroke="#5b5e66" stroke-width="1.2"/>
+  <line x1="60" y1="30"  x2="60"  y2="200" stroke="#5b5e66" stroke-width="1.2"/>
+  <text x="320" y="225" font-size="12" text-anchor="middle" fill="#5b5e66">Training Steps →</text>
+  <text x="20" y="115" font-size="12" fill="#5b5e66" transform="rotate(-90 20 115)">Loss</text>
+  <!-- MTP head curves: t+1 (lowest) to t+16 (highest), spaced -->
+  <g fill="none" stroke-width="1.5">
+    <path d="M60 90 C 200 50, 400 45, 610 42" stroke="#cc4a1b"/>
+    <path d="M60 110 C 200 80, 400 78, 610 76" stroke="#cc4a1b" opacity=".82"/>
+    <path d="M60 125 C 200 102, 400 100, 610 98" stroke="#cc4a1b" opacity=".68"/>
+    <path d="M60 138 C 200 118, 400 116, 610 115" stroke="#cc4a1b" opacity=".55"/>
+    <path d="M60 150 C 200 132, 400 131, 610 130" stroke="#cc4a1b" opacity=".42"/>
+    <path d="M60 162 C 200 146, 400 145, 610 144" stroke="#cc4a1b" opacity=".32"/>
+    <path d="M60 172 C 200 158, 400 158, 610 158" stroke="#cc4a1b" opacity=".24"/>
+    <path d="M60 180 C 200 169, 400 170, 610 170" stroke="#cc4a1b" opacity=".18"/>
+  </g>
+  <!-- TOP curve, much lower -->
+  <path d="M60 110 C 180 65, 380 35, 610 28" stroke="#2f6feb" stroke-width="2.2" fill="none"/>
+  <!-- labels -->
+  <text x="615" y="42"  font-size="11" fill="#cc4a1b">t+1</text>
+  <text x="615" y="170" font-size="11" fill="#cc4a1b" opacity=".5">t+16</text>
+  <text x="615" y="28"  font-size="11" fill="#2f6feb" font-weight="600">TOP loss</text>
+  <text x="80" y="22" font-size="13" fill="#1f2024" font-weight="600">MTP per-head losses 排成"楼梯"·越远越难学</text>
+  <text x="80" y="40" font-size="11" fill="#5b5e66">楼梯越往上 loss 下降越慢 → 远 token 几乎学不动</text>
+</svg>
+<figcaption>图 1. 复刻自原文 Figure 2 的示意。MTP 16 个头的训练 loss 自上而下按 offset t+1…t+16 等距排列,远的头 loss 高且下降慢。同尺寸 TOP 模型只有一条 loss,且明显更低。</figcaption>
+</div>
+
+<p>这张图是整篇论文的<strong>论点骨架</strong>:把"准确预测某个远位置的 token"塞给小模型,等于给它布置了一个它本来就做不到的题,梯度大部分时间在告诉它"你又错了",并不能转化成有用的 representation 信号。</p>
+
+<p>对比一下作者列举的几条替代路径:</p>
+
+<table>
+<tr><th>方案</th><th>辅助信号</th><th>架构成本</th><th>痛点</th></tr>
+<tr><td>NTP only</td><td>无</td><td>0</td><td>teacher forcing 下不学 look-ahead;星图任务直接 fail</td></tr>
+<tr><td>MTP (Meta)</td><td>每个 offset 一个独立 next-token CE</td><td>N−1 个 transformer block</td><td>远 offset loss 几乎不降;小模型反而被拖累</td></tr>
+<tr><td>DS-MTP (DeepSeek-V3)</td><td>顺序展开,每头看前一头 + 真实 embedding</td><td>≈ MTP + 2 RMSNorm + 1 linear</td><td>实际只敢用 N=3;在标准 benchmark 上和 MTP 一档</td></tr>
+<tr><td>ProphetNet n-gram</td><td>预测未来 n-gram</td><td>多头</td><td>仍是精确预测,且为 seq2seq 设计</td></tr>
+<tr><td>MLM / span corruption (BERT/T5)</td><td>双向重建</td><td>encoder-only</td><td>不能直接做 autoregressive 生成</td></tr>
+<tr><td><strong>TOP(本文)</strong></td><td>把未来 W 个 token <em>排序</em></td><td><strong>1 层 unembedding</strong></td><td>只能 greedy(NTP head 仍保留以做采样)</td></tr>
+</table>
+
+<h3>1.3 为什么"换成排序"这事不平凡</h3>
+
+<p>把"预测"换成"排序"听起来像 trivial 改写,但论文的非平凡之处在于<strong>三件事的结合</strong>:</p>
+
+<ol>
+  <li><strong>任务难度的显式松弛。</strong>"在 vocab V 里精确 argmax 出 t+5 是哪个 token"是一个 1-of-V 的分类题(以 V≈50k 算,信息熵 ≈ 15.6 bits/token);而"按 proximity 给未来 W 个 token 一个排序分布"只要 model 能<em>大致</em>把"应该出现的 token"集中在 softmax 的 head 上即可。后者是<strong>软监督</strong>,梯度永远指向"再多关注一下这一片词"而不是"你又押错了"。</li>
+  <li><strong>架构成本几乎为零。</strong>没有额外 transformer block。因为 NTP head 和 TOP head 的目标是<em>对齐的</em>(都把 next token 排第一),它们可以共享同一个 hidden state h<sub>t</sub><sup>L</sup>,只各自带一个线性 unembedding。inference 时直接扔掉 TOP head,模型退化回普通 transformer——这一点对部署友好到几乎没成本。</li>
+  <li><strong>ListNet 的 top-one 公式刚好契合 LM。</strong>LM 本来就在 vocab 上输出 logits,<code>softmax(y_t)</code>(target proximity scores)和 <code>softmax(U_TOP h_t)</code>(model logits)直接做交叉熵,跟 NTP 的 CE 形式一模一样,只是 target 从 one-hot 变成了带 −∞ 的 ranking 分布。这种"接口一致"的简洁性是它能写进现有 fused linear cross-entropy kernel 不增加 overhead 的关键。</li>
+</ol>
+
+<div class="nb"><strong>反向论证:</strong>为什么不直接预测一个"未来 W 个 token 的集合"(multi-label,如 Ahn et al. 2025)?因为集合丢了顺序信息,t+1 和 t+W 同等重要,模型没动力优先关心近的 token,容易和 NTP head 抢梯度方向。TOP 的 proximity score W−d 给近 token 更高 target 分,先验地把 ranking 稳在"近 → 远"。</div>
+
+<h2 id="sec2">2. 背景速查</h2>
+
+<table>
+<tr><th>记号 / 术语</th><th>含义</th></tr>
+<tr><td>T, D, V</td><td>序列长 / hidden dim / vocab size</td></tr>
+<tr><td>h<sub>t</sub><sup>L</sup></td><td>第 t 个位置最后一层 transformer 的 hidden(NTP / TOP head 都吃它)</td></tr>
+<tr><td>U<sub>NTP</sub>, U<sub>TOP</sub></td><td>两个并列的 linear unembedding ℝ<sup>D</sup>→ℝ<sup>V</sup></td></tr>
+<tr><td>N (MTP / DS-MTP)</td><td>预测的未来 token 数(含 next),典型 2、3、4</td></tr>
+<tr><td>W (TOP)</td><td>窗口大小,默认 = 序列长(实验里也试过 4 / 16 / 128 / 1024 / 4096)</td></tr>
+<tr><td>proximity score y[t,v]</td><td>= W − d,d 是 token v 在 t 之后首次出现的距离;d 不在 (0,W] 时为 −∞</td></tr>
+<tr><td>ListNet top-one loss</td><td>−softmax(y) · log softmax(ŷ),把两个排序分布之间用 cross-entropy 衡量</td></tr>
+<tr><td>star graph G(d, l)</td><td>从中心 0 出发分 d 条长度为 l 的链;给 edge list+起点+终点,要求输出从起点到终点的路径</td></tr>
+<tr><td>self-speculative decoding</td><td>用模型自己的"未来头"draft、再用同一个模型 verify,无需额外 draft model</td></tr>
+</table>
+
+<details><summary>回顾:NTP / MTP / DS-MTP 三个 loss 的精确写法</summary>
+<div class="formula">L<sub>NTP</sub> = −Σ<sub>t</sub> log softmax(U<sub>NTP</sub>(h<sub>t</sub><sup>L</sup>))[x<sub>t+1</sub>]</div>
+<div class="formula">L<sub>MTP</sub> = −Σ<sub>t</sub> Σ<sub>n=1..N</sub> log softmax(U<sub>NTP</sub>(F<sub>n</sub>(h<sub>t</sub><sup>L−1</sup>)))[x<sub>t+n</sub>]</div>
+<div class="formula">L<sub>DS-MTP</sub>: 各头串行,h<sub>t</sub><sup>L+n−1</sup> = F<sub>n</sub>([RMSN(h<sub>t</sub><sup>L+n−2</sup>); RMSN(E(x<sub>t+n−1</sub>))]),N=3 已是上限</div>
+<p>关键差异:MTP 各头并行、共享 trunk 的倒数第二层输出;DS-MTP 各头串行、每头还吃<em>真值 embedding</em>。两者都需要额外的 transformer block。</p>
+</details>
+
+<h2 id="sec3">3. 方法 · TOP target 是怎么造的</h2>
+
+<p>给定输入 token 序列 x(长度 T+W),TOP target y 是一个 (T, V) 的张量。Algorithm 1 的本质是<strong>逆序扫一遍序列,顺手记下每个 vocab token "下一次出现在哪个位置"</strong>:</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 230" xmlns="http://www.w3.org/2000/svg">
+  <!-- token strip -->
+  <g font-family="SF Mono, Menlo, monospace" font-size="13">
+    <rect x="20"  y="40" width="70" height="36" fill="#fff7e0" stroke="#cc4a1b"/>
+    <text x="55" y="62" text-anchor="middle">never</text>
+    <rect x="92"  y="40" width="70" height="36" fill="#fff" stroke="#e2dfd5"/>
+    <text x="127" y="62" text-anchor="middle">gonna</text>
+    <rect x="164" y="40" width="70" height="36" fill="#fff" stroke="#e2dfd5"/>
+    <text x="199" y="62" text-anchor="middle">give</text>
+    <rect x="236" y="40" width="70" height="36" fill="#fff" stroke="#e2dfd5"/>
+    <text x="271" y="62" text-anchor="middle">you</text>
+    <rect x="308" y="40" width="70" height="36" fill="#fff" stroke="#e2dfd5"/>
+    <text x="343" y="62" text-anchor="middle">up</text>
+    <rect x="380" y="40" width="70" height="36" fill="#fff" stroke="#e2dfd5"/>
+    <text x="415" y="62" text-anchor="middle">never</text>
+    <rect x="452" y="40" width="70" height="36" fill="#fff" stroke="#e2dfd5"/>
+    <text x="487" y="62" text-anchor="middle">gonna</text>
+    <rect x="524" y="40" width="70" height="36" fill="#fff" stroke="#e2dfd5"/>
+    <text x="559" y="62" text-anchor="middle">let</text>
+  </g>
+  <!-- index labels -->
+  <g font-size="11" fill="#5b5e66">
+    <text x="55" y="92" text-anchor="middle">t=0</text>
+    <text x="127" y="92" text-anchor="middle">1</text>
+    <text x="199" y="92" text-anchor="middle">2</text>
+    <text x="271" y="92" text-anchor="middle">3</text>
+    <text x="343" y="92" text-anchor="middle">4</text>
+    <text x="415" y="92" text-anchor="middle">5</text>
+    <text x="487" y="92" text-anchor="middle">6</text>
+    <text x="559" y="92" text-anchor="middle">7</text>
+  </g>
+  <!-- target row -->
+  <text x="20" y="130" font-size="13" fill="#2f6feb" font-weight="600">在 t=0 (never) 处看未来 W=4 个 token: gonna, give, you, up</text>
+  <g font-family="SF Mono, Menlo, monospace" font-size="12">
+    <rect x="20"  y="145" width="120" height="30" fill="#f3eee0" stroke="#e2dfd5"/>
+    <text x="80" y="165" text-anchor="middle">gonna: d=1, W−d=3</text>
+    <rect x="145" y="145" width="120" height="30" fill="#f3eee0" stroke="#e2dfd5"/>
+    <text x="205" y="165" text-anchor="middle">give:  d=2, W−d=2</text>
+    <rect x="270" y="145" width="120" height="30" fill="#f3eee0" stroke="#e2dfd5"/>
+    <text x="330" y="165" text-anchor="middle">you:   d=3, W−d=1</text>
+    <rect x="395" y="145" width="120" height="30" fill="#f3eee0" stroke="#e2dfd5"/>
+    <text x="455" y="165" text-anchor="middle">up:    d=4, W−d=0</text>
+    <rect x="520" y="145" width="160" height="30" fill="#fff" stroke="#e2dfd5" stroke-dasharray="3 3"/>
+    <text x="600" y="165" text-anchor="middle" fill="#5b5e66">其他 v ∈ V: y[0,v] = −∞</text>
+  </g>
+  <text x="20" y="200" font-size="12" fill="#5b5e66">→ y[0] 在 vocab 维度上是: {gonna:3, give:2, you:1, up:0, 其余: −∞}</text>
+  <text x="20" y="218" font-size="12" fill="#5b5e66">  softmax(y[0]) 把概率质量集中在这 4 个 token,且 gonna 概率最大</text>
+</svg>
+<figcaption>图 2. TOP target 构造示例。窗口 W=4 时,t=0 处看到的"未来 4 token"被赋分 3,2,1,0,其它 vocab 全 −∞,经 softmax 得到一个稀疏的 ranking 分布。</figcaption>
+</div>
+
+<h3>Algorithm 1 的"逆序扫一遍"为什么对</h3>
+
+<p>朴素实现会对每个 t 都跑一遍 W 长的 lookahead,O(TWV)。Algorithm 1 用一个<strong>下次出现位置数组</strong> n[v]:</p>
+
+<ol>
+  <li>初始 y ← −∞,n[v] ← T+W(哨兵)</li>
+  <li>从 t = T+W−1 倒着到 0:
+    <ul>
+      <li>先更新 n[x[t]] ← t(把当前 token 的"最近一次出现"标到 t)</li>
+      <li>若 t < T,对每个 v 计算 d = n[v] − t,若 0 < d ≤ W 则 y[t,v] = W−d</li>
+    </ul>
+  </li>
+</ol>
+
+<p>这个写法的妙处是<strong>"未来"在反向扫的视角下变成了"过去"</strong>——因为我们倒着走,先看到的就是更远的时间点,n[v] 总是记着 v 在 t 之后最早出现的位置。论文原话是"in practice, we have an optimized Triton kernel that creates the target sequence on the fly during training and practically incurs no overhead"——所以这一步可以和数据 loader 融合,不预处理整个 dataset 也行。</p>
+
+<div class="nb"><strong>注意:</strong>同一个 token 在窗口内多次出现时只算最近一次的距离,远处的重复出现被覆盖掉了。这是有意的——proximity 看的是"下一次什么时候来",不是"在窗口里出现几次"。</div>
+
+<h2 id="sec4">4. 方法 · 损失函数与架构</h2>
+
+<h3>4.1 ListNet top-one loss</h3>
+
+<p>有了 target y,损失就是 ListNet 的标准形式:</p>
+
+<div class="formula">L<sub>TOP</sub> = −Σ<sub>t</sub> softmax(y<sub>t</sub>) · log softmax(U<sub>TOP</sub> h<sub>t</sub><sup>L</sup>)</div>
+
+<p>等价于一个<strong>"软标签 cross-entropy"</strong>:把 target ranking 通过 softmax 变成概率分布(注意 −∞ 的位置 softmax 后是 0),把 model output 也 softmax 化,然后两个分布做 CE。最终总损失是平等相加:</p>
+
+<div class="formula">L = L<sub>NTP</sub> + L<sub>TOP</sub></div>
+
+<p>论文 §5.5.2 还做了 α 加权扫描,惊人地发现 α=0.9(即 TOP 占 9 成)在大部分 benchmark 上最好——意味着在他们的 setup 下,<strong>TOP 信号比 NTP 信号还要有用</strong>。这一点反过来支持"NTP 是 TOP 的特例 / 弱化"的直觉(NTP target 等价于一个只标 t+1 的 one-hot,TOP target 是把它扩展成多个 token 上的连续 ranking)。</p>
+
+<h3>4.2 架构图:四种 loss 的比较</h3>
+
+<div class="fig">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- four panels -->
+  <g font-size="12">
+    <!-- NTP -->
+    <text x="80" y="20" text-anchor="middle" font-weight="600" fill="#1f2024">NTP</text>
+    <rect x="40" y="200" width="80" height="40" fill="#f3eee0" stroke="#e2dfd5"/>
+    <text x="80" y="225" text-anchor="middle">Trunk h<tspan font-size="9">L</tspan></text>
+    <rect x="50" y="140" width="60" height="30" fill="#fff" stroke="#2f6feb"/>
+    <text x="80" y="160" text-anchor="middle" fill="#2f6feb">U_NTP</text>
+    <line x1="80" y1="200" x2="80" y2="170" stroke="#5b5e66" marker-end="url(#ar)"/>
+    <text x="80" y="125" text-anchor="middle" fill="#cc4a1b">L_NTP</text>
+
+    <!-- MTP -->
+    <text x="240" y="20" text-anchor="middle" font-weight="600" fill="#1f2024">MTP (Meta)</text>
+    <rect x="200" y="240" width="80" height="36" fill="#f3eee0" stroke="#e2dfd5"/>
+    <text x="240" y="262" text-anchor="middle">Trunk h<tspan font-size="9">L−1</tspan></text>
+    <g>
+      <rect x="160" y="180" width="40" height="30" fill="#fff" stroke="#cc4a1b"/>
+      <text x="180" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b">F1</text>
+      <rect x="205" y="180" width="40" height="30" fill="#fff" stroke="#cc4a1b"/>
+      <text x="225" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b">F2</text>
+      <rect x="250" y="180" width="40" height="30" fill="#fff" stroke="#cc4a1b"/>
+      <text x="270" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b">F3</text>
+      <rect x="295" y="180" width="40" height="30" fill="#fff" stroke="#cc4a1b"/>
+      <text x="315" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b">F4</text>
+    </g>
+    <text x="170" y="170" font-size="10" fill="#5b5e66">+1 transformer block each</text>
+    <rect x="200" y="120" width="80" height="28" fill="#fff" stroke="#2f6feb"/>
+    <text x="240" y="138" text-anchor="middle" font-size="11" fill="#2f6feb">U_NTP (shared)</text>
+    <line x1="180" y1="180" x2="225" y2="148" stroke="#5b5e66"/>
+    <line x1="225" y1="180" x2="240" y2="148" stroke="#5b5e66"/>
+    <line x1="270" y1="180" x2="255" y2="148" stroke="#5b5e66"/>
+    <line x1="315" y1="180" x2="270" y2="148" stroke="#5b5e66"/>
+    <text x="240" y="108" text-anchor="middle" fill="#cc4a1b">Σ_n CE(t+n)</text>
+    <line x1="240" y1="240" x2="240" y2="212" stroke="#5b5e66" marker-end="url(#ar)"/>
+
+    <!-- DS-MTP -->
+    <text x="430" y="20" text-anchor="middle" font-weight="600" fill="#1f2024">DS-MTP (DeepSeek)</text>
+    <rect x="390" y="240" width="80" height="36" fill="#f3eee0" stroke="#e2dfd5"/>
+    <text x="430" y="262" text-anchor="middle">Trunk h<tspan font-size="9">L−1</tspan></text>
+    <g>
+      <rect x="370" y="195" width="40" height="26" fill="#fff" stroke="#cc4a1b"/>
+      <text x="390" y="212" text-anchor="middle" font-size="11" fill="#cc4a1b">F1</text>
+      <rect x="420" y="160" width="40" height="26" fill="#fff" stroke="#cc4a1b"/>
+      <text x="440" y="177" text-anchor="middle" font-size="11" fill="#cc4a1b">F2</text>
+      <rect x="470" y="125" width="40" height="26" fill="#fff" stroke="#cc4a1b"/>
+      <text x="490" y="142" text-anchor="middle" font-size="11" fill="#cc4a1b">F3</text>
+    </g>
+    <line x1="410" y1="208" x2="420" y2="186" stroke="#5b5e66" marker-end="url(#ar)"/>
+    <line x1="460" y1="173" x2="470" y2="151" stroke="#5b5e66" marker-end="url(#ar)"/>
+    <text x="395" y="172" font-size="9" fill="#5b5e66">+ ē_{t+1}</text>
+    <text x="445" y="138" font-size="9" fill="#5b5e66">+ ē_{t+2}</text>
+    <text x="430" y="108" text-anchor="middle" fill="#cc4a1b">L_DS-MTP</text>
+    <line x1="430" y1="240" x2="430" y2="221" stroke="#5b5e66" marker-end="url(#ar)"/>
+
+    <!-- TOP -->
+    <text x="620" y="20" text-anchor="middle" font-weight="600" fill="#2f6feb">TOP (本文)</text>
+    <rect x="580" y="200" width="80" height="40" fill="#f3eee0" stroke="#e2dfd5"/>
+    <text x="620" y="225" text-anchor="middle">Trunk h<tspan font-size="9">L</tspan></text>
+    <rect x="550" y="140" width="60" height="30" fill="#fff" stroke="#2f6feb"/>
+    <text x="580" y="160" text-anchor="middle" fill="#2f6feb">U_NTP</text>
+    <rect x="630" y="140" width="60" height="30" fill="#fff" stroke="#cc4a1b"/>
+    <text x="660" y="160" text-anchor="middle" fill="#cc4a1b">U_TOP</text>
+    <line x1="600" y1="200" x2="580" y2="170" stroke="#5b5e66" marker-end="url(#ar)"/>
+    <line x1="640" y1="200" x2="660" y2="170" stroke="#5b5e66" marker-end="url(#ar)"/>
+    <text x="580" y="125" text-anchor="middle" fill="#cc4a1b">L_NTP</text>
+    <text x="660" y="125" text-anchor="middle" fill="#cc4a1b">L_TOP</text>
+    <text x="620" y="290" text-anchor="middle" font-size="11" fill="#1f7a4a">仅多一层线性层</text>
+    <text x="620" y="304" text-anchor="middle" font-size="10" fill="#5b5e66">inference 时丢掉 U_TOP, 退回普通 transformer</text>
+  </g>
+</svg>
+<figcaption>图 3. NTP / MTP / DS-MTP / TOP 四种 loss 的 head 结构对比。MTP 在 trunk 后并联 N−1 个 transformer block,DS-MTP 串联且每头吃下一个真值 embedding;TOP 只在最后一层 hidden 上并联一个线性 unembedding。</figcaption>
+</div>
+
+<h3>4.3 inference 行为</h3>
+
+<p>训练完后,U<sub>TOP</sub> 直接<em>扔掉</em>,模型推理时和普通 NTP transformer 完全等价(同样的 sampling、temperature、KV cache、speculative decoding 兼容性都不变)。这是 TOP 相对 MTP 的一个隐藏优势:不需要在部署时改 inference engine。论文也尝试用 TOP head 做 self-speculative decoding(把 TOP 排序前 k 个 token 拼起来当 draft),但效果不如 MTP / DS-MTP——因为 TOP head 学到的是 ranking,不是真正的"按位置预测"。</p>
+
+<h2 id="sec5">5. 复杂度对比 · 为什么"只加一层"是对的尺度</h2>
+
+<table>
+<tr><th>方法</th><th>额外 FLOPs (per token)</th><th>额外参数</th><th>D=4096, V=128k, N=4 时</th></tr>
+<tr><td>MTP</td><td>(N−1)(24D² + 2DV)</td><td>(N−1)(16D² + 2D)</td><td>~3.4 GFLOPs / 805 M params</td></tr>
+<tr><td>DS-MTP</td><td>(N−1)(30D² + 2DV)</td><td>(N−1)(16D² + 2D)</td><td>~3.5 GFLOPs / 805 M params</td></tr>
+<tr><td><strong>TOP</strong></td><td><strong>2DV</strong></td><td><strong>DV</strong></td><td>~1.05 GFLOPs / 525 M params (但<em>只算辅助层</em>)</td></tr>
+</table>
+
+<p>对于一个 7B 模型来说:</p>
+<ul>
+  <li>MTP-4 增加 ≈ 800M 额外参数(主 trunk 还要砍 3 层来"补偿"参数预算)</li>
+  <li>TOP 增加 D·V ≈ 0.5B 参数,且<strong>不需要砍 trunk</strong>——因为 D·V 主要是 unembedding 矩阵,本身可以和 input embedding tied(论文虽然没特别说 tying,但实际部署完全可以)</li>
+</ul>
+
+<p>更重要的是<strong>训练时这层只需要做一次 matmul + softmax + 软交叉熵</strong>,作者改造了 Yang & Zhang 2024 的 fused linear cross-entropy Triton kernel,把 unembedding 和 loss 算成一块、分块流水,实测和不加 TOP 的训练速度几乎一致。MTP 那 N−1 个完整 transformer block 是<strong>无法这样吃掉的</strong>,因为每块要算 attention + MLP。</p>
+
+<div class="nb"><strong>这就是"对的尺度"的含义:</strong>辅助 objective 的目的是给 trunk 加一点训练时的引导信号,而不是引入一整个并行的子网络。MTP 把"辅助"做成了"加一个 mini-model",成本被 trunk 的容量稀释,实验也确实需要 ≥1B 才看到稳定收益。TOP 把辅助回归到它该有的轻量级形态。</div>
+
+<h2 id="sec6">6. 具体例子 · TOP 和 MTP 在哪一步分道扬镳</h2>
+
+<p>取一段 token: <code>"never gonna give you up never gonna let you down"</code>(序列长 10,W=4),看 t=0 处 (token 是 <code>never</code>) 三种 loss 在<em>同一个 hidden h<sub>0</sub><sup>L</sup></em> 下要求模型做什么:</p>
+
+<table>
+<tr><th>Loss</th><th>这一步要求模型预测什么 / 怎么算 loss</th></tr>
+<tr><td>NTP</td><td>看到 <code>never</code>,预测下一个 token = <code>gonna</code>;target one-hot at "gonna"</td></tr>
+<tr><td>MTP-4</td><td>4 个独立 head 分别预测 <code>gonna</code>(t+1)、<code>give</code>(t+2)、<code>you</code>(t+3)、<code>up</code>(t+4),各自 CE 求和;<strong>t+4 head 的 loss 比 t+1 head 高 2–3 倍</strong>(因为多元 ambiguity)</td></tr>
+<tr><td>DS-MTP-3</td><td>串行预测 t+1, t+2, t+3,t+2 那一头吃 RMSNorm(<code>gonna</code>) 的真实 embedding,所以"上下文越来越完整"——但反过来也意味着 t+3 那头其实只在做"看到 never+gonna+give 后预测 you",和 NTP 在 t+2 处做的事情高度重叠</td></tr>
+<tr><td><strong>TOP</strong></td><td>target softmax 后是 <code>{gonna: e³/Z, give: e²/Z, you: e¹/Z, up: e⁰/Z}</code>,Z=e³+e²+e¹+e⁰≈30.19。要求 model logits 经 softmax 后<em>整体形状</em>逼近这个分布——不必精确到位置,但要把这 4 个 token 集中起来,且 <code>gonna</code> 占大头</td></tr>
+</table>
+
+<p>关键差异:<strong>当 model 把概率质量分给 <code>gonna</code> 和 <code>give</code> 而非全压在 <code>gonna</code> 时,NTP 和 MTP 各 head 的 loss 都会上升,但 TOP 的 loss 反而是合理的</strong>——因为 TOP 的 target 本来就允许 give 拿到 e²/Z ≈ 24% 的概率。这正是"软监督"的体现:模型不会因为"略微关心了 t+2 token"而被惩罚,反而因此被奖励。</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+  <text x="20" y="20" font-size="13" font-weight="600">同一 hidden h₀ᴸ 下,model 输出 softmax 与 target 比较</text>
+  <!-- two charts -->
+  <g font-size="11">
+    <!-- TOP target -->
+    <text x="100" y="48" font-weight="600" fill="#2f6feb">TOP target</text>
+    <rect x="40"  y="55" width="60" height="60" fill="#2f6feb" opacity=".75"/>
+    <text x="70" y="130" text-anchor="middle">gonna</text>
+    <text x="70" y="143" text-anchor="middle" font-size="10" fill="#5b5e66">.66</text>
+    <rect x="105" y="78" width="60" height="37" fill="#2f6feb" opacity=".55"/>
+    <text x="135" y="130" text-anchor="middle">give</text>
+    <text x="135" y="143" text-anchor="middle" font-size="10" fill="#5b5e66">.24</text>
+    <rect x="170" y="98" width="60" height="17" fill="#2f6feb" opacity=".40"/>
+    <text x="200" y="130" text-anchor="middle">you</text>
+    <text x="200" y="143" text-anchor="middle" font-size="10" fill="#5b5e66">.09</text>
+    <rect x="235" y="108" width="60" height="7" fill="#2f6feb" opacity=".25"/>
+    <text x="265" y="130" text-anchor="middle">up</text>
+    <text x="265" y="143" text-anchor="middle" font-size="10" fill="#5b5e66">.03</text>
+  </g>
+  <!-- model -->
+  <g font-size="11">
+    <text x="450" y="48" font-weight="600" fill="#cc4a1b">理想 model softmax</text>
+    <rect x="380" y="55" width="60" height="60" fill="#cc4a1b" opacity=".75"/>
+    <text x="410" y="130" text-anchor="middle">gonna</text>
+    <rect x="445" y="78" width="60" height="37" fill="#cc4a1b" opacity=".55"/>
+    <text x="475" y="130" text-anchor="middle">give</text>
+    <rect x="510" y="98" width="60" height="17" fill="#cc4a1b" opacity=".40"/>
+    <text x="540" y="130" text-anchor="middle">you</text>
+    <rect x="575" y="108" width="60" height="7" fill="#cc4a1b" opacity=".25"/>
+    <text x="605" y="130" text-anchor="middle">up</text>
+  </g>
+  <text x="350" y="180" text-anchor="middle" font-size="12" fill="#1f7a4a">TOP loss 鼓励 model 把质量"分梯度"给这 4 个 token</text>
+  <text x="350" y="198" text-anchor="middle" font-size="12" fill="#cc4a1b">NTP / MTP head 1 只奖励 100% 押中 gonna,惩罚分给 give 的概率</text>
+</svg>
+<figcaption>图 4. 同一个 hidden 在 NTP / MTP 视角下"专一" vs 在 TOP 视角下"展开"。这种 target 形状的差异,是 TOP 让 representation 学得更全面的关键。</figcaption>
+</div>
+
+<h2 id="sec7">7. 实验关键结果</h2>
+
+<h3>7.1 通用 NLP benchmark(9 个任务,3 种规模)</h3>
+
+<p>挑出最关键的几个数(Table 2,加粗了胜者):</p>
+
+<table>
+<tr><th>SIZE</th><th>方法</th><th>LAMBADA acc↑</th><th>HellaSwag↑</th><th>ARC-C↑</th><th>MMLU↑</th><th>TriviaQA EM↑</th></tr>
+<tr><td rowspan="4">340M</td><td>NTP</td><td>36.35</td><td>42.53</td><td>28.84</td><td>29.81</td><td>4.93</td></tr>
+<tr><td>MTP</td><td>35.32</td><td>42.73</td><td>29.86</td><td>29.08</td><td>2.55</td></tr>
+<tr><td>DS-MTP</td><td>34.66</td><td>40.29</td><td>27.56</td><td>28.47</td><td>0.87</td></tr>
+<tr><td><strong>TOP</strong></td><td><strong>37.07</strong></td><td><strong>43.57</strong></td><td>29.35</td><td><strong>30.09</strong></td><td>4.37</td></tr>
+<tr><td rowspan="4">1.8B</td><td>NTP</td><td>49.58</td><td>60.05</td><td>38.65</td><td>35.34</td><td>11.85</td></tr>
+<tr><td>MTP</td><td>47.93</td><td>58.29</td><td>40.61</td><td>34.76</td><td>15.98</td></tr>
+<tr><td>DS-MTP</td><td>48.71</td><td>57.48</td><td>40.44</td><td>35.01</td><td>12.06</td></tr>
+<tr><td><strong>TOP</strong></td><td><strong>50.34</strong></td><td><strong>60.45</strong></td><td><strong>42.32</strong></td><td><strong>36.21</strong></td><td><strong>18.93</strong></td></tr>
+<tr><td rowspan="4">7B</td><td>NTP</td><td>55.89</td><td>67.44</td><td>45.65</td><td>39.47</td><td>24.28</td></tr>
+<tr><td>MTP</td><td>53.13</td><td>65.85</td><td>45.56</td><td>38.14</td><td>23.36</td></tr>
+<tr><td>DS-MTP</td><td>55.62</td><td>66.03</td><td>44.37</td><td>38.16</td><td>18.54</td></tr>
+<tr><td><strong>TOP</strong></td><td><strong>57.03</strong></td><td><strong>68.73</strong></td><td><strong>46.42</strong></td><td><strong>39.65</strong></td><td><strong>30.90</strong></td></tr>
+</table>
+
+<p><strong>读法:</strong></p>
+<ul>
+  <li>7B 处 TOP 在 LAMBADA / HellaSwag / ARC / MMLU / TriviaQA 全部胜出,差距随规模放大(TriviaQA 7B: 30.90 vs NTP 24.28,相对 +27%)</li>
+  <li>MTP 7B 在 LAMBADA / HellaSwag 反而<em>低于</em> NTP——验证了原 MTP 论文 Appendix G 的"在通用 NLP 上不行"</li>
+  <li>DS-MTP 全程没看到比 MTP 显著好的迹象,这一发现和 DeepSeek-V3 大量工程优化(包括只用 N=3)结合后,提示 DS-MTP 更多是 inference 加速 trick 而非 representation 提升器</li>
+</ul>
+
+<h3>7.2 续训:Math / Code</h3>
+
+<table>
+<tr><th>1.8B 续训</th><th>GSM8K↑</th><th>MATH↑</th><th>HumanEval@64↑</th><th>MBPP@64↑</th></tr>
+<tr><td>NTP</td><td>39.20</td><td>13.34</td><td>33.53</td><td>46.70</td></tr>
+<tr><td>MTP</td><td>38.59</td><td>15.00</td><td>34.76</td><td>48.20</td></tr>
+<tr><td>DS-MTP</td><td><span class="no">2.65</span></td><td><span class="no">3.66</span></td><td>23.78</td><td>31.90</td></tr>
+<tr><td><strong>TOP</strong></td><td><strong>45.64</strong></td><td><strong>16.66</strong></td><td><strong>38.41</strong></td><td>44.80</td></tr>
+</table>
+
+<p>1.8B GSM8K 上 TOP 比 NTP 高 6.4 个点,比 MTP 高 7 个点——<strong>这是论文最有说服力的实验之一</strong>,因为 math reasoning 是公认需要 look-ahead 的任务,TOP 显著优于专为 look-ahead 设计的 MTP。DS-MTP 的崩溃(2.65)论文怀疑是 overfitting,需要更多分析。</p>
+
+<h3>7.3 self-speculative decoding 是 TOP 的弱项</h3>
+
+<p>Table 6:用 TOP head 做 self-speculative draft,7B 上每次 forward 平均 accept 1.52 个 token,而 MTP 是 2.49,DS-MTP 是 3.03。这<strong>不奇怪</strong>——TOP head 学的是 ranking,不是"在准确位置预测准确 token",当 draft sequence 必须严格按 t+1, t+2 …排序时,TOP 的 top-k 排序天生比 MTP 各位置 head 的精确预测要差。</p>
+
+<h3>7.4 消融:窗口大小 W 与 loss 权重 α</h3>
+
+<ul>
+  <li><strong>W:</strong>所有 W ∈ {4, 16, 128, 1024, 4096} 都比 NTP 好,任务最优 W 不一致——LAMBADA 偏好 W=4(短距离),SciQ 偏好 W=1024。这说明 W 是个软超参,不必精调。</li>
+  <li><strong>α:</strong>α 越大(TOP loss 占比越高)越好,α=0.9 在 6/7 个 benchmark 上最优。<strong>这个发现颠覆了"NTP 是主、TOP 是辅"的直觉</strong>——TOP 自己就足以驱动训练,NTP 只是为了保留 sampling 用的概率分布。</li>
+</ul>
+
+<h2 id="sec8">8. 星图任务 · 最干净的可分性证明</h2>
+
+<p>这是论文最让人 convinced 的实验。任务来自 Bachmann & Nagarajan 2024,设计目的就是把 NTP 的"teacher forcing 短视症"暴露出来:</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg">
+  <!-- left: graph -->
+  <g>
+    <circle cx="100" cy="110" r="14" fill="#fff" stroke="#1f2024" stroke-width="2"/>
+    <text x="100" y="115" text-anchor="middle" font-size="13" font-weight="600">4</text>
+    <!-- 3 branches -->
+    <line x1="113" y1="100" x2="160" y2="60" stroke="#5b5e66"/>
+    <circle cx="170" cy="55" r="11" fill="#fff" stroke="#1f2024"/>
+    <text x="170" y="59" text-anchor="middle" font-size="11">1</text>
+    <line x1="180" y1="50" x2="210" y2="35" stroke="#5b5e66"/>
+    <circle cx="222" cy="32" r="11" fill="#fff" stroke="#1f2024"/>
+    <text x="222" y="36" text-anchor="middle" font-size="11">9</text>
+
+    <line x1="113" y1="115" x2="170" y2="110" stroke="#cc4a1b" stroke-width="2"/>
+    <circle cx="180" cy="110" r="11" fill="#ffe7d8" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="180" y="114" text-anchor="middle" font-size="11">2</text>
+    <line x1="191" y1="110" x2="225" y2="110" stroke="#cc4a1b" stroke-width="2"/>
+    <circle cx="237" cy="110" r="11" fill="#ffe7d8" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="237" y="114" text-anchor="middle" font-size="11">7</text>
+
+    <line x1="113" y1="125" x2="160" y2="170" stroke="#5b5e66"/>
+    <circle cx="170" cy="178" r="11" fill="#fff" stroke="#1f2024"/>
+    <text x="170" y="182" text-anchor="middle" font-size="11">3</text>
+    <line x1="180" y1="184" x2="210" y2="195" stroke="#5b5e66"/>
+    <circle cx="222" cy="200" r="11" fill="#fff" stroke="#1f2024"/>
+    <text x="222" y="204" text-anchor="middle" font-size="11">5</text>
+  </g>
+
+  <!-- training sample text -->
+  <text x="290" y="40" font-size="12" font-weight="600" fill="#1f2024">训练样本(单行 token 序列):</text>
+  <text x="290" y="62" font-size="12" font-family="SF Mono, monospace" fill="#cc4a1b">edge list = 2,7|4,1|4,3|1,9|3,5|4,2</text>
+  <text x="290" y="80" font-size="12" font-family="SF Mono, monospace" fill="#1f2024">/4,7</text>
+  <text x="290" y="98" font-size="12" font-family="SF Mono, monospace" fill="#5b5e66">  ↑ start, goal</text>
+  <text x="290" y="118" font-size="12" font-family="SF Mono, monospace" fill="#2f6feb">= 4,2,7    ← 模型要输出的 path</text>
+
+  <text x="290" y="155" font-size="12" fill="#5b5e66">关键: 给定 "4,7"(start, goal),</text>
+  <text x="290" y="172" font-size="12" fill="#5b5e66">下一 token 必须是 "2"——但只看前缀,</text>
+  <text x="290" y="189" font-size="12" fill="#5b5e66">"1"、"2"、"3" 等价 (都是 4 的邻居),</text>
+  <text x="290" y="206" font-size="12" fill="#5b5e66">NTP teacher-forcing 学不到要"先看 goal"。</text>
+</svg>
+<figcaption>图 5. 星图任务 G(3, 2):中心节点 4,3 条长 2 的分支。给定 edge list + 起点 + 终点,要求输出从起点到终点的路径。NTP 在第一步就要决定走哪条分支,但前缀里看不到 goal 7 的影响——必须真正"看到未来"才能学对。</figcaption>
+</div>
+
+<table>
+<tr><th>模型</th><th>params</th><th>G(3,3)</th><th>G(3,5)</th><th>G(5,3)</th><th>G(5,5)</th></tr>
+<tr><td>NTP</td><td>14.2M</td><td><span class="no">33.8</span></td><td><span class="no">32.5</span></td><td><span class="no">19.5</span></td><td><span class="no">0.1</span></td></tr>
+<tr><td>MTP-2</td><td>16.0M</td><td>100</td><td><span class="no">59.0</span></td><td><span class="no">19.6</span></td><td><span class="no">0.1</span></td></tr>
+<tr><td>MTP-4</td><td>19.6M</td><td>100</td><td>100</td><td>100</td><td><span class="no">19.5</span></td></tr>
+<tr><td>DS-MTP-2</td><td>16.6M</td><td>100</td><td><span class="no">32.5</span></td><td>100</td><td><span class="no">19.2</span></td></tr>
+<tr><td>DS-MTP-4</td><td>20.7M</td><td>100</td><td><span class="no">33.6</span></td><td>100</td><td><span class="no">19.3</span></td></tr>
+<tr><td><strong>TOP</strong></td><td><strong>14.2M</strong></td><td><span class="ok">100</span></td><td><span class="ok">100</span></td><td><span class="ok">100</span></td><td><span class="ok">100</span></td></tr>
+</table>
+
+<p>读这张表:</p>
+<ul>
+  <li>G(5,5) 上,<strong>所有 baseline(包括 MTP-4 和 DS-MTP-4)都 fail</strong>;TOP 唯一全对</li>
+  <li>TOP 的<em>参数量最少</em>(14.2M,等于 NTP),却胜过 20.7M 的 DS-MTP-4。这直接证明了 TOP 的优势不是参数容量</li>
+  <li>注意 MTP 头数和路径长度的关系:MTP-2 在路径长 5 的图上 fail,MTP-4 又在 G(5,5) fail——头数必须 ≥ 路径长才学得动,这是"精确预测"任务的硬限制</li>
+</ul>
+
+<p>TOP 为什么对所有 G 都 100%?因为 TOP 的 target 在第一步就告诉它"未来 5 步内 goal 7 会出现",而 ranking 损失允许模型先粗略锁定"应该走过 7 的那一支",再让 NTP head 输出第一个 token 2——这本质上是把"先全局规划再生成"显式注入了训练信号。</p>
+
+<h2 id="sec9">9. 与同类工作对比</h2>
+
+<table>
+<tr><th>方法</th><th>辅助信号粒度</th><th>架构成本</th><th>对小模型友好</th><th>对长 look-ahead 友好</th><th>inference 改动</th></tr>
+<tr><td>NTP</td><td>none</td><td>0</td><td>—</td><td><span class="no">否</span></td><td>—</td></tr>
+<tr><td>MTP (Meta)</td><td>每 offset 精确分类</td><td>N−1 transformer block</td><td><span class="no">差</span>(<1B 反而掉点)</td><td><span class="no">差</span>(t+8 比 t+4 差)</td><td>可做 self-spec(2.5×)</td></tr>
+<tr><td>DS-MTP</td><td>串行精确分类 + 真值 embedding</td><td>稍贵于 MTP</td><td>中</td><td>中</td><td>self-spec 极强(3.0×)</td></tr>
+<tr><td>ProphetNet (2020)</td><td>未来 n-gram</td><td>多头</td><td>—</td><td>—</td><td>seq2seq only</td></tr>
+<tr><td>Register tokens for MTP (Gerontopoulos 2025)</td><td>把 NTP 转 MTP 的轻量改造</td><td>+ register tokens</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>MLM / span (BERT/T5/UL2)</td><td>双向重建</td><td>encoder</td><td>—</td><td>—</td><td>不能直接 AR 生成</td></tr>
+<tr><td><strong>TOP</strong></td><td>未来 W token 的 <em>排序</em></td><td>1 unembedding</td><td><span class="ok">好</span>(340M 已胜)</td><td><span class="ok">好</span>(W=4096 也 work)</td><td><strong>无</strong>(扔掉 TOP head)</td></tr>
+</table>
+
+<p>另一类相关工作是 TLM-style 的"辅助 prediction loss":比如做一个旁路头预测 sentence-level 属性、文档来源、bag-of-future-words 等。TOP 和它们的本质区别是 TOP 的 target 是<strong>从原序列直接计算的</strong>,无需额外标注或外部信号,且 ranking loss 的形式让它能和现有 fused CE kernel 几乎无缝结合。这种"零标注、零 inference 改动、零额外网络"的三零定位是它最大的工程吸引力。</p>
+
+<h2 id="sec10">10. 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+  <li><strong>规模上限未触达。</strong>7B / 104B tokens 是作者算力天花板。TOP 是否在 70B + 多 trillion tokens 时仍占优,完全未知。MTP 论文的关键发现就是"小模型不行,1B 后才行",TOP 也存在反向风险:大模型可能 saturated 不再需要这种软监督。</li>
+  <li><strong>α=0.9 最优很可疑。</strong>TOP loss 比 NTP loss 还重要 9 倍?要么 TOP 信号确实更密集,要么 ListNet 的归一化让 loss 数量级差很多导致 α 不可比。这块需要看绝对 loss 值和 grad norm。</li>
+  <li><strong>self-speculative decoding 弱。</strong>TOP 牺牲了"精确位置预测"换"排序",draft 质量必然弱。对追求 inference 加速的场景,TOP + 外部 EAGLE-style draft 才是正解,而不是用 TOP head 自己做 draft。</li>
+  <li><strong>DS-MTP 在续训上崩盘(GSM8K 2.65)</strong>论文怀疑是 overfit,但同样的 hyperparam 别的方法都没崩——这暗示 DS-MTP 对 continued training 不稳健,值得另起一篇剖析。</li>
+  <li><strong>TOP target 的 −∞ 处理。</strong>vocab V≈50k,窗口 W=4096,意味着每个 t 的 target 里 ≥ 92% 的位置是 −∞(softmax 后是 0)。这种极稀疏 target 在 fp16/bf16 下数值稳定吗?Triton kernel 是不是用 logsumexp + masking 来避免 NaN?论文没细讲。</li>
+  <li><strong>"TOP head 扔掉"的对偶性。</strong>既然 inference 不用 TOP head,理论上 TOP 等价于"用排序信号 regularize 主 trunk 的 hidden 表征"。如果换成更复杂的 ranking head(比如非线性 MLP),会不会拿到更强的 regularization?论文没尝试。</li>
+</ul>
+
+<h4>待验证清单</h4>
+<ol>
+  <li>把 TOP head 和 NTP head <em>tied weights</em>,会怎么样?如果 tied 后还能 work,说明 TOP 的全部增益来自 target 形状而非额外参数</li>
+  <li>在 SFT / RLHF 阶段加 TOP loss 是否还有用?(论文只做了 pretrain + 续训)</li>
+  <li>把 TOP 和 EAGLE 的 draft head 训练目标融合:draft head 也用 ranking loss,会不会同时改善 representation 和 acceptance length?</li>
+  <li>消融"target 中的 W−d vs binary mask"。如果直接把 target 改成 {appears: 1, not appear: 0} 的 multi-label,是不是还行?这能分离"排序"和"出现"两种信号</li>
+  <li>把 TOP loss 仅施加在最后 K 层 hidden 上(而不是只在最后一层)——会不会让中间层也学到 look-ahead?</li>
+</ol>
+
+<h2 id="sec11">11. Memory Points(冷回忆)</h2>
+
+<div class="kv"><span class="pill">立场</span> <strong>MTP 失灵不是因为 look-ahead 错,而是因为"精确预测远 token"太难。</strong>松弛成排序,信号变软,gradient 永远有用。</div>
+
+<div class="kv"><span class="pill">尺度</span> 辅助 objective 的正确尺度是<strong>多一层 unembedding</strong>,不是多一个 mini-model。MTP 把辅助做成了子网络,代价被 trunk 容量稀释,小模型反而吃亏。</div>
+
+<div class="kv"><span class="pill">数学</span> Loss = NTP CE + ListNet top-one CE,target = softmax(W − d_v),不在窗口内的 v 设 −∞。形式上 = 软标签 cross-entropy。</div>
+
+<div class="kv"><span class="pill">α 反直觉</span> α=0.9(TOP 占 9 成)在大多数 benchmark 上最优,意味着 TOP 信号本身就足以指导主任务,NTP 头主要是为采样保留概率分布。</div>
+
+<div class="kv"><span class="pill">星图</span> G(5,5):TOP 是<strong>唯一</strong>能 100% 解的方法(NTP 0.1%,MTP-4 19.5%,DS-MTP-4 19.3%),且参数最少(14.2M)。这是"排序信号 ≠ 多预测一个头"最干净的证明。</div>
+
+<div class="kv"><span class="pill">部署</span> TOP head 推理时<strong>直接扔掉</strong>,模型退回普通 transformer,inference engine 零改动。但 self-spec 弱(7B accept 1.52 vs MTP 2.49),想要加速还得叠 EAGLE-style 外部 draft。</div>
+
+<div class="kv"><span class="pill">隐患</span> 70B+ 规模未验;DS-MTP 续训崩盘原因不明;target 的 −∞ 极度稀疏在 fp16 下的数值稳定性论文没细讲。</div>
+
+</main>
+</body>
+</html>

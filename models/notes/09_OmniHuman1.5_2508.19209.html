@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · OmniHuman-1.5 (2508.19209)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>OmniHuman-1.5: Instilling an Active Mind in Avatars via Cognitive Simulation</h1>
+<div class="meta">
+  ByteDance Intelligent Creation Lab · Jianwen Jiang et al. · 2025-08-27 · arXiv:2508.19209<br>
+  关键词: video avatar · MMDiT · MLLM agent · System 1/2 · pseudo last frame · audio-driven animation
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 audio-driven 数字人生成从"音节级 lip-sync + 抖动手势"升级为"先用 MLLM agent 想清楚要做什么动作,再用 MMDiT 渲染",并用 <span class="term">Pseudo Last Frame</span> 一招化解参考图与动态运动之间的固有冲突。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">System 1+2</div><div class="l">反应式 + 思虑式双系统</div></div>
+    <div class="stat"><div class="n">3 branches</div><div class="l">video / audio / text 对称融合</div></div>
+    <div class="stat"><div class="n">33% Top-1</div><div class="l">用户偏好 vs 5 个开源 baseline</div></div>
+  </div>
+  <p><strong>立场:</strong>这不是又一个 talking-head DiT。论文的真正贡献是<em>把"高层意图规划"显式从生成模型里剥离出去交给 MLLM</em>,然后通过架构设计避免文本计划被密集音频信号淹没。这两件事单独做都不难,合起来做对才是创新。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么"对得上嘴型"远不够</a></li>
+    <li><a href="#sec2">背景速查 (DiT / MMDiT / Flow Matching / RoPE)</a></li>
+    <li><a href="#sec3">总体框架:System 1 / System 2 双轨</a></li>
+    <li><a href="#sec4">Agentic Reasoning: Analyzer + Planner 双 MLLM</a></li>
+    <li><a href="#sec5">Multimodal Branches: 三模态对称 + Warm-up</a></li>
+    <li><a href="#sec6">Pseudo Last Frame: 化解参考图困境</a></li>
+    <li><a href="#sec7">Multi-person 扩展 + Reflective Re-planning</a></li>
+    <li><a href="#sec8">端到端 worked example: 一张图 + 一段音频 → 视频</a></li>
+    <li><a href="#sec9">实验关键结果</a></li>
+    <li><a href="#sec10">与同类工作对比</a></li>
+    <li><a href="#sec11">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec12">记忆点</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么"对得上嘴型"远远不够</h2>
+
+<h3>1.1 历史脉络:从嘴型同步到全身动画的二十年</h3>
+<p>Video avatar 这条线大约可以划成三个阶段:</p>
+<ul>
+  <li><strong>2017–2022 唇动合成时代</strong>(Wav2Lip / SadTalker 等):核心问题是"音素 → 嘴型"的映射,通常 freeze 一张人脸,把嘴部 region 重画。技术上属于 image translation。</li>
+  <li><strong>2023 portrait animation 时代</strong>(EMO / Hallo / Loopy):基于 Stable Diffusion U-Net 加 temporal module,把"动"扩展到整张脸甚至上半身。但这一代仍是<strong>音频特征 → motion</strong>的直映射。</li>
+  <li><strong>2024–2025 DiT 全身时代</strong>(OmniHuman-1, MultiTalk, OmniAvatar, FantasyTalking):背骨升级到 video Diffusion Transformer,参数量与训练数据双双爆炸,可生成全身、多种 aspect ratio、多分钟。</li>
+</ul>
+<p>但作者犀利地指出:<strong>所有这三代,本质上都只是 System 1。</strong>它们学到的是"输入信号(音频频谱、人脸 keypoint) → 输出 token"的反射弧,从来没建模"<em>这个角色在这一秒应该想什么、想做什么</em>"。结果就是:嘴形对得上、节拍卡得准、但动作高度同质化(双手举到胸前小幅摆动 ≈ 99% 的 video 都长这样),没有"<span class="term">contextual coherence</span>"。</p>
+
+<h3>1.2 别的方案为什么不够 — 横向比较</h3>
+<table>
+<tr><th>方案</th><th>核心思路</th><th>它在哪里栽跟头</th></tr>
+<tr><td>Wav2Lip / SadTalker</td><td>音素 → 嘴部 patch</td><td>只动嘴,身体冻结;无任何语义理解</td></tr>
+<tr><td>EMO / Hallo / Loopy</td><td>U-Net + audio cross-attention</td><td>反射式动作模板化;长视频走形</td></tr>
+<tr><td>OmniHuman-1</td><td>DiT + reference attention + 多条件 dropout</td><td>动作幅度大但语义浅,"说到 crystal ball 时 crystal ball 不会发光"</td></tr>
+<tr><td>纯 video DiT (Sora / Wan)</td><td>text-to-video</td><td>没有 lip-sync、没有 identity preservation</td></tr>
+<tr><td>Pose-driven (Animate Anyone)</td><td>显式 skeleton 条件</td><td>需要驱动姿态序列;不能从 audio 推断动作</td></tr>
+</table>
+<p>关键观察:<strong>所有 audio-driven 方法都把 motion generation 当成 deterministic mapping</strong>,没有人在 audio → motion 之间插入"思考"这一步。这就好比让人完全凭<em>反射</em>说话:你可以发出准确音节,但说不出有意义的肢体语言。</p>
+
+<h3>1.3 为什么 MLLM-as-planner 是非平凡的</h3>
+<p>"那就插一个 MLLM 进去做 planner 不就行了?"——直觉上对,但实际上有三个陷阱:</p>
+<ol>
+  <li><strong>模态冲突 (modality conflict)</strong>:audio token 在时间维上极其密集(50–100 Hz),text token 是稀疏 high-level 描述。如果直接把 text condition 和 audio condition 一起塞进同一个 cross-attention,模型会发现"听 audio 就够了" → text 信号被冲淡到几乎不起作用。这是 multi-modal generative model 里 well-known 的<em>shortcut learning</em>。</li>
+  <li><strong>Reference image 的 paradox</strong>:为了 identity 一致性,所有 baseline 都要给一张人脸参考图作 condition。但这张图通常是从训练 video clip 里采样的,模型很容易学到"reference 图本身的姿态就是输出姿态"——结果输出动作幅度被钉死。从 clip 外采样又会让模型学到"输出应该和 reference 长得不一样",照样 broken。</li>
+  <li><strong>规划与渲染之间的接口</strong>:MLLM 输出的是文字。一段视频跨 5–10 秒,planner 要把它切成多少个动作?每个动作怎么编码?直接 dump JSON 给 DiT 它能读懂吗?这是个细致的工程问题。</li>
+</ol>
+<p>OmniHuman-1.5 的整篇论文其实就是在回答上面这三件事——分别由 <strong>MM-Branch + Warm-up</strong>、<strong>Pseudo Last Frame</strong>、<strong>Analyzer/Planner 双 agent</strong>对应解决。三件事缺一不可,这也是为什么"加个 MLLM"这种听起来很简单的事,前人没做对。</p>
+
+<div class="nb"><strong>读法提示:</strong>整篇 paper 的真正硬核是 §3.3(架构),§3.2(agent)更多是工程组装。但 §3.2 是论文的"故事",作者用 Kahneman 的 dual-process theory 把整件事包装得很 sexy。读的时候记得拆开看。</p></div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+<tr><th>术语</th><th>含义</th></tr>
+<tr><td><span class="term">DiT</span></td><td>Diffusion Transformer。把 U-Net 换成 Transformer,视频/图像被 patchify 成 token 序列后 denoise。代表作: Sora / Stable Diffusion 3 / Wan。</td></tr>
+<tr><td><span class="term">MMDiT</span></td><td>Multimodal DiT。SD3 引入,把 text 和 image token 拼在同一个 self-attention 里,而不是 cross-attention。本文进一步加入 audio,变成"video + text + audio"三条对称分支。</td></tr>
+<tr><td><span class="term">Flow Matching</span></td><td>替代 DDPM 的训练目标。用一条直线 ODE 从噪声映到数据,loss 是 vector field 的 MSE。比 DDPM 更稳、采样步数更少。本文用作训练 loss。</td></tr>
+<tr><td><span class="term">RoPE</span></td><td>Rotary Positional Embedding。把位置信息以旋转矩阵形式注入 Q/K。Pseudo Last Frame 利用 RoPE 的可平移性,把参考图"放在远未来"。</td></tr>
+<tr><td><span class="term">3D VAE</span></td><td>把视频 (T, H, W, 3) 压缩到 latent (T/4, H/8, W/8, C),DiT 在 latent 空间训。</td></tr>
+<tr><td><span class="term">Sync-C / Sync-D</span></td><td>SyncNet 衍生指标。Sync-C(置信度)越高越好,Sync-D(距离)越低越好。多人场景下沉默的人会拉高 Sync-C 噪声,所以多人用 Sync-D。</td></tr>
+<tr><td><span class="term">HKC / HKV</span></td><td>Hand Keypoint Confidence / Variance。HKC 衡量手画得清不清楚,HKV 衡量手有没有动。两者要同时高才说明"动作大且稳"。</td></tr>
+<tr><td><span class="term">GSB</span></td><td>Good/Same/Bad。pairwise 用户研究里 (Wins − Loses) / (Wins + Loses + Ties)。范围 [−1, +1]。</td></tr>
+<tr><td><span class="term">Chain-of-Thought (CoT)</span></td><td>让 LLM 把推理过程写出来。本文用作 Analyzer 的 prompt 模板。</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec3">3 · 总体框架:System 1 / System 2 双轨</h2>
+
+<p>Kahneman 的 <em>Thinking, Fast and Slow</em> 把人的认知分成两套:</p>
+<ul>
+  <li><strong>System 1</strong>:快、自动、反射性。看到红灯踩刹车、听到自己名字回头。</li>
+  <li><strong>System 2</strong>:慢、需要意识努力、用于规划/推理。算 17×24、计划下周行程。</li>
+</ul>
+<p>作者把这套类比直接搬到 avatar 生成:lip-sync 和节拍同步是 System 1(audio → motion 的反射弧);而"我现在该 angry 还是 calm,该指着 crystal ball 还是该撩头发"是 System 2(需要语义理解和长程规划)。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- inputs -->
+  <rect x="20" y="20" width="100" height="36" rx="6" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="70" y="43" text-anchor="middle" font-size="13">Reference Image</text>
+  <rect x="20" y="68" width="100" height="36" rx="6" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="70" y="91" text-anchor="middle" font-size="13">Audio Clip</text>
+  <rect x="20" y="116" width="100" height="36" rx="6" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="70" y="139" text-anchor="middle" font-size="13">Optional Text</text>
+
+  <!-- System 2 box -->
+  <rect x="170" y="10" width="220" height="150" rx="10" fill="#eef4ff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="280" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#2f6feb">System 2 (Agentic Reasoning)</text>
+  <rect x="190" y="48" width="80" height="40" rx="5" fill="#fff" stroke="#2f6feb"/>
+  <text x="230" y="73" text-anchor="middle" font-size="12">Analyzer</text>
+  <rect x="290" y="48" width="80" height="40" rx="5" fill="#fff" stroke="#2f6feb"/>
+  <text x="330" y="73" text-anchor="middle" font-size="12">Planner</text>
+  <line x1="270" y1="68" x2="290" y2="68" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <text x="280" y="115" text-anchor="middle" font-size="11" fill="#5b5e66">输出: shot-level 动作 schedule</text>
+  <text x="280" y="135" text-anchor="middle" font-size="11" fill="#5b5e66">(persona, emotion, intent, actions)</text>
+  <text x="280" y="152" text-anchor="middle" font-size="10" fill="#5b5e66">慢、deliberative、文本中介</text>
+
+  <!-- System 1 box -->
+  <rect x="170" y="180" width="520" height="80" rx="10" fill="#fdeee6" stroke="#cc4a1b" stroke-width="1.5"/>
+  <text x="430" y="202" text-anchor="middle" font-size="14" font-weight="700" fill="#cc4a1b">System 1 (Reactive Rendering · MMDiT)</text>
+  <rect x="190" y="215" width="100" height="32" rx="4" fill="#fff" stroke="#cc4a1b"/>
+  <text x="240" y="236" text-anchor="middle" font-size="11">video branch</text>
+  <rect x="300" y="215" width="100" height="32" rx="4" fill="#fff" stroke="#cc4a1b"/>
+  <text x="350" y="236" text-anchor="middle" font-size="11">audio branch</text>
+  <rect x="410" y="215" width="100" height="32" rx="4" fill="#fff" stroke="#cc4a1b"/>
+  <text x="460" y="236" text-anchor="middle" font-size="11">text branch</text>
+  <rect x="525" y="215" width="155" height="32" rx="4" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="602" y="236" text-anchor="middle" font-size="11">joint MM-Attention</text>
+
+  <!-- arrows -->
+  <line x1="120" y1="40" x2="170" y2="80" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <line x1="120" y1="86" x2="170" y2="86" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <line x1="120" y1="134" x2="170" y2="100" stroke="#5b5e66" marker-end="url(#arr)"/>
+  <line x1="120" y1="86" x2="170" y2="230" stroke="#5b5e66" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+  <line x1="280" y1="160" x2="430" y2="180" stroke="#2f6feb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="350" y="178" font-size="11" fill="#2f6feb">deliberative plan (text)</text>
+
+  <!-- output -->
+  <rect x="600" y="10" width="80" height="60" rx="6" fill="#e8f5ec" stroke="#1f7a4a"/>
+  <text x="640" y="36" text-anchor="middle" font-size="12">Video</text>
+  <text x="640" y="54" text-anchor="middle" font-size="11">(>1 min)</text>
+  <line x1="680" y1="215" x2="640" y2="70" stroke="#5b5e66" marker-end="url(#arr)"/>
+</svg>
+<figcaption>OmniHuman-1.5 的 Sys1/Sys2 双轨。System 2(蓝色)完全在文本空间里规划,产出一个 shot-level schedule;System 1(橙色)是 MMDiT,把 schedule 当作 text condition,与 audio、reference 一起渲染最终视频。System 2 慢但只算几次,System 1 快但 per-frame 都跑。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · Agentic Reasoning: Analyzer + Planner</h2>
+
+<h3>4.1 双 MLLM 流水线在做什么</h3>
+<p>Agentic Reasoning 模块用<strong>两个 MLLM</strong>串联,而不是一个。理由是单个 MLLM 一次推断 persona / intent / shot-level action 这么多东西容易混乱;分开后每个 agent 任务更聚焦。</p>
+
+<ul>
+  <li><strong>Analyzer</strong>:输入 = reference image + image caption(辅助模型生成,弥补 MLLM 看图能力不足)+ audio clip + optional 用户 prompt。输出 = 一个 <strong>JSON 结构</strong>,字段包括 persona, language style, speech content, emotion, intent, environmental context。这一步是"<em>理解场景</em>"。</li>
+  <li><strong>Planner</strong>:输入 = Analyzer 的 JSON + 原始角色图。输出 = 一个 <strong>shot 序列</strong>,每个 shot 对应 DiT 一次生成 pass(论文里是 120 帧 / 5 秒),内容是"该 shot 的表情 + 动作描述"。这一步是"<em>把场景翻译成可执行的拍摄脚本</em>"。</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 720 220" width="100%" style="max-width:700px">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- inputs -->
+  <rect x="10" y="20" width="120" height="28" rx="4" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="70" y="38" text-anchor="middle" font-size="11">reference image</text>
+  <rect x="10" y="55" width="120" height="28" rx="4" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="70" y="73" text-anchor="middle" font-size="11">image caption (aux)</text>
+  <rect x="10" y="90" width="120" height="28" rx="4" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="70" y="108" text-anchor="middle" font-size="11">audio clip</text>
+  <rect x="10" y="125" width="120" height="28" rx="4" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="70" y="143" text-anchor="middle" font-size="11">user prompt (opt.)</text>
+
+  <!-- Analyzer -->
+  <rect x="170" y="40" width="160" height="100" rx="8" fill="#eef4ff" stroke="#2f6feb"/>
+  <text x="250" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6feb">Analyzer MLLM</text>
+  <text x="250" y="82" text-anchor="middle" font-size="11">CoT prompt</text>
+  <text x="250" y="100" text-anchor="middle" font-size="11">→ JSON {persona,</text>
+  <text x="250" y="116" text-anchor="middle" font-size="11">emotion, intent,</text>
+  <text x="250" y="132" text-anchor="middle" font-size="11">env, content}</text>
+
+  <!-- Planner -->
+  <rect x="380" y="40" width="160" height="100" rx="8" fill="#eef4ff" stroke="#2f6feb"/>
+  <text x="460" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6feb">Planner MLLM</text>
+  <text x="460" y="82" text-anchor="middle" font-size="11">+ ref image</text>
+  <text x="460" y="100" text-anchor="middle" font-size="11">→ shot list:</text>
+  <text x="460" y="116" text-anchor="middle" font-size="11">[{expr, action, dur},</text>
+  <text x="460" y="132" text-anchor="middle" font-size="11">  {expr, action, dur}, …]</text>
+
+  <!-- output to MMDiT -->
+  <rect x="580" y="60" width="130" height="60" rx="6" fill="#fdeee6" stroke="#cc4a1b"/>
+  <text x="645" y="84" text-anchor="middle" font-size="12">MMDiT</text>
+  <text x="645" y="102" text-anchor="middle" font-size="11">(text branch input)</text>
+
+  <!-- Reflection loop -->
+  <path d="M 645 120 Q 645 195 460 195 Q 250 195 250 145" stroke="#cc4a1b" stroke-dasharray="4,4" fill="none" marker-end="url(#arr2)"/>
+  <text x="450" y="210" text-anchor="middle" font-size="11" fill="#cc4a1b">Reflection: 拿最后几帧重新规划下一段</text>
+
+  <line x1="130" y1="34" x2="170" y2="60" stroke="#5b5e66" marker-end="url(#arr2)"/>
+  <line x1="130" y1="69" x2="170" y2="80" stroke="#5b5e66" marker-end="url(#arr2)"/>
+  <line x1="130" y1="104" x2="170" y2="100" stroke="#5b5e66" marker-end="url(#arr2)"/>
+  <line x1="130" y1="139" x2="170" y2="120" stroke="#5b5e66" marker-end="url(#arr2)"/>
+  <line x1="330" y1="90" x2="380" y2="90" stroke="#5b5e66" marker-end="url(#arr2)"/>
+  <line x1="540" y1="90" x2="580" y2="90" stroke="#5b5e66" marker-end="url(#arr2)"/>
+</svg>
+<figcaption>Analyzer 把多模态原始输入压成结构化 JSON;Planner 把 JSON 解码成 shot 序列(每个 shot 长度刚好等于 DiT 一次生成的视频片段)。Reflection 是可选的"拿生成结果回看再调整"loop,用来防长视频走偏。</figcaption>
+</div>
+
+<h3>4.2 为什么用文本而不是 latent</h3>
+<p>论文也实验了 Reasoning Latent 方案:从 Analyzer 最后一层抽 audio token 的 hidden state,直接 concat 到 raw audio feature 后送给 DiT。结果是"<em>表情更细腻、动作更小</em>"——也就是 latent 方案带来更多 fine-grained,但反而抑制了大动作。考虑到大动作恰恰是这篇论文要解决的核心问题(以前 baseline 都太静),作者最终选 <strong>Reasoning Text</strong> 方案,latent 当成 ablation 备份。</p>
+
+<h3>4.3 Worked example: Analyzer/Planner 输出长什么样</h3>
+<p>论文没给 prompt 模板原文,但根据 §3.2 描述可以重建一个典型场景:</p>
+<pre>// 输入: 一个戴礼帽的魔法师角色图 + 一段念咒语的男声音频(8 秒)
+// Analyzer 的 JSON 输出(示意)
+{
+  "persona": "elderly wizard, theatrical, mysterious",
+  "language_style": "incantatory English with archaic vocabulary",
+  "speech_content": "summoning a vision in the crystal ball",
+  "emotion": "focused, slightly menacing",
+  "intent": "casting a divination spell",
+  "environment": "dim chamber with a crystal ball on the table"
+}
+
+// Planner 把它解码成 shot 序列(每 shot ≈ 5 秒 / 120 frames @ 24 fps)
+[
+  {"shot": 1, "expression": "narrowed eyes, slight grin",
+   "action": "raises both hands above the crystal ball, fingers spread",
+   "duration_frames": 120},
+  {"shot": 2, "expression": "concentrated, mouth chanting",
+   "action": "leans forward, crystal ball begins to glow",
+   "duration_frames": 120}
+]
+</pre>
+<p>这段 shot list 的纯文本会被喂给 MMDiT 的 text branch(经过 T5 / CLIP 编码,具体 paper 没说但是 standard practice),作为<strong>每 shot 的 text condition</strong>。注意:audio 全段 + 当前 shot 的 text → 当前 shot 的 video,这是 per-shot 的 conditioning。</p>
+
+<details><summary>反向论证:如果不分两个 MLLM 会怎样?</summary>
+<p>把 persona 推断、shot 规划塞给同一个 prompt,会出现两类问题:(1) MLLM 在长 prompt 下容易丢字段,JSON schema 不稳定;(2) shot 数量取决于音频长度,模型一次性输出 N 个 shot 时容易 N 写错或重复。分两步后,Analyzer 输出固定 schema,Planner 拿到的是已规整化的 input,生成 shot list 的可靠性显著提升。</p></details>
+
+<hr>
+
+<h2 id="sec5">5 · Multimodal Branches: 三模态对称 + Warm-up</h2>
+
+<h3>5.1 为什么不能用 cross-attention</h3>
+<p>Baseline(包括 OmniHuman-1)的做法:在 DiT 主干上加 cross-attention,K/V 来自 audio feature。问题:audio feature 是<em>每帧一个 token</em>(或者更密集),而 text 是稀疏的全局描述,两者直接竞争 query attention 时,密集信号天然占优,text 几乎被忽略。</p>
+
+<p>本文方案:抛弃 audio cross-attention,改成<strong>对称三分支</strong>。video / audio / text 各有一条独立的 transformer 路径,但每层结束后,三路的 token 拼在一起做<strong>共享 multi-head self-attention</strong>。这样 text token 和 audio token 是 peer 关系,不再是"text 当 query 去问 audio"。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+  <defs>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <text x="100" y="20" text-anchor="middle" font-size="13" font-weight="700">video branch</text>
+  <text x="360" y="20" text-anchor="middle" font-size="13" font-weight="700" fill="#cc4a1b">audio branch</text>
+  <text x="620" y="20" text-anchor="middle" font-size="13" font-weight="700">text branch</text>
+
+  <!-- Layer N -->
+  <g>
+    <rect x="40" y="40" width="120" height="36" rx="5" fill="#eef4ff" stroke="#2f6feb"/>
+    <text x="100" y="63" text-anchor="middle" font-size="12">video tokens (T·H·W)</text>
+    <rect x="300" y="40" width="120" height="36" rx="5" fill="#fdeee6" stroke="#cc4a1b"/>
+    <text x="360" y="63" text-anchor="middle" font-size="12">audio tokens (T)</text>
+    <rect x="560" y="40" width="120" height="36" rx="5" fill="#eef4ff" stroke="#2f6feb"/>
+    <text x="620" y="63" text-anchor="middle" font-size="12">text tokens (~32)</text>
+
+    <!-- per-branch self-attn / FFN -->
+    <rect x="40" y="92" width="120" height="34" rx="4" fill="#fff" stroke="#2f6feb" stroke-dasharray="3,3"/>
+    <text x="100" y="113" text-anchor="middle" font-size="11">branch SA + FFN</text>
+    <rect x="300" y="92" width="120" height="34" rx="4" fill="#fff" stroke="#cc4a1b" stroke-dasharray="3,3"/>
+    <text x="360" y="113" text-anchor="middle" font-size="11">branch SA + FFN</text>
+    <rect x="560" y="92" width="120" height="34" rx="4" fill="#fff" stroke="#2f6feb" stroke-dasharray="3,3"/>
+    <text x="620" y="113" text-anchor="middle" font-size="11">branch SA + FFN</text>
+
+    <!-- joint MM attn -->
+    <rect x="100" y="148" width="520" height="46" rx="8" fill="#fff7e0" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="360" y="170" text-anchor="middle" font-size="13" font-weight="700">Joint Multimodal Self-Attention</text>
+    <text x="360" y="186" text-anchor="middle" font-size="11">所有模态 token 拼接后一起 attend (peer 关系,无主次)</text>
+
+    <!-- arrows -->
+    <line x1="100" y1="76" x2="100" y2="92" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="360" y1="76" x2="360" y2="92" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="620" y1="76" x2="620" y2="92" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+    <line x1="100" y1="126" x2="180" y2="148" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="360" y1="126" x2="360" y2="148" stroke="#5b5e66" marker-end="url(#arr3)"/>
+    <line x1="620" y1="126" x2="540" y2="148" stroke="#5b5e66" marker-end="url(#arr3)"/>
+  </g>
+
+  <!-- repeat -->
+  <text x="360" y="220" text-anchor="middle" font-size="13" fill="#5b5e66">↓ 此结构每层重复(整 DiT 深度)</text>
+
+  <!-- bottom note -->
+  <rect x="40" y="240" width="640" height="34" rx="6" fill="#f3eee0" stroke="#5b5e66"/>
+  <text x="360" y="262" text-anchor="middle" font-size="11" fill="#5b5e66">关键: audio 与 text 是 sibling,而不是 audio 用 cross-attn 注入到 video 里 → 文本指令不再被密集音频淹没</text>
+</svg>
+<figcaption>三模态对称 MMDiT。每层有"分支内 SA"和"跨模态联合 SA"两步;每个模态都能"看到"其它模态的所有 token。Audio token 数量约等于 T(每帧 1 个),text 约 32 个,video 是 T·H·W,但在 joint attention 里所有 token 平等参与 softmax。</figcaption>
+</div>
+
+<h3>5.2 训练难题:即使结构对称,优化也不对称</h3>
+<p>实操中作者发现:naive 训出来的模型仍然以 audio 为主导(audio 信号每帧都强,梯度大)。为此设计 <strong>两阶段 warm-up</strong>:</p>
+<ul>
+  <li><strong>Stage 1 (audio 分支冷启动)</strong>:全部三个分支 joint train,目的不是出最终模型,而是逼模型在 video/text 已经训好的情况下,把<strong>分工</strong>学清楚——audio 分支负责 lip-sync 和 speech mannerism,video/text 负责高层语义。这一阶段持续 ~3 天。</li>
+  <li><strong>Stage 2 (主训练)</strong>:从头初始化:video/text 分支用<em>原始预训练权重</em>(没被 audio 污染),audio 分支用 Stage 1 学到的权重。然后整体 fine-tune 7 天 + 1 天高质量数据。</li>
+</ul>
+<p>核心 insight:Stage 1 不是为了输出好模型,而是<em>为了得到一个"专精 audio 而不会去抢 video/text 工作"的 audio 分支初始化</em>。这是个非常细致的训练学问题。</p>
+
+<h3>5.3 Worked example: tensor 形状</h3>
+<pre>视频: 120 帧 × 480p (短边), 24 fps
+经 3D VAE 压缩 → latent 形状 ≈ (30, 60, 80, C),约 144,000 video token
+audio: 8 秒 ≈ 200 audio token (按 25Hz 取)
+text:  shot 描述经 encoder → ~32 token
+
+Joint attention 序列长度 ≈ 144000 + 200 + 32 ≈ 144,232
+注意 audio + text 占比 < 0.2% → 朴素 cross-attn 必然被 video 主导
+对称 self-attn 下,audio/text token 仍能 attend 全部 video,反向 video 也 attend 它们
+→ 信号双向流动,而不是单向"video 拿 audio 当 K/V"</pre>
+
+<hr>
+
+<h2 id="sec6">6 · Pseudo Last Frame: 化解参考图困境</h2>
+
+<h3>6.1 问题:reference image 是个"伪造的 condition"</h3>
+<p>论文最锐利的一句话:<em>The reference image is an artificial construct, not a condition native to the video data itself.</em></p>
+<p>传统做法是从训练 clip 内随机抽一帧当 reference,然后让模型学 "given reference + audio → reconstruct clip"。模型很容易作弊:既然 reference 来自这个 clip 内,直接把 reference 的姿态复制到输出就可以。结果训出来的模型在推理时<strong>动作幅度极小</strong>——它学到的是"输出 ≈ reference"。</p>
+<p>partial fix:从 clip <em>外</em>抽 reference image。但这又走向另一个极端——模型会学到"输出应该跟 reference 不太一样",于是身份保不住。两边都不对,这是 reference conditioning 的 dilemma。</p>
+
+<h3>6.2 解法:训练用 first/last frame,推理把 reference 摆成 pseudo last frame</h3>
+<p>作者的策略是<strong>训练时根本不用 reference image</strong>。改用什么?用<em>视频片段自身的 GT 第一帧和最后一帧</em>,概率性地拼到生成区域之前和之后。这两个都是"video data 内生的、合法的 condition"——它们就是同一段视频的真实首尾。</p>
+
+<p>推理时,用户给的 reference image 被<strong>放在"last frame"位置</strong>,但故意把它的 RoPE 位置编码<em>平移到很远的未来</em>(比如真实生成长度之外),然后渲染完成后丢弃这一帧。这就是名字"<span class="term">Pseudo Last Frame</span>"的由来。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+  <defs>
+    <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <text x="20" y="20" font-size="13" font-weight="700" fill="#5b5e66">训练阶段:</text>
+  <!-- training timeline -->
+  <line x1="40" y1="55" x2="680" y2="55" stroke="#5b5e66" stroke-width="2"/>
+  <rect x="40" y="40" width="60" height="30" rx="3" fill="#eef4ff" stroke="#2f6feb"/>
+  <text x="70" y="60" text-anchor="middle" font-size="11">GT first</text>
+  <rect x="100" y="40" width="520" height="30" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="360" y="60" text-anchor="middle" font-size="11">denoising target (中间帧 — 用 flow matching 训)</text>
+  <rect x="620" y="40" width="60" height="30" rx="3" fill="#eef4ff" stroke="#2f6feb"/>
+  <text x="650" y="60" text-anchor="middle" font-size="11">GT last</text>
+  <text x="20" y="95" font-size="11" fill="#5b5e66">first/last 都从训练 video 真实首末帧采样,概率性 dropout(也可只给 first、不给 last 等组合)</text>
+
+  <text x="20" y="130" font-size="13" font-weight="700" fill="#5b5e66">推理阶段:</text>
+  <!-- inference timeline -->
+  <line x1="40" y1="165" x2="680" y2="165" stroke="#5b5e66" stroke-width="2"/>
+  <rect x="40" y="150" width="60" height="30" rx="3" fill="#eef4ff" stroke="#2f6feb" stroke-dasharray="3,3"/>
+  <text x="70" y="170" text-anchor="middle" font-size="11">first (0)</text>
+  <rect x="100" y="150" width="380" height="30" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="290" y="170" text-anchor="middle" font-size="11">需要生成的视频(120 帧)</text>
+  <rect x="500" y="150" width="60" height="30" rx="3" fill="#fdeee6" stroke="#cc4a1b" stroke-dasharray="3,3"/>
+  <text x="530" y="170" text-anchor="middle" font-size="11">[gap]</text>
+  <rect x="600" y="150" width="80" height="30" rx="3" fill="#fff" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="640" y="170" text-anchor="middle" font-size="11" font-weight="700">REF (远未来)</text>
+
+  <!-- annotations -->
+  <text x="640" y="200" text-anchor="middle" font-size="11" fill="#cc4a1b">user-provided reference</text>
+  <text x="640" y="215" text-anchor="middle" font-size="11" fill="#cc4a1b">RoPE 位置 = T_far</text>
+  <text x="640" y="230" text-anchor="middle" font-size="11" fill="#cc4a1b">渲染后丢弃</text>
+
+  <text x="290" y="200" text-anchor="middle" font-size="11" fill="#5b5e66">first 通常拿 reference 的复制 / 上一段最后帧(autoregressive 续生成时)</text>
+</svg>
+<figcaption>Pseudo Last Frame 的 train/inference 不对称设计。训练时模型只见过"真实视频的首末帧"作为 condition,从未见过"reference image"这种概念;推理时把用户图丢到"远未来"的位置——模型把它当作"我应该最终走向的样子",但因为距离很远,不会被强制复制到当前帧。</figcaption>
+</div>
+
+<h3>6.3 为什么这招能 work:carrot on a stick</h3>
+<p>这个比喻是论文原文用的。把 reference 放在<em>真实生成区域之外</em>且 RoPE 距离调远后:</p>
+<ul>
+  <li>模型仍然能从 reference 推断出 identity(face shape、肤色、衣着风格);</li>
+  <li>但它<em>不被强制要求 verbatim 复制 reference 的姿态</em>,因为按 RoPE 来说 reference 离当前帧"很远",模型有空间允许中间产生剧烈运动;</li>
+  <li>训练时这个 slot 装的是 GT last frame(真实视频最后一帧),所以模型学到的是"我得朝着这个目标 frame 自然演化过去"——一种 long-range identity attractor,而不是 short-range copy。</li>
+</ul>
+
+<h3>6.4 Worked example: 数字</h3>
+<pre>训练 clip 长 5 秒(120 帧),latent T = 30。
+训练时:first slot at T=0, last slot at T=29,denoise T=1..28
+推理时:first slot at T=0(可以拷贝 reference,或来自上段视频的最后帧)
+        ref slot at T=44 (远超过 30)  ← Pseudo Last Frame
+        denoise T=1..29 → 最终输出 T=0..29 共 30 latent → 120 帧
+渲染完成后丢弃 T=44 的 ref slot
+</pre>
+
+<p>论文 Table 1/2 (b) 的 ablation 显示:用 reference image 做 condition 的版本 (LSI 0.21, MU 0.39, ID 0.17) 全面输给 Pseudo Last Frame 版本 (LSI 0.03, MU 0.25, ID 0.07)。<strong>Lip-sync 误差直接降 7 倍</strong>,是 ablation 里最 dramatic 的一项。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 多人扩展 + Reflective Re-planning</h2>
+
+<h3>7.1 多人:speaker-specific mask</h3>
+<p>从单人扩展到多人,作者只动了两处:</p>
+<ol>
+  <li>引入一个<strong>speaker mask</strong>(每人一张 binary mask,by InterActHuman 的 plug-and-play predictor 预测,可跟随人物移动/被遮挡)。在 MM-attention 里,audio token 只能 attend 到对应说话人 mask 区域内的 video token。等于"audio 只灌进对应的人"。</li>
+  <li>Planner 也接收这个 mask,负责告诉 schedule 里"现在哪个人在说话、哪个人在听"。其余 reasoning 流水线一字不变。</li>
+</ol>
+<p>结果(Table 3):多人场景下 OmniHuman-1.5 的 <strong>Driving Accuracy 0.94</strong>(说话/沉默状态正确率),vs InterActHuman baseline 显著领先,Sync-D 也降到 6.9。这说明 agentic reasoning 是真的让模型"知道现在该说话/该听"。</p>
+
+<h3>7.2 长视频:Reflective Re-planning</h3>
+<p>autoregressive 生成长视频(>1 分钟)时,误差累积是经典问题——某个 shot 道具拿错了,接下来全乱。Reflection 的做法:每生成一个 segment,Planner 拿到这段视频的最后几帧 + 原 reference 重新评估,改写后续 schedule。</p>
+
+<p>论文 Figure 6 给的例子:第一 shot "拿出信件",原计划下一动作是 "Rubs the surface"(摩擦表面),没 reflection 时模型生成的画面里信件凭空消失。开 reflection 后,Planner 看到"哎,人物现在拿着信",把后续动作改成 "Reads the letter",视频连贯了。</p>
+
+<div class="nb"><strong>Trade-off:</strong>Reflection 增加推理开销(每段都要回跑一次 Planner),所以论文的<strong>定量评测里默认关闭 reflection</strong>。这是一个用户可选 feature,部署时按 latency 预算决定。</div>
+
+<hr>
+
+<h2 id="sec8">8 · 端到端 worked example</h2>
+
+<p>把上面所有零件串起来。假设输入:</p>
+<ul>
+  <li>Image: 一位戴尖顶帽的女巫坐在桌前,桌上有水晶球(720×1280 PNG)</li>
+  <li>Audio: 8 秒,内容 "I summon the visions of the future, show me the path"(英语,语调 incantatory)</li>
+  <li>Text prompt(可选):"the wizard casts a divination spell"</li>
+</ul>
+
+<p><strong>步骤 1: Analyzer</strong>。aux model 先生成 image caption "an elderly female wizard at a wooden table with a crystal ball, candlelit room"。Analyzer 收到 image + caption + audio + user prompt,输出 JSON 描述 persona/emotion/intent/environment 等(参考 §4.3 例子)。</p>
+
+<p><strong>步骤 2: Planner</strong>。读 JSON + 原图,产出 2 个 shot(因为 audio 8 秒 ÷ 5 秒/shot ≈ 2):</p>
+<ul>
+  <li>shot 1 (frame 0–119): expression "narrowed eyes, focused", action "raises both hands above the crystal ball"</li>
+  <li>shot 2 (frame 120–239): expression "concentrated", action "leans forward, the crystal ball begins to glow"</li>
+</ul>
+
+<p><strong>步骤 3: Shot 1 generation</strong>。MMDiT 输入:</p>
+<ul>
+  <li>video latent 噪声(30, 60, 80, C)</li>
+  <li>audio feature: 整段 8 秒 audio 的前 5 秒,~125 token</li>
+  <li>text token: shot 1 的 expression+action 描述,~32 token</li>
+  <li>pseudo last frame: 原 reference image 放在 RoPE T=44 位置</li>
+  <li>first frame: reference 复制到 T=0(因为是第一个 shot,没有"上一段")</li>
+</ul>
+<p>Flow Matching denoise → 30 个 latent step → 3D VAE decode → 120 帧 480p,然后 SR 升到 720p/1080p。</p>
+
+<p><strong>步骤 4: Shot 2 generation</strong>(autoregressive 续上)。区别:first frame 不再是 reference,而是 <em>shot 1 输出的最后一帧</em>(保证连续性);audio 切到 5–8 秒段;text 切到 shot 2 描述;pseudo last frame 仍是原 reference。</p>
+
+<p><strong>步骤 5(可选): Reflection</strong>。shot 1 完成后,Planner 拿 shot 1 末尾 16 帧重新评估。如果发现 "raises both hands" 实际生成的是 "puts hand on crystal ball"(执行偏离),它会改写 shot 2 的 action 让 narrative 连贯。</p>
+
+<p><strong>步骤 6: Render Output</strong>。两个 shot 拼接,Pseudo Last Frame 槽位的图被 discard,最终输出 240 帧 ≈ 10 秒 1080p 视频。lip 跟 audio 一对一对齐,手部动作语义对应"召唤动作",水晶球在 shot 2 末尾确实开始亮光(因为 text 里说"glowing crystal ball")——这正是 baseline (OmniHuman-1) 经常做不到的<em>语义视觉对齐</em>。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 实验关键结果</h2>
+
+<h3>9.1 Ablation: 每个组件都不能少</h3>
+<table>
+<tr><th>变体</th><th>Sync-C ↑</th><th>HKV ↑</th><th>读法</th></tr>
+<tr><td>w/o multi-step reasoning(单 MLLM)</td><td>3.85</td><td>157.6</td><td>少了 Analyzer/Planner 分工</td></tr>
+<tr><td>w/o Analyzer</td><td>4.28</td><td>148.4</td><td>少了 persona/emotion 抽取</td></tr>
+<tr><td>w/o Reasoning(纯 System 1)</td><td>3.51</td><td>122.4</td><td>HKV 暴跌 30% — 动作变僵</td></tr>
+<tr><td>w/ Cross-Attention(替换 MM-Attn)</td><td>3.26</td><td>116.3</td><td>对比组里最低 — text 被淹没</td></tr>
+<tr><td>w/o MM-Warmup</td><td>3.99</td><td>164.1</td><td>单步训练 → audio 抢戏</td></tr>
+<tr><td>w/ Ref. Image(传统参考图)</td><td>3.98</td><td>160.9</td><td>动作受限</td></tr>
+<tr><td>w/o Ref. & Pseudo Frame(都不要)</td><td>4.14</td><td>161.0</td><td>identity 飘</td></tr>
+<tr><td><strong>Full Model</strong></td><td>4.09</td><td><strong>168.9</strong></td><td>HKV 最高,Sync 接近最佳</td></tr>
+</table>
+<p>读法:<strong>HKV(手部动作幅度)</strong>是最 telling 的指标——所有"少一个组件"的变体 HKV 都低于 full model。说明每个设计都为"让动作更大、更有语义"做出了实际贡献。Sync-C 在所有 DiT 类方法里都已经接近天花板,所以差异不大,但 ablation (b) 的 LSI(主观 lip-sync 错误率)从 0.21 降到 0.03 才是真的差异。</p>
+
+<h3>9.2 主对比</h3>
+<table>
+<tr><th>Method</th><th>Sync-C ↑</th><th>HKC ↑</th><th>HKV ↑</th><th>FVD ↓</th></tr>
+<tr><td>Skyreel-A1</td><td>2.98</td><td>0.79</td><td>28.8</td><td>70.7</td></tr>
+<tr><td>FantasyTalking</td><td>3.55</td><td>0.84</td><td>18.8</td><td>47.1</td></tr>
+<tr><td>OmniAvatar</td><td>6.59</td><td>0.80</td><td>56.6</td><td>44.0</td></tr>
+<tr><td>MultiTalk</td><td>6.87</td><td>0.82</td><td>62.8</td><td>32.8</td></tr>
+<tr><td>OmniHuman-1</td><td><strong>7.44</strong></td><td><strong>0.90</strong></td><td>47.6</td><td><strong>27.0</strong></td></tr>
+<tr><td><strong>Ours</strong></td><td>7.24</td><td>0.88</td><td><strong>72.1</strong></td><td>27.6</td></tr>
+</table>
+<p>关键:<strong>OmniHuman-1.5 没有横扫所有指标</strong>。Sync-C/FVD/HKC 略低于 OmniHuman-1。但 <strong>HKV 高出 50%</strong>——这是"动作够不够大"的指标。配合用户研究里 33% Top-1(vs OmniHuman-1 的 22%),说明用户在看的是<em>动作的丰富性和语义对齐</em>,objective metrics 没完全 cover 这个维度。</p>
+
+<h3>9.3 一个反直觉的现象</h3>
+<p>portrait CelebV-HQ 测试集上,Ours 和 OmniHuman-1 几乎打平(IQA 3.82 vs 3.88,Sync 5.05 vs 5.20)。原因:portrait 视频本来就只能动脸,"思考性 System 2"没什么发挥空间。论文也坦承:<em>这套方法的优势在 full-body 场景才显现</em>。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 与同类工作对比</h2>
+
+<table>
+<tr><th>系统</th><th>主干</th><th>语义规划</th><th>identity 策略</th><th>能否多人</th><th>能否 >1 min</th></tr>
+<tr><td>SadTalker</td><td>3DMM + 渲染</td><td>无</td><td>固定头像</td><td>否</td><td>原则上是</td></tr>
+<tr><td>EMO</td><td>SD U-Net + audio cross-attn</td><td>无</td><td>reference attn</td><td>否</td><td>有限</td></tr>
+<tr><td>Hallo / Loopy</td><td>SD U-Net + temporal</td><td>无</td><td>reference frame</td><td>否</td><td>有限</td></tr>
+<tr><td>OmniHuman-1</td><td>DiT + reference attn + audio cross-attn</td><td>无</td><td>reference image inside clip</td><td>否</td><td>autoregressive 拼接</td></tr>
+<tr><td>MultiTalk</td><td>DiT</td><td>无</td><td>reference image</td><td>是(本身)</td><td>有限</td></tr>
+<tr><td>InterActHuman</td><td>DiT + speaker mask</td><td>无</td><td>reference</td><td>是</td><td>有限</td></tr>
+<tr><td>纯 video DiT (Sora 类)</td><td>DiT</td><td>无(text-only)</td><td>无</td><td>是</td><td>是</td></tr>
+<tr><td><strong>OmniHuman-1.5</strong></td><td>MMDiT 三分支</td><td><strong>双 MLLM agent + reflection</strong></td><td><strong>Pseudo Last Frame</strong></td><td>是 (mask 扩展)</td><td>是 (reflection)</td></tr>
+</table>
+
+<p>差异最大的是<strong>语义规划</strong>列——这是同类工作普遍缺的。OmniHuman-1.5 是第一个把 MLLM-based planning 显式塞进 audio-driven avatar 流水线、并把"不被 audio 信号淹没"作为架构设计目标的工作。</p>
+
+<hr>
+
+<h2 id="sec11">11 · 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+  <li><span class="pill">局限</span> Reflection 推理慢,不能实时;论文默认评测时关闭。对实时数字人(直播、客服)而言,System 2 的延迟是硬伤。</li>
+  <li><span class="pill">局限</span> Analyzer/Planner 用了什么 MLLM、参数量多大、prompt 模板细节,论文都没给。不利于复现。</li>
+  <li><span class="pill">局限</span> portrait 场景下没显著优势,System 2 在小动作场景下投入产出比低。</li>
+  <li><span class="pill">个人 take</span> Pseudo Last Frame 是这篇论文里最值得借鉴的 trick——它揭示了"reference image 是个伪 condition"这个被同行集体忽略的事实,并给出 RoPE-based 的优雅解决。这一招很可能被后续 video DiT 直接抄走。</li>
+  <li><span class="pill">个人 take</span> Sys1/Sys2 框架虽然 marketing 性强,但底层其实就是"高层 text plan + 低层 audio condition"。不需要被这个 framing 唬住,可以直接评估每一块的工程价值。</li>
+  <li><span class="pill">个人 take</span> MM-Warmup 的两阶段训练设计巧妙但脆弱——它实质是用一个被允许"过拟合到 audio"的废弃模型,去给主模型的 audio 分支一个好初始化。如果有人想 reproduce,warmup 时长、数据子集、loss weighting 都可能影响结果。</li>
+</ul>
+
+<p><strong>待验证问题:</strong></p>
+<ol>
+  <li>把 Pseudo Last Frame 移植到 OmniHuman-1 里(不动其它部分),HKV 能涨多少?这能隔离这一招的实际贡献。</li>
+  <li>Reasoning Latent 方案在"小动作高表情"场景(portrait)下是否反而更好?论文有此暗示但没量化。</li>
+  <li>Reflection 频率(每段都 reflect vs 每 5 段 reflect)对 quality 和 latency 的 trade-off 曲线长什么样?</li>
+  <li>三模态 joint attention 的 sequence 长度 ~144k,FlashAttention/sparse-attn 实现细节论文没说,真实训练吞吐和 H100 利用率是多少?</li>
+  <li>多人 mask 是 hard mask 还是 soft mask?occlusion 场景下 audio 是否会"漏"到旁观者身上?</li>
+  <li>Audio dropout(70% 数据无对齐音频)的具体 dropout schedule 与 baseline OmniHuman-1 一致吗?这影响 lip-sync 学习强度。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec12">12 · 记忆点 (Memory Points)</h2>
+
+<div class="kv"><span class="pill">立场</span> <strong>把生成模型从 System 1 升级成 System 1+2</strong>:用 MLLM 在文本空间做意图规划,DiT 只负责执行。这是 audio-driven avatar 第一次显式建模"思考"。</div>
+<div class="kv"><span class="pill">核心 trick</span> <strong>Pseudo Last Frame</strong>:训练用 video 自身首末帧,推理把 user reference 摆到"远未来"的 RoPE 位置 — 模型把 reference 当 attractor 而不是 copy template,既保 identity 又放开运动幅度。</div>
+<div class="kv"><span class="pill">架构</span> <strong>三模态对称 MMDiT</strong>(video / audio / text 同等地位 + 共享 self-attn)+ 两阶段 warm-up — 让 text 不被密集 audio 信号淹没。</div>
+<div class="kv"><span class="pill">Agent 流水线</span> <strong>Analyzer (CoT, 输出 JSON) → Planner (输出 shot list)</strong>,可选 Reflection 防长视频走偏。</div>
+<div class="kv"><span class="pill">关键 number</span> HKV 168.9(full)vs 122.4(no reasoning),动作幅度暴涨 38%;LSI 从 0.21 降到 0.03,lip-sync 主观错误率降 7×;用户 Top-1 选择 33%,领先所有 baseline 11+ 点。</div>
+<div class="kv"><span class="pill">核心限制</span> portrait 小动作场景优势不显著;Reflection 推理慢不实时;MLLM 选型 + prompt 细节论文未公开。</div>
+<div class="kv"><span class="pill">为什么非平凡</span> "加 MLLM 做规划"听起来 trivial,实际同时遭遇三个 trap:(1) modality conflict,(2) reference image paradox,(3) plan→video 接口设计。论文逐一对应解决。</div>
+
+</main>
+</body>
+</html>

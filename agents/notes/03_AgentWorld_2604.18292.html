@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Agent-World (2604.18292)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Agent-World: Scaling Real-World Environment Synthesis for Evolving General Agent Intelligence</h1>
+<div class="meta">
+  Renmin University of China · ByteDance Seed · Guanting Dong et al. · 2026-04-21 · arXiv:2604.18292<br>
+  关键词: Agent RL · MCP · environment synthesis · self-evolving arena · GRPO · multi-environment training
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把"<em>环境</em>"当作 agentic RL 的预训练数据来 scale —— 用 deep-research agent 自动从 web 上挖出 1,978 个真实环境(database + tool set,完全 MCP 兼容)+ 19,822 个可执行工具,再用 self-evolving arena 持续诊断弱点、合成新任务,把 8B/14B 模型在 23 个 benchmark 上推过若干 frontier proprietary 模型。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">1,978</div><div class="l">真实环境数</div></div>
+    <div class="stat"><div class="n">19,822</div><div class="l">可执行工具数</div></div>
+    <div class="stat"><div class="n">>20 turns</div><div class="l">单 task 平均交互轮数</div></div>
+  </div>
+  <p><strong>立场:</strong>不是新 RL 算法(GRPO 直接拿来用),也不是新模型架构。核心创新是把<em>环境构造本身</em>从手工沙箱转成可被 agent 自动 mining 的工业流水线,并把"诊断 → 针对性扩展 → 继续训"做成闭环。这意味着 agent post-training 的瓶颈正在从"算法/数据"转向"<strong>环境的多样性与可验证性</strong>"。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么"环境"是 agentic RL 的新瓶颈</a></li>
+    <li><a href="#sec2">背景速查 (POMDP / GRPO / MCP)</a></li>
+    <li><a href="#sec3">Agentic Environment-Task Discovery (环境与任务发现)</a></li>
+    <li><a href="#sec4">Verifiable Task Synthesis (任务合成 + 可验证性)</a></li>
+    <li><a href="#sec5">Multi-Environment Agent RL</a></li>
+    <li><a href="#sec6">Self-Evolving Agent Arena (自演化竞技场)</a></li>
+    <li><a href="#sec7">Worked example: Memory Bank MCP 的一条 15-turn 轨迹</a></li>
+    <li><a href="#sec8">实验关键结果 (scaling + self-evolve)</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么"环境"是 agentic RL 的新瓶颈</h2>
+
+<h3>1.1 历史脉络:从 chat → tool-RL → agent-RL,环境的位置一路上移</h3>
+<p>2023 年的 RLHF 流水线里几乎不存在"环境"这个词:reward model 给一个 scalar,policy 在 chat 分布上做梯度,世界很安静。<strong>2024 ToolFormer / Search-R1 / ReTool</strong> 把"调用一个 tool 拿回结果"塞进 trajectory,但环境往往是 stateless(同一查询任意时刻打回相同结果)且 single-tool。</p>
+<p>2025 之后两件事让环境"<em>从配料变成主料</em>":</p>
+<ul>
+  <li><strong>MCP (Model Context Protocol)</strong> 普及 —— 一个统一接口让 LLM agent 可以接入任意 stateful service(GitHub repo、Notion workspace、Postgres、Playwright 浏览器),所有 tool 都变成"读写一个外部数据库"的算子。</li>
+  <li><strong>Long-horizon agentic benchmark</strong>(τ²-Bench、MCP-Mark、GAIA)集体表明:即便是 GPT-5.2、Claude Sonnet-4.5,在多轮 stateful 的 tool orchestration 上也并不强(MCP-Mark 上 GPT-5.2 仅 53.1%,Gemini-3 Pro 50.8%)。这是 capability gap,不是"再 scale 几个 trillion token"能填上的。</li>
+</ul>
+<p>论文的 thesis 一句话: <strong>预训练 ≈ 文本数据驱动;agent post-training ≈ 环境驱动。</strong>环境的多样性、stateful 复杂度、可验证性,这三件事直接卡住 agent 的能力上限。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 660 200" width="100%" style="max-width:640px">
+    <!-- timeline -->
+    <line x1="40" y1="120" x2="620" y2="120" stroke="#888" stroke-width="2"/>
+    <!-- ticks -->
+    <g font-size="11" fill="#5b5e66" text-anchor="middle">
+      <circle cx="100" cy="120" r="5" fill="#9aa6c4"/><text x="100" y="145">2023 RLHF</text>
+      <text x="100" y="100" font-size="10">env ≈ ø</text>
+      <circle cx="240" cy="120" r="5" fill="#7eb1ff"/><text x="240" y="145">2024 Tool-RL</text>
+      <text x="240" y="100" font-size="10">single-tool, stateless</text>
+      <circle cx="400" cy="120" r="6" fill="#3b7ff5"/><text x="400" y="145">2025 MCP / τ²</text>
+      <text x="400" y="100" font-size="10">stateful, real-world</text>
+      <circle cx="560" cy="120" r="9" fill="#cc4a1b"/><text x="560" y="148" fill="#cc4a1b" font-weight="600">2026 Agent-World</text>
+      <text x="560" y="100" font-size="10" fill="#cc4a1b" font-weight="600">~2K env, self-evolving</text>
+    </g>
+    <text x="330" y="30" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">"环境"在 agent 训练中的位置变迁</text>
+    <text x="330" y="50" text-anchor="middle" font-size="11" fill="#5b5e66">从无环境 → stateless tool → 单一 stateful 环境 → 千级 stateful 环境生态</text>
+    <text x="330" y="180" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">环境数量级每 1 年涨一个数量级,这是环境 scaling law 的"摩尔曲线"</text>
+  </svg>
+  <figcaption>环境复杂度的演化路径。论文的"环境 scaling"对应右端跳跃 — 不是再做一个更大的沙箱,而是把<em>沙箱的数量与多样性</em>提升两到三个数量级。</figcaption>
+</div>
+
+<h3>1.2 为什么手工 / LLM-纯模拟 / 程序化沙箱都不够 — 一张对比表</h3>
+
+<table>
+  <tr><th>路线</th><th>代表工作</th><th>问题</th></tr>
+  <tr><td><strong>纯人工</strong>沙箱</td><td>τ²-Bench, ClawEval</td><td><span class="no">单环境造价数十人天,根本不可能 scale 到千级</span></td></tr>
+  <tr><td>LLM 隐式 <strong>simulator</strong></td><td>Simulator-8B, GenEnv, Web World Models</td><td><span class="no">幻觉,无法保证 state transition 真实;reward 不可靠</span></td></tr>
+  <tr><td>程序化 <strong>FSM/sandbox</strong></td><td>EnvScaler, AWM, AutoForge, ScaleEnv</td><td><span class="no">环境结构由 LLM 凭空生成,与真实工作流脱钩;tool 定义模板化</span></td></tr>
+  <tr><td>抓取的 <strong>real services</strong></td><td>WebArena, OS-World</td><td><span class="no">真实但访问受限、不可大规模并发训练、状态不可重置</span></td></tr>
+  <tr><td><strong>Agent-World</strong> 👈</td><td>本文</td><td><span class="ok">用 deep-research agent 从真实 MCP 元数据 + web 抓取 + 自动 unit-test 验证 → 兼顾真实性 / 可执行 / 可验证 / scalable</span></td></tr>
+</table>
+
+<div class="nb">
+  <strong>核心观察:</strong>这五条路线的<em>不可能三角</em>是 <strong>真实性 × 可控可验证性 × scalability</strong>。前面几个方案各自只能拿到两条;Agent-World 用"<em>真实 MCP server 元数据当 anchor + agent 自动 mining + cross-validation 过滤</em>"这套流水线把三条同时拿到。
+</div>
+
+<h3>1.3 但即使你想这么做,事情也并不平凡</h3>
+<p>"<em>让 agent 自动造出可训练的环境</em>"这件事比它听起来难得多,几个关键 friction:</p>
+<ol>
+  <li><strong>topic anchor 从哪来。</strong>如果 topic 是 LLM 想出来的,会塌缩到几个常见 vertical(GitHub、Notion);要广必须依赖真实分布(论文用 Smithery 上 ~2.8K MCP server + 0.5K tool docs + 0.2K 工业 PRD)。</li>
+  <li><strong>database 不能让 LLM 凭空写。</strong>必须从 web 抓 — 但 web 信息分散、格式杂、有错。所以需要"<em>iterative deep-research</em> + database complexification"循环 N 次。</li>
+  <li><strong>tool 必须能<em>跑</em>而不只是看起来像 schema。</strong>论文用 ReAct coding agent 同时生成 tool + unit test,然后 cross-validate(test pass rate > 0.5 才保留)。这是借鉴 self-play with execution feedback (Dong 2024) 的套路。</li>
+  <li><strong>task 必须可<em>判分</em>。</strong>否则 RL 没有 reward。论文用两条互补路线:graph-based(可枚举 tool 序列 → 可枚举答案 schema)与 programmatic(LLM 写解题代码 + 验证代码,sandbox 多次跑通才保留)。</li>
+  <li><strong>多环境 RL 不能彼此打架。</strong>每个环境的 tool 名字、签名、state transition 都不一样,直接混训容易 catastrophic interference。论文的解法是:每条 trajectory 独立挂载自己的环境(dynamic per-task env),只在 batch 一级混合。</li>
+  <li><strong>训完之后怎么知道哪儿弱。</strong>这是 self-evolving arena 要解决的 — 用 diagnosis agent 看 failure trace,从分类树里指认弱环境,合成新任务,继续训。</li>
+</ol>
+
+<p>你可以把整篇论文看作"把这六个 friction 各自工程化、串成一个闭环"的工作。它的功劳不在哪个单点,在于把"<em>环境</em>"作为一个生产要素的 supply chain 搭出来了。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">MCP</span></td><td>Model Context Protocol — Anthropic 推动的 agent-tool 标准接口,允许 LLM 调用外部 stateful service(GitHub、Postgres、Playwright 等)</td></tr>
+  <tr><td><span class="term">Smithery</span></td><td>一个公共 MCP server 注册表,论文从中抓 ~2.8K real-world MCP 规范作 topic anchor</td></tr>
+  <tr><td><span class="term">Environment 𝑒 = (𝒟, ℱ)</span></td><td>论文里一个环境 = (database 𝒟,toolset ℱ);state 实际存在 𝒟 中,ℱ 是读写算子</td></tr>
+  <tr><td><span class="term">Stateful tool use</span></td><td>tool 调用会改变环境状态(创建订单 → 库存减一);后续调用会观察到这个变化</td></tr>
+  <tr><td><span class="term">POMDP</span></td><td>Partially Observable Markov Decision Process — agent 只能通过 tool observation 间接推断 𝑠ᴱ</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>Group Relative Policy Optimization,DeepSeekMath 提出,无需 critic 的 PPO 变体</td></tr>
+  <tr><td><span class="term">Verifiable reward</span></td><td>由 sandbox 执行 verifier script 或 rubric LLM-as-judge 产生的 0/1 信号,与人工标注解耦</td></tr>
+  <tr><td><span class="term">Deep-research agent</span></td><td>一个 ReAct-style agent 配 search/browser/compiler/OS 工具,做长链 web 信息采集</td></tr>
+  <tr><td><span class="term">Database complexification 𝜙</span></td><td>反复让 deep-research agent 在已有 𝒟 上扩展、丰富数据;迭代 N 轮</td></tr>
+  <tr><td><span class="term">Tool graph</span></td><td>把 ℱ 里所有 tool 当节点,按依赖类型(strong / weak / independent)加权连边</td></tr>
+  <tr><td><span class="term">Programmatic task</span></td><td>用 Python 控制流(if / for / aggregation)调用多个 tool 才能解的复杂任务</td></tr>
+  <tr><td><span class="term">Arena</span></td><td>self-evolving 阶段的"诊断竞技场":holdout 环境 + 每轮新 task,用来找 weakness</td></tr>
+</table>
+
+<h3>2.2 GRPO 速查公式 (本文直接复用)</h3>
+<div class="formula">
+  J_GRPO(θ) = 𝔼[(1/G) Σᵢ (1/|yᵢ|) Σₜ min(rᵢₜ Âᵢₜ, clip(rᵢₜ,1−ε,1+ε) Âᵢₜ) − β·KL(πθ ‖ π_ref)]
+</div>
+<p>本文设 ε_low = 0.2, ε_high = 0.28,group 大小 G = 8,每 step 32 个 task,trajectory 上限 80K token,单步生成上限 32K token。</p>
+
+<hr>
+
+<h2 id="sec3">3 · Agentic Environment-Task Discovery</h2>
+
+<h3>3.1 整体流水线</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- Stage 1: theme collection -->
+    <rect x="20" y="20" width="160" height="80" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="100" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">① Theme</text>
+    <text x="100" y="60" text-anchor="middle" font-size="11" fill="#3a3b40">MCP servers ~2.8K</text>
+    <text x="100" y="76" text-anchor="middle" font-size="11" fill="#3a3b40">Tool docs ~0.5K</text>
+    <text x="100" y="92" text-anchor="middle" font-size="11" fill="#3a3b40">Industrial PRDs ~0.2K</text>
+
+    <!-- Stage 2: DB mining -->
+    <rect x="220" y="20" width="170" height="80" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="305" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">② DB mining</text>
+    <text x="305" y="60" text-anchor="middle" font-size="11" fill="#3a3b40">Deep-Research agent G</text>
+    <text x="305" y="76" text-anchor="middle" font-size="11" fill="#3a3b40">𝒟ⁿ⁺¹ = 𝜙(𝒟ⁿ, m, T)</text>
+    <text x="305" y="92" text-anchor="middle" font-size="11" fill="#3a3b40">迭代 N 轮</text>
+
+    <!-- Stage 3: tool gen -->
+    <rect x="420" y="20" width="170" height="80" rx="8" fill="#e8f5e9" stroke="#1f7a4a"/>
+    <text x="505" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#1f7a4a">③ Tool gen + verify</text>
+    <text x="505" y="60" text-anchor="middle" font-size="11" fill="#3a3b40">Coding agent ψ 写 tool</text>
+    <text x="505" y="76" text-anchor="middle" font-size="11" fill="#3a3b40">+ 单元测试</text>
+    <text x="505" y="92" text-anchor="middle" font-size="11" fill="#3a3b40">test pass &gt; 0.5 才留</text>
+
+    <!-- arrows row 1 -->
+    <line x1="180" y1="60" x2="220" y2="60" stroke="#666" marker-end="url(#arr)"/>
+    <line x1="390" y1="60" x2="420" y2="60" stroke="#666" marker-end="url(#arr)"/>
+
+    <!-- Stage 4: taxonomy -->
+    <rect x="610" y="20" width="100" height="80" rx="8" fill="#fef9e6" stroke="#888"/>
+    <text x="660" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">④ Taxonomy</text>
+    <text x="660" y="60" text-anchor="middle" font-size="10" fill="#3a3b40">L1: 20</text>
+    <text x="660" y="74" text-anchor="middle" font-size="10" fill="#3a3b40">L2: 50</text>
+    <text x="660" y="88" text-anchor="middle" font-size="10" fill="#3a3b40">L3: 1,978</text>
+    <line x1="590" y1="60" x2="610" y2="60" stroke="#666" marker-end="url(#arr)"/>
+
+    <!-- box: ecosystem -->
+    <rect x="100" y="135" width="500" height="50" rx="10" fill="#cce5ff" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="350" y="156" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6feb">环境生态 ℰ = {(𝒟ᴺ(m), ℱ(m)) | m ∈ 𝓜}</text>
+    <text x="350" y="174" text-anchor="middle" font-size="11" fill="#3a3b40">1,978 environments &nbsp;·&nbsp; 19,822 tools  &nbsp;·&nbsp; 多种 file 格式</text>
+
+    <line x1="350" y1="100" x2="350" y2="135" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+
+    <!-- Stage 5: task synthesis -->
+    <rect x="50" y="215" width="290" height="120" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="195" y="238" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">⑤a Graph-based task</text>
+    <text x="195" y="258" text-anchor="middle" font-size="11" fill="#3a3b40">tool graph (strong/weak/indep)</text>
+    <text x="195" y="274" text-anchor="middle" font-size="11" fill="#3a3b40">→ random walk → tool seq τ*</text>
+    <text x="195" y="290" text-anchor="middle" font-size="11" fill="#3a3b40">→ sandbox 执行 → q_final + a*</text>
+    <text x="195" y="308" text-anchor="middle" font-size="11" fill="#3a3b40">→ 5 次 ReAct 求解 ≥ 2 次成功</text>
+    <text x="195" y="324" text-anchor="middle" font-size="11" fill="#cc4a1b">输出: 𝒳_graph + rubrics 𝑅</text>
+
+    <rect x="360" y="215" width="290" height="120" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="505" y="238" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">⑤b Programmatic task</text>
+    <text x="505" y="258" text-anchor="middle" font-size="11" fill="#3a3b40">LLM 写复杂 query q_prog</text>
+    <text x="505" y="274" text-anchor="middle" font-size="11" fill="#3a3b40">+ 解题代码 π_code (if/for/agg)</text>
+    <text x="505" y="290" text-anchor="middle" font-size="11" fill="#3a3b40">+ verifier 代码 V_code</text>
+    <text x="505" y="308" text-anchor="middle" font-size="11" fill="#3a3b40">→ 5 次 ReAct ≥ 2 次过 V_code</text>
+    <text x="505" y="324" text-anchor="middle" font-size="11" fill="#cc4a1b">输出: 𝒳_prog + V_code</text>
+
+    <line x1="350" y1="185" x2="195" y2="215" stroke="#666" marker-end="url(#arr)"/>
+    <line x1="350" y1="185" x2="505" y2="215" stroke="#666" marker-end="url(#arr)"/>
+
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Agentic Environment-Task Discovery 流水线全景。① 真实 MCP/PRD 提供 theme anchor 𝓜 — 防止 LLM 凭空想 vertical;② 给每个 theme,deep-research agent 抓 web 数据建库,迭代复杂化;③ coding agent 同时生成 tool + 单元测试,自动过滤通不过的;④ 把 ~2K 环境 hierarchically cluster 到 20 / 50 / 1978 三层;⑤ 任务合成走 graph(线性序列)和 programmatic(分支/循环)两条互补路径。</figcaption>
+</div>
+
+<h3>3.2 Discovery loop 的核心设计选择</h3>
+
+<h4>(a) Theme 来自真实 MCP — 不是 LLM 凭空想</h4>
+<p>论文这一步看似平凡但极重要: <strong>topic 集合 𝓜 = M₁ (Smithery 上 ~2.8K MCP 服务) ∪ M₂ (open-source tool docs ~0.5K) ∪ M₃ (工业 PRD ~0.2K)</strong>。如果让 LLM 自己脑补 topic,集中度会非常糟糕(全是常见 vertical)。从真实分布抽样保证了 long-tail。</p>
+
+<h4>(b) Database complexification 𝜙: 多轮迭代</h4>
+<div class="formula">𝒟⁽ⁿ⁺¹⁾(m) = 𝜙(𝒟⁽ⁿ⁾(m), m, 𝒯)</div>
+<p>第一遍 mining 通常拿到的是表面数据,论文反复让 agent 在已有 𝒟 上"再深挖一层",直到 N 轮后数据库结构真正复杂(关联表、外键、多文件类型)。这一步比"一次性抓全"重要 — 它是<em>把环境的 stateful 复杂度推上去</em>的关键。</p>
+
+<h4>(c) Tool 必须能跑 — 用单元测试当过滤器</h4>
+<p>每个候选 tool 𝑓̂ 配一组测试用例 Ĉ_f̂,准确率定义:</p>
+<div class="formula">Acc(𝑓̂; Ĉ_𝑓̂) = (1/|Ĉ_𝑓̂|) Σ 1[𝑓̂(ĉ) passes]</div>
+<p>必须满足 (i) Python 编译通过 (ii) Acc &gt; 0.5 (iii) 该环境至少有 1 个有效 tool 和 1 条有效 test。这是借鉴 SPELL / self-play with execution feedback 的过滤思路 — 不是相信 LLM 写出来的代码对,而是用执行结果当真理。</p>
+
+<h4>(d) Hierarchical taxonomy: 给"环境多样性"量化的语言</h4>
+
+<div class="fig">
+  <svg viewBox="0 0 660 230" width="100%" style="max-width:640px">
+    <!-- root -->
+    <rect x="280" y="10" width="100" height="32" rx="6" fill="#cc4a1b" opacity="0.85"/>
+    <text x="330" y="32" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">Agent-World ℰ</text>
+    <!-- L1 -->
+    <g font-size="11" text-anchor="middle">
+      <rect x="20" y="65" width="100" height="28" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="70" y="83">DevOps</text>
+      <rect x="130" y="65" width="100" height="28" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="180" y="83">Productivity</text>
+      <rect x="240" y="65" width="100" height="28" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="290" y="83">Finance</text>
+      <rect x="350" y="65" width="100" height="28" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="400" y="83">Browser</text>
+      <rect x="460" y="65" width="100" height="28" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="510" y="83">Health</text>
+      <rect x="570" y="65" width="80" height="28" rx="5" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="610" y="83">… (20)</text>
+    </g>
+    <!-- arrows L1 -->
+    <g stroke="#888" fill="none">
+      <line x1="330" y1="42" x2="70" y2="65"/>
+      <line x1="330" y1="42" x2="180" y2="65"/>
+      <line x1="330" y1="42" x2="290" y2="65"/>
+      <line x1="330" y1="42" x2="400" y2="65"/>
+      <line x1="330" y1="42" x2="510" y2="65"/>
+      <line x1="330" y1="42" x2="610" y2="65"/>
+    </g>
+    <!-- L2 expansion under DevOps -->
+    <g font-size="10" text-anchor="middle">
+      <rect x="0" y="120" width="55" height="22" rx="4" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="27" y="135">GitHub</text>
+      <rect x="58" y="120" width="55" height="22" rx="4" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="85" y="135">CI/CD</text>
+      <rect x="116" y="120" width="55" height="22" rx="4" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="143" y="135">Docker</text>
+      <line x1="70" y1="93" x2="40" y2="120" stroke="#888"/>
+      <line x1="70" y1="93" x2="85" y2="120" stroke="#888"/>
+      <line x1="70" y1="93" x2="140" y2="120" stroke="#888"/>
+    </g>
+    <!-- L3 leaves under GitHub -->
+    <g font-size="9" text-anchor="middle">
+      <rect x="0" y="170" width="60" height="20" rx="3" fill="#e8f5e9" stroke="#1f7a4a"/>
+      <text x="30" y="183">issue-bot</text>
+      <rect x="62" y="170" width="60" height="20" rx="3" fill="#e8f5e9" stroke="#1f7a4a"/>
+      <text x="92" y="183">PR-review</text>
+      <line x1="27" y1="142" x2="30" y2="170" stroke="#888"/>
+      <line x1="27" y1="142" x2="92" y2="170" stroke="#888"/>
+    </g>
+    <text x="330" y="215" text-anchor="middle" font-size="12" fill="#5b5e66">L1: 20 一级类型 &nbsp;·&nbsp; L2: 50 聚类中心 &nbsp;·&nbsp; L3: 1,978 具体环境</text>
+  </svg>
+  <figcaption>三层分类。L2 用 hierarchical clustering 自动得到聚类中心,GPT-OSS-120B 给中心起名;L1 由 3 名标注员人工合并 L2 标签到 20 个粗类。这个 taxonomy 在 self-evolving arena 里被用作"分层抽样"的索引 — 保证诊断时每个 L1 类都被覆盖到。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · Verifiable Task Synthesis: 两条互补合成路线</h2>
+
+<h3>4.1 Graph-based: 适合"线性多步 tool 调用链"</h3>
+
+<p>对每个环境构造一个全连接加权有向图 𝐺 = (𝑉, 𝐸):</p>
+<ul>
+  <li><strong>Strong dep</strong> (w=3, 单向): tool 𝑓ⱼ 的输入必须依赖 𝑓ᵢ 输出 — 例: <code>create_order</code> → <code>get_order_details</code></li>
+  <li><strong>Weak dep</strong> (w=2, 双向): 可以依赖也可以从 db 直接查</li>
+  <li><strong>Independent</strong> (w=1, 双向): 无参数依赖,作 fallback 保证连通</li>
+</ul>
+
+<p>对图做<em>带权 random walk</em> 拿到 tool 序列 τ → 实例化参数(strong/weak 用前一个 tool 输出,independent 从 𝒟 采样)→ LLM 审一遍剪冗余 → sandbox 执行得到中间 trace 和最终结果 → LLM 反向写出"<em>不暴露技术细节的</em>" task description q_final + ground-truth a* + rubric 𝑅。</p>
+
+<p><strong>难度 scale:</strong>增大 walk 最大步数 + 提高 weak/independent 边采样概率 + 改写描述使其更抽象。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 660 280" width="100%" style="max-width:640px">
+    <!-- Tool graph -->
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Tool graph</text>
+    <g>
+      <circle cx="60" cy="80" r="22" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="60" y="84" text-anchor="middle" font-size="11">f₁</text>
+      <circle cx="180" cy="80" r="22" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="180" y="84" text-anchor="middle" font-size="11">f₂</text>
+      <circle cx="60" cy="180" r="22" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="60" y="184" text-anchor="middle" font-size="11">f₃</text>
+      <circle cx="180" cy="180" r="22" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="180" y="184" text-anchor="middle" font-size="11">f₄</text>
+      <!-- strong -->
+      <line x1="82" y1="80" x2="158" y2="80" stroke="#cc4a1b" stroke-width="3" marker-end="url(#a2)"/>
+      <text x="120" y="72" text-anchor="middle" font-size="9" fill="#cc4a1b">strong</text>
+      <!-- weak bidir -->
+      <line x1="180" y1="102" x2="180" y2="158" stroke="#d2a32a" stroke-width="2" marker-end="url(#a2)" marker-start="url(#a2)"/>
+      <text x="200" y="135" text-anchor="middle" font-size="9" fill="#d2a32a">weak</text>
+      <!-- indep -->
+      <line x1="60" y1="102" x2="60" y2="158" stroke="#888" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#a2)" marker-start="url(#a2)"/>
+      <text x="40" y="135" text-anchor="middle" font-size="9" fill="#888">indep</text>
+      <line x1="82" y1="180" x2="158" y2="180" stroke="#888" stroke-width="1" stroke-dasharray="3,3"/>
+    </g>
+
+    <!-- arrow to walk -->
+    <path d="M 220 130 L 280 130" stroke="#2f6feb" stroke-width="2" marker-end="url(#a2)"/>
+    <text x="250" y="120" text-anchor="middle" font-size="11" fill="#2f6feb">walk</text>
+
+    <!-- tool sequence -->
+    <text x="380" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Sampled tool seq τ*</text>
+    <g>
+      <rect x="290" y="50" width="60" height="32" rx="5" fill="#fff" stroke="#2f6feb"/>
+      <text x="320" y="71" text-anchor="middle" font-size="11">f₁</text>
+      <rect x="355" y="50" width="60" height="32" rx="5" fill="#fff" stroke="#2f6feb"/>
+      <text x="385" y="71" text-anchor="middle" font-size="11">f₂ (strong)</text>
+      <rect x="420" y="50" width="60" height="32" rx="5" fill="#fff" stroke="#2f6feb"/>
+      <text x="450" y="71" text-anchor="middle" font-size="11">f₄ (weak)</text>
+      <rect x="485" y="50" width="60" height="32" rx="5" fill="#fff" stroke="#2f6feb"/>
+      <text x="515" y="71" text-anchor="middle" font-size="11">f₃</text>
+      <line x1="350" y1="66" x2="355" y2="66" stroke="#888"/>
+      <line x1="415" y1="66" x2="420" y2="66" stroke="#888"/>
+      <line x1="480" y1="66" x2="485" y2="66" stroke="#888"/>
+    </g>
+
+    <!-- sandbox execute -->
+    <rect x="290" y="105" width="260" height="40" rx="6" fill="#fef9e6" stroke="#d2a32a"/>
+    <text x="420" y="123" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">Sandbox execute → trace + a*</text>
+    <text x="420" y="138" text-anchor="middle" font-size="10" fill="#3a3b40">中间数据 / 字段 / 格式 全部 grounded</text>
+
+    <!-- LLM writes query -->
+    <rect x="290" y="160" width="260" height="40" rx="6" fill="#e8f5e9" stroke="#1f7a4a"/>
+    <text x="420" y="178" text-anchor="middle" font-size="11" font-weight="600" fill="#1f7a4a">LLM → q_final (隐去 tool 名)</text>
+    <text x="420" y="193" text-anchor="middle" font-size="10" fill="#3a3b40">+ 结构化 rubric 𝑅 (字段完整 / schema / 数值容差)</text>
+
+    <!-- consistency -->
+    <rect x="290" y="215" width="260" height="40" rx="6" fill="#cce5ff" stroke="#2f6feb"/>
+    <text x="420" y="233" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">5× ReAct → ≥2 次成功才保留</text>
+    <text x="420" y="248" text-anchor="middle" font-size="10" fill="#3a3b40">solvable but non-trivial</text>
+
+    <line x1="420" y1="82" x2="420" y2="105" stroke="#888" marker-end="url(#a2)"/>
+    <line x1="420" y1="145" x2="420" y2="160" stroke="#888" marker-end="url(#a2)"/>
+    <line x1="420" y1="200" x2="420" y2="215" stroke="#888" marker-end="url(#a2)"/>
+
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Graph-based 任务合成。Random walk 在加权图上"自然"得到一条<em>逻辑顺畅</em>的 tool 序列;sandbox 执行赋予真实数据 grounding;LLM 反向写 query 时被强制"<em>不暴露 tool 名 / schema</em>" — 这是防止训练时 agent 直接 pattern-match 到 tool 名的关键。</figcaption>
+</div>
+
+<h3>4.2 Programmatic: 适合"分支 / 循环 / 聚合"任务</h3>
+<p>graph-based 只能产生序列;<strong>programmatic 让 LLM 直接写 Python 解题脚本</strong> π_code,可以包含 if-else、for、跨表 aggregation。同时 LLM 写一个 verifier 脚本 V_code 做多层断言(不只是 string match)。两个脚本都进 ReAct 循环 debug 直到 sandbox 通过。最终 task 也要 5 次 ReAct ≥2 次 pass V_code 才保留。</p>
+
+<h3>4.3 Worked example: 一个具体的 task 长什么样</h3>
+
+<details>
+  <summary>展开看 q_final 实例(Postgres 环境)</summary>
+  <p>原始 walk 序列(graph-based):<br>
+    <code>list_databases → connect_db("inventory") → run_query("SELECT...") → list_tables → describe_table("orders") → run_query("UPDATE orders SET status...")</code>
+  </p>
+  <p>LLM 写出的 q_final(隐去 tool 名后):</p>
+  <blockquote>
+    "Find all pending orders in the inventory system that were placed before March, identify which of them belong to customers in the 'wholesale' tier, and mark them as expedited. Report the total number of affected rows and the average order value."
+  </blockquote>
+  <p>Rubric R 包括:① 是否最终调了 update;② affected rows 数量是否等于 sandbox 中 ground truth 的整数值 17;③ avg order value 是否在 [421.5, 422.5] 区间(允许 1% 数值容差);④ 没有调用与本次任务无关的破坏性 tool(如 drop_table)。</p>
+</details>
+
+<hr>
+
+<h2 id="sec5">5 · Multi-Environment Agent RL</h2>
+
+<h3>5.1 数据流</h3>
+<div class="fig">
+  <svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+    <!-- Policy -->
+    <rect x="280" y="20" width="140" height="50" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="350" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Policy 𝜋θ (Qwen3-8B/14B)</text>
+    <text x="350" y="60" text-anchor="middle" font-size="11" fill="#3a3b40">action: tool call OR response</text>
+
+    <!-- arrow down: action -->
+    <line x1="350" y1="70" x2="350" y2="100" stroke="#666" marker-end="url(#a3)"/>
+    <text x="376" y="92" font-size="11" fill="#5b5e66">aₜ ∈ A_tool</text>
+
+    <!-- Tool runtime -->
+    <rect x="220" y="105" width="260" height="50" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="350" y="127" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Tool interface / sandbox runtime</text>
+    <text x="350" y="145" text-anchor="middle" font-size="11" fill="#3a3b40">执行 ℱ(m) 上的 𝑓 → 读写 𝒟(m)</text>
+
+    <!-- Database -->
+    <line x1="350" y1="155" x2="350" y2="185" stroke="#666" marker-end="url(#a3)"/>
+    <rect x="260" y="190" width="180" height="40" rx="8" fill="#f3eee0" stroke="#888"/>
+    <text x="350" y="215" text-anchor="middle" font-size="13" font-weight="600" fill="#3a3b40">Database 𝒟ᴺ(m)</text>
+
+    <!-- Observation back -->
+    <path d="M 220 130 Q 130 130 130 60 L 280 50" stroke="#1f7a4a" stroke-width="2" fill="none" marker-end="url(#a3)"/>
+    <text x="120" y="100" text-anchor="middle" font-size="11" fill="#1f7a4a">oₜ₊₁ ∈ Oᴱ</text>
+    <text x="120" y="115" text-anchor="middle" font-size="10" fill="#5b5e66">structured</text>
+
+    <!-- Reward -->
+    <rect x="500" y="105" width="170" height="50" rx="8" fill="#cce5ff" stroke="#2f6feb"/>
+    <text x="585" y="127" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Verifiable reward</text>
+    <text x="585" y="145" text-anchor="middle" font-size="11" fill="#3a3b40">rubric LLM-judge OR V_code</text>
+    <line x1="480" y1="130" x2="500" y2="130" stroke="#888" marker-end="url(#a3)"/>
+
+    <!-- GRPO -->
+    <rect x="500" y="190" width="170" height="40" rx="8" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="585" y="215" text-anchor="middle" font-size="13" font-weight="600" fill="#a8353e">GRPO update → πθ</text>
+    <line x1="585" y1="155" x2="585" y2="190" stroke="#888" marker-end="url(#a3)"/>
+    <path d="M 500 210 Q 350 250 350 70" stroke="#a8353e" stroke-width="1.5" stroke-dasharray="4,3" fill="none" marker-end="url(#a3)"/>
+
+    <!-- Multi-env emphasis -->
+    <rect x="40" y="250" width="620" height="20" rx="4" fill="#fef9e6" stroke="#d2a32a" stroke-dasharray="3,2"/>
+    <text x="350" y="265" text-anchor="middle" font-size="11" fill="#3a3b40" font-style="italic">每个 batch 中 32 个 task,每个 task 配独立的 (𝒟ᴺ(m), ℱ(m)) — 千级环境只在 batch 一级混合</text>
+
+    <defs>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Multi-environment rollout 数据流。三角形 (policy, tool runtime, database) 闭环;reward 由 sandbox 执行 verifier 或 rubric LLM-judge 给出。Per-task 独立挂载环境是避免 tool name 冲突 / state 串台的关键工程点。</figcaption>
+</div>
+
+<h3>5.2 Reward 设计</h3>
+<p>两种类型的 task 各有 reward:</p>
+
+<div class="formula">
+  r(x, y) = { 𝟙[ (1/n)Σⱼ Judge(x, y, rⱼ) == 1 ],&nbsp;&nbsp;if x ∈ 𝒳_graph<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;𝟙[ Execute(V_code(y, y*)) ],&nbsp;&nbsp;if x ∈ 𝒳_prog }
+</div>
+
+<p>注意是<strong>indicator 函数</strong>(0/1),不是连续 reward。这意味着 GRPO 内的 group advantage 来自"成功 vs 失败的 8 条 trajectory 比对",而非 partial credit。这种二值化 reward 在 long-horizon 下抗 reward hacking 但 explore 难度大,论文通过"必须 5 次 ReAct ≥2 次成功"的 task 筛选保证可解性,从而绕过这一问题。</p>
+
+<h3>5.3 为什么不混进 catastrophic interference</h3>
+<p>读者可能担心: 1,978 个环境同 batch,tool 名一样但语义不同(每个环境有自己的 <code>list_files</code>),agent 会不会学不会?</p>
+<p>论文的处理:<strong>每个 task 在 prompt 里完整展开自己环境的 tool schema</strong>(包括签名、描述),agent 看到的总是"<em>当前任务 + 当前 ℱ(m)</em>"。所以模型实际学的是"<em>conditional on tool schema 给出的 spec, 怎么 plan</em>"这个元能力,不是某具体 tool 名→行为的映射。这本质上是 in-context 工具描述当 grounding。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Self-Evolving Agent Arena</h2>
+
+<h3>6.1 算法概览</h3>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- Center: current policy -->
+    <circle cx="360" cy="180" r="55" fill="#cce5ff" stroke="#2f6feb" stroke-width="2"/>
+    <text x="360" y="175" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6feb">πθ⁽ʳ⁾</text>
+    <text x="360" y="193" text-anchor="middle" font-size="10" fill="#3a3b40">current agent</text>
+
+    <!-- Phase 1: Eval -->
+    <rect x="540" y="30" width="160" height="80" rx="10" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="620" y="52" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">① Eval on arena</text>
+    <text x="620" y="70" text-anchor="middle" font-size="11" fill="#3a3b40">每 L1 类 K=5 envs</text>
+    <text x="620" y="86" text-anchor="middle" font-size="11" fill="#3a3b40">合成<em>新</em> task 𝒳_arena⁽ʳ⁾</text>
+    <text x="620" y="102" text-anchor="middle" font-size="11" fill="#3a3b40">用 V_code / rubric 打分</text>
+
+    <!-- Phase 2: Diagnose -->
+    <rect x="540" y="240" width="160" height="80" rx="10" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="620" y="262" text-anchor="middle" font-size="13" font-weight="600" fill="#a8353e">② Diagnose</text>
+    <text x="620" y="280" text-anchor="middle" font-size="11" fill="#3a3b40">diagnosis agent δ 看:</text>
+    <text x="620" y="295" text-anchor="middle" font-size="10" fill="#3a3b40">failure trace + 错误分布</text>
+    <text x="620" y="310" text-anchor="middle" font-size="10" fill="#3a3b40">→ 弱环境 𝒲⁽ʳ⁾, 指南 𝒢⁽ʳ⁾</text>
+
+    <!-- Phase 3: Targeted synth -->
+    <rect x="20" y="240" width="160" height="80" rx="10" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="100" y="262" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">③ Targeted synth</text>
+    <text x="100" y="280" text-anchor="middle" font-size="11" fill="#3a3b40">在 𝒲⁽ʳ⁾ 上 𝜙 复杂化</text>
+    <text x="100" y="295" text-anchor="middle" font-size="11" fill="#3a3b40">合成 𝒳_target⁽ʳ⁾</text>
+    <text x="100" y="310" text-anchor="middle" font-size="11" fill="#3a3b40">guideline-conditioned</text>
+
+    <!-- Phase 4: Continue RL -->
+    <rect x="20" y="30" width="160" height="80" rx="10" fill="#e8f5e9" stroke="#1f7a4a"/>
+    <text x="100" y="52" text-anchor="middle" font-size="13" font-weight="600" fill="#1f7a4a">④ Continue RL</text>
+    <text x="100" y="70" text-anchor="middle" font-size="11" fill="#3a3b40">on 𝒳_target⁽ʳ⁾</text>
+    <text x="100" y="86" text-anchor="middle" font-size="11" fill="#3a3b40">multi-env GRPO</text>
+    <text x="100" y="102" text-anchor="middle" font-size="11" fill="#3a3b40">→ πθ⁽ʳ⁺¹⁾</text>
+
+    <!-- arrows -->
+    <path d="M 410 165 Q 480 70 540 70" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#a4)"/>
+    <text x="475" y="115" text-anchor="middle" font-size="11" fill="#cc4a1b">evaluate</text>
+    <path d="M 620 110 L 620 240" stroke="#888" stroke-width="2" fill="none" marker-end="url(#a4)"/>
+    <text x="650" y="180" text-anchor="middle" font-size="11" fill="#5b5e66">failure traces</text>
+    <path d="M 540 280 Q 360 280 180 280" stroke="#a8353e" stroke-width="2" fill="none" marker-end="url(#a4)"/>
+    <text x="360" y="295" text-anchor="middle" font-size="11" fill="#a8353e">𝒲⁽ʳ⁾, 𝒢⁽ʳ⁾</text>
+    <path d="M 100 240 L 100 110" stroke="#888" stroke-width="2" fill="none" marker-end="url(#a4)"/>
+    <text x="135" y="180" text-anchor="middle" font-size="11" fill="#5b5e66">𝒳_target⁽ʳ⁾</text>
+    <path d="M 180 70 Q 270 130 320 165" stroke="#1f7a4a" stroke-width="2" fill="none" marker-end="url(#a4)"/>
+    <text x="240" y="120" text-anchor="middle" font-size="11" fill="#1f7a4a">RL update</text>
+
+    <!-- env ecosystem cloud -->
+    <ellipse cx="360" cy="345" rx="280" ry="14" fill="#f3eee0" stroke="#888" stroke-dasharray="3,2"/>
+    <text x="360" y="350" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">底层环境生态 ℰ(1,978 envs) — 既供 ① 抽样,也供 ③ 复杂化</text>
+
+    <defs>
+      <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>Self-evolving arena 闭环。<strong>关键不在 RL 算法</strong>,在<em>每轮新合成 evaluation task</em>(防过拟合)+ <em>diagnosis agent 自动定位弱环境</em>(数据扩张方向不再靠人猜)+ <em>targeted task synthesis</em>(数据放大该方向)。</figcaption>
+</div>
+
+<h3>6.2 Capability gap 信号是什么</h3>
+
+<p>这是这一节最关键的问题:diagnosis agent δ 到底吃什么、吐什么?</p>
+<p>论文设定 δ 配 Python 解释器 + search tool,输入是:</p>
+<ol>
+  <li><strong>per-task failure traces</strong>: tool 调用日志、中间观察、validator 反馈("第 5 步 schema 不匹配"、"final answer 缺 affected_rows 字段")</li>
+  <li><strong>error 分布统计</strong>: 按 environment、按 taxonomy 类(L1/L2)聚合 fail rate</li>
+  <li><strong>environment metadata</strong>: tool schema、database 描述</li>
+</ol>
+<p>输出:</p>
+<ul>
+  <li><strong>弱环境 ranked list</strong> 𝒲⁽ʳ⁾ ⊆ ℰ_arena</li>
+  <li><strong>每个弱环境的 task-generation guideline</strong> 𝒢⁽ʳ⁾(m) — 类似"该环境多生成长 horizon、强 state-update 的题",或"erroneous tool-use 多发生在多步联合查询上,合成时多加这种 pattern"</li>
+</ul>
+<p>所以 capability gap signal 是<strong>分类树 × failure pattern</strong>的二元组,不是单纯一个数值。这一点比"reward 低就多训"细致 — 它告诉数据合成器<em>具体在哪种环境上生成什么 pattern 的题</em>。</p>
+
+<h3>6.3 实测: 两轮 self-evolve 的收益</h3>
+<table>
+  <tr><th>Model</th><th>τ²-Bench</th><th>BFCL-V4</th><th>MCP-Mark (Post.)</th></tr>
+  <tr><td>Agent-World-14B (base)</td><td>60.2</td><td>52.4</td><td>29.5</td></tr>
+  <tr><td>+1 round</td><td>63.5 (+3.3)</td><td>54.9 (+2.5)</td><td>36.3 <span class="ok">(+6.8)</span></td></tr>
+  <tr><td>+2 rounds</td><td>65.4 (+1.9)</td><td>55.8 (+0.9)</td><td>38.1 (+1.8)</td></tr>
+  <tr><td>EnvScaler-8B (base)</td><td>37.9</td><td>47.6</td><td>9.5</td></tr>
+  <tr><td>+1 round</td><td>40.2</td><td>49.1</td><td>13.9 <span class="ok">(+4.4)</span></td></tr>
+  <tr><td>+2 rounds</td><td>41.6</td><td>50.0</td><td>15.1</td></tr>
+</table>
+<p>两个观察: <strong>(a) 在别人的 base model 上也能涨</strong>(EnvScaler-8B 共涨 +5.6 on MCP-Mark) — 说明 self-evolve 不依赖 Agent-World 自家初始化,是<em>模型无关的训练范式</em>; <strong>(b) MCP-Mark 收益最大</strong> — 它对 stateful + 长 horizon 的要求最高,正是 diagnosis 最擅长定位的弱点。</p>
+
+<hr>
+
+<h2 id="sec7">7 · Worked Example: 一条 Memory Bank MCP 上 15-turn 的轨迹</h2>
+
+<p>论文 Appendix B/C 有完整的 environment card + trajectory,这里抽出一个具体的来还原。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 480" width="100%" style="max-width:700px">
+    <!-- header -->
+    <rect x="20" y="10" width="680" height="40" rx="8" fill="#cce5ff" stroke="#2f6feb"/>
+    <text x="360" y="30" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Environment: Memory Bank MCP &nbsp;|&nbsp; Task: "Switch audit trail to event-driven ingestion, log decision in active context"</text>
+    <text x="360" y="44" text-anchor="middle" font-size="11" fill="#5b5e66">files: mcp-config.json, .clinerules-code, progress-log.json, README.md, active-context.md, progress.md</text>
+
+    <!-- turns -->
+    <g font-size="11" font-family="SF Mono,monospace">
+      <!-- turn 1 -->
+      <rect x="40" y="60" width="640" height="22" rx="3" fill="#fff" stroke="#888"/>
+      <text x="50" y="76">T1</text>
+      <text x="80" y="76" fill="#cc4a1b">action:</text>
+      <text x="140" y="76">read_memory_bank_file({filename:"product-context.md"})</text>
+      <!-- turn 2 -->
+      <rect x="40" y="85" width="640" height="22" rx="3" fill="#f3eee0"/>
+      <text x="50" y="101">T2</text>
+      <text x="80" y="101" fill="#1f7a4a">obs:</text>
+      <text x="140" y="101">{ "ok": true, "content": "Audit trail uses batch ingestion every 6h..." }</text>
+      <!-- turn 3 -->
+      <rect x="40" y="110" width="640" height="22" rx="3" fill="#fff" stroke="#888"/>
+      <text x="50" y="126">T3</text>
+      <text x="80" y="126" fill="#cc4a1b">action:</text>
+      <text x="140" y="126">read_memory_bank_file({filename:"active-context.md"})</text>
+      <!-- turn 4 -->
+      <rect x="40" y="135" width="640" height="22" rx="3" fill="#f3eee0"/>
+      <text x="50" y="151">T4</text>
+      <text x="80" y="151" fill="#1f7a4a">obs:</text>
+      <text x="140" y="151">{ "ok": true, "content": "Active topic: data pipeline review", "decisions":[] }</text>
+      <!-- turn 5 -->
+      <rect x="40" y="160" width="640" height="22" rx="3" fill="#fff" stroke="#888"/>
+      <text x="50" y="176">T5</text>
+      <text x="80" y="176" fill="#cc4a1b">action:</text>
+      <text x="140" y="176">track_progress({action:"propose", description:"switch to event-driven", upd...:false})</text>
+      <!-- turn 6 -->
+      <rect x="40" y="185" width="640" height="22" rx="3" fill="#f3eee0"/>
+      <text x="50" y="201">T6</text>
+      <text x="80" y="201" fill="#1f7a4a">obs:</text>
+      <text x="140" y="201">{ "ok": true, "log_id": 42, "alternatives_count": 2 }</text>
+      <!-- turn 7 -->
+      <rect x="40" y="210" width="640" height="22" rx="3" fill="#fff" stroke="#888"/>
+      <text x="50" y="226">T7</text>
+      <text x="80" y="226" fill="#cc4a1b">action:</text>
+      <text x="140" y="226">list_alternatives({log_id: 42})</text>
+      <!-- turn 8 -->
+      <rect x="40" y="235" width="640" height="22" rx="3" fill="#f3eee0"/>
+      <text x="50" y="251">T8</text>
+      <text x="80" y="251" fill="#1f7a4a">obs:</text>
+      <text x="140" y="251">[{"id":"A1","kind":"streaming"},{"id":"A2","kind":"micro-batch"}]</text>
+      <!-- turn 9 -->
+      <rect x="40" y="260" width="640" height="22" rx="3" fill="#fff" stroke="#888"/>
+      <text x="50" y="276">T9</text>
+      <text x="80" y="276" fill="#cc4a1b">action:</text>
+      <text x="140" y="276">eval_consequences({alt:"A1"}) → {cost:"med", rollback:"hard"}</text>
+      <!-- turn 10 -->
+      <rect x="40" y="285" width="640" height="22" rx="3" fill="#f3eee0"/>
+      <text x="50" y="301">T10</text>
+      <text x="80" y="301" fill="#cc4a1b">action:</text>
+      <text x="140" y="301">eval_consequences({alt:"A2"}) → {cost:"low", rollback:"easy"}</text>
+      <!-- turn 11 -->
+      <rect x="40" y="310" width="640" height="22" rx="3" fill="#fff" stroke="#888"/>
+      <text x="50" y="326">T11</text>
+      <text x="80" y="326" fill="#cc4a1b">action:</text>
+      <text x="140" y="326">track_progress({action:"decide", description:"choose A2", upd...:true})</text>
+      <!-- turn 12 -->
+      <rect x="40" y="335" width="640" height="22" rx="3" fill="#f3eee0"/>
+      <text x="50" y="351">T12</text>
+      <text x="80" y="351" fill="#1f7a4a">obs:</text>
+      <text x="140" y="351">{ "ok": true, "ready_to_log": true }</text>
+      <!-- turn 13 -->
+      <rect x="40" y="360" width="640" height="22" rx="3" fill="#fff" stroke="#888"/>
+      <text x="50" y="376">T13</text>
+      <text x="80" y="376" fill="#cc4a1b">action:</text>
+      <text x="140" y="376">write_memory_bank_file({filename:"active-context.md", content:"...A2..."})</text>
+      <!-- turn 14 -->
+      <rect x="40" y="385" width="640" height="22" rx="3" fill="#f3eee0"/>
+      <text x="50" y="401">T14</text>
+      <text x="80" y="401" fill="#1f7a4a">obs:</text>
+      <text x="140" y="401">{ "ok": true, "bytes_written": 1142 }</text>
+      <!-- turn 15 -->
+      <rect x="40" y="410" width="640" height="22" rx="3" fill="#cce5ff" stroke="#2f6feb"/>
+      <text x="50" y="426">T15</text>
+      <text x="80" y="426" fill="#2f6feb">final:</text>
+      <text x="140" y="426">{"alternatives_count":2, "ready_to_log":true, "consequences_count":2}</text>
+    </g>
+    <!-- verifier check -->
+    <rect x="40" y="445" width="640" height="28" rx="6" fill="#e8f5e9" stroke="#1f7a4a"/>
+    <text x="360" y="464" text-anchor="middle" font-size="11" fill="#1f7a4a" font-weight="600">V_code(answer): exact key set ✓ &nbsp; alternatives_count==2 ✓ &nbsp; ready_to_log==true ✓ &nbsp; consequences_count==2 ✓ → reward = 1</text>
+  </svg>
+  <figcaption>Memory Bank MCP 环境上一条真实 trajectory(从论文 Appendix 还原)。15 轮交互,典型的 stateful flow: 先<em>读</em> 现状 → 提议变更 → 列出备选 → <em>评估</em>每个备选(state 在变)→ 决策 → 把决策<em>写回</em> active-context.md → 输出 final answer。Verifier 是 pure-Python 脚本,不依赖 LLM judge。</figcaption>
+</div>
+
+<p>这条轨迹有几个特征值得记住:</p>
+<ul>
+  <li><strong>真实 stateful</strong>: T11 的 <code>action:decide</code> 改了状态,T13 又把它持久化到 markdown 文件,T15 的 final answer 字段必须与 sandbox 中实际持久化结果一致。</li>
+  <li><strong>多种 file 类型</strong>: json (mcp-config) + markdown (active-context) + 自定义 progress-log。这就是论文 Figure 4 里强调"file type diversity"的实操体现。</li>
+  <li><strong>"读-推-写"模式</strong>: 真实 agent 任务的骨架往往是这种 read-then-modify。Stateless single-tool benchmark(如老 BFCL)拿不出这种结构。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 Headline 数字 (Table 1 摘录)</h3>
+<table>
+  <tr><th>Model</th><th>MCP-Mark Avg</th><th>BFCL V4 Avg</th><th>τ²-Bench Avg</th></tr>
+  <tr><td>GPT-5.2 High</td><td>53.1</td><td>62.9</td><td>80.2</td></tr>
+  <tr><td>Claude Sonnet-4.5</td><td>33.3</td><td>73.2</td><td>84.7</td></tr>
+  <tr><td>Gemini-3 Pro</td><td>50.8</td><td>72.5</td><td>85.4</td></tr>
+  <tr><td>DeepSeek-V3.2-685B</td><td>36.7</td><td>54.1</td><td>80.3</td></tr>
+  <tr><td>Qwen3-235B-A22B</td><td>5.8</td><td>47.9</td><td>58.5</td></tr>
+  <tr><td>Qwen3-8B (base)</td><td>2.4</td><td>40.4</td><td>26.2</td></tr>
+  <tr><td>Qwen3-14B (base)</td><td>3.4</td><td>41.0</td><td>32.4</td></tr>
+  <tr><td>EnvScaler-8B</td><td>5.6</td><td>47.6</td><td>37.9</td></tr>
+  <tr><td>AWM-14B</td><td>5.1</td><td>42.4</td><td>39.0</td></tr>
+  <tr><td><strong>Agent-World-8B</strong></td><td><strong>8.9</strong></td><td><strong>51.4</strong></td><td><strong>61.8</strong></td></tr>
+  <tr><td><strong>Agent-World-14B</strong></td><td><strong>13.3</strong></td><td><strong>55.8</strong></td><td><strong>65.4</strong></td></tr>
+</table>
+
+<h3>8.2 怎么读这些数字</h3>
+<ul>
+  <li><strong>τ²-Bench 上 Agent-World-14B (65.4) ≈ Qwen3-235B-A22B (58.5) + 全部 environment-scaling baseline 之和</strong> — 14B 模型 + 这套环境训出来,直接打过 235B 大杂烩,说明<em>环境多样性 &gt; 参数量</em>在 stateful tool use 上更划算。</li>
+  <li><strong>但和顶级 proprietary 还有距离</strong>: Claude Sonnet-4.5 / Gemini-3 Pro 在 τ² 上 84+,Agent-World-14B 65 — gap 还在 ~20 点。论文不掩饰这点。</li>
+  <li><strong>BFCL-V4 上 Agent-World-14B (55.8) 超 DeepSeek-V3.2-685B (54.1)</strong> — 真实 RL 信号比纯 SFT 大模型在 tool-call 协议上的优势。</li>
+  <li><strong>MCP-Mark 上即使 Agent-World-14B 也只 13.3</strong> — 这个 benchmark 是真硬,所有模型都在挣扎。说明环境多样性提升了,但<em>单条任务的 long-horizon 推理上限</em>还要靠 backbone 升级或更强 RL。</li>
+</ul>
+
+<h3>8.3 Environment scaling curve</h3>
+<table>
+  <tr><th># Envs</th><th>0</th><th>10</th><th>100</th><th>500</th><th>1,000</th><th>2,000</th></tr>
+  <tr><td>4-domain Avg</td><td>18.4</td><td>22.1</td><td>30.5</td><td>34.7</td><td>36.9</td><td><strong>38.5</strong></td></tr>
+</table>
+<p>两个突变点: <strong>10 → 100</strong> 涨 8.4 点; <strong>100 → 500</strong> 涨 4.2 点;500 之后边际递减。这暗示了"环境数量"的 scaling law 形状: log-linear 段 + 高原段。</p>
+
+<div class="nb">
+  <strong>个人解读:</strong>这是论文最有引用价值的图。它把"环境数量"建立成一个 scalable axis,类似预训练的"token 数"轴。下一个问题就变成:<em>边际收益的渐近曲线在哪里平?2K? 20K? 200K?</em> 论文没回答 — 而这是判断"环境是不是真的下一个 scaling axis"的关键。
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>环境来源</th><th>规模</th><th>有 self-evolve 闭环?</th><th>是否真实可执行</th></tr>
+  <tr><td>τ²-Bench / ClawEval</td><td>人工沙箱</td><td>~10</td><td><span class="no">无</span></td><td>是 (eval only)</td></tr>
+  <tr><td>AgentBench</td><td>人工 + 抓取</td><td>~10</td><td><span class="no">无</span></td><td>是 (eval only)</td></tr>
+  <tr><td>GAIA</td><td>真实 web 任务</td><td>~500 task</td><td><span class="no">无</span></td><td>是 (eval only)</td></tr>
+  <tr><td>OS-World</td><td>真实 OS</td><td>~1 OS</td><td><span class="no">无</span></td><td>真,但非 scalable</td></tr>
+  <tr><td>Simulator-8B (Microsoft)</td><td>LLM 隐式 simulator</td><td>无穷</td><td><span class="no">无</span></td><td><span class="no">幻觉风险</span></td></tr>
+  <tr><td>EnvScaler / AWM</td><td>程序化 sandbox</td><td>~100s</td><td><span class="no">无</span></td><td>是,但合成数据</td></tr>
+  <tr><td>AutoForge / ScaleEnv</td><td>程序化</td><td>~1K</td><td><span class="no">无</span></td><td>是</td></tr>
+  <tr><td>ARE (Meta)</td><td>异步真实环境</td><td>~few</td><td><span class="no">无</span></td><td>是,异步</td></tr>
+  <tr><td>Agent World Model 2602.10090</td><td>世界模型(RL 用 model-rollouts)</td><td>1 model</td><td>部分(planning)</td><td><span class="no">simulator,无真实 db</span></td></tr>
+  <tr><td>MCP-Atlas / MCP-Mark</td><td>真实 MCP server</td><td>数十</td><td><span class="no">无 (eval only)</span></td><td>是</td></tr>
+  <tr><td><strong>Agent-World</strong></td><td>真实 MCP + agent mining</td><td><strong>1,978</strong></td><td><span class="ok">两阶段闭环</span></td><td><span class="ok">是,可执行 + 可验证</span></td></tr>
+</table>
+
+<div class="nb">
+  Agent-World 与 <strong>EnvScaler / AWM / AutoForge</strong> 在"程序化大规模合成环境"上同属一支血脉,差异是: ① 用真实 MCP 元数据而非 LLM 凭空想 topic; ② 用 deep-research agent 抓真实 web 数据建库; ③ 加了 self-evolving arena 闭环。<br>
+  与 <strong>ARE (Meta)</strong> 的差异: ARE 强调"异步时间动态" 与真实世界的对齐,scale 较小; Agent-World 强调环境数量级。<br>
+  与 <strong>Agent World Model</strong> (2602.10090) 的差异:那篇训一个 LLM 当世界模型用于 model-based RL planning;这篇是 model-free RL,环境是真的 sandbox,不是 imagined。
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>承认的 + 没明说的局限</h3>
+<ul>
+  <li><strong>1,978 个环境的 long-tail 质量参差</strong>: 论文承认 cross-validation 用 Acc &gt; 0.5 作阈值,但没汇报 tool 实际错误分布。如果 long-tail 环境里 tool 真实错率高,RL 在那部分本质是 noisy reward。</li>
+  <li><strong>Verifier 自己也是 LLM 写的</strong>: graph-based 用 rubric LLM-judge,programmatic 的 V_code 也是 LLM 生成 + ReAct 修。所以"verifiable" 的可信度上界 = LLM 判分能力。</li>
+  <li><strong>MCP-Mark 仍只 13.3</strong>: 论文最关键的 benchmark 上,即便最大模型加 self-evolve 也仅勉强超 GPT-OSS-120B(4.7),距离前沿仍远。</li>
+  <li><strong>Self-evolve 收益快速递减</strong>: round 1 涨幅 +6.8,round 2 仅 +1.8。这条路不一定能滚很多轮。</li>
+  <li><strong>Cold-start 用了 40K SFT trajectories</strong>(in-house Doubao-Seed-1.8 蒸馏),不是 from scratch 的 RL。</li>
+  <li><strong>没汇报训练成本</strong>: 1,978 环境 + sandbox 并发 + 32 task × 8 rollout / step + max 80K traj — 实际 GPU 时间和成本不知道。</li>
+</ul>
+
+<h3>我的疑问 (落地后想验证)</h3>
+<ol>
+  <li>"环境数量"这条 scaling 轴的渐近曲线在 2K 已开始放缓,把 ℰ 扩到 20K 还能涨吗?如果不行,这就是<em>有限</em>的 scaling axis,而非新的 scaling law。</li>
+  <li>Diagnosis agent δ 输出的 𝒲⁽ʳ⁾ 和 𝒢⁽ʳ⁾ 用什么 prompt 写的?换 base model 做 δ 是否得到一致诊断?如果 δ 自己幻觉,整个 self-evolve 就是噪声放大器。</li>
+  <li>Per-task 把环境 tool schema 全展开进 prompt,在 80K context 限制下 1,978 环境的 schema 平均要占多少 token?是否在某些环境下 prompt 已经吃掉一大半 budget?</li>
+  <li>论文 reward 用 indicator 0/1,group 大小 G=8 — 在难任务上很多 group 全 0,GRPO advantage 退化;论文是怎么处理"全失败 group"的?(可能是提前过滤,但没说清)</li>
+  <li>把 GRPO 换成 DAPO/ReSPO 这类更新 RL 算法,能不能再涨?或者这个范式对 RL 算法已经接近 ceiling,瓶颈在环境本身?</li>
+  <li>论文用 LLM-judge 做 graph-based reward 但没做 reward hacking 评估;agent 学会 "format 完美但语义错误" 来骗 judge 的情况是否被监测过?</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> 环境是 agent post-training 的"预训练数据",数量级和多样性是新瓶颈<br>
+  <span class="pill">规模</span> 1,978 envs · 19,822 tools · 平均 &gt;20 turns · 23 benchmarks<br>
+  <span class="pill">两件事</span> ① Agentic env-task discovery ② Self-evolving arena 闭环<br>
+  <span class="pill">不可能三角</span> 真实性 × 可验证性 × scalability — 此前方案各自只有 2 条<br>
+  <span class="pill">关键 trick</span> tool 用<em>单元测试</em>过滤 + task 用<em>5 次 ReAct ≥ 2 次</em>过滤 + arena 每轮新合成防过拟合<br>
+  <span class="pill">scaling</span> # envs 0→2K 时 4-domain avg 18.4→38.5,边际递减<br>
+  <span class="pill">距离</span> Agent-World-14B 在 τ² 还落后 Sonnet-4.5 ~20 点;MCP-Mark 上仍仅 13.3<br>
+  <span class="pill">未答</span> 环境数量级真正的渐近上限 / diagnosis agent 自身的可靠性
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF 在 <code>/data/szhang967/papers/paper-notes/agents/AgentWorld_2604.18292.pdf</code>
+</p>
+
+</main>
+</body>
+</html>
