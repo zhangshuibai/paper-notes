@@ -6,12 +6,14 @@
 
 | # | 笔记 | 主题 | 大小 |
 |---|---|---|---|
-| 01 | [INTELLECT-1](https://zhangshuibai.github.io/paper-notes/notes/01_INTELLECT1_2412.01152.html) | 跨地理 GPU 的去中心化训练 / DiLoCo / int8 ring all-reduce | 54 KB |
+| 01 | [INTELLECT-1](https://zhangshuibai.github.io/paper-notes/notes/01_INTELLECT1_2412.01152.html) | 跨地理 GPU 的去中心化预训练 / DiLoCo / int8 ring all-reduce | 54 KB |
 | 02 | [MiniMax-01](https://zhangshuibai.github.io/paper-notes/notes/02_MiniMax01_2501.08313.html) | Lightning Attention + 32-expert MoE / 1M context | 45 KB |
 | 03 | [MiniMax-M1](https://zhangshuibai.github.io/paper-notes/notes/03_MiniMaxM1_2506.13585.html) | Hybrid lightning + softmax / CISPO / open-source reasoning frontier | 47 KB |
 | 04 | [MiMo-V2-Flash](https://zhangshuibai.github.io/paper-notes/notes/04_MiMo-V2-Flash_2601.02780.html) | 5:1 SWA-global / sink bias / 256 fine-grained experts / MTP | 62 KB |
 | 05 | [MARS](https://zhangshuibai.github.io/paper-notes/notes/05_MARS_2601.15498.html) | Margin-aware speculative verification (logit-ratio) | 41 KB |
 | 06 | [Kimi K2.5](https://zhangshuibai.github.io/paper-notes/notes/06_KimiK2.5_2602.02276.html) | 多模态 agentic / Agent Swarm / PARL | 53 KB |
+| 07 | [INTELLECT-2](https://zhangshuibai.github.io/paper-notes/notes/07_INTELLECT2_2505.07291.html) | 全球去中心化 RL / PRIME-RL / TOPLOC / SHARDCAST | 59 KB |
+| 08 | [INTELLECT-3](https://zhangshuibai.github.io/paper-notes/notes/08_INTELLECT3_2512.16144.html) | 106B MoE agentic RL / prime-rl 三件套 / IcePop | 57 KB |
 
 ## 论文清单
 
@@ -19,10 +21,17 @@
 |---|---|---|---|
 | INTELLECT-1 | Prime Intellect | 2024-12 | [2412.01152](https://arxiv.org/abs/2412.01152) |
 | MiniMax-01 | MiniMax | 2025-01 | [2501.08313](https://arxiv.org/abs/2501.08313) |
+| INTELLECT-2 | Prime Intellect | 2025-05 | [2505.07291](https://arxiv.org/abs/2505.07291) |
 | MiniMax-M1 | MiniMax | 2025-06 | [2506.13585](https://arxiv.org/abs/2506.13585) |
+| INTELLECT-3 | Prime Intellect | 2025-12 | [2512.16144](https://arxiv.org/abs/2512.16144) |
 | MiMo-V2-Flash | Xiaomi LLM-Core | 2026-01 | [2601.02780](https://arxiv.org/abs/2601.02780) |
 | MARS | gradient + 港大 + McGill 等 | 2026-01 | [2601.15498](https://arxiv.org/abs/2601.15498) |
 | Kimi K2.5 | Kimi Team | 2026-02 | [2602.02276](https://arxiv.org/abs/2602.02276) |
+
+### INTELLECT 系列阅读建议
+
+I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC + SHARDCAST) → I-3 (**agentic RL** on top of GLM-4.5-Air-Base / 务实转向)。
+三代叙事曲线: 从证明跨地理预训练可行,到证明跨地理 RL 可信,到放弃 from-scratch 而转向 agentic 实用。
 
 ## 相关仓库
 
@@ -46,8 +55,12 @@
 │   ├── 03_MiniMaxM1_2506.13585.html
 │   ├── 04_MiMo-V2-Flash_2601.02780.html
 │   ├── 05_MARS_2601.15498.html
-│   └── 06_KimiK2.5_2602.02276.html
+│   ├── 06_KimiK2.5_2602.02276.html
+│   ├── 07_INTELLECT2_2505.07291.html
+│   └── 08_INTELLECT3_2512.16144.html
 ├── INTELLECT1_2412.01152.pdf
+├── INTELLECT2_2505.07291.pdf
+├── INTELLECT3_2512.16144.pdf
 ├── KimiK2.5_2602.02276.pdf
 ├── MARS_2601.15498.pdf
 ├── MiMo-V2-Flash_2601.02780.pdf

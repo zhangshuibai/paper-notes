@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · INTELLECT-3 (2512.16144)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>INTELLECT-3: 在强 base 上做大规模 agentic RL</h1>
+<div class="meta">
+  Prime Intellect Team · 2025-12-18 · arXiv:2512.16144 · 106B MoE / 12B active · 512×H200<br>
+  关键词: prime-rl · agentic RL · multi-turn tool use · MoE · GLM-4.5-Air-Base · verifiers · Environments Hub
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>在 GLM-4.5-Air-Base 上 SFT + 大规模 async RL,用自家 prime-rl + verifiers + Prime Sandboxes 训出一个在 math/code/science/reasoning/agentic 上压住 GLM-4.5-Air、追平 3× 大的 GLM-4.5、对 6× 大的 DeepSeek-R1 部分超越的 106B MoE 模型,并把整套 stack 全部开源。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">106B / 12B</div><div class="l">total / active 参数</div></div>
+    <div class="stat"><div class="n">512 H200</div><div class="l">峰值 GPU,16 train + 44 infer</div></div>
+    <div class="stat"><div class="n">90.8 / 88.0</div><div class="l">AIME24 / AIME25 (avg@32)</div></div>
+  </div>
+  <p><strong>立场:</strong>Prime Intellect 系列从"分布式 pretrain"(I-1)→"分布式 RL on small model"(I-2)→"中心化大集群 agentic RL on strong base"(I-3),决定性放弃了"全栈分布式"叙事,转而把全部工程投入押在 RL 后训练 + Environments Hub 生态。这是务实而清晰的转向。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么是 agentic RL × strong base × 106B</a></li>
+    <li><a href="#sec2">背景速查 (术语 / 上游)</a></li>
+    <li><a href="#sec3">系列演化:I-1 → I-2 → I-3</a></li>
+    <li><a href="#sec4">prime-rl 架构: 三件套 + async off-policy</a></li>
+    <li><a href="#sec5">Continuous batching + in-flight weight updates</a></li>
+    <li><a href="#sec6">Verifiers + Environments Hub: 把环境当包来管</a></li>
+    <li><a href="#sec7">Prime Sandboxes: 千并发代码执行</a></li>
+    <li><a href="#sec8">MoE × 长序列 × Muon 的工程取舍</a></li>
+    <li><a href="#sec9">RL 算法: masked token-level IS (IcePop)</a></li>
+    <li><a href="#sec10">训练配方与一个具体 agentic episode 走查</a></li>
+    <li><a href="#sec11">实验关键结果</a></li>
+    <li><a href="#sec12">与同类工作对比</a></li>
+    <li><a href="#sec13">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec14">记忆点</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么是 agentic RL × strong base × 106B</h2>
+
+<p>I-3 看上去只是"又一个 RL post-training paper",但放在 Prime Intellect 自家系列里看,它每个选择都意味深长。这一节拆三个维度。</p>
+
+<h3>1.1 历史脉络:RL 后训练的爆点已经从 reasoning 漂移到 agentic</h3>
+
+<p>2024 末到 2025 上半年,开源 RL 后训练的"剧本"是:在一个 dense base 上跑 GRPO/DAPO,优化数学推理 chain-of-thought。<span class="term">DeepSeek-R1</span>、<span class="term">Qwen3-Thinking</span>、INTELLECT-2 都属于这一波。这一波的特征是:</p>
+
+<ul>
+  <li>单 turn,prompt → long CoT → final answer</li>
+  <li>verifier 是规则(math-verify、test cases pass/fail)</li>
+  <li>rollout 长度 8k–32k token,但拓扑简单</li>
+</ul>
+
+<p>到 2025 下半年,前沿模型(<span class="term">o3</span>、<span class="term">Grok 4</span>、<span class="term">GLM-4.5</span>、<span class="term">Kimi K2.5</span>)已经把竞争点漂到了<strong>agentic + tool-use + 长 horizon</strong>:模型一次任务里要 search → click → 读网页 → 写代码 → 跑 sandbox → 看 stderr → 改代码 → 提交。开源框架(verl、OpenRLHF、TRL、NeMo-RL)对这种 multi-turn rollout 的支持往往是<em>外挂</em>而不是 first-class。</p>
+
+<p>I-3 的论证非常直白:"从 SFT 到大规模 RL,我们整条 stack 都是为这个新爆点设计的"——prime-rl 的 orchestrator、verifiers 的环境 hub、Prime Sandboxes 的 4000+ 并发执行,全是为了 agentic episode 服务。</p>
+
+<h3>1.2 别的方案为什么不够</h3>
+
+<table>
+  <tr><th>路径</th><th>典型代表</th><th>对 agentic RL 的痛点</th></tr>
+  <tr><td>"魔改 verl 加 tool"</td><td>verl + 自定义 rollout</td><td><span class="no">环境与 trainer 强耦合,版本治理混乱</span></td></tr>
+  <tr><td>"在 chat 框架上加 RL hook"</td><td>TRL / OpenRLHF agentic patch</td><td><span class="no">缺 in-flight weight update,长 rollout 时吞吐塌方</span></td></tr>
+  <tr><td>"自己造一个 monolith"</td><td>多家闭源 lab</td><td><span class="no">不开源,社区无法复用环境</span></td></tr>
+  <tr><td>"在 base 上 from-scratch RL"</td><td>R1-Zero / 早期 INTELLECT-2</td><td><span class="no">SFT prior 缺失时 tool 协议都学不稳</span></td></tr>
+  <tr><td>"全分布式 across internet"</td><td>INTELLECT-1 (pretrain), I-2 (RL)</td><td><span class="no">集群 fabric 不够 → AllReduce tail latency 爆;agentic 还要 sandbox 调度,push 不动</span></td></tr>
+  <tr><td><strong>I-3: 中心化 60 节点 + first-class agentic + Hub</strong></td><td>—</td><td><span class="ok">把"分布式"野心收回到工程现实里</span></td></tr>
+</table>
+
+<h3>1.3 为什么这事不平凡</h3>
+
+<p>读 I-3 容易觉得"啊不就是 SFT + GRPO 嘛,怎么没新算法?"——但<strong>把 Prime Intellect 系列看成一条曲线</strong>,I-3 的非平凡性来自三个看似背离 I-1/I-2 叙事的取舍:</p>
+
+<ul>
+  <li><strong>放弃 from-scratch 预训练。</strong>I-1 的招牌是"我们能去中心化预训一个 10B 模型"。I-3 直接从 GLM-4.5-Air-Base 起步,不再"自己造轮子"。这等于公开承认:在开源世界里,"造一个有竞争力的 base"不是 Prime Intellect 的比较优势——挑一个好 base,把 RL 做到极致才是。</li>
+  <li><strong>放弃跨地理分布式 RL。</strong>I-2 的卖点是 "decentralized RL across the internet"。I-3 把 60 个节点(512 H200)塞在一个 InfiniBand fabric 里,160 GB/s AllReduce、Slurm + cgroup v2、Lustre + NVMe NFS——一个标准的 frontier lab 集群。<em>Decentralized 这个词在 I-3 全文几乎不出现。</em></li>
+  <li><strong>把 Environment 当一等公民管理。</strong>verifiers 库 + Environments Hub 把"环境"做成 PyPI-like 的可版本化、可分发模块。这是工程上最有 lasting impact 的事。</li>
+</ul>
+
+<p>所以 I-3 真正的"非平凡"不在某个 ML trick 上,而在一组 <em>infra 优先级重排</em> 上。系统层面的硬骨头(in-flight weight update、grouped-MM MoE、context parallelism、distributed Muon、千并发 sandbox、Headless Service + nsenter 注入命令)远多于算法新意。</p>
+
+<div class="nb">
+<strong>读 I-3 的姿势:</strong>把它当作一份"在 strong base 上做 agentic RL 的 cookbook + 集群运维报告",而不是一篇算法论文。算法部分基本就是 IcePop (token-level masked IS),它本身只是 GRPO 家族的一个稳定性补丁。</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">GLM-4.5-Air-Base</span></td><td>Z.ai 出的 106B 总参 / 12B 激活的 MoE base 模型,46 层 decoder, hidden 4096, MoE dim 1408,使用 Muon 预训练</td></tr>
+  <tr><td><span class="term">prime-rl</span></td><td>Prime Intellect 自研 async RL 框架,FSDP2 trainer + vLLM inference + CPU orchestrator 三件套</td></tr>
+  <tr><td><span class="term">verifiers</span></td><td>Python 库,把 RL 环境抽成 dataset + rollout method + Rubric (reward funcs) + load_environment 四件套,可 pip install</td></tr>
+  <tr><td><span class="term">Environments Hub</span></td><td>类 PyPI 的环境注册中心,500+ 环境,标识形如 <code>primeintellect/i3-code</code></td></tr>
+  <tr><td><span class="term">Prime Sandboxes</span></td><td>K8s 之上的 Rust Gateway + Headless Service + nsenter sidecar,< 10s 冷启,4000+ 并发</td></tr>
+  <tr><td><span class="term">Muon</span></td><td>matrix-level optimizer,Newton-Schulz update,需要 full gradient — 与 FSDP shard 冲突,要 all-to-all 重组</td></tr>
+  <tr><td><span class="term">IcePop</span></td><td>token-level masked importance sampling,本文 RL loss 用的就是它</td></tr>
+  <tr><td><span class="term">in-flight weight update</span></td><td>vLLM 在不重启不丢 KV 的情况下接收新 policy 权重,允许一条 trajectory 跨多个 policy 完成</td></tr>
+  <tr><td><span class="term">EnvGroup</span></td><td>verifiers 提供的"多环境合一"抽象,通过 task_id 列路由 rollout 与 scoring</td></tr>
+  <tr><td><span class="term">FSDP2</span></td><td>PyTorch 原生的 fully-sharded data-parallel,支持 TP/CP/EP 组合</td></tr>
+  <tr><td><span class="term">Context Parallelism (CP)</span></td><td>把 attention 计算切到 N_cp 张卡上,Ring Attention 思路</td></tr>
+  <tr><td><span class="term">grouped-MM MoE</span></td><td><code>torch._grouped_mm</code> kernel,在 expert 维度做批量矩阵乘,代替 EP 的 scatter/gather</td></tr>
+  <tr><td><span class="term">max_off_policy_steps</span></td><td>I-3 设为 8,跨 8 步以上的 stale rollout 直接丢弃</td></tr>
+</table>
+
+<p><strong>对读者(已熟悉 I-1/I-2)的最小补丁</strong>:把 prime-rl 想成 PipelineRL/AReal 思想 + verifiers env 接入层 + 自家 vLLM 改造;最关键的工程差异是"orchestrator 是个 CPU 进程,trainer/inference 真物理 disaggregated"。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 系列演化:I-1 → I-2 → I-3</h2>
+
+<p>这一节是给老读者看的 differential。如果只读一节,读这节。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+  <defs>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- timeline -->
+  <line x1="40" y1="240" x2="700" y2="240" stroke="#bcc3d6" stroke-width="2"/>
+  <!-- I-1 -->
+  <rect x="60" y="60" width="180" height="160" rx="10" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="150" y="84" font-size="14" font-weight="bold" text-anchor="middle" fill="#2f6feb">INTELLECT-1</text>
+  <text x="150" y="102" font-size="11" text-anchor="middle">2024-12</text>
+  <text x="150" y="124" font-size="11" text-anchor="middle">10B dense</text>
+  <text x="150" y="140" font-size="11" text-anchor="middle">decentralized</text>
+  <text x="150" y="156" font-size="11" text-anchor="middle">PRETRAIN</text>
+  <text x="150" y="178" font-size="10" text-anchor="middle" fill="#cc4a1b">招牌: 跨大陆训练</text>
+  <text x="150" y="194" font-size="10" text-anchor="middle" fill="#5b5e66">DiLoCo + low-bw</text>
+  <line x1="150" y1="220" x2="150" y2="240" stroke="#2f6feb"/>
+  <text x="150" y="262" font-size="10" text-anchor="middle">能不能去中心化 pretrain</text>
+  <!-- I-2 -->
+  <rect x="270" y="60" width="180" height="160" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+  <text x="360" y="84" font-size="14" font-weight="bold" text-anchor="middle" fill="#cc4a1b">INTELLECT-2</text>
+  <text x="360" y="102" font-size="11" text-anchor="middle">2025-05</text>
+  <text x="360" y="124" font-size="11" text-anchor="middle">32B dense (QwQ)</text>
+  <text x="360" y="140" font-size="11" text-anchor="middle">decentralized</text>
+  <text x="360" y="156" font-size="11" text-anchor="middle">REASONING RL</text>
+  <text x="360" y="178" font-size="10" text-anchor="middle" fill="#cc4a1b">招牌: 全球志愿者算力</text>
+  <text x="360" y="194" font-size="10" text-anchor="middle" fill="#5b5e66">PRIME / Shardcast</text>
+  <line x1="360" y1="220" x2="360" y2="240" stroke="#cc4a1b"/>
+  <text x="360" y="262" font-size="10" text-anchor="middle">能不能去中心化 RL</text>
+  <!-- I-3 -->
+  <rect x="480" y="40" width="200" height="180" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="580" y="64" font-size="14" font-weight="bold" text-anchor="middle" fill="#1f7a4a">INTELLECT-3</text>
+  <text x="580" y="82" font-size="11" text-anchor="middle">2025-12</text>
+  <text x="580" y="104" font-size="11" text-anchor="middle">106B MoE / 12B act</text>
+  <text x="580" y="120" font-size="11" text-anchor="middle">centralized</text>
+  <text x="580" y="136" font-size="11" text-anchor="middle">512 H200, 1 fabric</text>
+  <text x="580" y="152" font-size="11" text-anchor="middle">AGENTIC RL</text>
+  <text x="580" y="174" font-size="10" text-anchor="middle" fill="#1f7a4a">招牌: 整套 stack 开源</text>
+  <text x="580" y="190" font-size="10" text-anchor="middle" fill="#5b5e66">prime-rl + verifiers + Hub</text>
+  <line x1="580" y1="220" x2="580" y2="240" stroke="#1f7a4a"/>
+  <text x="580" y="262" font-size="10" text-anchor="middle" fill="#1f7a4a">on strong base × tool-use</text>
+  <!-- arrows -->
+  <line x1="240" y1="140" x2="270" y2="140" stroke="#5b5e66" marker-end="url(#arr3)"/>
+  <line x1="450" y1="140" x2="480" y2="140" stroke="#5b5e66" marker-end="url(#arr3)"/>
+</svg>
+<figcaption>三代叙事的转向:从"证明分布式可行"到"放弃分布式,把工程红利放在 RL 后训练的全栈开源 + agentic 一等公民"。</figcaption>
+</div>
+
+<h3>3.1 每一代解决了什么、留下了什么</h3>
+
+<table>
+<tr><th>维度</th><th>I-1</th><th>I-2</th><th>I-3</th></tr>
+<tr><td>训练阶段</td><td>pretrain from scratch</td><td>RL on QwQ-32B</td><td>SFT + RL on GLM-4.5-Air-Base</td></tr>
+<tr><td>规模</td><td>10B dense, 1T tokens</td><td>32B dense</td><td>106B MoE / 12B active</td></tr>
+<tr><td>计算拓扑</td><td>3 大陆,~12 节点</td><td>志愿者集群,异地</td><td>1 个集群,512 H200,IB fabric</td></tr>
+<tr><td>核心创新</td><td>DiLoCo + low-bandwidth all-reduce</td><td>PRIME/Shardcast/TOPLOC,异步 RL across internet</td><td>prime-rl 全栈、verifiers 环境包、Prime Sandboxes</td></tr>
+<tr><td>RL 算法</td><td>—</td><td>GRPO 变体</td><td>masked token-level IS (IcePop)</td></tr>
+<tr><td>对外宣称价值</td><td>"我们能"</td><td>"我们能,而且更便宜"</td><td>"我们能开源整条 cookbook"</td></tr>
+<tr><td>对话姿态</td><td>抗中心化</td><td>抗中心化</td><td><strong>务实,不再讲分布式故事</strong></td></tr>
+</table>
+
+<p><strong>个人 take:</strong>I-1/I-2 是"在错的题上做对的事";I-3 是"切到对的题,再做正确的事"。从一个长期 thesis 来说，这个调整很健康——开源生态最缺的不是分布式预训框架，是<em>可复现的 RL 后训练 cookbook + 环境治理</em>。</p>
+
+<hr>
+
+<h2 id="sec4">4 · prime-rl 架构: 三件套 + async off-policy</h2>
+
+<h3>4.1 三件套</h3>
+
+<p>prime-rl 把 RL 训练拆成三个物理 disaggregated 的角色:</p>
+
+<ul>
+  <li><strong>Trainer</strong>: FSDP2 + torchtitan 风格,吃 packed batches,产出新 weights θ_n</li>
+  <li><strong>Inference</strong>: 多个独立 vLLM 服务,带自定义 <code>/update_weights</code> 与 <code>/reload_weights</code> 端点</li>
+  <li><strong>Orchestrator</strong>: 一个 CPU 进程,既往 inference 推送新 weights、又从 inference 收 rollout、组 batch、给 trainer</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+<defs>
+  <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+  </marker>
+  <marker id="arr4r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+  </marker>
+</defs>
+<!-- trainer box -->
+<rect x="40" y="40" width="200" height="120" rx="8" fill="#fff" stroke="#2f6feb"/>
+<text x="140" y="62" font-size="14" font-weight="bold" text-anchor="middle" fill="#2f6feb">Trainer (FSDP2)</text>
+<text x="140" y="82" font-size="11" text-anchor="middle">16 nodes × 8 H200</text>
+<g font-size="10">
+  <rect x="56" y="98" width="22" height="22" fill="#dde6fa"/><rect x="80" y="98" width="22" height="22" fill="#dde6fa"/>
+  <rect x="104" y="98" width="22" height="22" fill="#dde6fa"/><rect x="128" y="98" width="22" height="22" fill="#dde6fa"/>
+  <rect x="152" y="98" width="22" height="22" fill="#dde6fa"/><rect x="176" y="98" width="22" height="22" fill="#dde6fa"/>
+  <rect x="200" y="98" width="22" height="22" fill="#dde6fa"/>
+</g>
+<text x="140" y="142" font-size="10" text-anchor="middle" fill="#5b5e66">grad g_n → θ_n+1</text>
+<!-- inference box -->
+<rect x="480" y="40" width="200" height="120" rx="8" fill="#fff" stroke="#cc4a1b"/>
+<text x="580" y="62" font-size="14" font-weight="bold" text-anchor="middle" fill="#cc4a1b">Inference (vLLM × N)</text>
+<text x="580" y="82" font-size="11" text-anchor="middle">44 nodes × 8 H200</text>
+<g font-size="10">
+  <rect x="496" y="98" width="22" height="22" fill="#fadbcd"/><rect x="520" y="98" width="22" height="22" fill="#fadbcd"/>
+  <rect x="544" y="98" width="22" height="22" fill="#fadbcd"/><rect x="568" y="98" width="22" height="22" fill="#fadbcd"/>
+  <rect x="592" y="98" width="22" height="22" fill="#fadbcd"/><rect x="616" y="98" width="22" height="22" fill="#fadbcd"/>
+  <rect x="640" y="98" width="22" height="22" fill="#fadbcd"/>
+</g>
+<text x="580" y="142" font-size="10" text-anchor="middle" fill="#5b5e66">OAI api + /update_weights</text>
+<!-- orchestrator -->
+<rect x="280" y="60" width="160" height="80" rx="8" fill="#fff8e8" stroke="#d2a32a" stroke-width="1.5"/>
+<text x="360" y="84" font-size="13" font-weight="bold" text-anchor="middle" fill="#cc4a1b">Orchestrator (CPU)</text>
+<text x="360" y="104" font-size="10" text-anchor="middle">scheduler + relay</text>
+<text x="360" y="120" font-size="10" text-anchor="middle">载入 verifiers env</text>
+<!-- arrows -->
+<line x1="240" y1="80" x2="280" y2="80" stroke="#2f6feb" marker-end="url(#arr4)"/>
+<text x="260" y="74" font-size="9" fill="#2f6feb" text-anchor="middle">θ_n</text>
+<line x1="440" y1="80" x2="480" y2="80" stroke="#2f6feb" marker-end="url(#arr4)"/>
+<line x1="480" y1="120" x2="440" y2="120" stroke="#cc4a1b" marker-end="url(#arr4r)"/>
+<text x="460" y="134" font-size="9" fill="#cc4a1b" text-anchor="middle">rollouts</text>
+<line x1="280" y1="120" x2="240" y2="120" stroke="#cc4a1b" marker-end="url(#arr4r)"/>
+<text x="260" y="134" font-size="9" fill="#cc4a1b" text-anchor="middle">batches</text>
+<!-- environments -->
+<rect x="280" y="200" width="160" height="120" rx="8" fill="#f3eee0" stroke="#bcc3d6"/>
+<text x="360" y="222" font-size="13" font-weight="bold" text-anchor="middle">Environments Hub</text>
+<text x="360" y="242" font-size="10" text-anchor="middle">i3-math · i3-code</text>
+<text x="360" y="258" font-size="10" text-anchor="middle">i3-science · i3-logic</text>
+<text x="360" y="274" font-size="10" text-anchor="middle">deepdive · deepswe</text>
+<text x="360" y="290" font-size="10" text-anchor="middle">mini-swe-agent-plus</text>
+<text x="360" y="310" font-size="9" text-anchor="middle" fill="#5b5e66">pip-installable verifiers</text>
+<line x1="360" y1="200" x2="360" y2="140" stroke="#5b5e66" stroke-dasharray="3 3"/>
+<!-- sandbox -->
+<rect x="500" y="200" width="180" height="120" rx="8" fill="#f3eee0" stroke="#bcc3d6"/>
+<text x="590" y="222" font-size="13" font-weight="bold" text-anchor="middle">Prime Sandboxes</text>
+<text x="590" y="242" font-size="10" text-anchor="middle">Rust Gateway</text>
+<text x="590" y="258" font-size="10" text-anchor="middle">Headless Svc + nsenter</text>
+<text x="590" y="274" font-size="10" text-anchor="middle">gVisor (runsc)</text>
+<text x="590" y="290" font-size="10" text-anchor="middle">256 sandboxes/node</text>
+<text x="590" y="310" font-size="9" text-anchor="middle" fill="#5b5e66">code/SWE/web tools</text>
+<line x1="500" y1="260" x2="440" y2="260" stroke="#5b5e66" stroke-dasharray="3 3"/>
+</svg>
+<figcaption>prime-rl 三件套(顶部) + 两个支撑 service(底部)。Orchestrator 是个 CPU 进程,真正的 hot loop 是 trainer ↔ inference 之间的双向 relay。Environments Hub 是 verifiers 模块的注册中心,Sandbox 服务于 code/SWE/tool 类环境。</figcaption>
+</div>
+
+<h3>4.2 Async one-step off-policy</h3>
+
+<p>同步 on-policy 的痛点:inference 生成完 (x_0, y_0),它必须等 trainer 算出 θ_1 才能继续。Async 下,inference 可以在 trainer 还在算 g_0 的时候,继续用 θ_0 生成 (x_1, y_1)——下一步训练就是用了"老一步"的 policy 产生的 rollout,通过 IS 校正。</p>
+
+<div class="formula">θ used by inference at step n  ∈  {θ_min(0,n−1), ..., θ_n−1}</div>
+
+<p>I-3 默认 max_off_policy_steps = 8。也就是同一条 rollout 跨越的 policy 跨度若超过 8 个版本,就丢掉。这给 IcePop 校正留了一个"安全围栏"。</p>
+
+<details>
+<summary>反向论证: 如果不 async,会怎样?</summary>
+<p>I-3 自己测了——关闭 in-flight weight updates 后 step time <strong>增加 2× 以上</strong>。原因是 inference 节点(44 个)远多于 trainer 节点(16 个),如果 inference 必须等 trainer 完成,大半算力空转;反之 trainer 在等 inference 时浪费的算力较少。这个 1:3 的 train:infer 比例就是为 async 设计的。</p>
+</details>
+
+<hr>
+
+<h2 id="sec5">5 · Continuous batching + in-flight weight updates</h2>
+
+<p>这部分是 prime-rl 相对 verl/OpenRLHF 最具体的工程改进。问题场景:reasoning model 在 agentic 环境里,rollout 长度方差极大(短的 5k,长的 60k);如果 batch 必须等最慢的那条结束才能投到 trainer,那 batch 末期 inference 池的大部分槽位是 idle 的。</p>
+
+<h3>5.1 Continuous batching: rollout 池"永远满"</h3>
+
+<p>orchestrator 维护一个固定大小 N 的 in-flight rollout 池。任何一条 rollout 完成后,立刻在池子里替换成一个新的 prompt。这与 vLLM 自身的 token-level continuous batching 是<em>两层</em>不同抽象:vLLM 管的是"同一个 batch 里 token 步进的对齐";orchestrator 管的是"prompt 级的池子保持饱和"。</p>
+
+<h3>5.2 In-flight weight update: 同一条 rollout 跨多 policy</h3>
+
+<p>当 trainer 产出 θ_n+1,orchestrator 通知 inference 池,vLLM 服务<em>暂停 generation 几百毫秒</em>,接收新权重,然后从中断处继续 decode。也就是说,同一条 rollout 的前 5k token 可能由 θ_n 产生,后 35k token 由 θ_n+1 产生。这是 IcePop 这种 token-level 而非 sequence-level 的 IS 必须支持的原因——sequence-level IS 在这种场景下分母都不知道写什么。</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+  <text x="20" y="22" font-size="11" fill="#5b5e66">time →</text>
+  <line x1="20" y1="200" x2="680" y2="200" stroke="#bcc3d6"/>
+  <!-- policy bands -->
+  <rect x="40" y="40" width="160" height="20" fill="#dde6fa"/>
+  <text x="120" y="55" font-size="10" text-anchor="middle">θ_n</text>
+  <rect x="200" y="40" width="180" height="20" fill="#fadbcd"/>
+  <text x="290" y="55" font-size="10" text-anchor="middle">θ_n+1</text>
+  <rect x="380" y="40" width="160" height="20" fill="#cfe6d8"/>
+  <text x="460" y="55" font-size="10" text-anchor="middle">θ_n+2</text>
+  <rect x="540" y="40" width="120" height="20" fill="#e9d8e8"/>
+  <text x="600" y="55" font-size="10" text-anchor="middle">θ_n+3</text>
+  <text x="40" y="35" font-size="10" fill="#5b5e66">policy 在 inference 池上的快照</text>
+  <!-- rollouts -->
+  <g>
+    <rect x="40" y="80" width="220" height="14" fill="#dde6fa" stroke="#5b5e66"/>
+    <rect x="260" y="80" width="120" height="14" fill="#fadbcd" stroke="#5b5e66"/>
+    <text x="700" y="91" font-size="10" text-anchor="end" fill="#5b5e66">rollout #1 (跨 2 policy, 完成)</text>
+  </g>
+  <g>
+    <rect x="60" y="100" width="80" height="14" fill="#dde6fa" stroke="#5b5e66"/>
+    <text x="700" y="111" font-size="10" text-anchor="end" fill="#5b5e66">rollout #2 (短)</text>
+  </g>
+  <g>
+    <rect x="140" y="120" width="240" height="14" fill="#dde6fa" stroke="#5b5e66"/>
+    <rect x="380" y="120" width="160" height="14" fill="#fadbcd" stroke="#5b5e66"/>
+    <rect x="540" y="120" width="80" height="14" fill="#cfe6d8" stroke="#5b5e66"/>
+    <text x="700" y="131" font-size="10" text-anchor="end" fill="#5b5e66">rollout #3 (跨 3 policy, 完成)</text>
+  </g>
+  <g>
+    <rect x="260" y="140" width="60" height="14" fill="#fadbcd" stroke="#5b5e66"/>
+    <rect x="320" y="140" width="220" height="14" fill="#fadbcd" stroke="#5b5e66"/>
+    <text x="700" y="151" font-size="10" text-anchor="end" fill="#5b5e66">rollout #4 (替换 #2, 1 policy)</text>
+  </g>
+  <g>
+    <rect x="380" y="160" width="160" height="14" fill="#cfe6d8" stroke="#5b5e66"/>
+    <rect x="540" y="160" width="100" height="14" fill="#e9d8e8" stroke="#5b5e66" stroke-dasharray="3 2"/>
+    <text x="700" y="171" font-size="10" text-anchor="end" fill="#5b5e66">rollout #5 (跨 2 policy, 进行中)</text>
+  </g>
+  <line x1="200" y1="40" x2="200" y2="200" stroke="#cc4a1b" stroke-dasharray="2 2"/>
+  <line x1="380" y1="40" x2="380" y2="200" stroke="#cc4a1b" stroke-dasharray="2 2"/>
+  <line x1="540" y1="40" x2="540" y2="200" stroke="#cc4a1b" stroke-dasharray="2 2"/>
+  <text x="200" y="218" font-size="9" text-anchor="middle" fill="#cc4a1b">in-flight update</text>
+  <text x="380" y="218" font-size="9" text-anchor="middle" fill="#cc4a1b">in-flight update</text>
+  <text x="540" y="218" font-size="9" text-anchor="middle" fill="#cc4a1b">in-flight update</text>
+</svg>
+<figcaption>顶部条带是 inference 池上"当前 policy"的版本;每条横条是一条 rollout 的生命周期,颜色块表示该段 token 由哪个 policy 产生。Rollout #1 #3 #5 都是混合 policy 产物;短的 #2 在某个 update 之前就结束了被替换成 #4。</figcaption>
+</div>
+
+<h3>5.3 Multi-Client Orchestrator: 为什么不用 vLLM 自带 DP</h3>
+
+<p>这是个有趣的小细节。I-3 试过 vLLM 多节点 data-parallel,发现 inference throughput 不能 linearly scale,加节点出现 plateau。原因是 vLLM 多节点 DP 内部有协调开销。他们的解决方案非常朴素:<strong>每个 inference 节点跑一个独立 vLLM server</strong>,orchestrator 维护 N 个 client,简单 round-robin 派发 prompt group,完全去掉 inter-node 同步。结果:throughput 与节点数线性 scale。</p>
+
+<p>(<em>个人 take</em>: 这种"放弃框架内置的 DP,自己在外层做 sharding"的做法在大集群里非常常见,是个很好的工程教训。)</p>
+
+<hr>
+
+<h2 id="sec6">6 · Verifiers + Environments Hub: 把环境当 PyPI 包来管</h2>
+
+<p>这是 I-3 最有 lasting 价值的设计——比模型本身重要。</p>
+
+<h3>6.1 一个环境是什么</h3>
+
+<pre>environments/primeintellect/i3-code/      # 一个 pip-installable 模块
+├── pyproject.toml        # 锁依赖
+├── env.py
+│   ├── load_environment()       # 工厂方法
+│   ├── class CodeEnv(SandboxEnv):
+│   │     dataset: 8.6K Python 题
+│   │     async def rollout(client, prompt, info):
+│   │         # 多轮交互,直到 termination
+│   │     class Rubric:
+│   │         reward_funcs = [test_pass_rate, format_check]</pre>
+
+<p>类继承层级:<code>Environment → MultiTurnEnv → ToolEnv → StatefulToolEnv → SandboxEnv → CodeEnv</code>。每一层加一个能力:多轮 / OpenAI 工具调用格式 / 工具参数依赖 rollout 状态(如 sandbox ID)/ 沙箱执行 / 测试用例打分。</p>
+
+<h3>6.2 EnvGroup: 多环境同时训练</h3>
+
+<p>I-3 训练时同时在 math + code + science + logic + deepdive + deepswe 等多个环境上跑。EnvGroup 是 verifiers 提供的"把多个环境拼成一个"的容器,数据集 concat 后注入一列 task_id,rollout/score 时按 task_id 路由到对应子环境。</p>
+
+<h3>6.3 Hub vs 把环境塞 trainer 仓库里</h3>
+
+<table>
+<tr><th>痛点</th><th>"塞 trainer 仓库"模式</th><th>Hub 模式</th></tr>
+<tr><td>版本管理</td><td><span class="no">改环境 = 改 trainer 仓</span></td><td><span class="ok">环境独立版本号</span></td></tr>
+<tr><td>消融</td><td><span class="no">分支 / commit hash</span></td><td><span class="ok">pin 不同版本</span></td></tr>
+<tr><td>外部贡献</td><td><span class="no">要懂整个 trainer</span></td><td><span class="ok">只懂 verifiers API</span></td></tr>
+<tr><td>评测一致性</td><td><span class="no">eval 与 train 代码漂移</span></td><td><span class="ok">同一份 rollout/Rubric</span></td></tr>
+</table>
+
+<p>实际效果:报告说截至发布时已有 500+ 环境。这是个生态飞轮——别人加的环境 prime-rl 直接能用,反过来 prime-rl 的训练成果验证了环境质量。</p>
+
+<hr>
+
+<h2 id="sec7">7 · Prime Sandboxes: 千并发代码执行</h2>
+
+<p>"在 RL 训练里跑用户代码"是 agentic RL 的最大基础设施开销之一。I-3 单单 i3-code 一个环境就需要 4000+ 并发 sandbox。直接用 K8s 的 <code>kubectl exec</code> 死路一条——他们实测每条命令延迟可达 2.5s,瓶颈在 etcd 的 write lock。</p>
+
+<h3>7.1 三层旁路 K8s 控制面</h3>
+
+<div class="fig">
+<svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+<defs>
+  <marker id="arr7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+  </marker>
+</defs>
+<!-- caller -->
+<rect x="20" y="40" width="120" height="60" rx="6" fill="#fff" stroke="#2f6feb"/>
+<text x="80" y="64" font-size="12" font-weight="bold" text-anchor="middle">Rollout</text>
+<text x="80" y="82" font-size="10" text-anchor="middle">(verifiers env)</text>
+<!-- gateway -->
+<rect x="190" y="40" width="160" height="60" rx="6" fill="#fff" stroke="#cc4a1b"/>
+<text x="270" y="62" font-size="12" font-weight="bold" text-anchor="middle" fill="#cc4a1b">Rust Gateway</text>
+<text x="270" y="80" font-size="10" text-anchor="middle">HTTP API</text>
+<text x="270" y="94" font-size="9" text-anchor="middle" fill="#5b5e66">直查 DNS,跳过 kube-proxy</text>
+<!-- DNS -->
+<rect x="400" y="20" width="140" height="40" rx="6" fill="#fff" stroke="#5b5e66"/>
+<text x="470" y="44" font-size="11" text-anchor="middle">Custom CoreDNS</text>
+<!-- Headless Svc -->
+<rect x="400" y="80" width="140" height="40" rx="6" fill="#fff" stroke="#5b5e66"/>
+<text x="470" y="104" font-size="11" text-anchor="middle">Headless Service</text>
+<!-- pod -->
+<rect x="580" y="40" width="120" height="120" rx="6" fill="#fff" stroke="#1f7a4a"/>
+<text x="640" y="62" font-size="12" font-weight="bold" text-anchor="middle" fill="#1f7a4a">Sandbox Pod</text>
+<text x="640" y="82" font-size="10" text-anchor="middle">(gVisor runsc)</text>
+<rect x="592" y="92" width="96" height="20" fill="#cfe6d8"/>
+<text x="640" y="106" font-size="10" text-anchor="middle">Sidecar agent</text>
+<rect x="592" y="116" width="96" height="20" fill="#dde6fa"/>
+<text x="640" y="130" font-size="10" text-anchor="middle">target ns</text>
+<text x="640" y="152" font-size="9" text-anchor="middle" fill="#5b5e66">nsenter inject</text>
+<!-- arrows -->
+<line x1="140" y1="70" x2="190" y2="70" stroke="#5b5e66" marker-end="url(#arr7)"/>
+<line x1="350" y1="60" x2="400" y2="40" stroke="#5b5e66" marker-end="url(#arr7)" stroke-dasharray="3 2"/>
+<text x="375" y="40" font-size="9" fill="#5b5e66">resolve</text>
+<line x1="350" y1="80" x2="400" y2="100" stroke="#5b5e66" marker-end="url(#arr7)"/>
+<line x1="540" y1="100" x2="580" y2="100" stroke="#5b5e66" marker-end="url(#arr7)"/>
+<!-- bypassed K8s API -->
+<rect x="190" y="200" width="160" height="50" rx="6" fill="#f3eee0" stroke="#a8353e" stroke-dasharray="3 3"/>
+<text x="270" y="222" font-size="11" font-weight="bold" text-anchor="middle" fill="#a8353e">K8s API Server</text>
+<text x="270" y="240" font-size="10" text-anchor="middle" fill="#a8353e">(bypass for hot loop)</text>
+<text x="270" y="266" font-size="9" text-anchor="middle" fill="#5b5e66">仅用作 lifecycle (Kopf)</text>
+<!-- webhook -->
+<line x1="640" y1="160" x2="640" y2="200" stroke="#1f7a4a" stroke-dasharray="3 2"/>
+<rect x="560" y="200" width="160" height="50" rx="6" fill="#fff" stroke="#1f7a4a"/>
+<text x="640" y="222" font-size="11" font-weight="bold" text-anchor="middle" fill="#1f7a4a">Push webhook</text>
+<text x="640" y="240" font-size="10" text-anchor="middle" fill="#1f7a4a">"我 ready 了"</text>
+<text x="640" y="266" font-size="9" text-anchor="middle" fill="#5b5e66">绕过 polling,毫秒级通知</text>
+</svg>
+<figcaption>Hot-path = Rollout → Gateway → (DNS) → Headless Service → Pod → Sidecar → nsenter。K8s API 只参与 pod 创建/销毁的 cold-path。Sidecar 主动 push webhook 通报 ready,完全跳过 polling。</figcaption>
+</div>
+
+<p>三个关键 trick:</p>
+<ul>
+  <li><strong>Headless Service + 自建 CoreDNS</strong>: Gateway 通过 DNS A 记录直接拿到 pod IP,跳过 kube-proxy load balancing</li>
+  <li><strong>nsenter sidecar</strong>: 不用 kubectl exec(那会过 API server + websocket upgrade),sidecar 直接进 target namespace 起进程</li>
+  <li><strong>Push-based readiness</strong>: pod 启动完主动 webhook 通知训练后端,不让训练池子 poll K8s</li>
+</ul>
+
+<p>结果:< 10s 冷启,瞬时 4000+ 并发,256 sandboxes/node 的密度。</p>
+
+<hr>
+
+<h2 id="sec8">8 · MoE × 长序列 × Muon 的工程取舍</h2>
+
+<h3>8.1 为什么没启用 Expert Parallelism</h3>
+
+<p>106B / 12B-active MoE 一般会想到用 EP 切 experts。但 I-3 经实测<strong>关掉 EP 比开 EP 快</strong>。论文里 Figure 5 给了一个直观图:<code>torch._grouped_mm</code> 在 hidden=4096, MoE_dim=1408 下,当每张 GPU 上的 token 数足够大时(seq=32k–64k),即使专家数 128 也已经把 grouped GEMM kernel 喂饱了。这时再切 EP,只会引入 scatter/gather 通信开销,而不能再降低 grouped GEMM 时间。</p>
+
+<div class="formula">
+"专家不够忙"才是 EP 的适用场景;I-3 不是。
+</div>
+
+<p>这里的隐含教训:EP 不是 MoE 训练的银弹,要看 per-GPU token 数能不能 saturate kernel。</p>
+
+<h3>8.2 长序列:CP 不行,activation offload 凑合</h3>
+
+<p>Activation memory 估算 (46 层, hidden 4096, FA3 + full activation checkpointing):</p>
+
+<div class="formula">
+Mem_act = 46 × (48000 × 4096) × 2 bytes ≈ 18 GB
+</div>
+
+<p>到 48k seq + FSDP=32 还能扛;到 64k+ 必须再做点什么。两条路:</p>
+
+<table>
+<tr><th>方案</th><th>结果</th></tr>
+<tr><td>Context Parallelism (Ring Attention, N_cp=2)</td><td><span class="no">能到 256k,但等于把 DP 砍半;FlexAttention 实现还实验性,出现 accuracy 下降,生产不可用</span></td></tr>
+<tr><td>Activation offload to CPU (torchtune-based)</td><td><span class="ok">扛到 72k,MFU 几乎不变(同步版降 0.1%,async 版有 mem leak 不用)</span></td></tr>
+</table>
+
+<p>Agentic SFT 阶段(98k 上下文)他们才上 CP。这是个非常实用的"先 offload 撑住,再 CP 顶天"的级联策略。</p>
+
+<h3>8.3 Distributed Muon</h3>
+
+<p>Muon 操作的是<strong>整个矩阵</strong>(Newton-Schulz 迭代),与 FSDP 把权重 shard 在不同 rank 上天然冲突。两个方案:</p>
+<ul>
+  <li><strong>Round-robin gather</strong>: 每个 rank gather 自己负责的那部分参数的全梯度 → 算 NS → scatter 回去。能并行,但许多并发 gather 在 IB 上撞车。</li>
+  <li><strong>All-to-all reshuffle (Dion 实现)</strong>: 一次 all-to-all 把 shard 重排,每个 rank 拿到完整某些矩阵。少 collective、能避堵塞,生产用这个。</li>
+</ul>
+
+<p>MoE 的 state dict 还要在广播给 vLLM 时<strong>动态变换</strong>:trainer 用 torchtitan grouped-MM layout,inference 用 HF 标准 MoE layout,在 push 权重的 hot path 上做 layout 转换。</p>
+
+<hr>
+
+<h2 id="sec9">9 · RL 算法: Masked token-level IS (IcePop)</h2>
+
+<p>I-3 的 RL loss 没有创新,直接用了 IcePop [Zhao et al. 2025]。我们写出公式然后做物理直觉。</p>
+
+<h3>9.1 公式</h3>
+
+<div class="formula">
+J(θ) = E [ (1/Σ|y_i|) Σ_i Σ_t M( π_train(y_{i,t}|·;θ) / π_infer(y_{i,t}|·;θ_old) ; α, β ) · Â_{i,t} ]
+</div>
+
+<div class="formula">
+M(k) = k  if  k ∈ [α=0.5, β=5];  else 0
+</div>
+
+<div class="formula">
+Â_{i,t} = S_i − mean({S_j}_{j=1..G})
+</div>
+
+<h3>9.2 物理直觉</h3>
+
+<ul>
+  <li>每个 token 算一个 IS ratio = 当前训练 policy / 产生 rollout 时 policy。</li>
+  <li>如果 ratio 在 [0.5, 5] 之间,正常用;超出就<strong>整个 token 的梯度置 0</strong>(masking,而不是 clipping)。</li>
+  <li>另外有个 lower threshold 1e-5,如果整条 rollout 里某 token 的 ratio 太小(意味着 trainer 已经几乎不会产出这个 token),整条 rollout 屏蔽。</li>
+  <li>Advantage 是 group-relative(GRPO 风格,每 prompt 16 个 rollout),归一化只减均值。</li>
+</ul>
+
+<h3>9.3 反向论证: 为什么 mask 而不是 clip</h3>
+
+<p>常见做法是 PPO clip:<code>min(r, clip(r, 1-ε, 1+ε)) · A</code>。但当 r 极大时 clip 后还是有梯度——只是被截断到边界。在 high off-policy + reasoning rollout 这种 long-tail 场景里,这种"边界值"的梯度本身是噪声(因为 r 很大说明这是个 trainer 不太会产出的 token,信号其实不可信)。Mask 干脆不算这个 token 的梯度。</p>
+
+<h3>9.4 训练不稳定性: GSPO 崩盘</h3>
+
+<p>论文有一张 ablation 图(Figure 10):同一个 async-8 setup,用 GSPO 出现 reward 直接塌方;CISPO/IcePop 稳定。这跟 [Khatri et al. 2025] 与 [Qi et al. 2025] 的发现一致——sequence-level IS 在 high off-policy 下天然不稳。</p>
+
+<h3>9.5 一个具体数字示例</h3>
+
+<table>
+<tr><th>token</th><th>π_infer</th><th>π_train</th><th>r</th><th>M(r)</th><th>是否参与梯度</th></tr>
+<tr><td>"def"</td><td>0.40</td><td>0.50</td><td>1.25</td><td>1.25</td><td><span class="ok">是</span></td></tr>
+<tr><td>"solve"</td><td>0.10</td><td>0.04</td><td>0.40</td><td>0</td><td><span class="no">否,r&lt;0.5</span></td></tr>
+<tr><td>"return"</td><td>0.05</td><td>0.30</td><td>6.0</td><td>0</td><td><span class="no">否,r&gt;5</span></td></tr>
+<tr><td>"x"</td><td>0.20</td><td>0.18</td><td>0.9</td><td>0.9</td><td><span class="ok">是</span></td></tr>
+<tr><td>"\n"</td><td>0.30</td><td>1e-7</td><td>~0</td><td>0</td><td><span class="no">整条 rollout mask 掉</span></td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec10">10 · 训练配方与一个具体 agentic episode 走查</h2>
+
+<h3>10.1 配方一览</h3>
+
+<table>
+<tr><th>阶段</th><th>规模</th><th>关键点</th></tr>
+<tr><td>SFT Stage 1 (general reason)</td><td>~33M tokens/step, ctx 65k, 1 epoch</td><td>NeMoTron-Post-Training-v1 + AM-DeepSeek-R1-Distill;Muon, lr 5e-5,FSDP=64, DP=8</td></tr>
+<tr><td>SFT Stage 2 (agentic)</td><td>800 steps, 2 epochs, ctx <strong>98k</strong> (CP=2)</td><td>SWE-Swiss + Toucan Tool + 自家环境合成,Muon lr 5e-8 → 0</td></tr>
+<tr><td>RL</td><td>BS 256 prompts × 16 rollouts, ctx 65k, ~1500s/step</td><td>Muon lr 1e-6;16 train + 44 infer (1:3);max_off_policy 8;在线难度过滤(easy/normal/hard 池子),pass=1 直接踢出</td></tr>
+</table>
+
+<h3>10.2 一个具体 episode: deepswe 跑通一个 GitHub issue</h3>
+
+<p>设想 task: "Project requests/requests 中 Cookie 在 redirect 时被 leak 给三方域,issue #1234"。环境是 deepswe (基于 mini-swe-agent-plus 改的 scaffold)。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 380" width="100%" style="max-width:700px">
+<defs>
+  <marker id="arr10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+  </marker>
+</defs>
+<!-- env init -->
+<rect x="20" y="20" width="180" height="60" rx="6" fill="#fff" stroke="#2f6feb"/>
+<text x="110" y="42" font-size="12" font-weight="bold" text-anchor="middle">env reset</text>
+<text x="110" y="60" font-size="10" text-anchor="middle">从 Custom Registry 拉镜像</text>
+<text x="110" y="74" font-size="10" text-anchor="middle">requests:1234 (warm pool)</text>
+<line x1="200" y1="50" x2="240" y2="50" stroke="#5b5e66" marker-end="url(#arr10)"/>
+<!-- turn 1 -->
+<rect x="240" y="20" width="200" height="60" rx="6" fill="#dde6fa" stroke="#2f6feb"/>
+<text x="340" y="40" font-size="11" font-weight="bold" text-anchor="middle" fill="#2f6feb">Turn 1: Assistant</text>
+<text x="340" y="56" font-size="10" text-anchor="middle">&lt;think&gt;... 我要先看代码 ...&lt;/think&gt;</text>
+<text x="340" y="70" font-size="10" text-anchor="middle">tool_call: bash("ls requests/")</text>
+<line x1="340" y1="80" x2="340" y2="100" stroke="#5b5e66" marker-end="url(#arr10)"/>
+<!-- turn 2 -->
+<rect x="240" y="100" width="200" height="50" rx="6" fill="#fadbcd" stroke="#cc4a1b"/>
+<text x="340" y="120" font-size="11" font-weight="bold" text-anchor="middle" fill="#cc4a1b">Turn 2: Tool result</text>
+<text x="340" y="138" font-size="10" text-anchor="middle">sessions.py adapters.py ...</text>
+<line x1="340" y1="150" x2="340" y2="170" stroke="#5b5e66" marker-end="url(#arr10)"/>
+<!-- turn 3 -->
+<rect x="240" y="170" width="200" height="60" rx="6" fill="#dde6fa" stroke="#2f6feb"/>
+<text x="340" y="190" font-size="11" font-weight="bold" text-anchor="middle" fill="#2f6feb">Turn 3: Assistant</text>
+<text x="340" y="206" font-size="10" text-anchor="middle">str_replace_editor edit</text>
+<text x="340" y="220" font-size="10" text-anchor="middle">sessions.py:rebuild_auth(...)</text>
+<line x1="340" y1="230" x2="340" y2="250" stroke="#5b5e66" marker-end="url(#arr10)"/>
+<!-- turn N -->
+<rect x="240" y="250" width="200" height="50" rx="6" fill="#dde6fa" stroke="#2f6feb"/>
+<text x="340" y="270" font-size="11" font-weight="bold" text-anchor="middle" fill="#2f6feb">Turn k: submit()</text>
+<text x="340" y="288" font-size="10" text-anchor="middle">声明完成</text>
+<line x1="340" y1="300" x2="340" y2="320" stroke="#5b5e66" marker-end="url(#arr10)"/>
+<!-- judge -->
+<rect x="240" y="320" width="200" height="50" rx="6" fill="#cfe6d8" stroke="#1f7a4a"/>
+<text x="340" y="340" font-size="11" font-weight="bold" text-anchor="middle" fill="#1f7a4a">Rubric: 测试套</text>
+<text x="340" y="356" font-size="10" text-anchor="middle">test_redirect_leak: FAIL → PASS  ✓ → r=1</text>
+<!-- side panel: prime-rl tracks -->
+<rect x="480" y="20" width="220" height="350" rx="6" fill="#fff8e8" stroke="#d2a32a"/>
+<text x="590" y="42" font-size="12" font-weight="bold" text-anchor="middle" fill="#cc4a1b">prime-rl 同时记录</text>
+<text x="490" y="64" font-size="10">• 总 token: ~30k assistant + ~12k tool</text>
+<text x="490" y="82" font-size="10">• 一条 trajectory ≤ 200 turns</text>
+<text x="490" y="100" font-size="10">• 期间 policy 可能 update 5–6 次</text>
+<text x="490" y="118" font-size="10">• 每 token: π_infer logprob (vLLM 直返)</text>
+<text x="490" y="136" font-size="10">• tool 输出区间: loss mask=0</text>
+<text x="490" y="154" font-size="10">• reasoning 区间: loss mask=1</text>
+<text x="490" y="172" font-size="10">• 若 sandbox failure: 整条丢</text>
+<text x="490" y="190" font-size="10">• 完成后 advantage = r − mean_group</text>
+<text x="490" y="208" font-size="10">• 16 rollouts/prompt 全完成 → 进 batch</text>
+<text x="490" y="226" font-size="10">• 跨 policy 跨度 &gt; 8 → 整条丢</text>
+<text x="490" y="252" font-size="11" fill="#cc4a1b" font-weight="bold">关键:</text>
+<text x="490" y="270" font-size="10">tool 返回的 token 不参与 IS</text>
+<text x="490" y="284" font-size="10">(它们不是 policy 产生的)</text>
+<text x="490" y="306" font-size="11" fill="#1f7a4a" font-weight="bold">Reward decomposition:</text>
+<text x="490" y="324" font-size="10">• 主奖励: test pass (binary)</text>
+<text x="490" y="340" font-size="10">• 备选: 格式 / submit() 调用 / 长度</text>
+<text x="490" y="356" font-size="10">• Rubric 加权 (verifiers Rubric 抽象)</text>
+</svg>
+<figcaption>一条 deepswe rollout 的全过程。左侧是 conversation;右侧是 prime-rl 在背后追踪的状态。注意 tool 返回的 token 在 loss mask 里被屏蔽——它们不属于 policy 的输出分布。</figcaption>
+</div>
+
+<p>关键预算估算: 一条 rollout 上限 200 turns × 平均 200 token/turn ≈ 40k token,而 RL ctx 是 65k,所以一条难题真的会撞天花板。这也是为什么 future work 里专门提到"long horizon agents 要让模型自己管理 context"——65k 不够用了。</p>
+
+<h3>10.3 Reward 与 mask 的细节</h3>
+
+<ul>
+  <li><strong>多 reward 加权</strong>: Rubric 抽象支持 (test_pass, format_check, length_penalty) 等多个函数加权;deepswe 主要用 test_pass。</li>
+  <li><strong>per-turn 还是 per-episode credit</strong>: I-3 直接 episode-level reward,通过 Â_{i,t} = S_i − mean 把 sparse reward 平摊到所有 assistant token(类 GRPO 风格)。<em>没有</em>显式的 turn-level credit assignment——他们押注 advantage normalization + IS 足够。</li>
+  <li><strong>tool 输出处理</strong>: tool message 的 token 在 loss 里 mask=0;reasoning + tool_call 的 token mask=1。</li>
+  <li><strong>sandbox 失败</strong>: 自动 mask 整条 completion 并取消 generation,避免无效 reward 干扰。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec11">11 · 实验关键结果</h2>
+
+<h3>11.1 主表(节选)</h3>
+
+<table>
+<tr><th>Benchmark</th><th>I-3</th><th>GLM-4.5-Air</th><th>GLM-4.5</th><th>GLM-4.6</th><th>DSR1-0528</th><th>DS v3.2</th></tr>
+<tr><td>AIME24 avg@32</td><td><strong>90.8</strong></td><td>84.6</td><td>85.8</td><td>92.0</td><td>83.2</td><td>88.1</td></tr>
+<tr><td>AIME25 avg@32</td><td><strong>88.0</strong></td><td>82.0</td><td>83.3</td><td>90.3</td><td>73.4</td><td>84.7</td></tr>
+<tr><td>LCB v6 avg@2</td><td>69.3</td><td>61.5</td><td>64.5</td><td>73.0</td><td>62.5</td><td>71.6</td></tr>
+<tr><td>GPQA avg@4</td><td>74.4</td><td>73.3</td><td>77.0</td><td>78.8</td><td>77.5</td><td>81.4</td></tr>
+<tr><td>HLE avg@1</td><td>14.6</td><td>13.3</td><td>14.8</td><td>13.3</td><td>15.9</td><td>17.9</td></tr>
+<tr><td>MMLU-Pro</td><td>81.9</td><td>73.9</td><td>83.5</td><td>83.1</td><td>75.3</td><td>84.6</td></tr>
+</table>
+
+<p><strong>读法:</strong></p>
+<ul>
+  <li>I-3 同尺寸下(对 GLM-4.5-Air post-train)<strong>全面胜出</strong>,尤其 LCB +7.8、AIME25 +6.0、MMLU-Pro +8.0。这是论文最干净的卖点。</li>
+  <li>对 3× 大的 GLM-4.5,在 AIME24/25 与 LCB <strong>实际更高或相当</strong>;但 GPQA 与 MMLU-Pro 输了 — 大模型的"知识广度"还是吃尺寸。</li>
+  <li>对自家上游 GLM-4.6 (它本身已经是更强的版本),I-3 整体仍输——这说明 RL post-train ≠ 取代继续 pretrain。</li>
+  <li>对 DSR1-0528(6×参数)在 reasoning 上能压住,但 GPQA/HLE 知识题输 — 同一个模式。</li>
+</ul>
+
+<h3>11.2 训练曲线</h3>
+
+<p>论文给出在 AIME24/25, LCB, HLE, GPQA 上每 15 步的 online eval 曲线。训练到 ~600 步时曲线<strong>仍在向上,未饱和</strong>。这是 I-3 在 conclusion 里反复强调"如果再多训会更好"的依据。</p>
+
+<h3>11.3 训练效率</h3>
+
+<ul>
+  <li>step time ~1500s,seq 65k,16+44 节点</li>
+  <li>关掉 in-flight weight update → step time 增加 > 2× (inference 利用率塌方)</li>
+  <li>没有报告具体 MFU 数字。Activation offload(同步版)只降 0.1% MFU,几乎免费。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec12">12 · 与同类工作对比</h2>
+
+<table>
+<tr><th>系统</th><th>对比维度</th><th>差异</th></tr>
+<tr><td><strong>INTELLECT-1</strong></td><td>预训练 vs 后训练</td><td>I-1: 跨大陆 pretrain 10B dense;I-3: 一个 fabric 内 SFT+RL on 106B MoE base。<em>分布式不再是卖点</em></td></tr>
+<tr><td><strong>INTELLECT-2</strong></td><td>分布式 RL vs 中心化 RL</td><td>I-2: PRIME/Shardcast/TOPLOC 跨地理 RL on 32B QwQ;I-3: 中心化 prime-rl,first-class agentic + tool。<em>放弃志愿者集群叙事,押 Hub 生态</em></td></tr>
+<tr><td><strong>NeMo-RL (NVIDIA)</strong></td><td>同款 trainer/infer 解耦</td><td>NeMo-RL 也是 Megatron+vLLM 解耦,EAGLE-3 集成做 rollout 加速;I-3 缺 spec decoding,但 environments hub 更成熟</td></tr>
+<tr><td><strong>Kimi K2.5 Agent Swarm</strong></td><td>大规模 agentic RL</td><td>K2.5 走"超大 swarm + 多模态 agentic + RL via own infra";I-3 单 agent 多 turn,无 swarm,但开源整套</td></tr>
+<tr><td><strong>GLM-4.5 (本篇 base)</strong></td><td>同尺寸不同 post-train</td><td>I-3 直接证明: 在 GLM-4.5-Air-Base 上,prime-rl + Hub 环境 mix 比 Z.ai 自家 post-train 强 6–8 个点</td></tr>
+<tr><td><strong>verl / OpenRLHF / TRL</strong></td><td>开源 RL 框架</td><td>verl 主打 hybrid engine + tensor parallel;OpenRLHF 偏 chat RLHF;TRL 偏轻量。<em>三者对 multi-turn agentic 都是 patch 级,不是 first-class</em></td></tr>
+<tr><td><strong>DeepCoder / DeepSWE</strong></td><td>SWE 类 RL</td><td>I-3 直接复用了它们的 scaffold (mini-swe-agent-plus, R2E-Gym),并把执行层升级成 Prime Sandboxes</td></tr>
+<tr><td><strong>AReal / PipelineRL</strong></td><td>async + in-flight update</td><td>I-3 明确致敬,prime-rl 在此之上加了 multi-client orchestrator + verifiers env 集成</td></tr>
+</table>
+
+<p>另请参见同期 sibling notes: <code>07_INTELLECT2_2505.07291.html</code>(INTELLECT-2 详解,本目录下)与 <code>01_INTELLECT1_2412.01152.html</code>(INTELLECT-1 详解)。</p>
+
+<hr>
+
+<h2 id="sec13">13 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>13.1 局限</h3>
+
+<ul>
+  <li><strong>没有报告 MFU。</strong>这种规模的训练 MFU 是核心 KPI,缺失让"高效"有点空泛;只能从"step time 1500s, 60 节点 65k seq"反推。</li>
+  <li><strong>RL 仅用了 Hub 中很小一部分环境</strong>(math/code/science/logic/deepdive/deepswe)。Hub 上 500+ 环境的多样性收益没在 I-3 里得到验证。</li>
+  <li><strong>对 GLM-4.6 整体输</strong>。说明在一个相对老 base 上做 RL 的天花板低于"上游持续 pretrain + post-train"。</li>
+  <li><strong>Long-horizon 受限</strong>。RL ctx 65k,deepswe 上限 200 turns × 200 token = 40k;真正的"自动 AI research"任务还放不下。论文自己点了 context rot。</li>
+  <li><strong>没有 turn-level credit assignment</strong>。现在的 advantage 是 episode-level 平摊,长 episode 信号稀疏的问题没正面解。</li>
+  <li><strong>Decentralized 叙事彻底淡出</strong>。从一个长期使命角度看,这意味着 Prime Intellect 把"分布式训练"作为商业卖点的可能性降低了——更像是要做"开源 RL infra 的 Anyscale"。</li>
+</ul>
+
+<h3>13.2 个人 take</h3>
+
+<ul>
+  <li>I-3 真正的护城河不是模型,是 <strong>verifiers + Environments Hub</strong>。这个抽象+注册中心是开源 agentic RL 的"PyPI 时刻"。如果这套用起来,prime-rl 就有了类似 vLLM 之于 inference 的位置。</li>
+  <li>"放弃 EP" + "Multi-Client Orchestrator" + "Headless Service + nsenter" 这三件事是<strong>反框架思维</strong>:不要相信框架内置的东西总是最优——尤其在大集群上,简单的 round-robin / 自管 DNS / 旁路 K8s 经常更稳。</li>
+  <li>IcePop (mask not clip) 这种"long-tail r 干脆不学"的策略,与本届 RL 训练社区(R1 / Qwen3 / MiniMax)的总体方向一致 — sequence-level IS 在 high off-policy 下基本被淘汰。</li>
+</ul>
+
+<h3>13.3 待验证问题</h3>
+
+<ol>
+  <li>Hub 的环境质量分布是什么?500+ 环境里多少能直接拿来训生产模型?多少其实是 toy?</li>
+  <li>如果对 GLM-4.6-Base(更新更强 base)做同样的 prime-rl pipeline,能不能压过 GLM-4.6 official post-train?</li>
+  <li>EnvGroup 的 mix ratio 是怎么调的?有没有自动 curriculum(类似 GSM-PLUS 的难度自适应)?</li>
+  <li>max_off_policy_steps=8 怎么选的?是用 IS variance 监控 + 早期 ablation,还是经验值?</li>
+  <li>tool 输出非常长(如网页 markdown)时,KV cache 会膨胀,vLLM 怎么调度 / 是否做 KV eviction?</li>
+  <li>在 60 节点规模下,fault-tolerance 故事是什么?Slurm 重启?checkpoint 频率?这个规模 1500s/step 跨"两个月",工程必然踩过坑但论文没展开。</li>
+  <li>没有 DeepSpeed ZeRO,坚持 FSDP2 + torchtitan 的取舍依据 — 是性能还是社区一致性?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec14">14 · 记忆点</h2>
+
+<div class="kv"><span class="pill">立场</span> 不再讲分布式,押 RL post-training 全栈开源 + agentic-first + 环境治理(Hub)。</div>
+<div class="kv"><span class="pill">招式</span> GLM-4.5-Air-Base + (SFT general 65k → SFT agentic 98k via CP) → RL on prime-rl with IcePop, BS 256×16, ctx 65k, 16 train + 44 infer。</div>
+<div class="kv"><span class="pill">系统-1</span> async one-step off-policy + continuous batching + in-flight weight update,关掉这玩意 step time × 2+。</div>
+<div class="kv"><span class="pill">系统-2</span> Multi-Client Orchestrator(round-robin 派 prompt group)代替 vLLM 多节点 DP,throughput 才线性 scale。</div>
+<div class="kv"><span class="pill">系统-3</span> Prime Sandboxes 旁路 K8s API: Rust Gateway + Headless Svc + nsenter sidecar + push webhook,< 10s 冷启,256/node。</div>
+<div class="kv"><span class="pill">MoE</span> 没启 EP,因为 grouped-MM kernel 已经被 token 吃饱;EP 只会加 scatter/gather 开销。</div>
+<div class="kv"><span class="pill">长序列</span> 先 activation offload 撑到 72k(MFU −0.1%),98k 才上 CP=2;Ring Attention 实现还不稳。</div>
+<div class="kv"><span class="pill">Muon</span> 与 FSDP shard 冲突 → all-to-all reshuffle (Dion);MoE state dict 在广播给 vLLM 时做 layout 转换。</div>
+<div class="kv"><span class="pill">RL loss</span> IcePop = token-level masked IS,r ∈ [0.5, 5] 才参与梯度;mask 整条若任 token r &lt; 1e-5;比 GSPO/sequence-IS 稳得多。</div>
+<div class="kv"><span class="pill">环境</span> verifiers 库把环境抽成 (dataset, rollout, Rubric, load_environment);Hub 是这些的 pip-style 注册中心,500+ 已发布。</div>
+<div class="kv"><span class="pill">数字</span> AIME24 90.8 / AIME25 88.0 / LCB v6 69.3 / MMLU-Pro 81.9,同尺寸全压 GLM-4.5-Air,部分压 3×大的 GLM-4.5。</div>
+<div class="kv"><span class="pill">系列轨迹</span> I-1 (decentralized pretrain) → I-2 (decentralized RL) → I-3 (centralized agentic RL on strong base + 全栈开源)。</div>
+<div class="kv"><span class="pill">护城河</span> 不在模型,在 prime-rl + verifiers + Hub + Sandboxes 这一整套互相咬合的 infra。</div>
+
+</main>
+</body>
+</html>

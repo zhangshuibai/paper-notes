@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · INTELLECT-2 (2505.07291)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>INTELLECT-2: A Reasoning Model Trained Through Globally Decentralized Reinforcement Learning</h1>
+<div class="meta">
+  Prime Intellect Team · Sami Jaghouar et al. · 2025-05-12 · arXiv:2505.07291<br>
+  关键词: decentralized RL · GRPO · permissionless compute · async RL · TOPLOC · SHARDCAST · QwQ-32B · reasoning<br>
+  姊妹篇: <a href="01_INTELLECT1_2412.01152.html">INTELLECT-1 精读 (DiLoCo decentralized pretraining)</a>
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 32B reasoning 模型 (QwQ-32B 起步) 的 RL post-training 拆到全球 permissionless GPU swarm 上跑——靠 PRIME-RL 解耦 train/inference, SHARDCAST 像 CDN 一样分发 weights, TOPLOC 用 hidden-state hash 在不可信节点上验证 rollout 真实性,async two-step policy lag 把所有通信藏到计算后面。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">32B</div><div class="l">QwQ-32B 上做 GRPO</div></div>
+    <div class="stat"><div class="n">2-step</div><div class="l">policy lag (≤4 也 OK)</div></div>
+    <div class="stat"><div class="n">~1%</div><div class="l">TOPLOC 证明开销</div></div>
+  </div>
+  <p><strong>立场:</strong>这是 INTELLECT-1 (decentralized pretraining via DiLoCo) 的 RL 续作。结论一句话: <em>RL 比 pretraining 更适合 decentralized</em>——因为 inference (大头) 天然 embarrassingly parallel,通信只剩一次 weight broadcast 而它能被 async 完全藏掉。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:从 INTELLECT-1 走到 INTELLECT-2 的鸿沟</a></li>
+    <li><a href="#sec2">背景速查 (术语 / 系统拓扑)</a></li>
+    <li><a href="#sec3">PRIME-RL: 把 train / infer / verify 三相分离</a></li>
+    <li><a href="#sec4">TOPLOC: 在不信任节点上验证 rollout</a></li>
+    <li><a href="#sec5">SHARDCAST: tree-CDN 式权重广播</a></li>
+    <li><a href="#sec6">Async RL 与 two-step policy lag</a></li>
+    <li><a href="#sec7">Two-Sided GRPO Clipping & 训练稳定性</a></li>
+    <li><a href="#sec8">实验关键结果</a></li>
+    <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec10">与 INTELLECT-1 的 differential</a></li>
+    <li><a href="#sec11">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:从 INTELLECT-1 走到 INTELLECT-2 的鸿沟</h2>
+
+<h3>1.1 历史脉络: 为什么 RL 比 pretraining 更适合 decentralized</h3>
+<p>INTELLECT-1 (2024-12) 已经证明: 用 <strong>DiLoCo</strong> + <strong>int8 ring all-reduce</strong> + <strong>ElasticDeviceMesh</strong>,可以把 10B-pretraining 在 5 大洲的 GPU 集群上跑到 ~83% 利用率。但即便如此,pretraining 在 decentralized setting 下仍然<em>勉为其难</em>:</p>
+<ul>
+  <li>每个 inner step 都要做一次跨节点通信(哪怕只是 8 比特量化的)</li>
+  <li>worker 必须保持基本同步——一旦掉队太多,outer step 会被拖慢</li>
+  <li>所有节点都要装得下完整 model + optimizer states + activations</li>
+</ul>
+
+<p>RL post-training 与之截然不同:</p>
+<ul>
+  <li><strong>计算分布完全不同</strong>: 训练侧只占 ~20% FLOPs,推理 (rollout 生成) 占 ~80%。论文实测 train:infer FLOPs 比 = <strong>1:4.5</strong></li>
+  <li><strong>Inference 是 embarrassingly parallel</strong>: 一个 prompt 一条 trajectory,worker 之间不需要任何通信</li>
+  <li><strong>Inference worker 的内存压力小</strong>: 只需要装得下 frozen weights + KV cache,不需要 optimizer states / gradients</li>
+  <li>所以 inference 天然适合丢到消费级 GPU (3090, 4090, A6000) 上</li>
+</ul>
+
+<p>论文里给出的核心洞察:<strong>communication 在 RL 里只剩一件事——把更新后的 policy 推给 inference worker。</strong>而这件事可以用 async 完全藏到 inference 计算时间后面。所以 RL = "decentralized 友好"。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 200" width="100%" style="max-width:680px">
+    <!-- left: pretraining -->
+    <rect x="20" y="20" width="320" height="160" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="180" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">INTELLECT-1: Decentralized Pretraining</text>
+    <text x="180" y="62" text-anchor="middle" font-size="11" fill="#3a3b40">Outer DiLoCo step</text>
+    <rect x="40" y="80" width="60" height="50" rx="4" fill="#9ec5ff"/>
+    <rect x="110" y="80" width="60" height="50" rx="4" fill="#9ec5ff"/>
+    <rect x="180" y="80" width="60" height="50" rx="4" fill="#9ec5ff"/>
+    <rect x="250" y="80" width="60" height="50" rx="4" fill="#9ec5ff"/>
+    <text x="70" y="110" text-anchor="middle" font-size="10" fill="#fff">node 1</text>
+    <text x="140" y="110" text-anchor="middle" font-size="10" fill="#fff">node 2</text>
+    <text x="210" y="110" text-anchor="middle" font-size="10" fill="#fff">node 3</text>
+    <text x="280" y="110" text-anchor="middle" font-size="10" fill="#fff">node 4</text>
+    <path d="M 70 130 Q 175 165 280 130" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#arrM)"/>
+    <text x="180" y="160" text-anchor="middle" font-size="11" fill="#cc4a1b">每 N 步: 全员 all-reduce (int8)</text>
+    <text x="180" y="178" text-anchor="middle" font-size="10" fill="#5b5e66">所有节点同质 / 同步阻塞</text>
+    <!-- right: rl -->
+    <rect x="360" y="20" width="320" height="160" rx="10" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="520" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">INTELLECT-2: Decentralized RL</text>
+    <text x="520" y="62" text-anchor="middle" font-size="11" fill="#3a3b40">三角分工 (异质 / 异步)</text>
+    <rect x="375" y="80" width="80" height="32" rx="4" fill="#cc4a1b"/>
+    <text x="415" y="100" text-anchor="middle" font-size="10" fill="#fff">trainer (8×H100)</text>
+    <rect x="380" y="125" width="64" height="40" rx="4" fill="#d2a32a"/>
+    <rect x="450" y="125" width="64" height="40" rx="4" fill="#d2a32a"/>
+    <rect x="520" y="125" width="64" height="40" rx="4" fill="#d2a32a"/>
+    <rect x="590" y="125" width="64" height="40" rx="4" fill="#d2a32a"/>
+    <text x="412" y="148" text-anchor="middle" font-size="9" fill="#fff">3090×4</text>
+    <text x="482" y="148" text-anchor="middle" font-size="9" fill="#fff">A6000×8</text>
+    <text x="552" y="148" text-anchor="middle" font-size="9" fill="#fff">H100×2</text>
+    <text x="622" y="148" text-anchor="middle" font-size="9" fill="#fff">MI300X</text>
+    <path d="M 415 112 L 412 125" stroke="#5b5e66" marker-end="url(#arrM)"/>
+    <path d="M 430 112 Q 480 118 482 125" stroke="#5b5e66" marker-end="url(#arrM)"/>
+    <path d="M 445 112 Q 525 118 552 125" stroke="#5b5e66" marker-end="url(#arrM)"/>
+    <path d="M 455 112 Q 575 118 622 125" stroke="#5b5e66" marker-end="url(#arrM)"/>
+    <text x="520" y="182" text-anchor="middle" font-size="10" fill="#5b5e66">async broadcast → 没有阻塞通信</text>
+    <defs>
+      <marker id="arrM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>左: INTELLECT-1 的 pretraining 拓扑——所有节点对等 + 周期性同步 all-reduce。右: INTELLECT-2 的 RL 拓扑——少量可信 trainer + 大量异质 inference worker,通信只有单向 broadcast。</figcaption>
+</div>
+
+<h3>1.2 别的方案为什么不够</h3>
+<p>"用现成的 RL 框架 + DDP 不行吗?"</p>
+<table>
+  <tr><th>方案</th><th>问题</th></tr>
+  <tr><td><strong>verl / TRL / OpenRLHF</strong></td><td>train/infer 在<em>同一进程</em>顺序切换,GPU 一会儿当 trainer 一会儿当 vLLM,需要 collocate;无法支持异质硬件</td></tr>
+  <tr><td><strong>Ray-based async (NeMo-RL, AReaL)</strong></td><td>需要中心化 orchestrator 维持长连接;一个 inference worker 掉线整个 cluster 卡住</td></tr>
+  <tr><td><strong>FedAvg / federated</strong></td><td>关注 privacy,而不是 throughput;每个 worker 自己训自己的,周期性 average——RL 训练分布会漂移</td></tr>
+  <tr><td><strong>LlamaRL / PipelineRL (async RLHF)</strong></td><td>解决 async 但<em>假设节点都可信</em>——permissionless 下没有任何作弊检测</td></tr>
+  <tr><td><strong>"自己 fork verl 改改"</strong></td><td>verl 把 forward / loss / sampling 紧耦合,decoupling 工作量 ≈ 重写</td></tr>
+</table>
+
+<p>所以 PRIME-RL 不是"又一个 RL 框架",而是<em>第一次把 trustless 这个维度纳入设计目标</em>的框架。</p>
+
+<h3>1.3 为什么这事不平凡: 三个新瓶颈</h3>
+<p>把 RL 搬到 permissionless swarm 上,有三个 INTELLECT-1 时代不存在的难题:</p>
+
+<p><strong>(a) Trust model 大变。</strong>Pretraining 时如果某节点提交错误梯度,DiLoCo outer step 的 averaging 会稀释影响,且最坏情况下 reward (loss) 自己会暴露异常。但 RL 里,一个恶意 inference worker 完全可以:</p>
+<ul>
+  <li>用一个<em>更小</em>的模型生成 token,然后只用大模型跑一次 prefill 来"伪造"hidden states</li>
+  <li>提前 EOS 截断长输出来省钱</li>
+  <li>cherry-pick 简单题目反复刷</li>
+  <li>把别的 worker 提交过的 trajectory 抄一遍</li>
+</ul>
+<p>这些都不会被 reward function (binary 0/1) 直接捕捉,但会污染训练分布。</p>
+
+<p><strong>(b) Async 在 RL 里有质变。</strong>Pretraining 的 DiLoCo 是"<em>梯度 stale</em>",RL 的 async 是"<em>policy stale</em>"。后者直接改变了 sampling 分布——rollout 用的是 πθ_{t-2},更新算的是 πθ_t 与 πθ_{t-2} 的 importance ratio。如果 lag 太大,ratio 会爆炸 → GRPO 的 clip 频繁触发 → 学习信号被截掉。</p>
+
+<p><strong>(c) Weight broadcast 在 RL 里成了新瓶颈。</strong>32B bf16 = 62 GB。要发给几十个全球 inference worker,如果用 naive 单点 server,带宽根本不够。论文实测一次 broadcast 平均 14 分钟 = 590 Mb/s——这已经是优化后的数据。</p>
+
+<div class="nb">
+  <strong>记忆点:</strong>INTELLECT-1 的核心难题是"梯度通信"。INTELLECT-2 的核心难题转移成"<em>验证 + 广播</em>"——RL 没有梯度跨节点同步问题,但多了"如何信任 rollout"和"如何快速分发 policy"两道大坎。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Permissionless</span></td><td>任何人无需许可即可加入贡献算力(类似 crypto mining pool)</td></tr>
+  <tr><td><span class="term">PRIME-RL</span></td><td>本文新写的 RL 框架,把 training / inference / verification 拆成独立可执行进程</td></tr>
+  <tr><td><span class="term">TOPLOC</span></td><td>locality-sensitive hashing 方案,验证 inference 是不是真用了规定的 weights 跑的</td></tr>
+  <tr><td><span class="term">SHARDCAST</span></td><td>tree-topology HTTP 文件分发系统,类 CDN,用来广播 checkpoint shard</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>DeepSeekMath 的 group-relative PPO 变体,无 value model</td></tr>
+  <tr><td><span class="term">Two-step async</span></td><td>rollout 用的是 t-2 步的 policy(centralized async 通常是 t-1)</td></tr>
+  <tr><td><span class="term">QwQ-32B</span></td><td>阿里 Qwen 团队的 reasoning 模型,本文 base model</td></tr>
+  <tr><td><span class="term">Slashing</span></td><td>(借自 PoS 区块链) 检测到作弊后罚没该 worker 的奖励 / 把它踢出 pool</td></tr>
+  <tr><td><span class="term">Genesys schema</span></td><td>SYNTHETIC-1 提出的 verifier 接口,让 reward function 可插拔</td></tr>
+</table>
+
+<h3>2.2 系统全貌 (Figure 1 抽象)</h3>
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- Trainer -->
+    <rect x="280" y="20" width="160" height="60" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="360" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">GRPO Trainer</text>
+    <text x="360" y="62" text-anchor="middle" font-size="11" fill="#3a3b40">trusted, FSDP2, H100×N</text>
+
+    <!-- Shardcast relays -->
+    <rect x="50" y="115" width="120" height="40" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="110" y="138" text-anchor="middle" font-size="12" fill="#cc4a1b">SHARDCAST relay</text>
+    <rect x="200" y="115" width="120" height="40" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="260" y="138" text-anchor="middle" font-size="12" fill="#cc4a1b">SHARDCAST relay</text>
+    <rect x="350" y="115" width="120" height="40" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="410" y="138" text-anchor="middle" font-size="12" fill="#cc4a1b">SHARDCAST relay</text>
+    <rect x="500" y="115" width="120" height="40" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="560" y="138" text-anchor="middle" font-size="12" fill="#cc4a1b">TOPLOC validator</text>
+
+    <!-- arrows from trainer -->
+    <path d="M 320 80 L 130 115" stroke="#2f6feb" stroke-width="1.5" fill="none" marker-end="url(#arrA)"/>
+    <path d="M 350 80 L 260 115" stroke="#2f6feb" stroke-width="1.5" fill="none" marker-end="url(#arrA)"/>
+    <path d="M 380 80 L 410 115" stroke="#2f6feb" stroke-width="1.5" fill="none" marker-end="url(#arrA)"/>
+    <text x="200" y="100" font-size="10" fill="#2f6feb">62 GB checkpoint shards</text>
+
+    <!-- Inference workers (heterogeneous) -->
+    <rect x="20" y="200" width="80" height="50" rx="6" fill="#fff" stroke="#888"/>
+    <text x="60" y="222" text-anchor="middle" font-size="11">3090×4</text>
+    <text x="60" y="238" text-anchor="middle" font-size="9" fill="#5b5e66">consumer</text>
+    <rect x="115" y="200" width="80" height="50" rx="6" fill="#fff" stroke="#888"/>
+    <text x="155" y="222" text-anchor="middle" font-size="11">A6000×8</text>
+    <rect x="210" y="200" width="80" height="50" rx="6" fill="#fff" stroke="#888"/>
+    <text x="250" y="222" text-anchor="middle" font-size="11">H100×2</text>
+    <rect x="305" y="200" width="80" height="50" rx="6" fill="#fff" stroke="#888"/>
+    <text x="345" y="222" text-anchor="middle" font-size="11">A100×8</text>
+    <rect x="400" y="200" width="80" height="50" rx="6" fill="#fff" stroke="#888"/>
+    <text x="440" y="222" text-anchor="middle" font-size="11">MI300X×8</text>
+    <text x="440" y="238" text-anchor="middle" font-size="9" fill="#5b5e66">datacenter</text>
+
+    <!-- arrows down to workers -->
+    <path d="M 110 155 L 60 200" stroke="#d2a32a" stroke-width="1" fill="none" marker-end="url(#arrA)"/>
+    <path d="M 110 155 L 155 200" stroke="#d2a32a" stroke-width="1" fill="none" marker-end="url(#arrA)"/>
+    <path d="M 260 155 L 250 200" stroke="#d2a32a" stroke-width="1" fill="none" marker-end="url(#arrA)"/>
+    <path d="M 410 155 L 345 200" stroke="#d2a32a" stroke-width="1" fill="none" marker-end="url(#arrA)"/>
+    <path d="M 410 155 L 440 200" stroke="#d2a32a" stroke-width="1" fill="none" marker-end="url(#arrA)"/>
+
+    <!-- rollouts up to validator and trainer -->
+    <path d="M 250 200 Q 530 195 560 155" stroke="#cc4a1b" stroke-width="1.5" fill="none" marker-end="url(#arrA)"/>
+    <text x="490" y="180" font-size="10" fill="#cc4a1b">rollout + TOPLOC proof</text>
+    <path d="M 560 115 Q 500 90 440 65" stroke="#1f7a4a" stroke-width="1.5" fill="none" marker-end="url(#arrA)"/>
+    <text x="495" y="105" font-size="10" fill="#1f7a4a">verified parquet</text>
+
+    <text x="360" y="275" text-anchor="middle" font-size="11" font-style="italic" fill="#5b5e66">三种角色 / 三条数据流: ① trainer→relays→infer (weights)  ② infer→validator (rollouts+proofs)  ③ validator→trainer (verified data)</text>
+    <defs>
+      <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>系统三角: 中心化可信 trainer (蓝)+ 中间层 SHARDCAST relay 与 TOPLOC validator (黄)+ 不可信异质 inference workers (灰)。注意只有<strong>三条数据通道</strong>,worker 之间互不通信。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · PRIME-RL: 把 train / infer / verify 三相分离</h2>
+
+<p>PRIME-RL 与 verl/TRL/OpenRLHF 的根本区别:<strong>它把 trainer 和 inference worker 写成两个独立的可执行文件,彼此只通过 Parquet 文件 + HTTP step counter 通信</strong>。这一点对应 INTELLECT-1 里 ElasticDeviceMesh 的"动态 join/leave"诉求。</p>
+
+<h3>3.1 训练侧</h3>
+<ul>
+  <li>FSDP2 sharding (类 ZeRO-3): 32B 模型在 8×H100 上做参数 / 梯度 / optimizer state shard</li>
+  <li>不接收 inference 节点提交的 log_prob——而是<strong>在 trainer 端用当前 policy 自己重算一遍</strong>。原因: vLLM 报告的 log_prob 数值不稳定,而 GRPO 的 importance ratio 对此非常敏感</li>
+  <li>训练数据走 Parquet 远程 storage,trainer pull 而不是 worker push</li>
+</ul>
+
+<h3>3.2 推理侧</h3>
+<ul>
+  <li>vLLM bf16 跑 QwQ-32B</li>
+  <li>用一个<em>确定性 seed</em> = node_address · step + submission_count 决定每个 worker 拿哪条 prompt → 防止 cherry-pick</li>
+  <li>每生成 32 token,就 hash 一次 final hidden state,作为 TOPLOC proof 的一部分</li>
+  <li>HTTP polling 一个 step counter endpoint,问"现在哪一步还缺 rollout?",这就是 worker join/leave 的对接点</li>
+</ul>
+
+<h3>3.3 一个完整的 RL step 走一遍 (worked example)</h3>
+<p>假设训练已跑到 step 100,trainer 刚 broadcast 了 weights_100。一个"3090×4"消费级 worker 加入:</p>
+
+<ol>
+  <li><strong>0:00</strong> Worker 启动,联系 discovery service,被 orchestrator 邀请加入 pool</li>
+  <li><strong>0:30</strong> Worker 从 SHARDCAST relay 下载 weights_100 的 shards,SHA-256 校验通过 → 装载到 vLLM</li>
+  <li><strong>0:31</strong> Worker GET <code>/step_counter</code>,得到 "step 102 还差 800 个 rollout";seed = hash(addr) · 102 + 0 = 12345</li>
+  <li><strong>0:31</strong> Worker 用 seed=12345 从 285K 题库里采样 16 道 (一个 GRPO group),开始生成</li>
+  <li><strong>~5:00</strong> 16 条 trajectories(平均 4-8K tokens)生成完毕,期间每 32 token 增量 hash 一次 hidden state</li>
+  <li><strong>5:01</strong> Worker 计算 reward(数学: SymPy 比对答案;coding: 跑单元测试)</li>
+  <li><strong>5:02</strong> 把 (prompts, responses, rewards, advantages, TOPLOC proofs) 打包成 Parquet,signed-URL 上传到 step_102 文件夹</li>
+  <li><strong>5:03</strong> 触发链上事件,TOPLOC validator 看到新文件,启动验证 (~1 min)</li>
+  <li><strong>6:00</strong> 验证通过,parquet 添加 <code>accepted=True</code> flag,trainer 的 dataloader 能读到</li>
+  <li><strong>~22:00</strong> step 102 收齐 4096 个有效样本,trainer 跑 8 个 GRPO optimizer steps</li>
+  <li><strong>~36:00</strong> 新 weights_102 写入 SHARDCAST,broadcast 14 min(下一步并行做)</li>
+</ol>
+
+<div class="nb">
+  <strong>关键观察:</strong>"22 分钟一步"中,broadcast (14 min) 完全藏在 inference + verification (22 min) 后面。这就是 async two-step 的物理意义—— inference worker 已经在用 weights_100 跑 step 102 的 rollout,trainer 同时在做 step 100 → 102 的更新,没人等谁。
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · TOPLOC: 在不信任节点上验证 rollout</h2>
+
+<p>这是论文最有"技术新意"的部分。问题: 怎么在不可信 worker 上验证它真的用规定的 weights 跑了 inference?</p>
+
+<h3>4.1 设计目标的紧约束</h3>
+<p>朴素思路:让 validator 重跑一遍 inference 比对 token by token。<strong>不行</strong>,因为:</p>
+<ul>
+  <li>GPU 非确定性: 不同 GPU 型号 / 不同 tensor parallel 配置下,同一 model + 同一 prompt 的 logits 数值有微小差异 → 重跑直接对比会 false-positive</li>
+  <li>验证不能比生成慢: 否则验证就成了新瓶颈</li>
+</ul>
+
+<p>TOPLOC 的两个核心 trick:</p>
+<ol>
+  <li><strong>验证用 prefill 而不是 decode</strong>: 给定 prompt + 完整 response,validator 一次性 forward (parallel),只要算一遍而不是逐 token 自回归 → 可以做到 ~100× 比 decode 快</li>
+  <li><strong>对比的不是完整 hidden states,而是 top-k indices + polynomial commitment</strong>: 鲁棒处理 GPU 非确定性引起的微小数值差异</li>
+</ol>
+
+<h3>4.2 TOPLOC proof 的工作流</h3>
+
+<div class="fig">
+  <svg id="toplocSvg" viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- Inference side -->
+    <rect x="20" y="20" width="320" height="320" rx="10" fill="#fff3cd" stroke="#d2a32a" stroke-width="1.5"/>
+    <text x="180" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#cc4a1b">Inference Provider (untrusted)</text>
+
+    <rect x="40" y="60" width="280" height="36" rx="6" fill="#fff" stroke="#888"/>
+    <text x="180" y="82" text-anchor="middle" font-size="11">decode token t (autoregressive)</text>
+    <line x1="180" y1="96" x2="180" y2="115" stroke="#666" marker-end="url(#arrT2)"/>
+
+    <rect x="40" y="118" width="280" height="36" rx="6" fill="#fff" stroke="#888"/>
+    <text x="180" y="140" text-anchor="middle" font-size="11">final hidden state h_t ∈ ℝ⁵¹²⁰</text>
+    <line x1="180" y1="154" x2="180" y2="173" stroke="#666" marker-end="url(#arrT2)"/>
+
+    <rect x="40" y="176" width="280" height="36" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="180" y="198" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">每 32 tokens 一次: top-k indices + values</text>
+    <line x1="180" y1="212" x2="180" y2="231" stroke="#666" marker-end="url(#arrT2)"/>
+
+    <rect x="40" y="234" width="280" height="36" rx="6" fill="#fff" stroke="#cc4a1b"/>
+    <text x="180" y="252" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">提取 exponent + mantissa</text>
+    <text x="180" y="266" text-anchor="middle" font-size="9" fill="#5b5e66">FP16 → e[5] m[10]</text>
+    <line x1="180" y1="270" x2="180" y2="289" stroke="#666" marker-end="url(#arrT2)"/>
+
+    <rect x="40" y="292" width="280" height="36" rx="6" fill="#cc4a1b" opacity="0.85"/>
+    <text x="180" y="314" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">Polynomial commit (i_j, p_j) → proof</text>
+
+    <!-- Validator side -->
+    <rect x="380" y="20" width="320" height="320" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="540" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#2f6feb">Validator (trusted)</text>
+
+    <rect x="400" y="60" width="280" height="36" rx="6" fill="#fff" stroke="#888"/>
+    <text x="540" y="82" text-anchor="middle" font-size="11">prefill (prompt + full response)</text>
+    <text x="540" y="94" text-anchor="middle" font-size="9" fill="#5b5e66">一次 parallel forward, 不 autoregressive</text>
+    <line x1="540" y1="105" x2="540" y2="115" stroke="#666" marker-end="url(#arrT2)"/>
+
+    <rect x="400" y="118" width="280" height="36" rx="6" fill="#fff" stroke="#888"/>
+    <text x="540" y="140" text-anchor="middle" font-size="11">recompute h_t' (validator 自己的)</text>
+    <line x1="540" y1="154" x2="540" y2="173" stroke="#666" marker-end="url(#arrT2)"/>
+
+    <rect x="400" y="176" width="280" height="36" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="540" y="194" text-anchor="middle" font-size="11" fill="#2f6feb" font-weight="600">用 prover 的 i_j 索引取出 h_t'[i_j]</text>
+    <text x="540" y="208" text-anchor="middle" font-size="9" fill="#5b5e66">decode polynomial → 与 prover values 对比</text>
+    <line x1="540" y1="212" x2="540" y2="231" stroke="#666" marker-end="url(#arrT2)"/>
+
+    <rect x="400" y="234" width="280" height="36" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="540" y="252" text-anchor="middle" font-size="11" fill="#2f6feb" font-weight="600">指数位匹配? mantissa 差距 &lt; ε?</text>
+    <text x="540" y="266" text-anchor="middle" font-size="9" fill="#5b5e66">分别累计 exponent / mantissa 错误数</text>
+    <line x1="540" y1="270" x2="540" y2="289" stroke="#666" marker-end="url(#arrT2)"/>
+
+    <g>
+      <rect x="400" y="292" width="135" height="36" rx="6" fill="#1f7a4a" opacity="0.85"/>
+      <text x="467" y="314" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">阈值内 ✓ reward</text>
+      <rect x="545" y="292" width="135" height="36" rx="6" fill="#a8353e" opacity="0.85"/>
+      <text x="612" y="314" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">超阈值 ✗ slash</text>
+    </g>
+
+    <!-- arrow from prover to validator (the proof) -->
+    <path d="M 320 310 Q 360 310 400 310" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#arrT2)"/>
+    <text x="360" y="300" text-anchor="middle" font-size="10" fill="#cc4a1b">proof</text>
+    <defs>
+      <marker id="arrT2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <div class="ctrl">
+    <button onclick="playToploc()">▶ 播放流程</button>
+    <button onclick="resetToploc()">⟲ 重置</button>
+  </div>
+  <figcaption>左: inference worker 在 decode 时,每 32 token 取一次 final hidden state 的 top-k 维度,做多项式编码 → 形成 commitment。右: validator 用 prefill 重算 hidden state,在 prover 给定的索引位置上对比 exponent 与 mantissa,允许在阈值内的偏差 → 解决 GPU 非确定性。论文报告 validator 比生成快约 100×。</figcaption>
+</div>
+
+<h3>4.3 三类 check 一图汇总</h3>
+
+<table>
+  <tr><th>类别</th><th>具体 check</th><th>防的攻击</th></tr>
+  <tr><td rowspan="2"><strong>Computation</strong></td><td>TOPLOC hidden-state hash (核心)</td><td>用更小模型代跑,只 prefill 大模型骗证明</td></tr>
+  <tr><td>Top-k polynomial commitment</td><td>quantized / malicious 模型变种</td></tr>
+  <tr><td rowspan="2"><strong>Sampling</strong></td><td>EOS token 概率 &gt; 0.1</td><td>恶意提前 EOS 截断省钱</td></tr>
+  <tr><td>logit 分布形状(应类指数,不应双峰)</td><td>小模型 sample + 大模型 prefill 的 hybrid 攻击</td></tr>
+  <tr><td rowspan="3"><strong>Sanity</strong></td><td>seed = addr · step + sub_id 决定 prompt</td><td>cherry-pick 简单题</td></tr>
+  <tr><td>reward / advantage 在合理 bound 内</td><td>提交超大数值搞坏训练</td></tr>
+  <tr><td>Parquet schema check</td><td>提交格式错误的文件让 dataloader 崩溃</td></tr>
+</table>
+
+<h3>4.4 一个具体的攻击场景及如何被检出</h3>
+<p><strong>攻击</strong>: 一个 worker 想省钱——用 0.5B 小模型生成 token,但仍然报告自己用了 32B QwQ。它在 submit 之前用 32B 跑一次 prefill 得到看起来"对"的 hidden states。</p>
+<p><strong>检测</strong>: TOPLOC 的 sampling check 会注意到 token 概率分布。正常 32B sampling 后,该 token 在<em>它自己的</em> distribution 上概率应当较高(typical mode 接近 1)。但用 0.5B sample 出的 token,在 32B 重算的 distribution 上,会有相当一部分落在 low-probability 区域 → distribution 出现 bimodal (一峰在 1,另一峰在 0)。validator 通过分析 prefill 时取得的 selected-token probability 直方图,发现双峰即拒绝。</p>
+
+<p><strong>反向论证</strong>: 如果 TOPLOC 不验证 sampling 形状,只验 hidden state hash 是否对得上呢?那么这个 hybrid 攻击就<em>过得了</em>—— prefill 是真用 32B 跑的,hidden states 自然对。所以 sampling check 不是冗余,而是"证 worker 真的用 32B 来 sample"的最后一道防线。</p>
+
+<hr>
+
+<h2 id="sec5">5 · SHARDCAST: tree-CDN 式权重广播</h2>
+
+<p>32B bf16 = 62 GB。要在 ~14 分钟内推给几十个全球 inference worker。Naive 方案的失败:</p>
+<ul>
+  <li>"trainer 直接给每个 worker push": trainer 单点带宽极限,几十 worker 同时拉直接打死</li>
+  <li>"P2P (BitTorrent style)": 需要暴露 worker 间的 IP,带来 DoS 风险;且 P2P 需要 trustless shard verification (每个 shard 自带签名),工程复杂</li>
+</ul>
+
+<p>SHARDCAST 选了中间路线:<strong>3 层 tree CDN — origin (训练侧) → relay (中间层) → client (inference worker)</strong>,每个 relay 像 nginx CDN 节点。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- origin -->
+    <rect x="290" y="15" width="140" height="40" rx="8" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="360" y="40" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Trainer (origin)</text>
+
+    <!-- relays (middle layer) -->
+    <g>
+      <rect x="40" y="100" width="100" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="90" y="123" text-anchor="middle" font-size="11" fill="#cc4a1b">relay 1</text>
+      <rect x="170" y="100" width="100" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="220" y="123" text-anchor="middle" font-size="11" fill="#cc4a1b">relay 2</text>
+      <rect x="300" y="100" width="100" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="350" y="123" text-anchor="middle" font-size="11" fill="#cc4a1b">relay 3</text>
+      <rect x="430" y="100" width="100" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="480" y="123" text-anchor="middle" font-size="11" fill="#cc4a1b">relay 4</text>
+      <rect x="560" y="100" width="100" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+      <text x="610" y="123" text-anchor="middle" font-size="11" fill="#cc4a1b">relay 5</text>
+    </g>
+
+    <!-- arrows from origin to relays -->
+    <path d="M 320 55 L 110 100" stroke="#2f6feb" stroke-width="1.2" fill="none" marker-end="url(#arrS)"/>
+    <path d="M 340 55 L 220 100" stroke="#2f6feb" stroke-width="1.2" fill="none" marker-end="url(#arrS)"/>
+    <path d="M 360 55 L 350 100" stroke="#2f6feb" stroke-width="1.2" fill="none" marker-end="url(#arrS)"/>
+    <path d="M 380 55 L 480 100" stroke="#2f6feb" stroke-width="1.2" fill="none" marker-end="url(#arrS)"/>
+    <path d="M 400 55 L 610 100" stroke="#2f6feb" stroke-width="1.2" fill="none" marker-end="url(#arrS)"/>
+
+    <!-- inference workers -->
+    <g font-size="10">
+      <rect x="20" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="50" y="220" text-anchor="middle">w1</text>
+      <rect x="90" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="120" y="220" text-anchor="middle">w2</text>
+      <rect x="160" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="190" y="220" text-anchor="middle">w3</text>
+      <rect x="230" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="260" y="220" text-anchor="middle">w4</text>
+      <rect x="300" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="330" y="220" text-anchor="middle">w5</text>
+      <rect x="370" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="400" y="220" text-anchor="middle">w6</text>
+      <rect x="440" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="470" y="220" text-anchor="middle">w7</text>
+      <rect x="510" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="540" y="220" text-anchor="middle">w8</text>
+      <rect x="580" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="610" y="220" text-anchor="middle">w9</text>
+      <rect x="650" y="200" width="60" height="30" rx="4" fill="#fff" stroke="#888"/>
+      <text x="680" y="220" text-anchor="middle">w10</text>
+    </g>
+
+    <!-- multi-source arrows (each worker pulls from multiple relays in parallel) -->
+    <g stroke="#d2a32a" stroke-width="0.8" fill="none" opacity="0.6">
+      <line x1="50" y1="200" x2="90" y2="136" />
+      <line x1="50" y1="200" x2="220" y2="136" />
+      <line x1="120" y1="200" x2="90" y2="136"/>
+      <line x1="120" y1="200" x2="350" y2="136"/>
+      <line x1="190" y1="200" x2="220" y2="136"/>
+      <line x1="260" y1="200" x2="220" y2="136"/>
+      <line x1="260" y1="200" x2="480" y2="136"/>
+      <line x1="330" y1="200" x2="350" y2="136"/>
+      <line x1="400" y1="200" x2="350" y2="136"/>
+      <line x1="400" y1="200" x2="610" y2="136"/>
+      <line x1="470" y1="200" x2="480" y2="136"/>
+      <line x1="540" y1="200" x2="480" y2="136"/>
+      <line x1="610" y1="200" x2="610" y2="136"/>
+      <line x1="680" y1="200" x2="610" y2="136"/>
+    </g>
+
+    <text x="360" y="270" text-anchor="middle" font-size="11" font-style="italic" fill="#5b5e66">每个 client 用 EMA-估计的 throughput 概率从多个 relay 并行 pull shard,既负载均衡又可同时利用多带宽</text>
+    <defs>
+      <marker id="arrS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>SHARDCAST 拓扑: trainer 作为 origin push 给 5 个 relay,每个 relay 像 nginx 一样响应 client 的 GET。Client 不是"选最快 relay",而是按 <em>P ∝ success_rate × bandwidth</em> 概率<strong>并行</strong>从多个 relay 拉 shard——这样能同时利用多个 TCP 连接的带宽,且自然 load-balance。</figcaption>
+</div>
+
+<h3>5.1 设计要点</h3>
+<ul>
+  <li><strong>Sharded + pipelined</strong>: checkpoint 分片传输,worker 不必等完整文件就能开始下载,relay 也不必等完整文件就能开始服务</li>
+  <li><strong>EMA-based 多源采样</strong>: client 给每个 relay 维护 (success_rate, bandwidth) 的指数移动平均,按比例概率采样下一次从哪个 relay 拿 shard;一个 healing factor 强制周期性探索 underused server</li>
+  <li><strong>Relay 只保留最新 5 个 checkpoint</strong>: 既省磁盘也"功能性正确"——更老的 checkpoint 产出的 rollout 反正会被 trainer 拒绝</li>
+  <li><strong>SHA-256 完整性</strong>: client 装载前比对整体 checksum,失败就丢弃整个 checkpoint(不重传——可能下次的更早出来)</li>
+  <li><strong>未做 P2P</strong>: 论文明确说出 P2P 的问题(IP 暴露 → DoS 攻击面增大),所以走 trusted relay</li>
+</ul>
+
+<h3>5.2 数字 sanity check</h3>
+<p>论文报告: 平均 14 min broadcast 完毕,total transferred 62 GB → 平均带宽 590 Mb/s。这是<em>平均到所有 client 的 aggregate</em>。每个 worker 单独看:如果有 N=20 个 worker,每个收 62 GB,total egress = 20 × 62 = 1240 GB / 14min = 11.8 Gb/s,分摊到 5 个 relay 每个 ~2.4 Gb/s——在数据中心带宽内。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Async RL 与 two-step policy lag</h2>
+
+<p>Pretraining 的 DiLoCo 用的是"梯度延迟",RL 用的是"<strong>policy 延迟</strong>"。论文的图 6 把三种 RL 拓扑画在了一起:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- Sync -->
+    <text x="120" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">(a) Sync RL</text>
+    <rect x="20" y="35" width="200" height="24" fill="#9ec5ff"/>
+    <text x="120" y="52" text-anchor="middle" font-size="10" fill="#fff">infer step T</text>
+    <rect x="20" y="60" width="100" height="24" fill="#cc4a1b"/>
+    <text x="70" y="77" text-anchor="middle" font-size="10" fill="#fff">train T</text>
+    <rect x="20" y="85" width="200" height="24" fill="#9ec5ff"/>
+    <text x="120" y="102" text-anchor="middle" font-size="10" fill="#fff">infer T+1</text>
+    <rect x="20" y="110" width="100" height="24" fill="#cc4a1b"/>
+    <text x="70" y="127" text-anchor="middle" font-size="10" fill="#fff">train T+1</text>
+    <text x="120" y="155" text-anchor="middle" font-size="10" fill="#5b5e66">同 GPU,顺序切换</text>
+    <text x="120" y="170" text-anchor="middle" font-size="10" fill="#1f7a4a">on-policy ✓</text>
+    <text x="120" y="185" text-anchor="middle" font-size="10" fill="#a8353e">GPU 利用率低</text>
+
+    <!-- 1-step async -->
+    <text x="380" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">(b) 1-step async</text>
+    <rect x="260" y="35" width="220" height="24" fill="#9ec5ff"/>
+    <text x="370" y="52" text-anchor="middle" font-size="10" fill="#fff">infer cluster T (πθ_T)</text>
+    <rect x="260" y="60" width="120" height="24" fill="#cc4a1b"/>
+    <text x="320" y="77" text-anchor="middle" font-size="10" fill="#fff">train T</text>
+    <line x1="380" y1="60" x2="380" y2="85" stroke="#1f7a4a" stroke-dasharray="3,2"/>
+    <text x="395" y="77" font-size="9" fill="#1f7a4a">瞬时 broadcast</text>
+    <rect x="260" y="90" width="220" height="24" fill="#9ec5ff"/>
+    <text x="370" y="107" text-anchor="middle" font-size="10" fill="#fff">infer T+1 (πθ_T)  ← lag 1</text>
+    <rect x="260" y="115" width="120" height="24" fill="#cc4a1b"/>
+    <text x="320" y="132" text-anchor="middle" font-size="10" fill="#fff">train T+1</text>
+    <text x="370" y="160" text-anchor="middle" font-size="10" fill="#5b5e66">两 cluster, 1 step off-policy</text>
+    <text x="370" y="175" text-anchor="middle" font-size="10" fill="#1f7a4a">data-center 内 broadcast 极快</text>
+
+    <!-- 2-step async (this paper) -->
+    <text x="630" y="20" text-anchor="middle" font-size="13" font-weight="700" fill="#cc4a1b">(c) 2-step async  ← INTELLECT-2</text>
+    <rect x="500" y="35" width="220" height="24" fill="#9ec5ff"/>
+    <text x="610" y="52" text-anchor="middle" font-size="10" fill="#fff">infer T (πθ_{T-2})</text>
+    <rect x="500" y="60" width="100" height="24" fill="#cc4a1b"/>
+    <text x="550" y="77" text-anchor="middle" font-size="10" fill="#fff">train T</text>
+    <rect x="600" y="60" width="120" height="24" fill="#d2a32a" opacity="0.6"/>
+    <text x="660" y="77" text-anchor="middle" font-size="10" fill="#fff">SHARDCAST broadcast</text>
+
+    <rect x="500" y="90" width="220" height="24" fill="#9ec5ff"/>
+    <text x="610" y="107" text-anchor="middle" font-size="10" fill="#fff">infer T+1 (πθ_{T-1})</text>
+    <rect x="500" y="115" width="100" height="24" fill="#cc4a1b"/>
+    <text x="550" y="132" text-anchor="middle" font-size="10" fill="#fff">train T+1</text>
+    <rect x="600" y="115" width="120" height="24" fill="#d2a32a" opacity="0.6"/>
+    <text x="660" y="132" text-anchor="middle" font-size="10" fill="#fff">broadcast (overlap)</text>
+
+    <rect x="500" y="145" width="220" height="24" fill="#9ec5ff"/>
+    <text x="610" y="162" text-anchor="middle" font-size="10" fill="#fff">infer T+2 (πθ_T) ← weights_T 终于到</text>
+
+    <text x="610" y="195" text-anchor="middle" font-size="10" fill="#5b5e66">global swarm; 2 step off-policy</text>
+    <text x="610" y="210" text-anchor="middle" font-size="10" fill="#1f7a4a">broadcast 14 min 完全 hidden</text>
+
+    <!-- Reward curve -->
+    <g transform="translate(20, 230)">
+      <text x="350" y="0" text-anchor="middle" font-size="13" font-weight="600">Ablation: 不同 lag 下的 reward 轨迹 (DeepScaler 1.5B,Figure 7)</text>
+      <line x1="50" y1="100" x2="650" y2="100" stroke="#888"/>
+      <line x1="50" y1="20" x2="50" y2="100" stroke="#888"/>
+      <text x="350" y="120" text-anchor="middle" font-size="10" fill="#5b5e66">steps 0 → 1200</text>
+      <text x="40" y="60" text-anchor="end" font-size="10" fill="#5b5e66">reward</text>
+      <!-- 4 overlapping curves -->
+      <path d="M 50 95 Q 200 80 350 55 T 650 30" stroke="#1f7a4a" stroke-width="2" fill="none"/>
+      <path d="M 50 95 Q 200 82 350 57 T 650 32" stroke="#2f6feb" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/>
+      <path d="M 50 96 Q 200 83 350 58 T 650 34" stroke="#cc4a1b" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+      <path d="M 50 96 Q 200 84 350 60 T 650 36" stroke="#a8353e" stroke-width="1.5" fill="none" stroke-dasharray="2,3"/>
+      <text x="660" y="32" font-size="9" fill="#1f7a4a">sync</text>
+      <text x="660" y="46" font-size="9" fill="#2f6feb">lag=1</text>
+      <text x="660" y="60" font-size="9" fill="#cc4a1b">lag=2</text>
+      <text x="660" y="74" font-size="9" fill="#a8353e">lag=4</text>
+    </g>
+  </svg>
+  <figcaption>三种 RL 拓扑对比 + lag ablation。论文实测 lag=1/2/4 与 sync 几乎重合 (DeepScaler 1.5B/2K context)。物理解释: GRPO 用 importance ratio 校正分布漂移,只要 ratio 不爆炸就 OK——而 lag 4 之内每步 KL(πθ_T || πθ_{T-4}) 仍然小。</figcaption>
+</div>
+
+<h3>6.1 为什么 RL 能容忍 lag 而 pretraining 不行</h3>
+<p>反向论证: 如果 pretraining 也 lag 2 步会怎样?——梯度直接陈旧,SGD 有用的方向被噪声淹没。RL 的"延迟"在<em>不同位置</em>:它延迟的是 sampling distribution,不是 gradient 本身。GRPO 的 loss 会自动用 importance ratio <code>πθ / πθ_old</code> 重新加权——这一项<em>明确为 off-policy 而生</em>。所以<strong>RL 比 pretraining 天然多一道防御 stale data 的机制</strong>。</p>
+
+<h3>6.2 Lag 的实际限制</h3>
+<p>论文虽然说 lag=4 还能稳定,但有暗示 lag &gt; 4-5 时 importance ratio 会大量超出 clip 区间 → 大批样本被截掉,等效于学习信号丢失。Section 5 (Discussion) 里提到:"lag 4-5 步可以 hide weight broadcast / verification / KL log-prob 计算等所有 blocking stages"——隐含的最优工作点。</p>
+
+<hr>
+
+<h2 id="sec7">7 · Two-Sided GRPO Clipping & 训练稳定性</h2>
+
+<h3>7.1 原始 GRPO 的不对称问题</h3>
+<p>原 GRPO 目标:</p>
+<div class="formula">
+  J = E[ min( r·Â , clip(r, 1−ε, 1+ε)·Â ) ],&nbsp;&nbsp; r = πθ/πθ_old
+</div>
+<p>当 advantage Â &gt; 0(好 rollout):clip 把 r 上限压在 1+ε,防止过度激励。<br>
+当 Â &lt; 0(差 rollout):因为外面的 <code>min</code>,clip 在 r 很大时<em>不生效</em>——理由是"鼓励大力远离差 rollout"。</p>
+
+<p>但在 INTELLECT-2 的 32B + async 设定下,<em>r 偶尔会冲到 100+</em>,与负 Â 相乘就是巨大的 loss spike → gradient explosion → 模型崩。原因有二:</p>
+<ul>
+  <li>32B 模型本身梯度噪声大</li>
+  <li>async lag → πθ_old 可能落后 2 步,r 的 baseline 已偏移</li>
+</ul>
+
+<h3>7.2 修补: 加上一个上界 δ</h3>
+<div class="formula">
+  J = E[ min( min(r, δ)·Â, clip(r,1−ε,1+ε)·Â ) ],&nbsp;&nbsp; δ &gt; 1+ε
+</div>
+<p>论文用 ε = 0.2, δ = 4。语义: 仍然鼓励远离差样本,但 r 不能超过 4——避免单个 token 把整个 batch 的 loss 拉飞。</p>
+
+<h3>7.3 其他稳定性 patches (实战日记)</h3>
+<table>
+  <tr><th>问题</th><th>论文修复</th></tr>
+  <tr><td>Gradient norm 持续上涨 → 崩溃</td><td>aggressive clipping (max norm = <strong>0.05–0.1</strong>),论文用 0.1</td></tr>
+  <tr><td>Entropy loss 跌后又涨 → 模型崩前兆</td><td>没有完美 fix;增大 KL penalty 权重能 delay 但学得慢</td></tr>
+  <tr><td>QwQ 比 DeepSeek-R1-Distill 更不稳</td><td>怀疑因 QwQ 已 RL 过一轮 → "已经 RL'ed 的模型再 RL 难"</td></tr>
+  <tr><td>torch.compile 引发崩溃</td><td>整个 codebase 关掉 torch.compile</td></tr>
+  <tr><td>vLLM 报告的 log_prob 数值不稳</td><td>trainer 端用 policy 自己重算 log_prob</td></tr>
+</table>
+
+<h3>7.4 数据 pipeline 的两道筛子</h3>
+<p><strong>Offline filtering</strong>: 用 base model (R1-Distill-7B) 跑 pass@8。保留 <em>1/8 ≤ pass@8 ≤ 4/8</em> 的题。太简单的题所有 group 全对 → advantage = 0 没信号;太难全错 → 同样无信号。论文 Figure 8 显示:不过滤 → reward 几乎不动;过滤 → reward 显著上升。</p>
+
+<p><strong>Online filtering</strong>: 即便过滤过,生成时仍可能某 prompt 全对/全错。继续重新采样 prompt 直到攒够 4096 个非零 advantage 样本再训练一步。"副作用刚好是好事": 这等价于把更多算力推向 inference,正符合 decentralized swarm 的算力分布(infer 多 / train 少)。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 系统级数字</h3>
+<div class="kv">
+  <strong>TARGET-SHORT 一步的时间分解:</strong>broadcast 14 min · 第一个 rollout 文件 10 min 后到达 · TOPLOC 验证 ~1 min · 攒齐 batch 22 min · trainer 跑 8 个 optimizer step 22 min<br>
+  <strong>关键:</strong>train 时间(22 min)≈ broadcast + 攒 batch 时间(22 min)→ <em>几乎完美 overlap</em>,trainer GPU 利用率接近满
+</div>
+
+<h3>8.2 Benchmark</h3>
+<table>
+  <tr><th>Model</th><th>AIME24</th><th>AIME25</th><th>LiveCodeBench v5</th><th>GPQA-D</th><th>IFEval</th></tr>
+  <tr><td><strong>INTELLECT-2</strong></td><td><strong>78.8</strong></td><td>64.9</td><td><strong>67.8</strong></td><td><strong>66.8</strong></td><td>81.5</td></tr>
+  <tr><td>QwQ-32B (base)</td><td>76.6</td><td>64.8</td><td>66.1</td><td>66.3</td><td>83.4</td></tr>
+  <tr><td>R1-Distill-32B</td><td>69.9</td><td>58.4</td><td>55.1</td><td>65.2</td><td>72.0</td></tr>
+  <tr><td>DeepSeek-R1 (671B)</td><td>78.6</td><td>65.1</td><td>64.1</td><td>71.6</td><td>82.7</td></tr>
+</table>
+
+<h3>8.3 怎么读这张表</h3>
+<ul>
+  <li>对 QwQ-32B 微涨 2-3 点(AIME24, LiveCodeBench)。<strong>不是大跨越</strong>,因为 QwQ 已被 RL 过</li>
+  <li>IFEval 略掉(83.4 → 81.5)—— 训练只用数学/代码,没用 IF 数据,正常</li>
+  <li>论文坦白:"想看 huge improvement 需要更好 base 或更高质量数据"——比如换 Qwen3</li>
+</ul>
+
+<div class="nb">
+  <strong>这篇论文的主菜是<em>系统</em>而非<em>模型</em>。</strong>把它当 "RL infrastructure paper" 读 → 满分。当 "新 SOTA 模型 paper" 读 → 失望。Prime Intellect 自己也在论文里承认这一点。
+</div>
+
+<h3>8.4 Length reward 没收敛</h3>
+<p>实验目标之一是"用户 prompt 里指定 thinking budget,模型遵守"。结论: 没学会。Length penalty 下降很慢,远不及 1.5B/7B ablation 的速度。论文猜测原因: 32B 模型已有强 prior,length 信号弱,需要更长训练 / 更高 length-reward 权重。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>定位</th><th>与 INTELLECT-2 差异</th></tr>
+  <tr><td><strong>INTELLECT-1</strong></td><td>decentralized pretraining (DiLoCo + int8 ring all-reduce)</td><td>对面问题: pretraining 而非 RL;没有 trustless 设计</td></tr>
+  <tr><td><strong>NeMo-RL</strong></td><td>NVIDIA 的中心化 RL 栈 + sync/async + spec decoding</td><td>聚焦单 cluster 加速 (rollout speedup);所有节点可信</td></tr>
+  <tr><td><strong>OpenRLHF</strong></td><td>Ray-based,中心化</td><td>train/infer 同进程切换,异质硬件支持差;无验证机制</td></tr>
+  <tr><td><strong>verl</strong></td><td>字节开源 RL 框架,本文承认借鉴</td><td>train/infer 顺序;PRIME-RL 把它解耦成两个 binary</td></tr>
+  <tr><td><strong>FedAvg / federated RL</strong></td><td>各 worker 各自训,周期性 average</td><td>关注 privacy 不是 throughput;各 worker 训练分布漂移</td></tr>
+  <tr><td><strong>LlamaRL / PipelineRL</strong></td><td>async RLHF (Meta)</td><td>解决 async,但假设 trusted cluster;无 TOPLOC 等价物</td></tr>
+  <tr><td><strong>Tülu 3</strong></td><td>Allen 的 1-step async RL post-training</td><td>centralized;data-center scale;不需要 SHARDCAST</td></tr>
+  <tr><td><strong>SkyRL-v0</strong></td><td>long-horizon agent RL</td><td>聚焦 agent / tool calls,不是 decentralized infra</td></tr>
+</table>
+
+<p>简单说: <strong>INTELLECT-2 是这个矩阵里唯一既"async RL"又"trustless permissionless"的组合</strong>。NeMo-RL 比它更快(单 cluster),但不能搬到 swarm 上;Tülu 3 与它最像但仍然 centralized。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 与 INTELLECT-1 的 differential</h2>
+
+<p>这一节专门给读过 INTELLECT-1 的人。</p>
+
+<table>
+  <tr><th>组件 / 概念</th><th>INTELLECT-1 (pretrain)</th><th>INTELLECT-2 (RL)</th></tr>
+  <tr><td>核心训练范式</td><td>DiLoCo (local AdamW 内层 + outer SGD)</td><td>GRPO + async two-step</td></tr>
+  <tr><td>跨节点通信</td><td>每 N=500 inner step 一次 int8 ring all-reduce</td><td>单向 broadcast (trainer → worker)</td></tr>
+  <tr><td>通信压缩</td><td>int8 quantize 梯度 → 80× 减少</td><td>不压缩 weight,但用 SHARDCAST 多源 + pipelined</td></tr>
+  <tr><td>动态 join/leave</td><td>ElasticDeviceMesh (PyTorch backend)</td><td>HTTP step counter + Parquet 文件交换</td></tr>
+  <tr><td>容错</td><td>fault-tolerant ring + checkpoint</td><td>掉线 worker 自动 deregister + 重 invite</td></tr>
+  <tr><td>节点同质性</td><td>需基本同构 (一致 GPU 数 / 类型)</td><td>异质 (3090 到 MI300X 都能贡献)</td></tr>
+  <tr><td>Trust model</td><td><strong>无</strong>(假定贡献者非恶意)</td><td>TOPLOC + slashing,permissionless</td></tr>
+  <tr><td>占主要算力的角色</td><td>worker = trainer (各自训完整 model)</td><td>worker = inferer (4.5× train FLOPs)</td></tr>
+  <tr><td>worker 内存需求</td><td>必须装得下完整 10B + AdamW state</td><td>只需装 32B inference (KV+weights),消费级 GPU 够</td></tr>
+  <tr><td>"卡"的瓶颈</td><td>跨节点 all-reduce 带宽</td><td>weight broadcast 时间(已被 async 藏掉)</td></tr>
+</table>
+
+<h3>10.1 哪些抽象层被 carry over 了?</h3>
+<ul>
+  <li><strong>异质算力 + 动态 pool</strong>: 都靠 orchestrator + 心跳机制</li>
+  <li><strong>"假装阻塞通信不存在"的设计哲学</strong>: INTELLECT-1 用减少通信频率 (DiLoCo 内层 500 步无通信), INTELLECT-2 用 async overlap</li>
+  <li><strong>开源 + 协议化</strong>: Prime Intellect Protocol 直接复用,只是 compute pool 类型改成 "RL"</li>
+</ul>
+
+<h3>10.2 哪些是真正"新"的?</h3>
+<ul>
+  <li><strong>TOPLOC</strong>: 全新的 trustless verification 机制,INTELLECT-1 没必要做</li>
+  <li><strong>SHARDCAST</strong>: pretraining 时 weight 不需要全网广播(每个 worker 都自己有完整 model);RL 时需要</li>
+  <li><strong>Two-sided GRPO clip + δ</strong>: 32B + async 触发的 instability 才暴露这个问题</li>
+  <li><strong>Sampling check</strong>: 防"hybrid 攻击"的特殊检查,pretraining 时不存在</li>
+</ul>
+
+<div class="nb">
+  <strong>记忆点:</strong>从 INTELLECT-1 到 INTELLECT-2,对 decentralized 这个标签的理解变了——前者强调的是"通信少",后者强调的是"<em>不可信也行</em>"。这是更底层的、对 truly permissionless 的承诺。
+</div>
+
+<hr>
+
+<h2 id="sec11">11 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认的局限</h3>
+<ul>
+  <li>QwQ-32B 已被 RL 过,头发都快秃了再涨 2-3 点是上限了。要看大跨越得换 base</li>
+  <li>Length reward 没学会,32B 比小模型更顽固</li>
+  <li>Orchestrator + discovery service 仍是中心化(单点故障);未来打算上 DHT</li>
+  <li>Inference worker 必须是 bare-metal / VM(直连 Docker daemon),不能跑在 Kubernetes pod 里</li>
+  <li>Code execution 当前仅限算法 challenge(自带 sandbox 即可);更复杂任务需要更强隔离</li>
+</ul>
+
+<h3>我的怀疑 + 待验证</h3>
+<ol>
+  <li><strong>TOPLOC 真实抗攻击率?</strong>论文没给 "我们捕获了 X% 的恶意 rollout" 这种数字。在 testnet 跑了两周,有真正的恶意攻击者吗?可能还没到那个对抗强度</li>
+  <li><strong>2-step async 在 32B 上够稳吗?</strong>ablation 用的是 1.5B/2K context。32B 模型的 importance ratio 分布会更胖尾,clip frequency 可能更高,论文没汇报 32B 的 clip ratio 时间序列</li>
+  <li><strong>14 min broadcast 是 bottleneck 还是 capacity?</strong>如果换 100B+ 模型(310+ GB),broadcast 会增到 70 min。要么 lag 加到 5-7,要么换更激进的压缩(int8 weight → ~80 GB)。论文没讨论 scaling</li>
+  <li><strong>Cherry-pick 防御靠的 deterministic seed,但 worker 可以"挑节点 ID"。</strong>如果 worker 故意申请多个 node address,一直挑出 hash 落在简单题上的那些?论文没说 address 是否绑定 stake / KYC</li>
+  <li><strong>SHARDCAST relay 是中心化的</strong>。如果 5 个 relay 全宕,整个训练停摆。论文承认了 P2P 是 future work</li>
+  <li><strong>"vLLM log_prob 不稳定" 这个发现</strong>—— 是版本问题还是结构性?如果是结构性,所有用 vLLM 做 RL rollout 的工作都要重算 log_prob,这是个不大不小的 implicit overhead</li>
+  <li><strong>QwQ 比 R1-Distill 难训</strong>这个观察 → 是不是说明"二次 RL"会越来越难,reasoning 模型可能存在"<em>RL 资本耗尽</em>"现象?这对未来 reasoning model 持续学习是个隐忧</li>
+</ol>
+
+<h3>个人 take</h3>
+<p>这是一篇<strong>系统工程</strong>论文,不是模型论文。它的真正贡献不在 +2 AIME24,而在<strong>把 RL trustless decentralized 这个概念从 ppt 推到能跑出 32B 的工程现实</strong>。三个组件(PRIME-RL, TOPLOC, SHARDCAST)都是完整工程实现,有理由相信它们会成为<em>下一波 decentralized 训练框架的基础设施</em>——尤其当 reasoning 模型规模和 inference compute 进一步扩大的时候。</p>
+
+<p>但同时要清醒: 它的"permissionless"目前仍在 testnet 状态。真正的对抗性测试(有金钱激励的攻击者)还没到。在那之前,TOPLOC 的"<em>incentive-compatible 因为攻击者不知道哪条会被检</em>"的论证只能算<em>合理的</em>,不能算<em>验证过的</em>。</p>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> RL 比 pretraining 更适合 decentralized——通信只剩 broadcast, 且能被 async 完全藏掉<br>
+  <span class="pill">三件套</span> PRIME-RL (解耦 binary) · TOPLOC (top-k hidden hash 验证) · SHARDCAST (tree CDN 广播)<br>
+  <span class="pill">数字</span> 32B QwQ · 285K 任务 · lag=2 · broadcast 14 min · TOPLOC 100× 比 decode 快<br>
+  <span class="pill">公式</span> two-sided GRPO: J = min(min(r,δ)·Â, clip(r,1±ε)·Â),δ=4<br>
+  <span class="pill">对比 INTELLECT-1</span> 从"通信少"升级到"<em>不可信也行</em>"<br>
+  <span class="pill">陷阱</span> QwQ 已 RL 过,提升空间有限;length reward 32B 学不会
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-07 · 配套论文 PDF: <code>/data/szhang967/papers/paper-notes/INTELLECT2_2505.07291.pdf</code> · 姊妹篇: <a href="01_INTELLECT1_2412.01152.html">INTELLECT-1</a>
+</p>
+
+</main>
+
+<script>
+  function setOp(id, op){ var el = document.getElementById(id); if(el) el.setAttribute('opacity', op); }
+  function resetToploc(){
+    // No persistent state; just a placeholder for symmetric API
+  }
+  function playToploc(){
+    // Light animation: pulse the proof arrow
+    var svg = document.getElementById('toplocSvg');
+    if(!svg) return;
+    svg.style.transition = 'filter 0.4s';
+    svg.style.filter = 'brightness(1.1)';
+    setTimeout(function(){ svg.style.filter = 'none'; }, 600);
+  }
+</script>
+
+</body>
+</html>
