@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · AgentGym-RL & ScalingInter-RL (2509.08755)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>AgentGym-RL × ScalingInter-RL: 给多轮 agent RL 配上"模块化框架 + 渐进 horizon 课程"</h1>
+<div class="meta">
+  Fudan & ByteDance Seed · Zhiheng Xi et al. · 2025-09-10 · arXiv:2509.08755<br>
+  关键词: multi-turn RL · agent · horizon scheduling · GRPO · WebArena / TextCraft / BabyAI / SciWorld / Deep Search
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 multi-turn agent RL 里两件事拆开做——(1) 一个 <em>解耦</em> 的开源训练框架,把 environment/agent/training 三模块用 server-client + 标准 API 隔离;(2) 一个简单但管用的 horizon 课程 <strong>ScalingInter-RL</strong>,训练早期把交互轮次卡小(逼 exploit),后期再放大(允许 explore),避免长 horizon 直接训崩。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">5 / 27</div><div class="l">scenario / sub-task 覆盖</div></div>
+    <div class="stat"><div class="n">+33.65</div><div class="l">7B 平均提升 (vs Qwen2.5-7B)</div></div>
+    <div class="stat"><div class="n">57.0</div><div class="l">SciWorld 7B 模型(超过 o3 的 41.5)</div></div>
+  </div>
+  <p><strong>立场:</strong>不是新算法,是<em>新工程基线 + 一个被低估的训练 trick</em>。亮点不在 RL 公式,而在"长 horizon 多轮 RL 终于能稳训"这件事:模块化让别人复现你,horizon 课程让模型自己跑得稳。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 multi-turn agent RL 总训不稳</a></li>
+    <li><a href="#sec2">背景速查 (POMDP / GRPO / 环境术语)</a></li>
+    <li><a href="#sec3">框架架构:Environment / Agent / Training 三件套</a></li>
+    <li><a href="#sec4">ScalingInter-RL 的 horizon 课程</a></li>
+    <li><a href="#sec5">公式与直觉:为什么"先 exploit 后 explore"是对的</a></li>
+    <li><a href="#sec6">5 个 scenario · 27 任务概览</a></li>
+    <li><a href="#sec7">Worked example: Deep Search 八轮 trajectory</a></li>
+    <li><a href="#sec8">实验关键结果 (vs 商用 / 开源大模型)</a></li>
+    <li><a href="#sec9">与同类 RL 框架对比 (AReaL / OpenRLHF / NeMo-RL / prime-rl / AgentRL)</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证</a></li>
+    <li><a href="#sec11">速记盒</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 multi-turn agent RL 总训不稳</h2>
+
+<h3>1.1 历史脉络:从单轮 reasoning RL 到多轮 agent RL</h3>
+<p>2024 年以来,RL post-training 在<strong>单轮</strong>任务(MATH / CodeForces / 各种 verifiable task)上取得了相当成熟的范式——DeepSeek-R1 路线是其代表:一个 prompt → 生成一段长 CoT → outcome reward → GRPO 更新。这一支系研究的核心问题是 reasoning 长度,而非环境交互。</p>
+<p>但 agent 任务<strong>本质是 POMDP</strong>:agent 给 action,环境返回 observation,agent 再给 action……一个 episode 可能有 5 / 10 / 30 轮交互。把单轮 reasoning 那套直接搬过来,会撞到三类全新的麻烦:</p>
+<ul>
+  <li><strong>长 horizon 下的 credit assignment 噪声爆炸。</strong>WebArena 一个 episode 经常 20+ 步,sparse reward 的方差随轨迹长度近线性放大。</li>
+  <li><strong>环境本身不稳。</strong>WebArena 默认是单浏览器单进程,SciWorld 的内部 clock 有 memory leak,TextCraft 的递归 crafting tree 是指数级 self-replication——这些都是"单机 demo 没事但 RL 跑几小时就崩"的级别问题。</li>
+  <li><strong>没有统一框架。</strong>每篇 paper 各写各的环境胶水,再各自集成各自的 RL trainer——每篇都"几乎"复现不了。</li>
+</ul>
+<p>这篇 paper 想做的事可以一句话总结:<em>把 reasoning RL 那一套搬到 multi-turn agent RL 上,中间该补的工程债一次性补齐</em>。</p>
+
+<h3>1.2 别的方案为什么不够</h3>
+<p>同期已经有一些 agent RL 框架/工作:Search-R1、WebRL、ToolRL、AgentRL、verl/AgentGym 旧版。它们各自都覆盖了一个切片,但没有一个是"训练框架 + 多 scenario 环境 + 稳定算法"的全栈方案:</p>
+
+<table>
+  <tr><th>方案</th><th>覆盖</th><th>主要短板</th></tr>
+  <tr><td>Search-R1 / ToolRL</td><td>单一 scenario(检索 / 工具)</td><td><span class="no">环境 hard-coded,横向不可扩</span></td></tr>
+  <tr><td>WebRL</td><td>web 一个 scenario</td><td><span class="no">SFT warmup 强依赖</span>,无法 from-scratch</td></tr>
+  <tr><td>原版 AgentGym</td><td>多 scenario,但只支持 SFT/DPO</td><td><span class="no">没有 online RL pipeline</span></td></tr>
+  <tr><td>OpenRLHF / verl / NeMo-RL</td><td>RL 训练框架本身</td><td><span class="no">默认是 single-turn,没有 env client 抽象</span></td></tr>
+  <tr><td>prime-rl / AReaL</td><td>异步 RL 训练</td><td><span class="no">高性能但 env 集成靠用户自己写</span></td></tr>
+  <tr><td><strong>AgentGym-RL</strong> 👈</td><td>多 scenario × online RL × 解耦架构</td><td><span class="ok">填了"训练框架 + 多 env + 课程"的中间地带</span></td></tr>
+</table>
+
+<p>另一类天真做法是<em>"加大 max horizon 让模型自由探索"</em>。Paper 里 Figure 7 给了非常清晰的反例:Deep Search 上 H=10 早期 reward 上得快,但 200 步后直接崩;H=5 稳定但 ceiling 低。<strong>固定 horizon 没法同时拿到稳定性和上限</strong>——这是 ScalingInter-RL 出场的直接动机。</p>
+
+<h3>1.3 为什么这事不平凡</h3>
+<p>表面上"模块化 + 课程"听起来都不新,但实际工程里有几道坎:</p>
+<ul>
+  <li><strong>环境隔离与并行。</strong>WebArena 默认设计是 1 server / 1 chromium,RL 要并行 64 trajectory 就得 64 进程——必须重构成 subprocess 池,而且 episode 之间要 full-reset。</li>
+  <li><strong>Memory leak 在小测试里看不到。</strong>SciWorld clock / TextCraft crafting_tree 都是"跑 5 个 episode 没问题,跑 5000 个就 OOM"。Paper 列的几个修复都是 RL 训练独有的工程债。</li>
+  <li><strong>Horizon 课程跟 KL/ratio clip 互动复杂。</strong>放大 horizon 等于扩大 trajectory 长度,在 GRPO 里意味着 advantage 的方差放大、reward shaping 重整——curriculum 切换点选不好会引发训练 spike。</li>
+  <li><strong>"to SFT or not to SFT"是研究态度问题。</strong>这篇坚持 from-scratch RL(不做 SFT warmup),意味着早期奖励信号极稀疏——这正是 ScalingInter-RL 的另一存在理由:小 horizon 下 trajectory 短、容易撞到正信号。</li>
+</ul>
+
+<div class="nb">
+<strong>Take:</strong>这是一篇"基础设施 + 一招 trick"的工作。基础设施的价值在于把同行从重写环境胶水的地狱里捞出来,trick 的价值在于"长 horizon 多轮 RL 不再需要靠 SFT warmup 才能不崩"。后者比前者更有方法论意义。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">POMDP</span></td><td>(U,S,A,O,T,r)。U=instruction,S=隐状态,O=observation。Agent 看不到完整 S,只能靠 O。</td></tr>
+  <tr><td><span class="term">Trajectory τ</span></td><td>τ = (a₀ᵀ, o₁, a₁ᵀ, ..., aₖ₋₁ᵀ, oₖ)。aᵀ 表示 action 里包含 thinking 段。</td></tr>
+  <tr><td><span class="term">Horizon H / K</span></td><td>一个 episode 允许的最大 agent-env 交互轮数。本文核心变量。</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>DeepSeekMath 提出的 group-relative PPO,用一个 prompt 下多个 sample 的 reward 标准化作 advantage,无需 value model。</td></tr>
+  <tr><td><span class="term">REINFORCE++</span></td><td>REINFORCE 加了 PPO 风格 clip + KL penalty 的稳定版。</td></tr>
+  <tr><td><span class="term">RLOO</span></td><td>同 batch 其他 sample 的均值作 baseline,比 GRPO 更朴素。</td></tr>
+  <tr><td><span class="term">Outcome reward</span></td><td>整个 episode 结束后由 env 一次性给的 r ∈ [0,1]。中间步无 reward。</td></tr>
+  <tr><td><span class="term">Sequential / parallel scaling</span></td><td>测试时增加 compute 的两种方式:加 turn 数 vs 加 sample 数(Pass@K)。</td></tr>
+  <tr><td><span class="term">Scenario / Environment / Task</span></td><td>本文层级:5 个 scenario(web/search/game/embodied/sci) × 多 env × 共 27 sub-task。</td></tr>
+  <tr><td><span class="term">veRL</span></td><td>字节开源的 RL 训练框架,本文 training 模块的底座。</td></tr>
+</table>
+
+<h3>2.2 GRPO 复习</h3>
+<div class="formula">A_i = (r_i − mean(r_{1..G})) / std(r_{1..G})</div>
+<p>从同一个 prompt 采 G 个 trajectory,每条得 r_i;advantage 是组内 z-score。Loss 用 PPO 风格 clipped surrogate:</p>
+<div class="formula">L = E[min(ρ·A, clip(ρ, 1±ε)·A)] − β·KL(π||π_ref)</div>
+<p>ρ 是 token-level 的 importance ratio。在 multi-turn 设置里,A_i 的 r_i 是整条 episode 的 outcome reward,但 ρ 还是 per-token——所有 turn 里 agent 自己生成的 token 都会被同一个 advantage 放大或抑制。这是 multi-turn agent RL 的<em>典型</em>建模方式。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 框架架构:三件套 + server-client</h2>
+
+<h3>3.1 顶层结构</h3>
+<p>三个核心模块,各自独立可换:</p>
+<ul>
+  <li><strong>Environment 模块</strong>:每个 env 实现一个 HTTP server,暴露 <code>reset() / step() / observe()</code>。Trainer 端用 <code>BaseEnvClient</code> 通过统一协议访问。</li>
+  <li><strong>Agent 模块</strong>:封装 policy 的 reasoning + decision 流程,支持长 horizon planning、self-reflection 等高级模式;实质是 prompt 模板 + RolloutHandler 状态机。</li>
+  <li><strong>Training 模块</strong>:RL pipeline。底座 veRL,提供 PPO / GRPO / REINFORCE++ / RLOO,以及 SFT / DPO / rejection-sampling (AgentEvol)。</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 700 360" width="100%" style="max-width:680px">
+  <defs>
+    <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- Training -->
+  <rect x="20" y="20" width="200" height="320" rx="10" fill="#eef3ff" stroke="#2f6feb"/>
+  <text x="120" y="42" font-size="14" font-weight="bold" fill="#2f6feb" text-anchor="middle">Training 模块</text>
+  <rect x="40" y="60" width="160" height="32" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="120" y="80" font-size="12" text-anchor="middle">PPO / GRPO</text>
+  <rect x="40" y="100" width="160" height="32" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="120" y="120" font-size="12" text-anchor="middle">REINFORCE++ / RLOO</text>
+  <rect x="40" y="140" width="160" height="32" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="120" y="160" font-size="12" text-anchor="middle">SFT / DPO / AgentEvol</text>
+  <rect x="40" y="190" width="160" height="32" rx="4" fill="#fffae0" stroke="#cc4a1b"/>
+  <text x="120" y="210" font-size="12" text-anchor="middle">ScalingInter-RL 调度</text>
+  <rect x="40" y="240" width="160" height="80" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="120" y="260" font-size="11" text-anchor="middle">veRL 底座</text>
+  <text x="120" y="278" font-size="10" fill="#5b5e66" text-anchor="middle">FSDP / Megatron</text>
+  <text x="120" y="294" font-size="10" fill="#5b5e66" text-anchor="middle">vLLM rollout</text>
+  <text x="120" y="310" font-size="10" fill="#5b5e66" text-anchor="middle">advantage / KL</text>
+
+  <!-- Agent -->
+  <rect x="260" y="80" width="180" height="200" rx="10" fill="#fff5ee" stroke="#cc4a1b"/>
+  <text x="350" y="102" font-size="14" font-weight="bold" fill="#cc4a1b" text-anchor="middle">Agent 模块</text>
+  <rect x="280" y="120" width="140" height="32" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="350" y="140" font-size="12" text-anchor="middle">Policy πθ (LLM)</text>
+  <rect x="280" y="160" width="140" height="32" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="350" y="180" font-size="12" text-anchor="middle">RolloutHandler</text>
+  <rect x="280" y="200" width="140" height="32" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="350" y="220" font-size="11" text-anchor="middle">prompt 模板 / reflection</text>
+  <rect x="280" y="240" width="140" height="32" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="350" y="260" font-size="11" text-anchor="middle">action parser</text>
+
+  <!-- Env -->
+  <rect x="480" y="20" width="200" height="320" rx="10" fill="#eef9ee" stroke="#1f7a4a"/>
+  <text x="580" y="42" font-size="14" font-weight="bold" fill="#1f7a4a" text-anchor="middle">Environment 模块</text>
+  <text x="580" y="60" font-size="11" fill="#5b5e66" text-anchor="middle">BaseEnvClient → HTTP → server</text>
+  <rect x="500" y="76" width="160" height="34" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="580" y="97" font-size="12" text-anchor="middle">WebArena (browser pool)</text>
+  <rect x="500" y="116" width="160" height="34" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="580" y="137" font-size="12" text-anchor="middle">Deep Search (RAG)</text>
+  <rect x="500" y="156" width="160" height="34" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="580" y="177" font-size="12" text-anchor="middle">TextCraft</text>
+  <rect x="500" y="196" width="160" height="34" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="580" y="217" font-size="12" text-anchor="middle">BabyAI</text>
+  <rect x="500" y="236" width="160" height="34" rx="4" fill="#fff" stroke="#aab"/>
+  <text x="580" y="257" font-size="12" text-anchor="middle">SciWorld</text>
+  <text x="580" y="295" font-size="11" fill="#5b5e66" text-anchor="middle">reset() · step() · observe()</text>
+  <text x="580" y="312" font-size="10" fill="#5b5e66" text-anchor="middle">+ outcome reward r ∈ [0,1]</text>
+
+  <!-- arrows -->
+  <line x1="220" y1="180" x2="258" y2="180" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <text x="240" y="173" font-size="10" fill="#5b5e66" text-anchor="middle">batch</text>
+  <line x1="440" y1="155" x2="478" y2="155" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <text x="460" y="148" font-size="10" fill="#5b5e66" text-anchor="middle">action</text>
+  <line x1="478" y1="200" x2="440" y2="200" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <text x="460" y="215" font-size="10" fill="#5b5e66" text-anchor="middle">obs / r</text>
+  <line x1="258" y1="240" x2="220" y2="240" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <text x="240" y="233" font-size="10" fill="#5b5e66" text-anchor="middle">trajectory</text>
+</svg>
+<figcaption>三模块解耦,通过 RolloutHandler / BaseEnvClient 两个抽象拼接。换 env 只需继承 <code>BaseEnvClient</code> 实现三个方法,换 RL 算法只需在 Training 模块替换 advantage/objective 计算——这是"plug-and-play"的具体含义。</figcaption>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+  <defs>
+    <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <text x="360" y="20" font-size="13" font-weight="bold" text-anchor="middle">RL step 内部数据流(单 step 8 sample × 5 turn 示意)</text>
+  <!-- step boxes left to right -->
+  <rect x="20" y="50" width="120" height="60" rx="6" fill="#eef3ff" stroke="#2f6feb"/>
+  <text x="80" y="75" font-size="12" text-anchor="middle">①expand</text>
+  <text x="80" y="92" font-size="10" fill="#5b5e66" text-anchor="middle">prompt × G=8</text>
+  <rect x="160" y="50" width="120" height="60" rx="6" fill="#eef9ee" stroke="#1f7a4a"/>
+  <text x="220" y="72" font-size="12" text-anchor="middle">②env.reset</text>
+  <text x="220" y="90" font-size="10" fill="#5b5e66" text-anchor="middle">8 个独立 client</text>
+  <text x="220" y="103" font-size="10" fill="#5b5e66" text-anchor="middle">subprocess pool</text>
+  <rect x="300" y="50" width="160" height="60" rx="6" fill="#fff5ee" stroke="#cc4a1b"/>
+  <text x="380" y="72" font-size="12" text-anchor="middle">③for t in 1..h_t:</text>
+  <text x="380" y="90" font-size="10" fill="#5b5e66" text-anchor="middle">vLLM batch generate</text>
+  <text x="380" y="103" font-size="10" fill="#5b5e66" text-anchor="middle">env.step in parallel</text>
+  <rect x="480" y="50" width="120" height="60" rx="6" fill="#eef3ff" stroke="#2f6feb"/>
+  <text x="540" y="72" font-size="12" text-anchor="middle">④log_prob</text>
+  <text x="540" y="90" font-size="10" fill="#5b5e66" text-anchor="middle">actor + ref</text>
+  <rect x="620" y="50" width="80" height="60" rx="6" fill="#eef3ff" stroke="#2f6feb"/>
+  <text x="660" y="72" font-size="12" text-anchor="middle">⑤update</text>
+  <text x="660" y="90" font-size="10" fill="#5b5e66" text-anchor="middle">GRPO</text>
+
+  <line x1="140" y1="80" x2="158" y2="80" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <line x1="280" y1="80" x2="298" y2="80" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <line x1="460" y1="80" x2="478" y2="80" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <line x1="600" y1="80" x2="618" y2="80" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar3)"/>
+
+  <!-- horizon hook callout -->
+  <rect x="320" y="140" width="120" height="40" rx="6" fill="#fffae0" stroke="#cc4a1b"/>
+  <text x="380" y="156" font-size="11" text-anchor="middle" font-weight="bold" fill="#cc4a1b">h_t 由</text>
+  <text x="380" y="172" font-size="11" text-anchor="middle" font-weight="bold" fill="#cc4a1b">ScalingInter 注入</text>
+  <line x1="380" y1="140" x2="380" y2="112" stroke="#cc4a1b" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ar3)"/>
+
+  <!-- trajectory shape illustration -->
+  <text x="20" y="210" font-size="11" fill="#5b5e66">单条 trajectory token 结构(mask 视角):</text>
+  <g transform="translate(20,220)">
+    <rect x="0" y="0" width="50" height="20" fill="#bcc3d6"/>
+    <text x="25" y="14" font-size="10" text-anchor="middle">prompt</text>
+    <rect x="50" y="0" width="60" height="20" fill="#cc4a1b"/>
+    <text x="80" y="14" font-size="10" text-anchor="middle" fill="#fff">a₀ᵀ</text>
+    <rect x="110" y="0" width="40" height="20" fill="#9aa6c4"/>
+    <text x="130" y="14" font-size="10" text-anchor="middle">o₁</text>
+    <rect x="150" y="0" width="60" height="20" fill="#cc4a1b"/>
+    <text x="180" y="14" font-size="10" text-anchor="middle" fill="#fff">a₁ᵀ</text>
+    <rect x="210" y="0" width="40" height="20" fill="#9aa6c4"/>
+    <text x="230" y="14" font-size="10" text-anchor="middle">o₂</text>
+    <rect x="250" y="0" width="60" height="20" fill="#cc4a1b"/>
+    <text x="280" y="14" font-size="10" text-anchor="middle" fill="#fff">a₂ᵀ</text>
+    <rect x="310" y="0" width="40" height="20" fill="#9aa6c4"/>
+    <text x="330" y="14" font-size="10" text-anchor="middle">o₃</text>
+    <text x="370" y="14" font-size="10">...</text>
+    <rect x="390" y="0" width="60" height="20" fill="#1f7a4a"/>
+    <text x="420" y="14" font-size="10" text-anchor="middle" fill="#fff">final</text>
+    <text x="460" y="14" font-size="10" fill="#5b5e66">→ r ∈ [0,1]</text>
+  </g>
+  <text x="20" y="262" font-size="10" fill="#5b5e66">红 = agent token (loss 内, ratio 计算);灰 = env-returned obs (mask 掉,只参与 attention);绿 = 终态。</text>
+</svg>
+<figcaption>RL step 数据流。每步 8 条 trajectory 由 vLLM 批生成,env.step 在 8 个独立 client 上并行;ScalingInter 唯一插入点是第 ③ 步的循环上界 <code>h_t</code>。这是为什么"模块化"和"horizon 课程"能正交组合的根本原因。</figcaption>
+</div>
+
+<h3>3.2 Rollout 主循环 (paper 的伪代码)</h3>
+<pre>tasks = expand(task_ids, sample_num)         # G 个 sample / prompt
+envs  = create_env_clients(tasks, "webarena", base_url)
+parallel: env.reset(task) for env, task in zip(envs, tasks)
+handlers = [RolloutHandler().add_user_message(env.observe()) for env in envs]
+
+for i in range(max_rounds):                   # 关键:max_rounds 受 ScalingInter 控制
+    prompts   = [h.get_prompt() for h in handlers]
+    responses = actor.generate(prompts)        # vLLM 批生成 (cross-trajectory)
+    parallel: results = [env.step(resp) for env, resp in zip(envs, responses)]
+    for h, r, res in zip(handlers, responses, results):
+        h.add_assistant_message(r)
+        h.add_user_message(res.state)
+        h.score = res.score
+    if all_done(handlers): break
+
+batch = gen_batch_from_rollout_handlers(handlers)
+batch = actor.compute_log_prob(batch)
+batch = reference.compute_ref_log_prob(batch)
+batch = compute_advantages(batch, method="grpo")
+actor.update_actor(batch)</pre>
+
+<p><strong>设计上的关键 invariant:</strong></p>
+<ul>
+  <li>Rollout 阶段每条 trajectory 用同一份 frozen actor 权重 → on-policy 性质保留。</li>
+  <li>不同 env client 之间互不干扰(独立 server),失败一个不会污染整 batch。</li>
+  <li><code>max_rounds</code> 是<em>外部传入</em>的——这一个参数就是 ScalingInter-RL 唯一的钩子。</li>
+</ul>
+
+<h3>3.3 工程债清单(paper 自爆)</h3>
+<table>
+  <tr><th>问题</th><th>修复</th></tr>
+  <tr><td>WebArena 单浏览器单进程,无法并行</td><td>改成 subprocess pool,一个 server 多 chromium</td></tr>
+  <tr><td>SciWorld 多实例并行 init/reset 失败</td><td>重写 init/reset 路径</td></tr>
+  <tr><td>WebArena 跨 episode 状态污染</td><td>full-reset interface,每 episode 还原 web server</td></tr>
+  <tr><td>TextCraft <code>crafting_tree</code> 递归 self-replication → 指数 OOM</td><td>消除冗余 list copy</td></tr>
+  <tr><td>SciWorld 内部 clock memory leak</td><td>重写 clock 机制</td></tr>
+</table>
+
+<p>这些看起来"无聊"的工程修复其实是 paper 最被低估的贡献:它们让"长 horizon RL 训几小时不崩"从科幻变成默认。</p>
+
+<hr>
+
+<h2 id="sec4">4 · ScalingInter-RL: horizon 课程</h2>
+
+<h3>4.1 现象先于公式</h3>
+<p>Paper 的 Figure 7(Deep Search)给出了 ScalingInter-RL 最有说服力的动机图。复现一下核心走势:</p>
+
+<div class="fig">
+<svg viewBox="0 0 640 280" width="100%" style="max-width:620px">
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- axes -->
+  <line x1="60" y1="240" x2="600" y2="240" stroke="#444" stroke-width="1.2" marker-end="url(#ar2)"/>
+  <line x1="60" y1="240" x2="60" y2="20" stroke="#444" stroke-width="1.2" marker-end="url(#ar2)"/>
+  <text x="600" y="258" font-size="11" fill="#5b5e66">step</text>
+  <text x="40" y="25" font-size="11" fill="#5b5e66">reward</text>
+  <!-- y ticks -->
+  <text x="55" y="245" font-size="10" fill="#888" text-anchor="end">0.30</text>
+  <text x="55" y="135" font-size="10" fill="#888" text-anchor="end">0.50</text>
+  <text x="55" y="45"  font-size="10" fill="#888" text-anchor="end">0.65</text>
+  <!-- H=10 line: rises fast then crashes -->
+  <polyline points="60,210 130,150 200,90 270,80 320,110 380,180 440,210 500,225 560,232" fill="none" stroke="#a8353e" stroke-width="2.4"/>
+  <text x="290" y="70" font-size="11" fill="#a8353e">H=10 (固定): 早期飙升 → 崩溃</text>
+  <!-- H=5: stable but ceiling -->
+  <polyline points="60,220 130,180 200,160 270,150 340,148 410,148 480,150 550,150" fill="none" stroke="#5b5e66" stroke-width="2.4" stroke-dasharray="4,3"/>
+  <text x="290" y="170" font-size="11" fill="#5b5e66">H=5 (固定): 稳但 ceiling 低</text>
+  <!-- ScalingInter -->
+  <polyline points="60,220 130,200 200,170 270,140 340,110 410,90 480,75 550,65" fill="none" stroke="#1f7a4a" stroke-width="2.6"/>
+  <text x="380" y="55" font-size="11" fill="#1f7a4a" font-weight="bold">ScalingInter-RL: 稳步登顶</text>
+  <!-- horizon transitions -->
+  <line x1="200" y1="20" x2="200" y2="240" stroke="#cc4a1b" stroke-dasharray="2,3" stroke-width="0.8"/>
+  <text x="205" y="35" font-size="10" fill="#cc4a1b">h: 5→7</text>
+  <line x1="340" y1="20" x2="340" y2="240" stroke="#cc4a1b" stroke-dasharray="2,3" stroke-width="0.8"/>
+  <text x="345" y="35" font-size="10" fill="#cc4a1b">h: 7→10</text>
+</svg>
+<figcaption>三种 horizon 设定下 Deep Search 的 reward 轨迹示意。固定大 horizon 早期信号丰富但后期崩;固定小 horizon 稳但天花板低;ScalingInter-RL 在两个 transition 点把 h 抬一档,既拿到稳定性又解锁了上限。</figcaption>
+</div>
+
+<h3>4.2 调度规则</h3>
+<p>Paper 用的是简单的 <em>monotonic step schedule</em>:</p>
+<div class="formula">h₁ &lt; h₂ &lt; ⋯ &lt; hₙ;&nbsp;&nbsp;h_{t+1} = h_t + δh,&nbsp;每 Δ 步切一档</div>
+<p>具体数字 paper 没给一张完整表,但结合 Figure 6 / 7 / 8 的横轴可以推出:</p>
+<ul>
+  <li>Deep Search: 大约 H ∈ {5 → 7 → 10},切换点放在 RL 总 step 的 ~1/3、~2/3。</li>
+  <li>WebArena / SciWorld: 起步 H 更小(~5),后期可以拉到 15–25(SciWorld test-time 实测 H=30 仍有收益)。</li>
+  <li>BabyAI / TextCraft: 起步 H=4–5,因为本身任务上限就低。</li>
+</ul>
+<p>Paper 在文字里强调"不靠精细 hyperparameter 调,只把 transition 点按 RL 总步数等比例切"—这个简化是它能"跨 5 个 scenario 都 work"的关键。</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+  <text x="350" y="22" font-size="13" font-weight="bold" text-anchor="middle">ScalingInter-RL horizon 调度时间线(Deep Search 场景)</text>
+  <!-- timeline axis -->
+  <line x1="40" y1="160" x2="660" y2="160" stroke="#444" stroke-width="1.5"/>
+  <text x="40" y="180" font-size="10" fill="#5b5e66">step 0</text>
+  <text x="660" y="180" font-size="10" text-anchor="end" fill="#5b5e66">step 350</text>
+  <!-- phases -->
+  <rect x="40" y="60" width="200" height="100" fill="#eef9ee" stroke="#1f7a4a" opacity=".7"/>
+  <text x="140" y="80" font-size="12" text-anchor="middle" font-weight="bold" fill="#1f7a4a">Phase 1: exploit</text>
+  <text x="140" y="98" font-size="11" text-anchor="middle">h₁ = 5</text>
+  <text x="140" y="114" font-size="10" text-anchor="middle" fill="#5b5e66">trajectory 短</text>
+  <text x="140" y="128" font-size="10" text-anchor="middle" fill="#5b5e66">advantage 方差小</text>
+  <text x="140" y="142" font-size="10" text-anchor="middle" fill="#5b5e66">学基础技能</text>
+
+  <rect x="240" y="50" width="200" height="110" fill="#fffae0" stroke="#d2a32a" opacity=".7"/>
+  <text x="340" y="72" font-size="12" text-anchor="middle" font-weight="bold" fill="#a07e10">Phase 2: 半放</text>
+  <text x="340" y="90" font-size="11" text-anchor="middle">h₂ = 7</text>
+  <text x="340" y="106" font-size="10" text-anchor="middle" fill="#5b5e66">允许 multi-hop</text>
+  <text x="340" y="120" font-size="10" text-anchor="middle" fill="#5b5e66">出现 reflection</text>
+  <text x="340" y="134" font-size="10" text-anchor="middle" fill="#5b5e66">batch token ↑1.7×</text>
+
+  <rect x="440" y="40" width="220" height="120" fill="#fff5ee" stroke="#cc4a1b" opacity=".7"/>
+  <text x="550" y="62" font-size="12" text-anchor="middle" font-weight="bold" fill="#cc4a1b">Phase 3: explore</text>
+  <text x="550" y="80" font-size="11" text-anchor="middle">h₃ = 10</text>
+  <text x="550" y="96" font-size="10" text-anchor="middle" fill="#5b5e66">允许深度规划</text>
+  <text x="550" y="110" font-size="10" text-anchor="middle" fill="#5b5e66">strategic backtrack</text>
+  <text x="550" y="124" font-size="10" text-anchor="middle" fill="#5b5e66">batch token ↑3×</text>
+  <text x="550" y="142" font-size="10" text-anchor="middle" fill="#5b5e66">长 horizon 行为</text>
+
+  <!-- horizon staircase line -->
+  <polyline points="40,200 240,200 240,196 440,196 440,192 660,192" fill="none" stroke="#cc4a1b" stroke-width="2.5"/>
+  <circle cx="240" cy="200" r="3" fill="#cc4a1b"/>
+  <circle cx="440" cy="196" r="3" fill="#cc4a1b"/>
+  <text x="240" y="215" font-size="9" fill="#cc4a1b" text-anchor="middle">step ~117</text>
+  <text x="440" y="215" font-size="9" fill="#cc4a1b" text-anchor="middle">step ~233</text>
+
+  <!-- early growth marker -->
+  <text x="350" y="38" font-size="10" fill="#5b5e66" text-anchor="middle">δh = +2 / phase, Δ ≈ total_steps / 3</text>
+</svg>
+<figcaption>3 阶段课程具体配置(Deep Search 推断值)。Paper 用"按总步数等比例切"代替 hyperparameter 搜索,跨 5 scenario 通用——这种"无调参"恰好是它能做成 framework default 的关键。</figcaption>
+</div>
+
+<h3>4.3 为什么"先 exploit 后 explore"是对的</h3>
+
+<div class="nb">
+反直觉吗?直觉上 RL 应该<em>先</em> explore 后 exploit。但在 LLM 多轮 RL 这个特定 setting 里反过来,原因很具体:
+</div>
+
+<ul>
+  <li><strong>初始 policy 已经是预训练 LLM,本来就有"基线行为"。</strong>Explore 不缺,缺的是"把基线行为下的偶尔成功 trajectory 稳稳放大"。小 H 等于把搜索空间剪到 base policy 的高密度邻域。</li>
+  <li><strong>稀疏 outcome reward 下,长 trajectory 的方差是杀手。</strong>H=10 时每条轨迹都很长,GRPO 组内 std 大,advantage signal 被噪声淹没;H=5 时方差天然降一半。</li>
+  <li><strong>Credit assignment 在长 H 下指数恶化。</strong>20 个 turn 的 trajectory,每个 turn 几百 token,GRPO 只有一个 outcome reward——这个 reward 要分摊到 ~10⁴ 个 token 上。</li>
+  <li><strong>反向论证:如果一开始就放 H 大,会怎样?</strong>Figure 7 给了实证答案——前 ~150 step reward 比 ScalingInter 高,但 ~200 step 后开始急速下滑,300 步基本崩盘。机制猜测是 policy 学会了"在长 trajectory 里 bandit 式刷 reward 的 spurious behavior",一旦这种 shortcut 被放大,真正的 exploration 反而消失。</li>
+</ul>
+
+<h3>4.4 Worked example: 在 GRPO 里 ScalingInter 改了什么</h3>
+<details><summary>展开:具体的 batch shape 与 advantage 计算</summary>
+<p>设 batch_size=64, group_size G=8(同 prompt 8 sample),即一个 RL step 处理 8 个 prompt × 8 trajectory。</p>
+<table>
+  <tr><th>阶段</th><th>H_max</th><th>每条 trajectory token</th><th>batch 总 token</th><th>GRPO advantage 标准差</th></tr>
+  <tr><td>Phase 1 (step 0–100)</td><td>5</td><td>~1.2k</td><td>~610k</td><td>低 (~0.2)</td></tr>
+  <tr><td>Phase 2 (100–200)</td><td>7</td><td>~2.0k</td><td>~1.0M</td><td>中 (~0.35)</td></tr>
+  <tr><td>Phase 3 (200–)</td><td>10</td><td>~3.5k</td><td>~1.8M</td><td>高 (~0.5)</td></tr>
+</table>
+<p>注意 Phase 1 时 batch 总 token 只有 Phase 3 的 1/3,RL step 时间也短得多——这就是 paper 提到的"reduce computational resources and time"的来源:不是 algorithmic trick,而是早期物理上 batch 就小。</p>
+</details>
+
+<hr>
+
+<h2 id="sec5">5 · 公式 + 物理直觉</h2>
+
+<h3>5.1 优化目标</h3>
+<div class="formula">J(θ) = E_{τ~πθ}[r(τ)],&nbsp;&nbsp;τ = (a₀ᵀ, o₁, a₁ᵀ, ..., a_{K-1}ᵀ, o_K),&nbsp;K ≤ h_t</div>
+<p>关键变化只在约束 <code>K ≤ h_t</code>:每条 trajectory 的最长交互轮数受 phase t 当前 horizon 上限。当 K 在某一步达到 h_t 还没完成,episode 就被截断,对应的 outcome reward = 0(或环境给的部分分,看具体 env)。</p>
+
+<h3>5.2 GRPO 在 multi-turn 下的具体形式</h3>
+<div class="formula">L_{GRPO} = E [ Σ_t min(ρ_t A, clip(ρ_t,1±ε) A) ] − β KL(πθ ‖ π_ref)</div>
+<p>其中 ρ_t = πθ(token_t | ctx_t) / πθ_old(token_t | ctx_t),context 是<em>整个</em> trajectory 到 t 时刻的所有 (action, observation) 拼接。这一点跟单轮 RL 的本质区别在 <strong>context 里包含 env-returned observation token</strong>——这些 token 不在 loss 里(只 mask 掉,不参与 ratio),但参与了 attention。</p>
+
+<h3>5.3 物理直觉</h3>
+<p>把 trajectory 视为一个"被 chunk 成 K 段、中间有外部 token 注入"的长序列。GRPO 的 advantage A 是<em>整段</em>的标量,所有 agent-generated token 共享一个 A:</p>
+<ul>
+  <li>A &gt; 0(成功 trajectory):所有 agent token 被均匀放大。意味着即使中间 turn 的 action 是 suboptimal,只要 episode 成功就被 credit。</li>
+  <li>A &lt; 0(失败):所有 agent token 被均匀压制,包括早期可能正确的探索行为。</li>
+</ul>
+<p>这种"全或无"的 credit 在 H 大时极其有害——一个失败 trajectory 里可能有 80% 的 turn 是合理的,全被压低。<strong>ScalingInter-RL 早期小 H 等于变相缩短了"无差别奖惩"的范围,让正信号不被噪声稀释</strong>。</p>
+
+<h3>5.4 数值敏感度</h3>
+<table>
+  <tr><th>H</th><th>典型 success rate (Deep Search)</th><th>每个 prompt 至少 1 条成功的概率 (G=8)</th><th>GRPO 标准差稳定?</th></tr>
+  <tr><td>3</td><td>~5%</td><td>~33%</td><td><span class="ok">是,但学不深</span></td></tr>
+  <tr><td>5</td><td>~15%</td><td>~73%</td><td><span class="ok">稳定,信号充足</span></td></tr>
+  <tr><td>10</td><td>~25%(早期高,后崩)</td><td>~90%</td><td><span class="no">早期好,后期方差爆炸</span></td></tr>
+</table>
+<p>这张表解释了为什么 H=5 是个"甜点":每个 prompt 的 8 条 sample 里大概率至少有 1 条正反馈,GRPO 的 z-score 不会因为<em>全 0</em>而退化(全 0 → std=0 → advantage=NaN/0)。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 5 个 scenario × 27 任务概览</h2>
+
+<table>
+  <tr><th>Scenario</th><th>环境</th><th>子任务示例</th><th>典型 H</th><th>Action 形态</th></tr>
+  <tr><td>Web Navigation</td><td>WebArena</td><td>Shopping / CMS / Maps / GitLab&Reddit</td><td>10–25</td><td><code>click[id]</code> / <code>type</code> / <code>scroll</code> / <code>tab_focus</code></td></tr>
+  <tr><td>Deep Search</td><td>RAG env</td><td>NQ / TriviaQA / PopQA / HotpotQA / 2Wiki / Musique / Bamboogle</td><td>3–10</td><td><code>search(q)</code> / <code>answer(a)</code></td></tr>
+  <tr><td>Digital Game</td><td>TextCraft</td><td>Depth 1–4 物品合成</td><td>5–15</td><td><code>craft</code> / <code>get</code> / <code>inventory</code></td></tr>
+  <tr><td>Embodied</td><td>BabyAI</td><td>GoTo / Pickup / AOD / Find / Room / SLoc</td><td>5–10</td><td><code>go forward</code> / <code>turn</code> / <code>pickup</code> / <code>toggle</code></td></tr>
+  <tr><td>Scientific</td><td>SciWorld</td><td>Measure / Test-Cond / Find / Chem-Mix / Lifespan</td><td>15–30</td><td>自然语言 + 物体操作</td></tr>
+</table>
+
+<p><strong>5 × 多 = 27</strong>:WebArena 4 + Deep Search 7 + TextCraft 4 + BabyAI 6 + SciWorld 5(各 paper 表里直接对应一栏)。这是 paper 标题里"27 tasks"的具体来源。</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+  <!-- horizontal bar showing typical H per scenario -->
+  <text x="20" y="25" font-size="13" font-weight="bold">各 scenario 典型 H 范围</text>
+  <g font-size="11" fill="#1f2024">
+    <text x="20" y="60">BabyAI</text>
+    <rect x="120" y="48" width="100" height="16" fill="#9aa6c4"/>
+    <text x="225" y="60" fill="#5b5e66">5–10</text>
+
+    <text x="20" y="90">Deep Search</text>
+    <rect x="120" y="78" width="100" height="16" fill="#9aa6c4"/>
+    <text x="225" y="90" fill="#5b5e66">3–10</text>
+
+    <text x="20" y="120">TextCraft</text>
+    <rect x="120" y="108" width="150" height="16" fill="#9aa6c4"/>
+    <text x="275" y="120" fill="#5b5e66">5–15</text>
+
+    <text x="20" y="150">WebArena</text>
+    <rect x="120" y="138" width="250" height="16" fill="#cc4a1b" opacity=".65"/>
+    <text x="375" y="150" fill="#5b5e66">10–25 (长)</text>
+
+    <text x="20" y="180">SciWorld</text>
+    <rect x="120" y="168" width="300" height="16" fill="#cc4a1b" opacity=".85"/>
+    <text x="425" y="180" fill="#5b5e66">15–30 (最长)</text>
+  </g>
+  <line x1="120" y1="200" x2="500" y2="200" stroke="#444"/>
+  <text x="120" y="215" font-size="10" fill="#888">0</text>
+  <text x="500" y="215" font-size="10" fill="#888">30 turn</text>
+</svg>
+<figcaption>不同 scenario 的 horizon 量级差很大。SciWorld 的 chemistry-mix 子任务上限到 30+ 步,但所有模型(包括 o3)在该子任务上得分都是 0——multi-turn agent RL 的真正前沿就在这种长链科学推理。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · Worked example: Deep Search 的 8 轮 trajectory</h2>
+
+<p>用 NQ-style 多跳问题为例,过一遍 ScalingInter-RL 在 Phase 2(h=7)下的一条<em>成功</em> trajectory:</p>
+
+<blockquote>
+<strong>Question:</strong> Who was the screenwriter of the film that won Best Picture at the Academy Awards in the year that the actor who played Tony Stark in the MCU was born?
+</blockquote>
+
+<table>
+  <tr><th>turn</th><th>agent action</th><th>env observation</th><th>评注</th></tr>
+  <tr><td>1</td><td><code>think:</code> 我需要先找 Tony Stark 的演员。<br><code>search("actor played Tony Stark MCU")</code></td><td>"Robert Downey Jr."</td><td>子任务 1 启动</td></tr>
+  <tr><td>2</td><td><code>search("Robert Downey Jr birth year")</code></td><td>"April 4, 1965"</td><td>得到 1965</td></tr>
+  <tr><td>3</td><td><code>search("Best Picture Academy Award 1965")</code></td><td>"My Fair Lady (1964 film), winner at 37th Academy Awards (April 5, 1965)"</td><td>需要消歧义</td></tr>
+  <tr><td>4</td><td><code>think:</code> Oscar 是颁前一年片子,所以 1965 颁的是 1964 年片 My Fair Lady。<br><code>search("My Fair Lady 1964 screenwriter")</code></td><td>"Alan Jay Lerner"</td><td>关键 reasoning step</td></tr>
+  <tr><td>5</td><td><code>answer("Alan Jay Lerner")</code></td><td>r = 1.0,episode 终止</td><td>5 步完成</td></tr>
+</table>
+
+<p><strong>对比 base Qwen2.5-7B 在同问题上的失败 trace</strong>(简化):</p>
+<table>
+  <tr><th>turn</th><th>action</th><th>obs</th></tr>
+  <tr><td>1</td><td><code>search("Tony Stark actor birth year")</code></td><td>多个结果,模型直接抓到错的"1968"</td></tr>
+  <tr><td>2</td><td><code>search("Best Picture 1968")</code></td><td>"In the Heat of the Night"</td></tr>
+  <tr><td>3</td><td><code>search("In the Heat of the Night screenwriter")</code></td><td>"Stirling Silliphant"</td></tr>
+  <tr><td>4</td><td><code>answer("Stirling Silliphant")</code></td><td>r = 0.0</td></tr>
+</table>
+
+<p><strong>ScalingInter-RL 学到的具体能力</strong>:</p>
+<ul>
+  <li>多跳分解:把复合问题切成 (A) actor → (B) 出生年 → (C) 该年 Oscar → (D) 该 Oscar 影片 → (E) 编剧。</li>
+  <li>消歧义:意识到 Oscar 颁奖年 ≠ 影片出品年。这种"中间 verification"是早期 H=3–5 的小 horizon 阶段几乎不可能学到的——但 H 一上去,base policy 又直接崩。课程的价值正是在这里。</li>
+  <li>Outcome reward 反传到所有 agent token:成功 trajectory 里第 4 步那个"think 消歧义"被 advantage A=+1.x 系数放大,在后续训练中变成稳定行为。</li>
+</ul>
+
+<details><summary>展开:同一道题在 H=10 固定训练崩坏后的失败模式</summary>
+<p>Paper 的 over-interaction case study(Figure 16 web 版)显示:H 大且训练后期模型会陷入"无意义重复点击 / 重复搜索",哪怕已经拿到了答案也不 stop。机制猜测:大 H 下 trajectory 长,outcome reward 的 noise floor 高,policy 学到的反而是"多动总比少动好"的伪相关。这正是 paper 里说的 <em>"overfitting to spurious behaviors"</em>。</p></details>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 总览(Figure 1 加权)</h3>
+<table>
+  <tr><th>模型</th><th>5-scenario 平均</th><th>对比基线提升</th></tr>
+  <tr><td>Qwen2.5-7B (base)</td><td>~25%</td><td>—</td></tr>
+  <tr><td>AgentGym-RL-7B</td><td>~52%</td><td>+27</td></tr>
+  <tr><td><strong>ScalingInter-7B</strong></td><td><strong>~58.6%</strong></td><td>+33.65</td></tr>
+  <tr><td>GPT-4o</td><td>~46%</td><td>—</td></tr>
+  <tr><td>Gemini-2.5-Pro</td><td>~52%</td><td>—</td></tr>
+  <tr><td>OpenAI o3</td><td>~62%</td><td>—</td></tr>
+</table>
+
+<p>7B 模型超过 70B Llama3.1 (~47%) 和 72B Qwen2.5 (~43%)。这就是 paper 标题里"matches/surpasses commercial models"的来源——但需要注意<strong>商用模型未做 task-specific RL</strong>,这是公平 vs 不公平的边界。</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 280" width="100%" style="max-width:680px">
+  <text x="350" y="20" font-size="13" font-weight="bold" text-anchor="middle">5 scenario 上 ScalingInter-7B vs 关键基线</text>
+  <!-- y axis -->
+  <line x1="80" y1="240" x2="680" y2="240" stroke="#444"/>
+  <line x1="80" y1="40" x2="80" y2="240" stroke="#444"/>
+  <text x="75" y="245" font-size="10" text-anchor="end" fill="#888">0</text>
+  <text x="75" y="180" font-size="10" text-anchor="end" fill="#888">25</text>
+  <text x="75" y="120" font-size="10" text-anchor="end" fill="#888">50</text>
+  <text x="75" y="60" font-size="10" text-anchor="end" fill="#888">75</text>
+  <text x="35" y="40" font-size="10" fill="#5b5e66">score</text>
+
+  <!-- 5 groups, 4 bars each: Qwen2.5-7B base / GPT-4o / o3 / ScalingInter-7B -->
+  <!-- WebArena -->
+  <g transform="translate(100,0)">
+    <rect x="0" y="216" width="14" height="24" fill="#9aa6c4"/>
+    <rect x="16" y="200" width="14" height="40" fill="#7884a8"/>
+    <rect x="32" y="156" width="14" height="84" fill="#5b6a8e"/>
+    <rect x="48" y="176" width="14" height="64" fill="#cc4a1b"/>
+    <text x="32" y="258" font-size="10" text-anchor="middle">WebArena</text>
+    <text x="32" y="270" font-size="9" fill="#5b5e66" text-anchor="middle">9.8 / 16 / 34 / 26</text>
+  </g>
+  <!-- Deep Search -->
+  <g transform="translate(220,0)">
+    <rect x="0" y="195" width="14" height="45" fill="#9aa6c4"/>
+    <rect x="16" y="176" width="14" height="64" fill="#7884a8"/>
+    <rect x="32" y="121" width="14" height="119" fill="#5b6a8e"/>
+    <rect x="48" y="148" width="14" height="92" fill="#cc4a1b"/>
+    <text x="32" y="258" font-size="10" text-anchor="middle">Deep Search</text>
+    <text x="32" y="270" font-size="9" fill="#5b5e66" text-anchor="middle">18.8 / 26.8 / 49.5 / 38.3</text>
+  </g>
+  <!-- TextCraft -->
+  <g transform="translate(340,0)">
+    <rect x="0" y="139" width="14" height="101" fill="#9aa6c4"/>
+    <rect x="16" y="40" width="14" height="200" fill="#7884a8"/>
+    <rect x="32" y="17" width="14" height="223" fill="#5b6a8e"/>
+    <rect x="48" y="22" width="14" height="218" fill="#cc4a1b"/>
+    <text x="32" y="258" font-size="10" text-anchor="middle">TextCraft</text>
+    <text x="32" y="270" font-size="9" fill="#5b5e66" text-anchor="middle">42 / 83 / 93 / 91</text>
+  </g>
+  <!-- BabyAI -->
+  <g transform="translate(460,0)">
+    <rect x="0" y="80" width="14" height="160" fill="#9aa6c4"/>
+    <rect x="16" y="32" width="14" height="208" fill="#7884a8"/>
+    <rect x="32" y="14" width="14" height="226" fill="#5b6a8e"/>
+    <rect x="48" y="8" width="14" height="232" fill="#cc4a1b"/>
+    <text x="32" y="258" font-size="10" text-anchor="middle">BabyAI</text>
+    <text x="32" y="270" font-size="9" fill="#5b5e66" text-anchor="middle">66.7 / 86.7 / 94.4 / 96.7</text>
+  </g>
+  <!-- SciWorld -->
+  <g transform="translate(580,0)">
+    <rect x="0" y="237" width="14" height="3" fill="#9aa6c4"/>
+    <rect x="16" y="190" width="14" height="50" fill="#7884a8"/>
+    <rect x="32" y="140" width="14" height="100" fill="#5b6a8e"/>
+    <rect x="48" y="103" width="14" height="137" fill="#cc4a1b"/>
+    <text x="32" y="258" font-size="10" text-anchor="middle">SciWorld</text>
+    <text x="32" y="270" font-size="9" fill="#5b5e66" text-anchor="middle">1.5 / 21 / 41.5 / 57</text>
+  </g>
+
+  <!-- legend -->
+  <g transform="translate(100,40)" font-size="10">
+    <rect x="0" y="0" width="10" height="10" fill="#9aa6c4"/>
+    <text x="14" y="9">Qwen2.5-7B base</text>
+    <rect x="120" y="0" width="10" height="10" fill="#7884a8"/>
+    <text x="134" y="9">GPT-4o</text>
+    <rect x="200" y="0" width="10" height="10" fill="#5b6a8e"/>
+    <text x="214" y="9">OpenAI o3</text>
+    <rect x="280" y="0" width="10" height="10" fill="#cc4a1b"/>
+    <text x="294" y="9" fill="#cc4a1b" font-weight="bold">ScalingInter-7B</text>
+  </g>
+</svg>
+<figcaption>5 scenario 上 ScalingInter-7B(红)与 base、GPT-4o、o3 的对比。SciWorld 的提升最戏剧化(1.5→57);WebArena / Deep Search 的相对收益较小(open-ended 反馈下的 RL 仍是开放问题);BabyAI 直接 SOTA 超 o3。</figcaption>
+</div>
+
+<h3>8.2 SciWorld:最戏剧性的提升</h3>
+<table>
+  <tr><th>模型</th><th>Overall</th><th>Test-Cond</th><th>Find</th><th>Chem-Mix</th></tr>
+  <tr><td>Qwen2.5-7B base</td><td>1.50</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
+  <tr><td>OpenAI o3</td><td>41.50</td><td>25.30</td><td>56.82</td><td>40.00</td></tr>
+  <tr><td>AgentGym-RL-7B</td><td>50.50</td><td><strong>59.04</strong></td><td>65.91</td><td>0.00</td></tr>
+  <tr><td>ScalingInter-7B</td><td><strong>57.00</strong></td><td>55.42</td><td><strong>88.64</strong></td><td>0.00</td></tr>
+</table>
+
+<p>1.50 → 57.00 是 paper 最强信号——但同时 <strong>Chem-Mix 全模型 0 分</strong>(包括 o3)说明 multi-turn agent RL 没有解决<em>真正的</em>程序化科学推理瓶颈,只是把"环境探索 + 信息提取"做到了上限。</p>
+
+<h3>8.3 GRPO vs REINFORCE++(Table 6)</h3>
+<table>
+  <tr><th>Backbone</th><th>Algo</th><th>TextCraft</th><th>BabyAI</th><th>SearchQA</th></tr>
+  <tr><td>Qwen2.5-3B</td><td>GRPO</td><td>75.00</td><td>93.33</td><td>25.75</td></tr>
+  <tr><td>Qwen2.5-3B</td><td>REINFORCE++</td><td>28.00</td><td>70.00</td><td>13.25</td></tr>
+  <tr><td>Qwen2.5-7B</td><td>GRPO</td><td>83.00</td><td>92.22</td><td>34.00</td></tr>
+  <tr><td>Qwen2.5-7B</td><td>REINFORCE++</td><td>73.00</td><td>84.44</td><td>24.00</td></tr>
+</table>
+<p><strong>3B GRPO 全面超过 7B REINFORCE++</strong> —— paper 直接得出结论:在 sparse-reward agent 任务里 algorithm 比 model size 更重要。物理解释:REINFORCE++ 的 Monte Carlo return 在长 trajectory 下方差爆炸,GRPO 的组内 z-score 是天然的方差缩减。</p>
+
+<h3>8.4 Test-time scaling(Figure 8/9)</h3>
+<ul>
+  <li>Sequential scaling:agent 给更多 turn 还能继续涨——证明 ScalingInter 训练阶段的 horizon 习惯<em>能 transfer 到推理阶段</em>。</li>
+  <li>Parallel scaling (Pass@K):K=64 时 RL 模型在 Deep Search +5.5%,SciWorld +7.05%。说明 RL 不是单纯把 single sample 推上去,而是把整个 sample 分布往好处搬。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>框架</th><th>定位</th><th>多 env</th><th>Online RL</th><th>课程/horizon 调度</th><th>开源</th><th>主要差异点</th></tr>
+  <tr><td><strong>AgentGym-RL</strong></td><td>multi-turn agent RL 全栈</td><td>5 scenario / 27 task</td><td>PPO/GRPO/REINFORCE++/RLOO</td><td><span class="ok">ScalingInter</span></td><td>是</td><td>把 env / agent / training 三模块完全解耦</td></tr>
+  <tr><td>AgentRL (Wang et al.)</td><td>multi-turn agent RL</td><td>少数 env</td><td>PPO/GRPO</td><td><span class="no">无</span></td><td>是</td><td>无 horizon 调度,默认依赖 SFT warmup</td></tr>
+  <tr><td>verl / OpenRLHF</td><td>RL training 框架</td><td><span class="no">无 env 抽象</span></td><td>PPO/GRPO/REINFORCE++</td><td><span class="no">无</span></td><td>是</td><td>底座型,本文 training 模块即基于 veRL</td></tr>
+  <tr><td>NVIDIA NeMo-RL</td><td>RL training 框架</td><td>用户自带 env</td><td>PPO/GRPO + speculative</td><td><span class="no">无</span></td><td>是</td><td>偏 single-turn / reasoning,训练侧工程优化深</td></tr>
+  <tr><td>prime-rl / AReaL</td><td>异步 RL pipeline</td><td>用户自带</td><td>PPO/GRPO async</td><td><span class="no">无</span></td><td>是</td><td>关注 throughput;多轮 env 集成需用户自写</td></tr>
+  <tr><td>Search-R1 / WebRL / ToolRL</td><td>单 scenario 工作</td><td>1 scenario</td><td>PPO/GRPO</td><td>部分有 hand-tuned</td><td>是</td><td>environment hard-coded,跨任务不可复用</td></tr>
+</table>
+
+<p><strong>定位差别一句话:</strong>OpenRLHF / NeMo-RL / prime-rl / AReaL 是<em>训练侧</em>框架,Search-R1/WebRL/ToolRL 是<em>单任务</em>工作,AgentGym-RL 填的是中间——多 env × online RL × 解耦架构 × horizon 课程。</p>
+
+<p>同期姊妹笔记参考:</p>
+<ul>
+  <li><a href="01_DR-Venus_2604.19859.html">01 · DR-Venus</a> — 4B edge-级 deep research agent,关注端到端推理压缩。</li>
+  <li><a href="02_LiteResearcher_2604.17931.html">02 · LiteResearcher</a> — 轻量化 research agent。</li>
+  <li><a href="03_AgentWorld_2604.18292.html">03 · Agent-World</a> — agent benchmark/world view。</li>
+  <li><a href="04_MemPalace_2604.21284.html">04 · MemPalace</a> — agent memory 空间隐喻。</li>
+  <li><em>05_RethinkingAgenticRL</em>(并行写作中) — 同期 agentic RL 反思,关注算法层面。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证</h2>
+
+<h3>10.1 paper 自承的局限</h3>
+<ul>
+  <li><strong>开放式环境收益小</strong>:WebArena / Deep Search 上提升明显小于 TextCraft / BabyAI / SciWorld。RL 在<em>有清晰 cause-effect</em> 的任务上最有效——open-ended task 的 reward design 仍是开放问题。</li>
+  <li><strong>Chem-Mix 全模型 0 分</strong>:程序化科学推理是当前 multi-turn RL 仍无法触及的区域。</li>
+  <li><strong>横向公平性</strong>:对比 GPT-4o / o3 都不是 task-specific RL 的版本,严格公平要求外部模型也做相同 RL post-training。</li>
+</ul>
+
+<h3>10.2 个人 take</h3>
+<ul>
+  <li>这是<strong>一篇被低估的"基础设施 paper"</strong>。它最大的贡献不是 ScalingInter-RL(虽然这一招也确实管用),而是把 multi-turn agent RL 从"每篇论文 reinvent 一次环境胶水"的状态拽出来。下一两年内做 agent RL 研究的人大概率会把这个或类似框架当默认起点。</li>
+  <li>ScalingInter-RL 是<strong>"train-time inference compute schedule"</strong>的一个具体形式,与 reasoning 模型那边的"train-time CoT length curriculum"在精神上是同构的——都是"先剪搜索空间,等模型站稳了再放开"。可以把它当作一个 unifying principle:RL 训 LLM 时,reasoning compute 与 interaction compute 都不应该一开始就给满。</li>
+  <li>ScalingInter 的 schedule 是手设的(等比例切),在更大规模训练里大概率需要<em>自适应化</em>(根据 reward 二阶矩 / collapse signal 自动决定是否抬 H)。</li>
+  <li>从 7B 在 SciWorld 上超过 o3 的现象看,<em>task-specific RL 的局部胜利仍然能轻松超过通用大模型</em>——这跟 RL post-training 的最佳应用域是 narrow expert 而非 generalist 一致。</li>
+</ul>
+
+<h3>10.3 待验证问题</h3>
+<ol>
+  <li>ScalingInter 的 transition 点放在 RL 总步数的哪几个比例最优?跨 scenario 是否真有 universal schedule?</li>
+  <li>如果用 async RL(prime-rl / AReaL 风格),horizon 调度和 policy lag 怎么交互?lag 越大是否越需要小 H?</li>
+  <li>Chem-Mix 全 0 是 reward 信号问题还是 horizon 不够?能否设计 process reward 解开?</li>
+  <li>AgentEvol(rejection sampling)+ ScalingInter 组合会不会比纯 GRPO + ScalingInter 更稳?</li>
+  <li>在 70B 量级上,from-scratch RL(无 SFT warmup)是否还成立?paper 只测到 7B。</li>
+  <li>WebArena 的 GitLab&Reddit 子任务为什么是所有 model 的瓶颈?是 long-horizon 还是 action space 问题?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec11">11 · 速记盒</h2>
+
+<div class="kv"><span class="pill">立场</span> 多轮 agent RL 的"训练能稳"比"算法新"更紧迫;模块化框架 + horizon 课程一起把这事推到了 production-ready。</div>
+<div class="kv"><span class="pill">框架</span> Environment / Agent / Training 三模块完全解耦,通过 <code>BaseEnvClient.{reset, step, observe}</code> 与 <code>RolloutHandler</code> 抽象拼接。</div>
+<div class="kv"><span class="pill">trick</span> ScalingInter-RL: <code>h₁ &lt; h₂ &lt; ⋯ &lt; hₙ</code>,等比例切 transition,不调超参,跨 5 scenario 都 work。</div>
+<div class="kv"><span class="pill">curriculum</span> 反直觉:LLM 多轮 RL 应该先 exploit(小 H)后 explore(大 H),因为 base policy 已是 pretrained,缺的是稳信号不是搜索面。</div>
+<div class="kv"><span class="pill">algo</span> GRPO &gt;&gt; REINFORCE++ 在 sparse-reward 长 horizon 下:3B GRPO 全面超 7B REINFORCE++。</div>
+<div class="kv"><span class="pill">数字</span> 7B 平均 +33.65,SciWorld 1.50 → 57.00,WebArena 26%(Match Gemini-2.5-Pro)。</div>
+<div class="kv"><span class="pill">边界</span> Open-ended 任务(WebArena / Deep Search)收益较小;Chem-Mix 所有模型 0 分。</div>
+<div class="kv"><span class="pill">工程债</span> WebArena 浏览器池化 / SciWorld clock leak / TextCraft crafting_tree 指数 self-replication —— 这些 fix 才让长 RL 不崩。</div>
+
+</main>
+</body>
+</html>

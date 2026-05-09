@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · AgentRL: Scaling Agentic RL with a Multi-Turn, Multi-Task Framework (2510.04206)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>AgentRL: Scaling Agentic Reinforcement Learning with a Multi-Turn, Multi-Task Framework</h1>
+<div class="meta">
+  Tsinghua &amp; Z.AI · Hanchen Zhang, Xiao Liu et al. · 2025-10-05 · arXiv:2510.04206<br>
+  关键词: agentic RL · multi-turn · multi-task · async pipeline · cross-policy sampling · task advantage normalization · GRPO · AgentBench
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把 multi-turn agentic RL 从「单任务、同步、单 policy 采样」推到「多任务、全异步、跨 policy 采样 + 按任务做 advantage normalization」, 一个 32B 模型同时训 5 个 agentic 任务, 平均 success rate 达到 70.4%, 反超 GPT-5 / Claude-Sonnet-4 Thinking / DeepSeek-R1。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">70.4%</div><div class="l">5 任务平均 SR (32B)</div></div>
+    <div class="stat"><div class="n">+13–18 pt</div><div class="l">vs GPT-5 / Claude-4</div></div>
+    <div class="stat"><div class="n">≈3.3×</div><div class="l">14B 在 64 GPU 上 throughput vs 同步</div></div>
+  </div>
+  <p><strong>立场:</strong>这篇是<em>系统 + 算法</em>的双轨论文。算法上的两个 trick (cross-policy sampling, task advantage norm) 都很轻;真正吃饭的是 fully-async pipeline + heterogeneous environment infra,使得「一个 model 同时学 5 个 agentic task」从 demo 变得可工程化。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:multi-turn × multi-task 撞上的三堵墙</a></li>
+    <li><a href="#sec2">背景速查 (agentic MDP / GRPO / RLVR)</a></li>
+    <li><a href="#sec3">基础设施:fully-asynchronous generation–training pipeline</a></li>
+    <li><a href="#sec4">算法 1 — Cross-Policy Sampling</a></li>
+    <li><a href="#sec5">算法 2 — Task Advantage Normalization</a></li>
+    <li><a href="#sec6">环境框架:Controller / Worker / Container</a></li>
+    <li><a href="#sec7">端到端 Worked Example: 一个 KG 任务穿过整条 pipeline</a></li>
+    <li><a href="#sec8">实验关键结果(数字 + 阅读注解)</a></li>
+    <li><a href="#sec9">与同类工作对比 (AReaL / AgentGym-RL / prime-rl / NeMo-RL / OpenRLHF)</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec11">Memory points</a></li>
+  </ol>
+</nav>
+
+<p class="meta" style="margin-top:-10px">
+  See also (sibling notes,平行阅读): <code>agents/notes/01_DR-Venus</code>, <code>02_LiteResearcher</code>, <code>03_AgentWorld</code>, <code>04_MemPalace</code>, <code>05_Rethinking</code>, <code>06_AgentGymRL</code>;以及 <code>models/notes/08_INTELLECT3</code>(prime-rl, 类似的 async agentic RL 设计)。
+</p>
+
+<hr>
+
+<h2 id="sec1">1. 动机:multi-turn × multi-task 撞上的三堵墙</h2>
+
+<p>从 RLHF (单步、单任务、reward model) 到 RLVR (单步、单任务、verifier),社区已经把「单步 RL」基本打通。但只要把场景换成 agentic—— LLM 要跟 OS / DB / KG / 网页 / 模拟家庭 这种环境做<strong>多回合交互</strong>, 同一套 RL 训练栈立刻处处漏水。论文 Table 2 里把痛点拆成三堵墙,我把它进一步展开成 1.1–1.3。</p>
+
+<h3>1.1 历史脉络:从 single-turn 到 multi-turn,bottleneck 漂移</h3>
+<p>之前以 GRPO 为代表的 RLVR 训练栈 (VeRL / OpenRLHF / EasyR1 / NeMo-Aligner) 都默认<strong>同步 (synchronous) interleaved pipeline</strong>:每个 step 内,先用 actor 把整 batch 的 trajectory 全 rollout 完,再统一做一次 forward + backward 更新。在 single-turn (math/code) 里这套是最优的 —— 所有 trajectory 长度方差小、生成时间几乎一样,GPU 几乎不会闲。</p>
+<p>到了 agentic 场景,trajectory 由若干 (state, action, reward) 组成,每一步要等环境返回 observation 才能进下一步。WebShop 一条 trace 可能 6 步、ALFWorld 可能 30 步;OS 任务里每步还要等 docker 里 bash 跑完。结果是同 batch 内 trajectory<strong>长度方差极大</strong>,同步 pipeline 等于全队等最慢的那个,GPU 利用率从 80%+ 掉到很难看。AReaL (2505.24298) 已经指出这点,但它只解决了「reasoning task 多步思考」,环境管理还是单一的。</p>
+
+<h3>1.2 别的方案为什么不够 — 谁占了哪个坑、各让了什么</h3>
+<table>
+<tr><th>方案</th><th>multi-turn</th><th>multi-task</th><th>full-async</th><th>异构环境</th><th>主要让步</th></tr>
+<tr><td>VeRL / OpenRLHF / NeMo-Aligner</td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>纯 single-turn,长尾 rollout 直接拖死</td></tr>
+<tr><td>AReaL</td><td><span class="ok">✓</span></td><td><span class="no">✗</span></td><td><span class="ok">✓</span></td><td><span class="no">✗</span></td><td>async 但只支持单任务、不接环境</td></tr>
+<tr><td>AgentTuning / AgentLM</td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td>用 SFT 不是 RL,没有 online 反馈</td></tr>
+<tr><td>RAGEN / DigiRL / GiGPO / ARPO</td><td><span class="ok">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="ok">✓ (单一)</span></td><td>每个工作只面对一个环境家族 (GUI / 长 horizon)</td></tr>
+<tr><td><strong>AgentRL</strong></td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td>—— 同时打满四格</td></tr>
+</table>
+
+<h3>1.3 为什么这事不平凡</h3>
+<p>三堵墙叠加形成的工程 + 算法复杂度:</p>
+<ul>
+<li><strong>同步 pipeline 浪费的不是 10–20%,是几倍。</strong> 论文 Figure 4 里 14B 同步在 64 GPU 上达到 17K tok/s,async 版本到 56K tok/s —— 也就是说在多 turn agent 场景里,同步实现拿不到 scaling。原因是 trajectory 长度长尾叠加 environment 阻塞,GPU bubble 占比从 single-turn 的 ~10% 涨到 60%+。</li>
+<li><strong>fixed-policy sampling 在 multi-turn 里 coverage 急剧坍塌。</strong> single-turn 里 GRPO 用 group of K 个 sample 估 advantage,只要 K 张样本有差别就行;multi-turn 里同一个 policy 在长 trajectory 上趋向<em>模式坍塌</em>,GLM-4 反复进入「直接给答案不调 tool」、Llama 反复「乱调 tool」,K=8 个 trace 全是同一种错。论文给的 Figure 8a 直接量化了这个:Webshop 上 cross-policy sampling 的 pass@128 比单 model 高 ≈10pt。</li>
+<li><strong>多任务下 reward scale / sequence length 异质,共用一个 advantage 等于让强势任务把弱势任务踩死。</strong> ALFWorld trajectory 30 步、reward 0/1 但成功率从 8% 起步;DB 任务 trajectory 5 步、success rate 已经 48%。如果把所有 token 的 advantage 一起 standardize, 弱任务的 ±1.5 σ 信号会被强任务的 ±0.3 σ 信号稀释。Figure 7b 显示不做 task-wise norm,ALFWorld 的 train pass rate 直接在 0.4 附近震荡上不去。</li>
+</ul>
+
+<div class="nb"><strong>关键观察:</strong>三堵墙不是独立的, 它们是「scaling 多任务 multi-turn agent」必然会撞到的。这也是为什么 AgentRL 一次性给出 infra + algo 两条腿 —— 缺一不可。</div>
+
+<hr>
+
+<h2 id="sec2">2. 背景速查</h2>
+<table>
+<tr><th>术语</th><th>定义 / 在本文里的用法</th></tr>
+<tr><td>Agentic MDP</td><td><code>(S^env, A, P, r, ρ)</code>;但 LLM-policy 看到的 state 是 composite <code>s_t = (s_t^env, s_t^ctx)</code>,后者是到目前为止整段 token 历史。</td></tr>
+<tr><td>High-level action <code>a_t</code></td><td>一整段 LLM 输出 token: <code>a_t = (y_{t,1}, …, y_{t,L_t})</code>。一个 turn = 一个 high-level action。</td></tr>
+<tr><td>Trajectory <code>τ</code></td><td><code>(s_0, a_0, r_1, …, s_T)</code>。论文里 T 一般 5–30。</td></tr>
+<tr><td>GRPO</td><td>采样一组 K 个 trajectory 共享同一 prompt, advantage = (R_g − μ_R) / σ_R。本文是 GRPO 上做 multi-task 改造。</td></tr>
+<tr><td>RLVR</td><td>reward 由 deterministic verifier 给(SQL 跑通?ALFWorld 任务完成?WebShop 买对商品?)。</td></tr>
+<tr><td>Rollout engine</td><td>独立的推理 worker (本文用 SGLang),不参与 backward。</td></tr>
+<tr><td>Stale engine</td><td>本文为实现 cross-policy 而引入: 一个 rollout engine 故意让 weight 几步才更新一次,用来当「另一个 policy」。</td></tr>
+<tr><td>AgentBench-FC</td><td>本文把 AgentBench 5 个任务改成 OpenAI function-call 格式后的版本。</td></tr>
+</table>
+
+<details><summary>GRPO 一行回忆</summary>
+<div class="formula">L<sub>GRPO</sub> = E<sub>i,j</sub> [ (1/K) Σ<sub>g</sub> min(ρ<sub>g</sub> Â<sub>g</sub>, clip(ρ<sub>g</sub>, 1±ε) Â<sub>g</sub>) ],&nbsp; Â<sub>g</sub> = (R<sub>g</sub> − mean<sub>j</sub>(R)) / std<sub>j</sub>(R)</div>
+<p>本文修改的是 <strong>Â 的算法</strong> (per-task standardize) 和 <strong>采样分布</strong> (cross-policy),objective 形式不变。</p>
+</details>
+
+<hr>
+
+<h2 id="sec3">3. Fully-Asynchronous Generation–Training Pipeline</h2>
+
+<h3>3.1 它和 「同步」 / 「半同步」 长什么不一样</h3>
+<p>论文 Figure 3 把 sync vs async 画了一张 Gantt 图。我把三种典型结构合并成一张更密的对照:</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- axis labels -->
+  <text x="10" y="20" font-size="12" fill="#5b5e66">GPU</text>
+  <line x1="60" y1="220" x2="680" y2="220" stroke="#5b5e66" marker-end="url(#arrA)"/>
+  <text x="650" y="235" font-size="12" fill="#5b5e66">time</text>
+
+  <!-- Sync row -->
+  <text x="10" y="55" font-size="12" fill="#1f2024">Sync</text>
+  <text x="10" y="70" font-size="11" fill="#5b5e66">(VeRL)</text>
+  <rect x="60" y="40" width="180" height="22" fill="#cc4a1b" opacity=".75"/><text x="65" y="56" font-size="11" fill="#fff">Rollout (long-tail)</text>
+  <rect x="240" y="40" width="60" height="22" fill="#2f6feb" opacity=".75"/><text x="245" y="56" font-size="11" fill="#fff">Train</text>
+  <rect x="300" y="40" width="190" height="22" fill="#cc4a1b" opacity=".75"/><text x="305" y="56" font-size="11" fill="#fff">Rollout (long-tail)</text>
+  <rect x="490" y="40" width="60" height="22" fill="#2f6feb" opacity=".75"/><text x="495" y="56" font-size="11" fill="#fff">Train</text>
+  <text x="555" y="55" font-size="11" fill="#a8353e">↑ huge bubbles</text>
+
+  <!-- Half-sync (AReaL style) -->
+  <text x="10" y="105" font-size="12" fill="#1f2024">Half-async</text>
+  <text x="10" y="120" font-size="11" fill="#5b5e66">(AReaL)</text>
+  <rect x="60" y="90" width="500" height="22" fill="#cc4a1b" opacity=".55"/><text x="65" y="106" font-size="11" fill="#fff">Rollout group A (continuous)</text>
+  <rect x="60" y="115" width="100" height="20" fill="#2f6feb" opacity=".55"/><text x="65" y="130" font-size="11" fill="#fff">Train</text>
+  <rect x="180" y="115" width="20" height="20" fill="#fbfaf6" stroke="#a8353e" stroke-dasharray="3 2"/><text x="206" y="130" font-size="10" fill="#a8353e">wait full batch</text>
+  <rect x="280" y="115" width="100" height="20" fill="#2f6feb" opacity=".55"/><text x="285" y="130" font-size="11" fill="#fff">Train</text>
+  <rect x="400" y="115" width="20" height="20" fill="#fbfaf6" stroke="#a8353e" stroke-dasharray="3 2"/>
+  <rect x="440" y="115" width="100" height="20" fill="#2f6feb" opacity=".55"/><text x="445" y="130" font-size="11" fill="#fff">Train</text>
+
+  <!-- Fully async -->
+  <text x="10" y="170" font-size="12" fill="#1f2024">Fully async</text>
+  <text x="10" y="185" font-size="11" fill="#5b5e66">(AgentRL)</text>
+  <rect x="60" y="155" width="600" height="22" fill="#cc4a1b" opacity=".75"/><text x="65" y="171" font-size="11" fill="#fff">Rollout pool: coroutines per env, dynamic batch (no global barrier)</text>
+  <rect x="60" y="180" width="80" height="20" fill="#2f6feb" opacity=".75"/>
+  <rect x="150" y="180" width="80" height="20" fill="#2f6feb" opacity=".75"/>
+  <rect x="240" y="180" width="80" height="20" fill="#2f6feb" opacity=".75"/>
+  <rect x="330" y="180" width="80" height="20" fill="#2f6feb" opacity=".75"/>
+  <rect x="420" y="180" width="80" height="20" fill="#2f6feb" opacity=".75"/>
+  <rect x="510" y="180" width="80" height="20" fill="#2f6feb" opacity=".75"/>
+  <text x="65" y="195" font-size="11" fill="#fff">Train tick</text>
+  <text x="155" y="195" font-size="11" fill="#fff">Train</text>
+  <text x="245" y="195" font-size="11" fill="#fff">Train</text>
+  <text x="335" y="195" font-size="11" fill="#fff">Train</text>
+  <text x="425" y="195" font-size="11" fill="#fff">Train</text>
+  <text x="515" y="195" font-size="11" fill="#fff">Train</text>
+</svg>
+<figcaption>三层 pipeline 的 Gantt 对比。Sync (VeRL/OpenRLHF):每个 train step 都要等整 batch rollout 完。Half-async (AReaL):rollout 持续跑,但训练仍要等一个完整 batch 才能 fire。Fully-async (AgentRL):训练不再等任何 batch,从 dynamic queue 里抽到什么算什么;rollout pool 用 coroutine 调度,每个 env 一根。</figcaption>
+</div>
+
+<h3>3.2 实现要点</h3>
+<ul>
+<li><strong>Coroutine scheduling.</strong> 每条 trajectory 由一根 coroutine 维护(它负责 LLM 生成 → 调环境 API → 等 obs → 再生成),所有 coroutine 共享一个 SGLang 推理 pool。一根阻塞了不影响别人。</li>
+<li><strong>Dynamic batch.</strong> Trainer 不锁定 batch size: 拿到 queue 里 ≥ B<sub>min</sub> 条就 fire,不等 B<sub>max</sub>。这个设计很关键 —— 避免「最后那条 30 步的 trajectory 卡住整个 step」。</li>
+<li><strong>Bounded staleness.</strong> 队列 size 设上限 + <em>每次 train step 后强制把所有排队的 trajectory drain 给 trainer</em>。这意味着 staleness 最多 ~1 个 step,接近 on-policy。论文 claim 这是 acceptable 的;反过来如果允许更老的数据,off-policy 偏置会变大。</li>
+<li><strong>Param sync.</strong> Trainer 每个 step 后,把新 weight broadcast 给一组「fresh」rollout engine;另一组「stale」engine 故意延迟更新(为 cross-policy sampling 服务,见 §4)。</li>
+</ul>
+
+<div class="nb"><strong>这里和 AReaL / prime-rl 的真正差别:</strong>AReaL 的 async 主要是「reasoning trajectory 内部分块吐 token」,本质还是按 query 分组训练;AgentRL 把异步颗粒度拉到 <em>per-environment coroutine</em>,真正让长 trace 和短 trace 不互相阻塞。INTELLECT-3 的 prime-rl 也走这条路, 但 prime-rl 是为了 distributed (跨地理位置) 而异步,AgentRL 是为了 environment 阻塞而异步。</div>
+
+<h3>3.3 Worked Example: 一条 30 步的 ALFWorld trace 撞上一条 5 步的 DB trace</h3>
+<p>假设 batch 里有 64 条 trace。同步模式下:1 条 ALFWorld 30 步、平均每步 1.5 s = 45 s;63 条 DB 平均 5 步 × 1.5 s = 7.5 s。Sync trainer 的 wall clock = max(45, 7.5) = 45 s,即 GPU 在 [7.5, 45] 这 37.5 s 内空转 87.5%。</p>
+<p>Async 下:DB trace 7.5 s 完成 → 进 queue → trainer 攒到 B<sub>min</sub>=16 立刻 fire 第一次 train,然后第二次,然后… 在那 45 s 内 trainer 已经做了 5–6 次 update; ALFWorld trace 在 step 22 时 trainer 已经更新了好几代,这里就出现 staleness 1–6 step,这就是为什么需要队列上限 + drain 强制策略。</p>
+
+<hr>
+
+<h2 id="sec4">4. Cross-Policy Sampling — 在 multi-turn 里抢回 exploration</h2>
+
+<h3>4.1 它要解决什么</h3>
+<p>GRPO 的 group 里 K=8 个 trajectory 是同一个 π<sub>θ</sub> 采样的。在 single-turn 里,K 条只要起始 token 不同,整体 distinguishable;multi-turn 下,K 条往往在第 1–2 个 action 就已经因为 KV cache 趋同陷入同一种<strong>策略错误</strong>(模式坍塌)。结果是 advantage 全部接近 0 (group 内 reward 方差 → 0),GRPO 梯度直接消失。</p>
+
+<h3>4.2 方法 — 一棵 cross-policy 树</h3>
+<p>引入一个 model pool <code>M = {π<sub>θ</sub><sup>(0)</sup>, π<sub>θ</sub><sup>(−1)</sup>, π<sub>θ</sub><sup>(−2)</sup>, …}</code>(实际就是 fresh 模型 + 几个 stale 模型 —— 不更新参数的早期 snapshot)。每一个 environment step,从 M 里<strong>均匀随机抽一个</strong> π 来生成这一步的 action:</p>
+<div class="formula">a<sup>c,(t)</sup> ~ random(M) (· | s<sup>(t)</sup>)</div>
+
+<div class="fig">
+<svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- columns -->
+  <text x="60" y="20" font-size="12" fill="#5b5e66">Single (GRPO 默认)</text>
+  <text x="280" y="20" font-size="12" fill="#5b5e66">Mix (拼 K/2 + K/2)</text>
+  <text x="500" y="20" font-size="12" fill="#5b5e66">Cross-policy (本文)</text>
+
+  <!-- Tree headers s_0 -->
+  <g>
+    <circle cx="100" cy="50" r="10" fill="#fff" stroke="#1f2024"/><text x="115" y="54" font-size="11">s₀</text>
+    <circle cx="320" cy="50" r="10" fill="#fff" stroke="#1f2024"/><text x="335" y="54" font-size="11">s₀</text>
+    <circle cx="540" cy="50" r="10" fill="#fff" stroke="#1f2024"/><text x="555" y="54" font-size="11">s₀</text>
+  </g>
+
+  <!-- Single: all blue -->
+  <g>
+    <line x1="100" y1="60" x2="60" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="100" y1="60" x2="100" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="100" y1="60" x2="140" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <circle cx="60" cy="105" r="8" fill="#2f6feb"/>
+    <circle cx="100" cy="105" r="8" fill="#2f6feb"/>
+    <circle cx="140" cy="105" r="8" fill="#2f6feb"/>
+    <line x1="60" y1="113" x2="60" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="100" y1="113" x2="100" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="140" y1="113" x2="140" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <circle cx="60" cy="158" r="8" fill="#2f6feb"/>
+    <circle cx="100" cy="158" r="8" fill="#2f6feb"/>
+    <circle cx="140" cy="158" r="8" fill="#2f6feb"/>
+    <text x="55" y="200" font-size="11" fill="#a8353e">3 trace 都收敛到</text>
+    <text x="55" y="215" font-size="11" fill="#a8353e">同一种错误</text>
+  </g>
+
+  <!-- Mix: half blue half orange -->
+  <g>
+    <line x1="320" y1="60" x2="280" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="320" y1="60" x2="320" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="320" y1="60" x2="360" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <circle cx="280" cy="105" r="8" fill="#2f6feb"/>
+    <circle cx="320" cy="105" r="8" fill="#2f6feb"/>
+    <circle cx="360" cy="105" r="8" fill="#cc4a1b"/>
+    <line x1="280" y1="113" x2="280" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="320" y1="113" x2="320" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="360" y1="113" x2="360" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <circle cx="280" cy="158" r="8" fill="#2f6feb"/>
+    <circle cx="320" cy="158" r="8" fill="#2f6feb"/>
+    <circle cx="360" cy="158" r="8" fill="#cc4a1b"/>
+    <text x="270" y="200" font-size="11" fill="#5b5e66">同一 trace 内</text>
+    <text x="270" y="215" font-size="11" fill="#5b5e66">policy 不切换</text>
+  </g>
+
+  <!-- Cross: per-step random -->
+  <g>
+    <line x1="540" y1="60" x2="500" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="540" y1="60" x2="540" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="540" y1="60" x2="580" y2="100" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <circle cx="500" cy="105" r="8" fill="#2f6feb"/>
+    <circle cx="540" cy="105" r="8" fill="#cc4a1b"/>
+    <circle cx="580" cy="105" r="8" fill="#2f6feb"/>
+    <line x1="500" y1="113" x2="500" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="540" y1="113" x2="540" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="580" y1="113" x2="580" y2="150" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <!-- step 2: switch! -->
+    <circle cx="500" cy="158" r="8" fill="#cc4a1b"/>
+    <circle cx="540" cy="158" r="8" fill="#2f6feb"/>
+    <circle cx="580" cy="158" r="8" fill="#cc4a1b"/>
+    <line x1="500" y1="166" x2="500" y2="200" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="540" y1="166" x2="540" y2="200" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <line x1="580" y1="166" x2="580" y2="200" stroke="#5b5e66" marker-end="url(#arrB)"/>
+    <circle cx="500" cy="208" r="8" fill="#2f6feb"/>
+    <circle cx="540" cy="208" r="8" fill="#cc4a1b"/>
+    <circle cx="580" cy="208" r="8" fill="#2f6feb"/>
+    <text x="475" y="250" font-size="11" fill="#1f7a4a">每步随机抽 model</text>
+    <text x="475" y="265" font-size="11" fill="#1f7a4a">trace 不再收敛同一错</text>
+  </g>
+
+  <!-- legend -->
+  <rect x="500" y="0" width="10" height="10" fill="#2f6feb"/><text x="515" y="9" font-size="10">π fresh</text>
+  <rect x="565" y="0" width="10" height="10" fill="#cc4a1b"/><text x="580" y="9" font-size="10">π stale</text>
+</svg>
+<figcaption>三种 rollout 的差异。Single 模式下 K 条 trace 都从同一个 π 采,multi-turn 下高度相关;Mix 模式下两个 model 各采一半 trace 但单条 trace 不混;Cross-policy 把混合粒度细到 <em>每个 environment step</em> —— 因此一条 trace 的 sctx 可以同时具有 π<sup>fresh</sup> 的语言风格和 π<sup>stale</sup> 的探索倾向。</figcaption>
+</div>
+
+<h3>4.3 直觉 — 为什么这事保留了 validity</h3>
+<p>论文给了一个 grounding-function 的论证(Appendix C):每个 LLM 的输出空间 L 都覆盖到「合法语言空间」 L<sub>valid</sub>,而 L<sub>valid</sub> 通过 grounding function Γ 投影到环境 state space S<sup>env</sup>。Cross-policy 的 supp(τ<sup>c</sup>) ⊋ ∪<sub>m</sub> supp(τ<sup>m</sup>) 但 supp(τ<sup>c</sup>) ⊂ L<sub>valid</sub> —— 因为<em>每一步都还是某个 valid LLM 给的</em>,不会跳出 L<sub>valid</sub> 进入「乱码区」。这就是为什么换成 random token sampling 不行 —— 那会把你打到 L \ L<sub>valid</sub>。</p>
+
+<h3>4.4 实现:fresh + stale engines</h3>
+<p>多 model 的 architecture 异构会让 KV cache 不能共享,所以本文用了一个工程 trick:让 fresh engine (每 step 同步参数) 和 stale engine (每 N step 才同步) 都跑同一个 architecture,只是<strong>权重版本不同</strong>。这样 stale 就充当「另一个 policy」, 同时兼容 SGLang 的 tensor parallel 和 cache reuse。</p>
+
+<h3>4.5 反向论证:不做会怎样</h3>
+<p>Figure 8a 的 Webshop 实验:K=128 时 cross-policy pass rate ≈ 0.78 vs 单 model ≈ 0.68 (Qwen2.5-14B) / ≈ 0.65 (Llama-3.1-8B)。Mix 模式 K=128 ≈ 0.72。也就是说 cross-policy 的 +10pt 提升一半来自「双 model」,另一半来自「per-step 切换」,这是 mix 拿不到的。从训练 curve (Figure 8b) 看,有 cross-policy 的 model 在 pass@k 大 k 时持续高 ~5pt,说明它保留了 diversity。</p>
+
+<hr>
+
+<h2 id="sec5">5. Task Advantage Normalization</h2>
+
+<h3>5.1 公式</h3>
+<p>对 task i 的当前 batch,把所有 (sample, group, step, token) 四元 index 下的 token-level advantage 收到一个集合 A<sub>i</sub><sup>tok</sup>,然后:</p>
+
+<div class="formula">Ã<sub>i,s,g,t,k</sub> = (Â<sub>i,s,g,t,k</sub> − μ<sub>i</sub>) / σ<sub>i</sub>,&nbsp;&nbsp; μ<sub>i</sub> = mean(A<sub>i</sub><sup>tok</sup>),&nbsp;σ<sub>i</sub> = std(A<sub>i</sub><sup>tok</sup>)</div>
+
+<p>注意三个细节:</p>
+<ol>
+<li>这是<strong>第二次 normalize</strong>。GRPO 本身已经在 group 内做了 (R−μ_R)/σ_R 一次;这里在<em>整个 task batch</em> 范围再做一次。</li>
+<li>Normalize 的对象是 <strong>token-level advantage</strong>,不是 trajectory-level reward。</li>
+<li><strong>每个 task 独立做</strong>,所以 ALFWorld 的 σ_AF 和 DB 的 σ_DB 不会互相干扰。</li>
+</ol>
+
+<div class="fig">
+<svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+  <!-- Without norm -->
+  <text x="20" y="20" font-size="13" fill="#1f2024">w/o task-norm — 整个 batch 一起 standardize</text>
+  <line x1="20" y1="60" x2="320" y2="60" stroke="#5b5e66"/>
+  <text x="20" y="78" font-size="10" fill="#cc4a1b">ALF</text>
+  <rect x="40" y="50" width="3" height="20" fill="#cc4a1b"/>
+  <rect x="48" y="50" width="3" height="20" fill="#cc4a1b"/>
+  <rect x="56" y="50" width="3" height="20" fill="#cc4a1b"/>
+  <text x="80" y="78" font-size="10" fill="#2f6feb">DB</text>
+  <rect x="100" y="44" width="3" height="32" fill="#2f6feb"/>
+  <rect x="108" y="40" width="3" height="40" fill="#2f6feb"/>
+  <rect x="116" y="42" width="3" height="36" fill="#2f6feb"/>
+  <rect x="124" y="38" width="3" height="44" fill="#2f6feb"/>
+  <text x="150" y="78" font-size="10" fill="#1f7a4a">KG</text>
+  <rect x="170" y="35" width="3" height="50" fill="#1f7a4a"/>
+  <rect x="178" y="38" width="3" height="44" fill="#1f7a4a"/>
+  <rect x="186" y="36" width="3" height="48" fill="#1f7a4a"/>
+  <text x="20" y="105" font-size="10" fill="#a8353e">ALF 信号被强势任务踩平 (σ_global ≫ σ_ALF)</text>
+
+  <!-- With norm -->
+  <text x="380" y="20" font-size="13" fill="#1f2024">w/ task-norm — 每个 task 各自 0/1</text>
+  <line x1="380" y1="60" x2="680" y2="60" stroke="#5b5e66"/>
+  <text x="380" y="78" font-size="10" fill="#cc4a1b">ALF</text>
+  <rect x="400" y="35" width="3" height="50" fill="#cc4a1b"/>
+  <rect x="408" y="38" width="3" height="44" fill="#cc4a1b"/>
+  <rect x="416" y="33" width="3" height="54" fill="#cc4a1b"/>
+  <text x="440" y="78" font-size="10" fill="#2f6feb">DB</text>
+  <rect x="460" y="38" width="3" height="44" fill="#2f6feb"/>
+  <rect x="468" y="34" width="3" height="52" fill="#2f6feb"/>
+  <rect x="476" y="40" width="3" height="40" fill="#2f6feb"/>
+  <rect x="484" y="36" width="3" height="48" fill="#2f6feb"/>
+  <text x="510" y="78" font-size="10" fill="#1f7a4a">KG</text>
+  <rect x="530" y="35" width="3" height="50" fill="#1f7a4a"/>
+  <rect x="538" y="38" width="3" height="44" fill="#1f7a4a"/>
+  <rect x="546" y="36" width="3" height="48" fill="#1f7a4a"/>
+  <text x="380" y="105" font-size="10" fill="#1f7a4a">每个 task 都拿到 ±1 σ 的均匀梯度</text>
+
+  <!-- Loss curve cartoon -->
+  <text x="20" y="135" font-size="12" fill="#1f2024">→ ALFWorld training pass rate (示意,Fig 7b)</text>
+  <polyline points="40,200 80,195 120,180 160,180 200,178 240,182 280,175 320,178" fill="none" stroke="#a8353e" stroke-width="2"/>
+  <text x="330" y="202" font-size="10" fill="#a8353e">w/o task-norm: 卡在 0.4 抖动</text>
+  <polyline points="380,200 420,170 460,150 500,130 540,115 580,105 620,98 660,90" fill="none" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="380" y="135" font-size="10" fill="#1f7a4a">w/ task-norm: 平滑爬到 0.93</text>
+</svg>
+<figcaption>左:不做 task-wise norm 时,弱任务 ALF 的 token advantage 在全局尺度下被压扁,梯度近 0。右:per-task standardize 后每个任务都有 ±1σ 的有效信号。下方为 Figure 7b 示意。</figcaption>
+</div>
+
+<h3>5.2 Worked Example</h3>
+<p>设定:同一 batch 里有两个 task。ALF 的 group reward 是 {0,0,0,0,1} (5 trajectory),DB 是 {1,1,0,1,1}。GRPO 第一次 normalize 后,每条 trace 的 trajectory advantage:</p>
+<table>
+<tr><th>Task</th><th>Reward</th><th>μ</th><th>σ</th><th>Trajectory Â</th></tr>
+<tr><td>ALF</td><td>0,0,0,0,1</td><td>0.2</td><td>0.4</td><td>−0.5,−0.5,−0.5,−0.5,+2.0</td></tr>
+<tr><td>DB</td><td>1,1,0,1,1</td><td>0.8</td><td>0.4</td><td>+0.5,+0.5,−2.0,+0.5,+0.5</td></tr>
+</table>
+
+<p>Â broadcast 到每个 token 上(同一 trace 内每个 token 共享)。ALF 平均 trace 长度 = 30 token, DB 平均 = 5 token。</p>
+<p><strong>不做 task-norm:</strong> 全 batch token-level Â 集合中, ALF 占了 5×30 = 150 个 token, DB 占了 5×5 = 25 个 token。ALF 的 ±0.5 / ±2.0 主导了 σ_global。最终 DB 的 ±2.0 在 σ_global 下变成 ~±1.6,可用;但 DB 那条 −2.0 的 trace 只有 5 个 token,贡献的 raw signal 总量(Σ |Â|) ≈ 25 × 0.8 = 20,而 ALF 的总量 ≈ 150 × 0.7 ≈ 105。<em>梯度被 ALF 长尾任务主导</em>, DB 等于没在学。</p>
+<p><strong>做 task-norm:</strong> ALF 内部和 DB 内部各自 standardize;两个 task 都拿到 mean=0, std=1 的 token advantage。每个 task 都贡献 ~ 任务规模成正比的稳定梯度,interference 大幅下降。</p>
+
+<p>反向论证:这其实就是 multi-task SGD 里经典的 GradNorm / loss balancing,只是这里在 RL advantage 维度做。如果 advantage scale 已经齐(reward 都是 0/1 + sequence 长度差不多), task-norm 应当无效;论文实验里 KG/OS/ALF 长度方差大,所以 +5.6 pt (Table 6: 65.0 vs 59.4)。</p>
+
+<hr>
+
+<h2 id="sec6">6. 环境框架: Controller / Worker / Container</h2>
+
+<p>Multi-task 不仅是算法挑战,本质先是 <em>异构环境管理</em> 挑战 —— 5 个 task 需要 5 种依赖 (Ubuntu docker、MySQL、Freebase KG、ALFWorld textworld、WebShop simulator)。AgentRL 给了一个三层结构:</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- training framework -->
+  <rect x="20" y="20" width="200" height="80" rx="8" fill="#fff" stroke="#2f6feb"/>
+  <text x="40" y="40" font-size="13" fill="#2f6feb">Training Framework</text>
+  <rect x="35" y="50" width="80" height="40" fill="#eaf0fc" stroke="#2f6feb"/>
+  <text x="42" y="68" font-size="11">Trainer (FSDP)</text>
+  <text x="42" y="83" font-size="10" fill="#5b5e66">Megatron / FSDP</text>
+  <rect x="125" y="50" width="85" height="40" fill="#eaf0fc" stroke="#2f6feb"/>
+  <text x="132" y="68" font-size="11">Rollout Pool</text>
+  <text x="132" y="83" font-size="10" fill="#5b5e66">SGLang × N</text>
+
+  <!-- arrow to controller -->
+  <line x1="220" y1="60" x2="290" y2="60" stroke="#5b5e66" marker-end="url(#arrC)"/>
+  <text x="225" y="55" font-size="10" fill="#5b5e66">unified API</text>
+
+  <!-- controller -->
+  <rect x="290" y="20" width="160" height="80" rx="8" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="305" y="40" font-size="13" fill="#cc4a1b">AgentRL Controller</text>
+  <text x="305" y="60" font-size="11">start_sample()</text>
+  <text x="305" y="75" font-size="11">interact()</text>
+  <text x="305" y="90" font-size="11">list_workers()</text>
+
+  <!-- arrow to worker layer -->
+  <line x1="370" y1="100" x2="370" y2="135" stroke="#5b5e66" marker-end="url(#arrC)"/>
+
+  <!-- workers -->
+  <text x="40" y="155" font-size="13" fill="#1f7a4a">Containerized Worker Layer</text>
+
+  <g>
+    <rect x="20" y="170" width="120" height="90" rx="6" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="35" y="190" font-size="12">Task A: OS</text>
+    <text x="35" y="208" font-size="10" fill="#5b5e66">Ubuntu docker</text>
+    <text x="35" y="222" font-size="10" fill="#5b5e66">bash exec</text>
+    <text x="35" y="240" font-size="10" fill="#5b5e66">tools: run_cmd</text>
+  </g>
+  <g>
+    <rect x="155" y="170" width="120" height="90" rx="6" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="170" y="190" font-size="12">Task B: DB</text>
+    <text x="170" y="208" font-size="10" fill="#5b5e66">MySQL</text>
+    <text x="170" y="222" font-size="10" fill="#5b5e66">SQL exec</text>
+    <text x="170" y="240" font-size="10" fill="#5b5e66">tools: execute_sql</text>
+  </g>
+  <g>
+    <rect x="290" y="170" width="120" height="90" rx="6" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="305" y="190" font-size="12">Task C: KG</text>
+    <text x="305" y="208" font-size="10" fill="#5b5e66">Freebase API</text>
+    <text x="305" y="222" font-size="10" fill="#5b5e66">7 tools</text>
+    <text x="305" y="240" font-size="10" fill="#5b5e66">get_relations…</text>
+  </g>
+  <g>
+    <rect x="425" y="170" width="120" height="90" rx="6" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="440" y="190" font-size="12">Task D: ALF</text>
+    <text x="440" y="208" font-size="10" fill="#5b5e66">TextWorld</text>
+    <text x="440" y="222" font-size="10" fill="#5b5e66">action: take/go</text>
+  </g>
+  <g>
+    <rect x="560" y="170" width="120" height="90" rx="6" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="575" y="190" font-size="12">Task E: WS</text>
+    <text x="575" y="208" font-size="10" fill="#5b5e66">WebShop sim</text>
+    <text x="575" y="222" font-size="10" fill="#5b5e66">click/search</text>
+  </g>
+
+  <text x="540" y="40" font-size="11" fill="#5b5e66">↓ 暴露给 Trainer</text>
+  <text x="540" y="55" font-size="11" fill="#5b5e66">的是同一组接口:</text>
+  <text x="540" y="70" font-size="11" fill="#cc4a1b">step / reset /</text>
+  <text x="540" y="85" font-size="11" fill="#cc4a1b">submit / finish</text>
+</svg>
+<figcaption>三层结构:Trainer 不知道环境是 Ubuntu 还是 MySQL,它只看到 Controller 提供的统一 function-call 接口;Controller 把请求路由到不同 Worker container。Worker 内部封装具体 task,共享同一组 lifecycle API (start_sample / interact / list_sessions)。</figcaption>
+</div>
+
+<p><strong>关键 insight:</strong>把所有 task 改造成<strong>OpenAI function-call format</strong>是「统一接口」的真正承载点。例如 KG 的 7 个 query 操作 (<code>get_relations</code>, <code>get_neighbors</code>, <code>count</code>, …)、DB 的 (<code>execute_sql</code>, <code>commit_final_answer</code>)、OS 的 bash —— 都被统一成 tool definition + JSON 参数。模型只需要学「调对哪个 tool,填对参数」这一种行为模板。这也就是为什么 BFCL-v3 上做 OOD 评测会有显著 +3.0 pt 提升 (Table 5)—— 训练分布天然就是 function-call。</p>
+
+<hr>
+
+<h2 id="sec7">7. 端到端 Worked Example</h2>
+
+<p>跟踪一条 KG 任务 trajectory,问题:「Find the founder of the company that owns Freebase」。</p>
+
+<pre>step 0  [fresh π@v=237]  → tool_call: get_relations(entity="Freebase")
+step 1  [stale π@v=230]  → tool_call: get_neighbors(rel="owned_by")
+step 2  [fresh π@v=237]  → tool_call: get_relations(entity="#1")
+step 3  [stale π@v=230]  → tool_call: get_neighbors(rel="founder")
+step 4  [fresh π@v=237]  → "Final Answer: #3"
+                           reward = 1.0  (verifier matches)</pre>
+
+<p><strong>Async pipeline 视角:</strong>这条 trace 共 5 步,每步 LLM 1.2 s + env 0.3 s ≈ 7.5 s。trace 在 t=7.5 进 queue。同 batch 还有 7 条 ALFWorld 30 步 trace (~45 s) 和 56 条 DB 5 步 trace (~7.5 s)。Trainer 不等 ALFWorld,直接攒到 16 条就 fire 第一次 update —— 第一批 update 时这条 KG trace 已用上 fresh π@v=237 的 grad。</p>
+<p><strong>Cross-policy 视角:</strong>这条 trace 的 step 0/2/4 来自 fresh,step 1/3 来自 stale。Importance ratio 计算时,GRPO 的 ρ = π<sub>θ</sub>(a|s) / π<sub>old</sub>(a|s),分子全用 fresh π<sub>θ</sub>;分母原本是 πold,现在等于「实际 sampling 时用的那个 π」。论文没显式给 importance correction (按 GRPO 默认就当作 single π_old),实务上靠 stale engine 滞后步数小 + clip 范围控制。</p>
+<p><strong>Task-norm 视角:</strong>这条 trace reward = 1.0,group 内 5 条 reward 是 {0,0,1,0,0},GRPO Â 给该 trace = (1−0.2)/0.4 = 2.0,broadcast 到 ~80 个 token。然后取 KG 整 batch (假设 200 trace × ~80 token = 16k token),做 (Â − μ_KG) / σ_KG → 最终 token-level Ã ≈ +1.5 σ。这才是塞进 GRPO loss 里的有效 advantage。</p>
+
+<hr>
+
+<h2 id="sec8">8. 实验关键结果</h2>
+
+<h3>8.1 主结果:32B 反超 GPT-5 / Claude-Sonnet-4</h3>
+<table>
+<tr><th>Model</th><th>ALF</th><th>DB</th><th>KG</th><th>OS</th><th>WS</th><th>AVG</th></tr>
+<tr><td>GPT-5 (2025-08)</td><td>65.4</td><td>63.2</td><td>64.1</td><td>34.5</td><td>33.7</td><td>52.2</td></tr>
+<tr><td>Claude-Sonnet-4 Thinking</td><td>69.0</td><td>68.4</td><td>64.4</td><td>51.0</td><td>38.3</td><td>58.2</td></tr>
+<tr><td>DeepSeek-R1</td><td>51.4</td><td>60.4</td><td>50.2</td><td>53.6</td><td>31.0</td><td>49.3</td></tr>
+<tr><td>Qwen2.5-32B-Instruct (base)</td><td>32.1</td><td>55.8</td><td>33.8</td><td>37.0</td><td>27.5</td><td>37.2</td></tr>
+<tr><td><strong>AgentRL w/ Qwen2.5-32B</strong></td><td><strong>94.5</strong></td><td><strong>70.4</strong></td><td><strong>77.0</strong></td><td>51.7</td><td><strong>58.6</strong></td><td><strong>70.4</strong></td></tr>
+<tr><td>AgentRL w/ Qwen2.5-3B</td><td>92.4</td><td>60.0</td><td>55.0</td><td>40.5</td><td>52.1</td><td>60.0</td></tr>
+</table>
+
+<div class="fig">
+<svg viewBox="0 0 700 230" xmlns="http://www.w3.org/2000/svg">
+  <line x1="60" y1="200" x2="680" y2="200" stroke="#5b5e66"/>
+  <line x1="60" y1="20" x2="60" y2="200" stroke="#5b5e66"/>
+  <text x="20" y="200" font-size="11" fill="#5b5e66">0</text>
+  <text x="20" y="115" font-size="11" fill="#5b5e66">50</text>
+  <text x="20" y="25" font-size="11" fill="#5b5e66">100</text>
+
+  <!-- grouped bars: ALF, DB, KG, OS, WS -->
+  <g font-size="10" fill="#1f2024">
+    <!-- ALF -->
+    <rect x="80" y="83" width="20" height="117" fill="#2f6feb" opacity=".6"/>
+    <rect x="100" y="80" width="20" height="120" fill="#cc4a1b" opacity=".6"/>
+    <rect x="120" y="93" width="20" height="107" fill="#a8353e" opacity=".6"/>
+    <rect x="140" y="14" width="20" height="186" fill="#1f7a4a"/>
+    <text x="100" y="215" text-anchor="middle">ALF</text>
+    <!-- DB -->
+    <rect x="200" y="86" width="20" height="114" fill="#2f6feb" opacity=".6"/>
+    <rect x="220" y="77" width="20" height="123" fill="#cc4a1b" opacity=".6"/>
+    <rect x="240" y="91" width="20" height="109" fill="#a8353e" opacity=".6"/>
+    <rect x="260" y="73" width="20" height="127" fill="#1f7a4a"/>
+    <text x="240" y="215" text-anchor="middle">DB</text>
+    <!-- KG -->
+    <rect x="320" y="84" width="20" height="116" fill="#2f6feb" opacity=".6"/>
+    <rect x="340" y="84" width="20" height="116" fill="#cc4a1b" opacity=".6"/>
+    <rect x="360" y="110" width="20" height="90" fill="#a8353e" opacity=".6"/>
+    <rect x="380" y="62" width="20" height="138" fill="#1f7a4a"/>
+    <text x="360" y="215" text-anchor="middle">KG</text>
+    <!-- OS -->
+    <rect x="440" y="138" width="20" height="62" fill="#2f6feb" opacity=".6"/>
+    <rect x="460" y="108" width="20" height="92" fill="#cc4a1b" opacity=".6"/>
+    <rect x="480" y="103" width="20" height="97" fill="#a8353e" opacity=".6"/>
+    <rect x="500" y="107" width="20" height="93" fill="#1f7a4a"/>
+    <text x="480" y="215" text-anchor="middle">OS</text>
+    <!-- WS -->
+    <rect x="560" y="139" width="20" height="61" fill="#2f6feb" opacity=".6"/>
+    <rect x="580" y="131" width="20" height="69" fill="#cc4a1b" opacity=".6"/>
+    <rect x="600" y="144" width="20" height="56" fill="#a8353e" opacity=".6"/>
+    <rect x="620" y="95" width="20" height="105" fill="#1f7a4a"/>
+    <text x="600" y="215" text-anchor="middle">WS</text>
+  </g>
+  <!-- legend -->
+  <rect x="60" y="0" width="10" height="10" fill="#2f6feb" opacity=".6"/><text x="75" y="9" font-size="10">GPT-5</text>
+  <rect x="130" y="0" width="10" height="10" fill="#cc4a1b" opacity=".6"/><text x="145" y="9" font-size="10">Claude-4-Th</text>
+  <rect x="220" y="0" width="10" height="10" fill="#a8353e" opacity=".6"/><text x="235" y="9" font-size="10">DeepSeek-R1</text>
+  <rect x="320" y="0" width="10" height="10" fill="#1f7a4a"/><text x="335" y="9" font-size="10">AgentRL-32B (ours)</text>
+</svg>
+<figcaption>5 任务上 success rate bar chart。AgentRL 在 ALF / DB / KG / WS 四个任务上单调最高,差距最大的是 ALF 和 KG;OS 上和 Claude-4-Thinking 持平,这是 AgentRL 唯一<em>没有压倒性</em>胜出的任务 —— 大概率因为 OS 任务 bash 输出 long-tail 严重,Verifier 很难给到稠密的 reward。</figcaption>
+</div>
+
+<h3>8.2 Multi-task 不输 best-of-five 单任务专家 (Table 4)</h3>
+<p>这个对比最锋利:对每个 task 单独训一个 14B model,各自 SR 是 89.7 / 73.9 / 72.2 / 43.1 / 60.3 (avg 67.8);<strong>一个 multi-task 14B</strong> SR 是 91.5 / 72.2 / 72.8 / 43.6 / 58.5 (avg 67.7)。差距 −0.1 pt 几乎可以忽略。但 multi-task model 多出来一个 BFCL-v3 OOD +3.0 pt 的 generalization 提升 (Table 5),说明它没有过拟合到 5 个 task。</p>
+
+<h3>8.3 Ablation</h3>
+<table>
+<tr><th>Method</th><th>ALF</th><th>DB</th><th>KG</th><th>OS</th><th>WS</th><th>AVG</th></tr>
+<tr><td>AgentRL-14B (full)</td><td>93.1</td><td>64.0</td><td>67.7</td><td>45.1</td><td>55.0</td><td><strong>65.0</strong></td></tr>
+<tr><td>− cross-policy sampling</td><td>91.9</td><td>61.6</td><td>55.7</td><td>39.7</td><td>54.5</td><td>60.7 (−4.3)</td></tr>
+<tr><td>− task adv. norm</td><td>91.1</td><td>62.6</td><td>54.7</td><td>38.0</td><td>50.6</td><td>59.4 (−5.6)</td></tr>
+</table>
+<p>两个 trick 各贡献 4–6 pt,在 KG 和 OS 上效应最大(都是 long-horizon、open-state 的任务,正符合理论预期)。</p>
+
+<h3>8.4 Throughput</h3>
+<p>14B 在 Webshop 上:同步 16/32/64 GPU = 9K / 16K / 29K tok/s;async = 17K / 33K / 56K tok/s。倍率从 16 GPU 的 1.9× 涨到 64 GPU 的 1.93×, 接近 perfect scaling 直线 —— 也就是说 async 不仅<em>降低绝对开销</em>,也让<strong>scaling 不饱和</strong>。这是同步 implementation 给不出来的。</p>
+
+<h3>8.5 Failure mode (Table 7)</h3>
+<p>"Task Limit Reached" 比例,base → AgentRL:ALF 0.68 → 0.07,WS 0.275 → 0.020。也就是 RL 主要修了「没 budget 在限定回合内交答案」这个 failure mode,不是单纯的「答错了」。这个观察呼应 §8.1: AgentRL 大胜 ALF/WS 的本质是「学会了高效 act」,不只是「学会了 reasoning」。</p>
+
+<hr>
+
+<h2 id="sec9">9. 与同类工作对比</h2>
+
+<table>
+<tr><th>系统</th><th>异步颗粒度</th><th>多 task</th><th>多 turn</th><th>采样策略</th><th>定位</th></tr>
+<tr><td>OpenRLHF / VeRL / NeMo-Aligner / EasyR1</td><td>无 (sync interleave)</td><td>否</td><td>否</td><td>group-of-K, fixed π</td><td>RLHF / 单步 RLVR baseline</td></tr>
+<tr><td>AReaL</td><td>per-query async</td><td>否</td><td>是 (long CoT)</td><td>fixed π</td><td>reasoning long-CoT</td></tr>
+<tr><td>prime-rl (INTELLECT-3)</td><td>distributed async</td><td>有限 (single env family)</td><td>是</td><td>fixed π</td><td>跨地理位置异步训练</td></tr>
+<tr><td>AgentGym-RL (sibling)</td><td>per-env async</td><td>是</td><td>是</td><td>fixed π</td><td>统一 agent 评测 + 训练</td></tr>
+<tr><td>RAGEN / DigiRL / GiGPO / ARPO</td><td>无</td><td>否</td><td>是</td><td>fixed π,有的加 group-in-group</td><td>单一环境家族 (GUI/long-horizon)</td></tr>
+<tr><td><strong>AgentRL</strong></td><td>per-env coroutine + dynamic batch</td><td><strong>是 (5 task)</strong></td><td>是</td><td><strong>cross-policy</strong>, per-task adv-norm</td><td>multi-turn × multi-task generalist agent</td></tr>
+</table>
+
+<p>核心差异点:</p>
+<ul>
+<li><strong>vs AReaL:</strong> AReaL 的 async 是「long CoT 内 token-level streaming」,trace 内长度方差不大;AgentRL 的 async 处理的是「环境阻塞 + trace 长度差几个数量级」, 颗粒度 per-env coroutine。</li>
+<li><strong>vs prime-rl:</strong> prime-rl 的 async 主要解决「跨节点高延迟」(INTELLECT 体系跨 datacenter);AgentRL 的 async 解决「同节点环境长尾」。两者正交,理论上可以叠加。</li>
+<li><strong>vs OpenRLHF / NeMo-RL:</strong> 两者都没有 environment 抽象层,做 multi-turn agent 要自己外挂;AgentRL 的 Controller/Worker/Container 是一等公民。</li>
+<li><strong>vs AgentGym-RL:</strong>(sibling note 06)AgentGym-RL 也支持多任务,但偏重「环境 SDK 标准化 + benchmark」,RL 算法层更接近原始 GRPO;AgentRL 在算法层多了 cross-policy + task-norm 两个 trick。</li>
+<li><strong>vs RAGEN/GiGPO/ARPO:</strong> 后者是「方法论文」,只在一个 env 家族里证明算法有用;AgentRL 是「框架论文」,目标是把这些算法都能复用到任意 env。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec10">10. 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+<li><strong>Cross-policy 没有正式的 importance correction.</strong> 实际 GRPO 把 stale π 当 fresh π_old 处理,clip 范围内当作 on-policy。这在 stale lag 很小(≤几步)时大概率没事,但论文没给 stale lag 的 sensitivity 曲线 —— 如果 lag 拉到 50 步会怎样?个人觉得这是首要的待验证项。</li>
+<li><strong>5 个 task 都是 verifier-easy.</strong> 所有任务的 reward 都是 binary 0/1,−0.2 惩罚超时。要扩到「open-ended」任务(写代码、写文章、网页操作)还需要 reward model 接入,目前框架不直接支持。</li>
+<li><strong>OS 任务上没赢 Claude-4-Thinking.</strong> 51.7 vs 51.0 持平 —— 大概率 OS 任务比 ALF/KG 更需要 long-context 推理 + reasoning model 的优势在那里发挥。AgentRL 32B 没 reasoning trace,可能差在这里。</li>
+<li><strong>「全异步带来的 staleness 偏差」claim 太软.</strong> 论文说「staleness acceptable」但没给 lag → reward 的 trade-off 曲线。从 Figure 4 推测 lag 一般在 1–6 step 内(B<sub>min</sub>=16 时 trainer 一秒做 5 次 update);需要看 ablation。</li>
+<li><strong>Cross-policy 的 stable training claim 和 Limitation 里自己的「mild instability」相矛盾.</strong> 论文 §G.1 承认 cross-policy 会带来 minor distribution shift,可能是 KG 任务上 Figure 7a 里 ours 比 baseline 后期的现象 —— pass rate 涨得慢但 ceiling 高。</li>
+<li><strong>Open question:</strong> 这套 cross-policy + per-task norm 能否套到 reasoning task (math/code) 上?直觉上 reasoning 是 single-turn,task-norm 不必要;但 cross-policy 在 long CoT 内可能也有效(用早期 snapshot 当探索源)。</li>
+</ul>
+
+<h4>5 个想验证的点</h4>
+<ol>
+<li>不做 importance correction 时, stale lag 从 1 步加到 50 步, advantage 偏差和最终 SR 怎么变?</li>
+<li>Cross-policy pool 大小从 2 → 8 个 model, exploration 收益是否单调?</li>
+<li>Per-task norm 改成 「per-task running avg + 小窗口 std」(streaming 版),会不会更稳?</li>
+<li>把 reward 换成 RM-based dense reward,task-norm 是否还成立?(soft reward 可能 σ_i 变化巨大)</li>
+<li>用 32B AgentRL 替换 stale engine 里的 model 为更早的 14B snapshot,跨 size 的 cross-policy 是否仍 work?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec11">11. Memory points (冷回忆用)</h2>
+
+<div class="kv"><span class="pill">立场</span> <strong>系统 + 算法双轨</strong>:async pipeline 是 enabler,cross-policy + task-norm 是各 +5pt 的双 trick。</div>
+<div class="kv"><span class="pill">核心 trick 1</span> <strong>Cross-policy sampling</strong>: 每个 environment step 从 fresh / stale snapshot 池里随机抽 π,保 validity 同时扩 coverage。</div>
+<div class="kv"><span class="pill">核心 trick 2</span> <strong>Task advantage normalization</strong>: GRPO 第二次 standardize, 每个 task batch 内独立 (Â − μ<sub>i</sub>) / σ<sub>i</sub>, 解决多任务 reward scale 不均。</div>
+<div class="kv"><span class="pill">异步颗粒度</span> per-env coroutine + dynamic batch + bounded staleness, 不等 batch 满, queue 上限强制 drain。</div>
+<div class="kv"><span class="pill">数字</span> 32B 5 任务平均 70.4% (vs Claude-4-Th 58.2 / GPT-5 52.2 / DeepSeek-R1 49.3);async 让 14B@64GPU throughput 9K → 56K tok/s 接近 6×。</div>
+<div class="kv"><span class="pill">multi vs single</span> 单 multi-task 14B AVG 67.7 ≈ best-of-five 单任务 67.8, 但 multi 还能在 BFCL-v3 OOD +3.0 pt。</div>
+<div class="kv"><span class="pill">瓶颈</span> OS 任务上和 Claude-4-Thinking 持平,reasoning 优势没全吃到;cross-policy 没有 importance correction,stale lag 敏感性未量化。</div>
+<div class="kv"><span class="pill">实现</span> 基于 Verl 改造,SGLang 推理,FSDP 训练,16+ H800 起。</div>
+<div class="kv"><span class="pill">和邻居</span> AReaL = per-query async, prime-rl = 跨地理 async, AgentRL = per-env async + multi-task; AgentGym-RL 同期 sibling 偏 SDK/benchmark。</div>
+
+</main>
+</body>
+</html>

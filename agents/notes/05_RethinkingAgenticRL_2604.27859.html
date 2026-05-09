@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Rethinking Agentic RL in LLMs (2604.27859)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Rethinking Agentic Reinforcement Learning In Large Language Models</h1>
+<div class="meta">
+  Cui, Zhu, Fang, Li, Li (Beijing / Shanghai) · 2026-05-06 · arXiv:2604.27859v2<br>
+  关键词: Agentic RL · POMDP · planning · tool use · memory · paradigm shift
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>这篇 position paper 主张把 LLM 训练范式从"单步 RLHF/RLVR 的退化 MDP"升格为"多步 POMDP 内的 Agentic RL"——LLM 不再是 passive responder,而是在 trajectory 上做长程决策的 proactive agent,这一框架天然把 planning / tool / memory / action 四件套接进 cumulative-return 的优化目标里。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">MDP → POMDP</div><div class="l">paradigm 重定位</div></div>
+    <div class="stat"><div class="n">4 + 1</div><div class="l">Action / Plan / Memory / Tool + Env</div></div>
+    <div class="stat"><div class="n">PPO→GSPO/SAPO</div><div class="l">10+ derivative algorithms 谱系</div></div>
+  </div>
+  <p><strong>立场:</strong>当前流行的 RLHF/DPO/GRPO 把 response 当独立样本、把 reward 当一次性 preference,这<em>是 POMDP 的退化形式</em>;只有在 cumulative return + partial observation + 多轮交互上做 RL 的系统才配叫 Agentic RL。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么需要重新定义 Agentic RL</a></li>
+    <li><a href="#sec2">背景速查 (POMDP / RLHF / GRPO 术语表)</a></li>
+    <li><a href="#sec3">核心论点:从退化 MDP 到 Agentic POMDP</a></li>
+    <li><a href="#sec4">Agentic Capability Taxonomy: Action / Plan / Memory / Tool</a></li>
+    <li><a href="#sec5">RL 算法谱系:PPO → GRPO → DAPO/GSPO/SAPO</a></li>
+    <li><a href="#sec6">三大挑战:Environment / Trustworthy / Capability</a></li>
+    <li><a href="#sec7">Worked example: 一个数学+工具任务跑通框架</a></li>
+    <li><a href="#sec8">与同类工作对比 (Survey 2509 / INTELLECT-3 / NeMo-RL / Kimi K2.5)</a></li>
+    <li><a href="#sec9">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么需要重新定义 Agentic RL</h2>
+
+<h3>1.1 历史脉络:从 RLHF 单步偏好到 Agentic 多步轨迹</h3>
+
+<p>过去三年的 LLM 后训练史,可以画成一条<strong>从单步逐渐被迫长出多步</strong>的曲线:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+    <!-- timeline -->
+    <line x1="40" y1="190" x2="700" y2="190" stroke="#888" stroke-width="1.5"/>
+    <text x="40" y="215" font-size="11" fill="#5b5e66">2022</text>
+    <text x="190" y="215" font-size="11" fill="#5b5e66">2023</text>
+    <text x="340" y="215" font-size="11" fill="#5b5e66">2024</text>
+    <text x="490" y="215" font-size="11" fill="#5b5e66">2025</text>
+    <text x="640" y="215" font-size="11" fill="#5b5e66">2026</text>
+    <!-- ticks -->
+    <g stroke="#888"><line x1="50" y1="186" x2="50" y2="194"/><line x1="200" y1="186" x2="200" y2="194"/><line x1="350" y1="186" x2="350" y2="194"/><line x1="500" y1="186" x2="500" y2="194"/><line x1="650" y1="186" x2="650" y2="194"/></g>
+
+    <!-- nodes (top row labels with single-step zone) -->
+    <rect x="30" y="80" width="320" height="55" rx="8" fill="#e3f2fd" stroke="#2f6feb" stroke-dasharray="4,3"/>
+    <text x="190" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">Single-Step "Degenerate MDP"</text>
+    <text x="190" y="118" text-anchor="middle" font-size="10.5" fill="#3a3b40">RLHF · DPO · 单 prompt → 单 response → 单 reward</text>
+
+    <!-- multi-step zone -->
+    <rect x="370" y="80" width="320" height="55" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="530" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Multi-Step Agentic POMDP</text>
+    <text x="530" y="118" text-anchor="middle" font-size="10.5" fill="#3a3b40">tool / memory / web / env · trajectory return</text>
+
+    <!-- markers -->
+    <circle cx="50" cy="190" r="4" fill="#2f6feb"/><text x="50" y="65" text-anchor="middle" font-size="10.5" fill="#2f6feb">InstructGPT/RLHF</text>
+    <circle cx="200" cy="190" r="4" fill="#2f6feb"/><text x="200" y="170" text-anchor="middle" font-size="10.5" fill="#2f6feb">DPO · ReAct</text>
+    <circle cx="350" cy="190" r="4" fill="#888"/><text x="350" y="65" text-anchor="middle" font-size="10.5" fill="#5b5e66">GRPO · PPO-RLVR</text>
+    <circle cx="430" cy="190" r="4" fill="#cc4a1b"/><text x="430" y="170" text-anchor="middle" font-size="10.5" fill="#cc4a1b">DAPO/Search-R1</text>
+    <circle cx="540" cy="190" r="4" fill="#cc4a1b"/><text x="540" y="65" text-anchor="middle" font-size="10.5" fill="#cc4a1b">GSPO/SAPO/ReTool</text>
+    <circle cx="650" cy="190" r="4" fill="#cc4a1b"/><text x="650" y="170" text-anchor="middle" font-size="10.5" fill="#cc4a1b">StepPO · Agent-Omit</text>
+
+    <!-- arrow flowing across -->
+    <path d="M 50 145 Q 360 145 700 145" stroke="#cc4a1b" stroke-width="1.2" fill="none" stroke-dasharray="3,3" marker-end="url(#mArr)"/>
+    <text x="370" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2024">三年间被迫从 single-step 滑向 multi-step</text>
+
+    <defs>
+      <marker id="mArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>一条肉眼可见的演化:RLHF/DPO 时代每个 (prompt, response) 是<em>独立</em>样本;到 Search-R1/ReTool 这一代,模型在一条轨迹里要 search → read → reason → answer,<em>一次决策错了后面全错</em>——这才是 RL 真正应该解决的问题。</figcaption>
+</div>
+
+<p>论文给出的语境是: 早期 LLM 训练范式更像把 LLM 当"sophisticated auto-regressive predictor",RL 其实只在<strong>最后一步</strong>给一个 preference reward。这种结构跟传统 RL 几乎没什么共通点——传统 RL 关心的是 <em>cumulative return over a trajectory</em>。</p>
+
+<p>转折点是两件事的耦合:</p>
+<ul>
+  <li><strong>Reasoning model 起飞</strong>(R1/o1):long-CoT 内部其实就是一条很长的 latent trajectory;</li>
+  <li><strong>工具 / 浏览器 / 代码执行</strong> 被并入 inference 循环 (ReAct, ReTool, Search-R1):此时 trajectory 真的对外可见,且每一步的 observation 都不完整(网页只显示一部分,工具 output 有限)。</li>
+</ul>
+
+<p>论文的判断是: 这两件事<strong>已经把 LLM 的 RL 变成了 POMDP</strong>,但学界仍在用 single-step 的 algorithm formalism 训它,这是不匹配的。</p>
+
+<h3>1.2 别的看法为什么不够</h3>
+
+<p>论文表 1 把现有 survey/work 拉在一张表上比较——大多数只覆盖 LLM、Agents、RL 三者的<em>子集</em>,真正把三件事融合的工作很少:</p>
+
+<table>
+  <tr><th>视角</th><th>关心什么</th><th>盲点</th></tr>
+  <tr><td>纯 LLM 视角 (post-training survey)</td><td>SFT / RLHF / DPO 的 alignment</td><td><span class="no">不谈 trajectory / agent</span></td></tr>
+  <tr><td>纯 Agent 视角 (LLM agent survey)</td><td>ReAct / 工具 / planning 的 prompt patterns</td><td><span class="no">不谈 RL training, 大多 frozen LLM</span></td></tr>
+  <tr><td>纯 RL 视角 (RL for LLM)</td><td>PPO/GRPO algorithm 改进</td><td><span class="no">基本仍 single-step, 不考虑 multi-turn env</span></td></tr>
+  <tr><td>LLM × Agent (paper [56,102])</td><td>用 LLM 做 agent decision</td><td><span class="no">不训, 不优化, 是 prompt engineering</span></td></tr>
+  <tr><td>RL × Agent (经典 RL)</td><td>policy / value, MDP/POMDP</td><td><span class="no">不带 LLM, 没有 language reasoning</span></td></tr>
+  <tr><td>LLM × RL × Agent (本文 + Landscape Survey 2509)</td><td>三件事必须并轨</td><td>—</td></tr>
+</table>
+
+<p>现实问题: 一条多轮 tool-use trajectory 里,token-level 的 GRPO 优化 (single response 内的 advantage) 跟 trajectory-level 的 success/fail 信号是<strong>不同尺度</strong>的——前者太细,后者太粗。中间那一层(每一个 tool call 是不是好决策)就是 single-step 视角看不见的地方。</p>
+
+<h3>1.3 为什么 position-paper 级的重新定义是必要的</h3>
+
+<p>把这件事用一个公式说清楚: 假设一个 agent 任务有 H 步, 每步 observation o<sub>t</sub> ⊂ s<sub>t</sub> (partial), action a<sub>t</sub> 来自一个混合空间(natural language + tool call + memory write/read), 反馈 r<sub>t</sub> 来自 environment + verifier。</p>
+
+<div class="formula">J<sub>agentic</sub>(θ) = E<sub>τ ∼ π<sub>θ</sub></sub> [ Σ<sub>t=0..H</sub> γ<sup>t</sup> · r(o<sub>t</sub>, a<sub>t</sub>) ]</div>
+
+<p>对比 RLHF / DPO / 标准 GRPO:</p>
+
+<div class="formula">J<sub>RLHF</sub>(θ) = E<sub>x∼D, y∼π<sub>θ</sub>(·|x)</sub> [ r(x, y) − β · KL(π<sub>θ</sub> || π<sub>ref</sub>) ]</div>
+
+<p>把 J<sub>RLHF</sub> 套进 J<sub>agentic</sub> 的框架: <strong>当且仅当 H=1, observation 完全可见, action 是单条 response 时, J<sub>agentic</sub> 退化为 J<sub>RLHF</sub></strong>。这就是论文标题里 "rethinking" 想戳破的点 —— 你以为你在做 RL,你其实只在做 single-step contextual bandit。</p>
+
+<p>真实的 Agentic 任务上,论文论证三件事会出问题:</p>
+<ol>
+  <li><strong>credit assignment 错位</strong>: trajectory 终点 reward 被无差别地按 token 级 advantage 分摊到所有步骤,但只有 1-2 个 critical decision 真的承担因果——这是 StepPO[87]/HiPER[67] 试图修的事;</li>
+  <li><strong>partial observation 没建模</strong>: search-R1 里检索回来的网页是 <em>o<sub>t</sub></em>,真实 web 状态 <em>s<sub>t</sub></em> 远不止这些。但 GRPO 不知道这件事,把 o 当 s 算 likelihood;</li>
+  <li><strong>memory / tool 当成 prompt 拼接</strong>: 没显式 modelling 它们改变 state transition 的事实,所以 reward shaping 看不到 "memory 写得好" 的功劳。</li>
+</ol>
+
+<div class="nb">
+  <strong>论文最锋利的一句话:</strong>"将 LLM 形式化为 PMDP 内的 policy π<sub>θ</sub>(a|s) 是关键(crucial),因为它承认了真实任务中固有的 uncertainty 和 sequential dependency"。— 翻译: 不写成 POMDP, 你就在<em>假装</em>这件事不存在。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">MDP</span></td><td>(S, A, P, R, γ)。state 全可观, transition Markov</td></tr>
+  <tr><td><span class="term">POMDP</span></td><td>(S, A, O, P, Z, R, γ)。多了 observation set O 和 observation function Z(o|s,a)。Agent 看到 o ≠ 看到 s</td></tr>
+  <tr><td><span class="term">Trajectory τ</span></td><td>(s₀, a₀, r₀, ..., s<sub>H</sub>),Agentic RL 优化的对象</td></tr>
+  <tr><td><span class="term">Cumulative return</span></td><td>Σ γ<sup>t</sup> r<sub>t</sub>, 与 RLHF 的 single r 形成对照</td></tr>
+  <tr><td><span class="term">RLHF</span></td><td>用人类 preference 训 reward model, 再 PPO 优化 LLM</td></tr>
+  <tr><td><span class="term">RLVR</span></td><td>RL with Verifiable Reward, reward 来自一个可执行的 verifier (代码、数学、单元测试)</td></tr>
+  <tr><td><span class="term">PPO</span></td><td>Schulman 2017。clipped ratio 控信任域</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>DeepSeekMath 2024。组内 reward 标准化代替 critic</td></tr>
+  <tr><td><span class="term">DAPO</span></td><td>ByteDance 2025。clip-higher / dynamic sampling / token-level loss</td></tr>
+  <tr><td><span class="term">GSPO</span></td><td>Qwen3。sequence-level importance ratio,稳 MoE</td></tr>
+  <tr><td><span class="term">SAPO</span></td><td>Qwen 2025。soft adaptive (sigmoid gating) 替代 hard clip</td></tr>
+  <tr><td><span class="term">ReAct</span></td><td>Thought→Action→Obs→Thought 的 prompting pattern</td></tr>
+  <tr><td><span class="term">MCTS / UCB1</span></td><td>用搜索代替直接 sampling 的 planning paradigm</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec3">3 · 核心论点:从退化 MDP 到 Agentic POMDP</h2>
+
+<p>论文最重要的概念图(我重画了一份),把三种 RL formulation 摆在一起:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- ROW 1: degenerate MDP -->
+    <rect x="20" y="15" width="680" height="100" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="38" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">① Degenerate single-step "MDP" (RLHF / DPO / vanilla GRPO 的视角)</text>
+    <!-- prompt -->
+    <rect x="40" y="60" width="80" height="40" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="80" y="84" text-anchor="middle" font-size="11">prompt x</text>
+    <line x1="120" y1="80" x2="180" y2="80" stroke="#666" marker-end="url(#aArr)"/>
+    <!-- response -->
+    <rect x="180" y="60" width="120" height="40" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="240" y="84" text-anchor="middle" font-size="11">response y (single)</text>
+    <line x1="300" y1="80" x2="360" y2="80" stroke="#666" marker-end="url(#aArr)"/>
+    <!-- reward -->
+    <rect x="360" y="60" width="100" height="40" rx="6" fill="#cc4a1b" opacity=".15" stroke="#cc4a1b"/>
+    <text x="410" y="84" text-anchor="middle" font-size="11" fill="#cc4a1b">scalar r(x,y)</text>
+    <text x="540" y="78" font-size="11" fill="#5b5e66">H=1, full obs,</text>
+    <text x="540" y="93" font-size="11" fill="#5b5e66">no transition</text>
+
+    <!-- ROW 2: standard MDP -->
+    <rect x="20" y="125" width="680" height="100" rx="10" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="360" y="148" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">② Classical MDP (传统 RL: state 全可观, deterministic transition)</text>
+    <g font-family="monospace" font-size="11">
+      <rect x="40" y="170" width="55" height="34" rx="5" fill="#fff" stroke="#888"/><text x="68" y="191" text-anchor="middle">s₀</text>
+      <line x1="95" y1="187" x2="120" y2="187" stroke="#666" marker-end="url(#aArr)"/>
+      <rect x="120" y="170" width="50" height="34" rx="5" fill="#fff" stroke="#888"/><text x="145" y="191" text-anchor="middle">a₀</text>
+      <text x="180" y="191" font-size="14" fill="#5b5e66">→</text>
+      <rect x="195" y="170" width="55" height="34" rx="5" fill="#fff" stroke="#888"/><text x="222" y="191" text-anchor="middle">s₁,r₀</text>
+      <text x="260" y="191" font-size="14" fill="#5b5e66">→</text>
+      <rect x="275" y="170" width="50" height="34" rx="5" fill="#fff" stroke="#888"/><text x="300" y="191" text-anchor="middle">a₁</text>
+      <text x="335" y="191" font-size="14" fill="#5b5e66">→ ... →</text>
+      <rect x="395" y="170" width="55" height="34" rx="5" fill="#fff" stroke="#888"/><text x="422" y="191" text-anchor="middle">s_H</text>
+    </g>
+    <text x="540" y="187" font-size="11" fill="#5b5e66">cumulative return,</text>
+    <text x="540" y="202" font-size="11" fill="#5b5e66">但 obs = state</text>
+
+    <!-- ROW 3: Agentic POMDP -->
+    <rect x="20" y="235" width="680" height="115" rx="10" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="360" y="258" text-anchor="middle" font-size="13" font-weight="600" fill="#a8353e">③ Agentic POMDP (本文主张): partial obs + 多轮 + 多模 action + 长程 reward</text>
+    <!-- s_t (latent) -->
+    <rect x="40" y="280" width="60" height="32" rx="5" fill="#888" opacity=".25" stroke="#888" stroke-dasharray="3,2"/>
+    <text x="70" y="300" text-anchor="middle" font-size="10" fill="#5b5e66">s_t (隐)</text>
+    <line x1="70" y1="312" x2="70" y2="328" stroke="#a8353e" stroke-dasharray="2,2"/>
+    <!-- o_t -->
+    <rect x="40" y="328" width="60" height="22" rx="4" fill="#fff" stroke="#a8353e"/>
+    <text x="70" y="343" text-anchor="middle" font-size="10" fill="#a8353e">o_t (web片段)</text>
+    <text x="105" y="343" font-size="13" fill="#5b5e66">→</text>
+
+    <!-- a_t multi-modal -->
+    <g>
+      <rect x="125" y="270" width="120" height="22" rx="4" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="185" y="285" text-anchor="middle" font-size="10" fill="#cc4a1b">tool_call(query)</text>
+      <rect x="125" y="296" width="120" height="22" rx="4" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="185" y="311" text-anchor="middle" font-size="10" fill="#cc4a1b">memory.write(k,v)</text>
+      <rect x="125" y="322" width="120" height="22" rx="4" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="185" y="337" text-anchor="middle" font-size="10" fill="#cc4a1b">cot_token...</text>
+    </g>
+    <text x="252" y="305" font-size="13" fill="#5b5e66">→</text>
+    <text x="265" y="295" font-size="11" fill="#a8353e" font-weight="600">env / Z(o|s,a)</text>
+    <text x="265" y="312" font-size="10" fill="#5b5e66">环境给新观察,</text>
+    <text x="265" y="324" font-size="10" fill="#5b5e66">非 deterministic</text>
+    <text x="395" y="305" font-size="13" fill="#5b5e66">→</text>
+
+    <!-- next o -->
+    <rect x="415" y="280" width="60" height="32" rx="5" fill="#888" opacity=".25" stroke="#888" stroke-dasharray="3,2"/>
+    <text x="445" y="300" text-anchor="middle" font-size="10" fill="#5b5e66">s_{t+1}</text>
+    <rect x="415" y="328" width="60" height="22" rx="4" fill="#fff" stroke="#a8353e"/>
+    <text x="445" y="343" text-anchor="middle" font-size="10" fill="#a8353e">o_{t+1}</text>
+
+    <text x="500" y="290" font-size="11" fill="#a8353e" font-weight="600">→ ... →</text>
+    <rect x="555" y="280" width="125" height="40" rx="6" fill="#a8353e" opacity=".15" stroke="#a8353e"/>
+    <text x="617" y="297" text-anchor="middle" font-size="11" fill="#a8353e">Σ γ<sup>t</sup> r_t</text>
+    <text x="617" y="312" text-anchor="middle" font-size="10" fill="#5b5e66">trajectory return</text>
+
+    <defs>
+      <marker id="aArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>三种 formulation 的差距。① 是当前 RLHF/GRPO 默认形态——本质是 contextual bandit;② 是经典 RL,有时间维度但状态全可观;③ 才是 Agentic 真实场景——隐 state + 噪声 observation + 多模 action(tool / memory / token mixed) + 长程 reward。从 ① 跳到 ③ 不是"细化",是<strong>问题类型变了</strong>。</figcaption>
+</div>
+
+<h3>3.1 数学符号对齐</h3>
+
+<table>
+  <tr><th>对象</th><th>RLHF 视角</th><th>POMDP / Agentic 视角</th></tr>
+  <tr><td>state</td><td>x (prompt) — 一次性</td><td>s<sub>t</sub> (latent), 包括 env 真状态</td></tr>
+  <tr><td>observation</td><td>= state (没区分)</td><td>o<sub>t</sub> ∼ Z(·|s<sub>t</sub>, a<sub>t-1</sub>)</td></tr>
+  <tr><td>action</td><td>y (entire response)</td><td>a<sub>t</sub> ∈ A<sub>tok</sub> ∪ A<sub>tool</sub> ∪ A<sub>mem</sub></td></tr>
+  <tr><td>transition</td><td>无 (退化为 bandit)</td><td>s<sub>t+1</sub> ∼ P(·|s<sub>t</sub>, a<sub>t</sub>)</td></tr>
+  <tr><td>reward</td><td>r(x,y) terminal</td><td>r(s<sub>t</sub>, a<sub>t</sub>) per-step</td></tr>
+  <tr><td>policy</td><td>π<sub>θ</sub>(y|x)</td><td>π<sub>θ</sub>(a<sub>t</sub>|h<sub>t</sub>), h<sub>t</sub> = 历史</td></tr>
+  <tr><td>objective</td><td>E[r(x,y)]</td><td>E[Σ γ<sup>t</sup> r<sub>t</sub>]</td></tr>
+</table>
+
+<p>从这张对应表能看到:<strong>RLHF 不是 RL 的特例,而是 RL 的极端退化</strong>——所有时间维度都被压平成 1。把它拿去训需要长程决策的 agent,就像用平均速度优化一段曲线积分。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Agentic Capability Taxonomy: Action / Plan / Memory / Tool</h2>
+
+<p>论文的 §2.1 用一个非常工整的 control-theoretic 分解给出 agent 能力分类。这是文中"建设性"部分,把 RL 框架要拥抱的<em>四类基本组件</em>拆开讲。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <!-- center agent -->
+    <circle cx="360" cy="160" r="50" fill="#fff" stroke="#2f6feb" stroke-width="2.5"/>
+    <text x="360" y="155" text-anchor="middle" font-size="14" font-weight="600" fill="#2f6feb">LLM</text>
+    <text x="360" y="175" text-anchor="middle" font-size="13" fill="#2f6feb">Agent π<sub>θ</sub></text>
+
+    <!-- Action top -->
+    <rect x="280" y="20" width="160" height="60" rx="10" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="360" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Action</text>
+    <text x="360" y="60" text-anchor="middle" font-size="10.5" fill="#3a3b40">A 离散/连续/程序</text>
+    <text x="360" y="74" text-anchor="middle" font-size="10" fill="#5b5e66">DynaSAUR · SAND · KnowAgent · PRAct</text>
+    <line x1="360" y1="80" x2="360" y2="110" stroke="#888" marker-end="url(#bArr)"/>
+
+    <!-- Planning right -->
+    <rect x="510" y="120" width="180" height="80" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="600" y="143" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Planning</text>
+    <text x="600" y="161" text-anchor="middle" font-size="10.5" fill="#3a3b40">prospective reasoning</text>
+    <text x="600" y="175" text-anchor="middle" font-size="10" fill="#5b5e66">MCTS/UCB1 · ReAct</text>
+    <text x="600" y="190" text-anchor="middle" font-size="10" fill="#5b5e66">DynaPlan · PilotRL</text>
+    <line x1="510" y1="160" x2="410" y2="160" stroke="#888" marker-end="url(#bArr)"/>
+
+    <!-- Memory bottom -->
+    <rect x="280" y="240" width="160" height="60" rx="10" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="360" y="262" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Memory</text>
+    <text x="360" y="280" text-anchor="middle" font-size="10.5" fill="#3a3b40">temporal context</text>
+    <text x="360" y="294" text-anchor="middle" font-size="10" fill="#5b5e66">Memory-R1 · Mem0 · Mem1</text>
+    <line x1="360" y1="240" x2="360" y2="210" stroke="#888" marker-end="url(#bArr)"/>
+
+    <!-- Tools left -->
+    <rect x="30" y="120" width="180" height="80" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="120" y="143" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Tools</text>
+    <text x="120" y="161" text-anchor="middle" font-size="10.5" fill="#3a3b40">external capability</text>
+    <text x="120" y="175" text-anchor="middle" font-size="10" fill="#5b5e66">ReAct · ReTool</text>
+    <text x="120" y="190" text-anchor="middle" font-size="10" fill="#5b5e66">FireAct · summarization</text>
+    <line x1="210" y1="160" x2="310" y2="160" stroke="#888" marker-end="url(#bArr)"/>
+
+    <!-- environment ring -->
+    <circle cx="360" cy="160" r="155" fill="none" stroke="#a8353e" stroke-width="1" stroke-dasharray="6,4"/>
+    <text x="360" y="11" text-anchor="middle" font-size="11" fill="#a8353e">Environment (web · OS · code · GUI · embodied)</text>
+
+    <defs>
+      <marker id="bArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#888"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>论文 Fig.1 的语义还原。中心是 LLM policy,周边四向各管一个能力维度;最外环是 environment。Agentic RL 的训练目标 = 让 π<sub>θ</sub> 在<em>这四个维度上同时</em>做出可被 reward 评价的决策。注意 "memory write" 本身就是一个 action,不只是 buffer。</figcaption>
+</div>
+
+<h3>4.1 Action — interface of intervention</h3>
+
+<p>形式化分两类:</p>
+
+<div class="formula">A = {a<sup>(1)</sup>, ..., a<sup>(N)</sup>}  (discrete)  ·  A ⊆ ℝ<sup>d</sup>  (continuous)</div>
+
+<p>Q-function 的标准定义,以及 Bellman optimality:</p>
+
+<div class="formula">Q<sup>π</sup>(s,a) = E<sub>π</sub>[ Σ γ<sup>k</sup> R<sub>t+k</sub> | S<sub>t</sub>=s, A<sub>t</sub>=a ]</div>
+
+<p>论文指出: <strong>预定义的 action space 在 open-ended scenario 下是 LLM agent 的根本枷锁</strong>。代表性补救:</p>
+<ul>
+  <li><strong>DynaSAUR</strong> [63] — 让 agent <em>动态生成并执行 program</em>, action 边用边长出来,旧 action 进 reusable pool;</li>
+  <li><strong>SAND</strong> [104] — self-consistency sampling 候选 action + execution-guided critique, 反 over-commit;</li>
+  <li><strong>KnowAgent</strong> [131] — 用 action knowledge base 约束 planning trajectory, 反 hallucinated action;</li>
+  <li><strong>PRAct</strong> [52] — textual gradient 从 reflective engine 抽 actionable principle。</li>
+</ul>
+
+<h3>4.2 Planning — prospective reasoning</h3>
+
+<p>MCTS + UCB1 + 学到的 dynamics model:</p>
+
+<div class="formula">a<sub>t</sub> = argmax<sub>a</sub> [ Q(s,a) + c · √(ln N(s) / (N(s,a)+ε)) ]</div>
+
+<div class="formula">ŝ<sub>t+1</sub> = f̂<sub>θ</sub>(s<sub>t</sub>, a<sub>t</sub>),  min Σ γ<sup>k</sup> r̂<sub>t+k</sub> s.t. dynamics</div>
+
+<p>关键观察 (来自 Webb et al. [97]): 大脑里 planning 是<em>多个 component process</em> 的协调(conflict monitoring, state prediction, task coordination)。LLM 单独做每件事都行, 但<strong>自主 coordinate 它们朝目标走仍然是难点</strong>——这是 brain-inspired agentic architecture 的动机。</p>
+
+<p>另一个反直觉发现 [66]: ReAct 这类"每步前都 plan"的范式会因为 perpetual planning 的计算无限性而<em>退化</em>;但完全不 plan 又封死了上限。<strong>动态分配 test-time compute</strong> 才是答案。</p>
+
+<h3>4.3 Memory — temporal context integration</h3>
+
+<p>形式化从 LSTM 出发:</p>
+
+<div class="formula">i<sub>t</sub>, f<sub>t</sub>, õ<sub>t</sub> = σ(W·[h<sub>t-1</sub>,x<sub>t</sub>]+b)<br>C<sub>t</sub> = f<sub>t</sub>⊙C<sub>t-1</sub> + i<sub>t</sub>⊙C̃<sub>t</sub></div>
+
+<p>到 DQN replay buffer:</p>
+<div class="formula">D = {(s<sub>i</sub>,a<sub>i</sub>,r<sub>i</sub>,s'<sub>i</sub>,d<sub>i</sub>)}<sup>N</sup><sub>i=1</sub>,  B ∼ U(D)</div>
+
+<p>论文的核心断言: <strong>LLM 没有 native long-term memory</strong>。现有 augmentation 大多是 static / heuristic pipeline,缺<em>学到的</em> storage / retrieval control。Agentic RL 的工作:</p>
+<ul>
+  <li><strong>Memory-R1</strong> [109] — 把 memory operation 当 action, 用 RL 学 read/write policy;</li>
+  <li><strong>Mem1</strong> [129] — 端到端 RL 让 agent 在 constant memory budget 下处理长任务;</li>
+  <li><strong>Mem0</strong> [9] — graph-based 表征对话中的 relational structure;</li>
+  <li><strong>MemoryBank</strong> [127] — 持久 memory 解 statelessness。</li>
+</ul>
+
+<p>(注意我们的 sibling note <code>04_MemPalace</code> 谈的就是这条线;<code>01_DR-Venus</code>、<code>02_LiteResearcher</code> 在 long-horizon retrieval 角度切入相关问题。)</p>
+
+<h3>4.4 Tools — external capability extension</h3>
+
+<p>Tool 形式化为黑盒函数 + 选择问题:</p>
+
+<div class="formula">y<sub>t</sub> = T<sub>i</sub>(x<sub>t</sub>; θ<sub>T</sub>) ; p(T<sub>i</sub>|s<sub>t</sub>) = Softmax(W<sub>T</sub>·φ(s<sub>t</sub>))</div>
+<div class="formula">Thought<sub>t</sub> → Action<sub>t</sub> (tool call) → Obs<sub>t+1</sub> → Thought<sub>t+1</sub></div>
+
+<p>典型作品:</p>
+<ul>
+  <li><strong>ReAct</strong> [110] — interleaved reasoning + acting 的开山,设定了 thought→tool→obs 这条 backbone;</li>
+  <li><strong>FireAct</strong> [6] — 多任务多策略 fine-tuning, 数据多样性 > scale;</li>
+  <li><strong>ReTool</strong> [19] — 把 code execution 织进 long-form reasoning, RL 学"何时何地" invoke tool;</li>
+</ul>
+
+<p>论文反复强调一点: tool 不是装饰品,它<strong>改变 state transition P(s<sub>t+1</sub>|s<sub>t</sub>, a<sub>t</sub>)</strong>。这意味着 tool 选错不止当下错,还会让后续 observation 整个偏。POMDP 框架本身天然能 model 这件事,bandit 框架做不到。</p>
+
+<hr>
+
+<h2 id="sec5">5 · RL 算法谱系: PPO 一路演化到 DAPO/GSPO/SAPO</h2>
+
+<p>论文 §2.2 给了一份从 PPO 到 SAPO 的 algorithm timeline,我抽出关键节点和它们的<em>特点</em>:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+    <line x1="40" y1="120" x2="700" y2="120" stroke="#888"/>
+    <!-- year ticks -->
+    <g font-size="11" fill="#5b5e66">
+      <text x="60" y="140" text-anchor="middle">2017</text>
+      <text x="200" y="140" text-anchor="middle">2023</text>
+      <text x="340" y="140" text-anchor="middle">2024</text>
+      <text x="500" y="140" text-anchor="middle">2025 H1</text>
+      <text x="660" y="140" text-anchor="middle">2025 H2</text>
+    </g>
+    <g stroke="#888"><line x1="60" y1="115" x2="60" y2="125"/><line x1="200" y1="115" x2="200" y2="125"/><line x1="340" y1="115" x2="340" y2="125"/><line x1="500" y1="115" x2="500" y2="125"/><line x1="660" y1="115" x2="660" y2="125"/></g>
+
+    <!-- nodes -->
+    <circle cx="60" cy="120" r="6" fill="#2f6feb"/><text x="60" y="100" text-anchor="middle" font-size="11" font-weight="600">PPO</text>
+    <text x="60" y="170" text-anchor="middle" font-size="9.5" fill="#5b5e66">clipped ratio</text>
+
+    <circle cx="200" cy="120" r="6" fill="#2f6feb"/><text x="200" y="100" text-anchor="middle" font-size="11" font-weight="600">DPO</text>
+    <text x="200" y="170" text-anchor="middle" font-size="9.5" fill="#5b5e66">no reward model</text>
+
+    <circle cx="270" cy="120" r="6" fill="#888"/><text x="270" y="170" text-anchor="middle" font-size="10" fill="#5b5e66">SimPO/KTO</text>
+
+    <circle cx="340" cy="120" r="6" fill="#cc4a1b"/><text x="340" y="100" text-anchor="middle" font-size="11" font-weight="600">GRPO</text>
+    <text x="340" y="170" text-anchor="middle" font-size="9.5" fill="#5b5e66">group-relative,no critic</text>
+
+    <circle cx="420" cy="120" r="6" fill="#888"/><text x="420" y="170" text-anchor="middle" font-size="10" fill="#5b5e66">VinePPO/VAPO</text>
+
+    <circle cx="500" cy="120" r="6" fill="#cc4a1b"/><text x="500" y="100" text-anchor="middle" font-size="11" font-weight="600">DAPO</text>
+    <text x="500" y="170" text-anchor="middle" font-size="9.5" fill="#5b5e66">clip-higher · dyn sample</text>
+
+    <circle cx="570" cy="120" r="6" fill="#cc4a1b"/><text x="570" y="100" text-anchor="middle" font-size="11" font-weight="600">GSPO</text>
+    <text x="570" y="170" text-anchor="middle" font-size="9.5" fill="#5b5e66">seq-level ratio (MoE)</text>
+
+    <circle cx="630" cy="120" r="6" fill="#888"/><text x="630" y="170" text-anchor="middle" font-size="10" fill="#5b5e66">GMPO/TreePO/PSGPO</text>
+
+    <circle cx="690" cy="120" r="6" fill="#cc4a1b"/><text x="690" y="100" text-anchor="middle" font-size="11" font-weight="600">SAPO</text>
+    <text x="690" y="170" text-anchor="middle" font-size="9.5" fill="#5b5e66">soft sigmoid gate</text>
+
+    <text x="360" y="220" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">演化主线: critic 取消 → 组内归一 → 长序列 / MoE 适配 → 软化 clip</text>
+
+  </svg>
+  <figcaption>从 PPO 到 SAPO,RL-for-LLM 算法走过的路。注意所有这些算法<em>仍在 single-step formulation 内打转</em>——它们解决的都是"如何稳定地从一个 (prompt, response) batch 提取梯度",而不是"如何处理 partial obs 与 long horizon"。后者是 StepPO/HiPER/Agent-Omit 这一辈正在攻的。</figcaption>
+</div>
+
+<h3>5.1 关键 loss 摘录</h3>
+
+<details><summary>PPO (Schulman 2017)</summary>
+<div class="formula">J<sub>PPO</sub> = E[ min(w<sub>t</sub> Â<sub>t</sub>, clip(w<sub>t</sub>, 1−ε, 1+ε) Â<sub>t</sub>) ]</div>
+<p>w<sub>t</sub> = π<sub>θ</sub>/π<sub>θ_old</sub>。actor-critic, critic 估 V。</p>
+</details>
+
+<details><summary>GRPO (DeepSeekMath 2024)</summary>
+<div class="formula">Â<sub>i</sub> = (r<sub>i</sub> − mean(r)) / std(r) ,  按 token broadcast</div>
+<p>同 prompt 抽 G 个 response,组内归一化代替 critic。省一半显存,稳定性靠 clip + KL。</p>
+</details>
+
+<details><summary>DAPO (ByteDance 2025)</summary>
+<p>四件套:Clip-Higher (asymmetric clip 探索↑) + Dynamic Sampling (滤掉 reward 全 0/全 1 的 prompt) + Token-level loss (按 length sum 而非 mean) + Overlong Reward Shaping。AIME 50 分,只用一半 step。</p>
+</details>
+
+<details><summary>GSPO (Qwen3 2025)</summary>
+<div class="formula">w<sub>i</sub> = exp( (1/|y<sub>i</sub>|) Σ<sub>t</sub> log π/π<sub>old</sub> )</div>
+<p>把 importance ratio 上升到 sequence level (几何平均/均匀对数平均),对 MoE expert routing variance 友好。</p>
+</details>
+
+<details><summary>SAPO (Qwen 2025)</summary>
+<div class="formula">f(x) = σ(τ(x−1)) · 4/τ ,  τ<sub>pos</sub> ≠ τ<sub>neg</sub></div>
+<p>Hard clip → smooth sigmoid gate, asymmetric temperature 处理正负 advantage。Qwen3-VL 验证。</p>
+</details>
+
+<h3>5.2 一个常被忽略的细节: token-level vs trajectory-level</h3>
+
+<p>论文反复 mention 但没明说的: 上面所有 algorithm 仍把 RL "做在<em>一个 response 内部</em>的 token 上"——单 episode、单回合、单 reward。要变成 Agentic, 必须扩展到 <strong>跨多回合的 trajectory-level credit assignment</strong>(StepPO 这条线)。</p>
+
+<table>
+  <tr><th>Granularity</th><th>谁在做</th><th>问题</th></tr>
+  <tr><td>token-level</td><td>PPO/GRPO/DAPO</td><td>同一 response 内所有 token 共享一个 advantage,粒度过细</td></tr>
+  <tr><td>sequence-level</td><td>GSPO/SAPO</td><td>对 MoE 友好,但仍是单 response</td></tr>
+  <tr><td>step/turn-level</td><td><strong>StepPO/HiPER/Agent-Omit</strong></td><td>正确粒度,但 algorithm 还在早期</td></tr>
+  <tr><td>trajectory-level</td><td>terminal reward + Monte Carlo</td><td>方差极大,长任务难训</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec6">6 · 三大挑战 (论文 §3)</h2>
+
+<h3>6.1 Environment — 训练环境本身要被优化</h3>
+
+<p>核心新框架: <strong>RLAnything</strong> [93] —— 把 environment 当成<em>可被训练的对象</em>而非 fixture。流程:</p>
+<ol>
+  <li>动态评估 task 难度 (用 strategy deduction 的 accuracy);</li>
+  <li>用 reward model 的错误分析<em>反哺</em> language model 修改任务;</li>
+  <li>quality control 保证修改有效。</li>
+</ol>
+
+<p>这件事的洞察: 静态 benchmark 已经无法支撑长程 agent 的训练,环境必须跟 policy <em>共同演化</em>。</p>
+
+<h3>6.2 Trustworthy — 多 agent + hallucination</h3>
+
+<ul>
+  <li><strong>G-Safeguard</strong> [90] — 用 GNN 检测 multi-agent utterance graph 上的异常 + topological intervention 做 attack remediation;</li>
+  <li><strong>FSPO</strong> [41] — 反事实: <em>RL 反而会增加 hallucination</em>。用 evidence verification 动态调 token-level advantage,激励 factuality。</li>
+</ul>
+
+<h3>6.3 Capability Boundaries — RL 是否真能"突破"基模</h3>
+
+<p>论文引用 Yue et al. [115] 的关键质疑:RLVR 能不能让 LLM 突破 base model 的 capability boundary, 还是只是在重新分配概率质量? 现有解法两路:</p>
+
+<ul>
+  <li><strong>RL-PLUS</strong> [15] — hybrid policy: 内部 exploitation + 外部数据 → 用 multiple importance sampling 修正分布,exploration-based advantage 引导高价值路径;</li>
+  <li><strong>HiPER</strong> [67] — hierarchical: high-level planner + low-level executor + Hierarchical Advantage Estimation 解 sparse reward 下 credit assignment 不稳的问题;</li>
+  <li><strong>Summarization-based [54]</strong> — 把 tool history 压缩成 task-relevant summary, 在 compact RL 里同时学 tool-use 和 summarization 策略;</li>
+  <li><strong>Demystifying RL in agentic reasoning</strong> [114] — 关键发现: 真实 end-to-end tool-use trajectory 显著优于"拼接合成数据"做 SFT 初始化; <em>多样性</em> 数据是 sustained exploration 的关键; <em>少 tool call 的深思熟虑</em> 比频繁调用更好;</li>
+  <li><strong>StepPO</strong> [87] — step-level optimization 的位置定义。</li>
+</ul>
+
+<h3>6.4 System — 把 evaluative + directive 信号都从 next-state 里榨出来</h3>
+<ul>
+  <li><strong>OpenClaw-RL</strong> [92] — 任何 agent 交互产生的 next-state 都是 live learning source: 用 PRM judge 抽 evaluative 标量 reward, 用 Hindsight-Guided OPD 蒸馏 directive 监督。统一对话/terminal/SWE 任务在一个 loop 里。</li>
+  <li><strong>ClawGUI</strong> [83] — 把"训练-评测-real-device 部署"合一,GUI agent lifecycle solution。</li>
+  <li><strong>MetaClaw</strong> [103] — continual meta-learning 框架, base policy + 自演化 skill library。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec7">7 · Worked example: 一个数学+工具任务跑通框架</h2>
+
+<p>用一个具体任务把 §3 的 Agentic POMDP 框架 instantiate。任务: <em>"3<sup>17</sup> mod 41 等于多少?"</em></p>
+
+<h3>7.1 退化 MDP 视角 (RLHF/GRPO 是怎么看的)</h3>
+
+<pre><code>x = "3^17 mod 41 = ?"
+y = "&lt;think&gt; 3^2=9, 3^4=81≡81−41=40≡−1, 3^8≡1, 3^16≡1,
+       3^17 = 3 · 3^16 ≡ 3 (mod 41) &lt;/think&gt; \n
+     答案: 3"
+r(x, y) = 1   (verifier 判等)</code></pre>
+<p>整个轨迹被压成一对 (x, y) → r。GRPO 在这一对上算 token-level advantage:</p>
+<div class="formula">Â<sub>token</sub> = (1 − mean) / std,所有 token 共享</div>
+<p>结果: "3^4=81−41=40" 这个<em>关键</em> step 的 token 跟"\n答案:" 的废话 token <strong>拿一样的 advantage</strong>。这是退化视角的根本缺陷。</p>
+
+<h3>7.2 Agentic POMDP 视角</h3>
+
+<p>同一个题, 把它放进 ReTool/ReAct 框架, 让 LLM 调用 Python 工具:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:700px">
+    <!-- step blocks vertically stacked -->
+    <!-- t=0 -->
+    <rect x="20" y="15" width="680" height="60" rx="8" fill="#fff" stroke="#888"/>
+    <text x="40" y="38" font-size="11" font-weight="600" fill="#5b5e66">t=0</text>
+    <text x="80" y="38" font-size="11.5">o₀ = "3^17 mod 41 = ?"</text>
+    <text x="80" y="55" font-size="11.5" fill="#cc4a1b">a₀ = thought("先化简指数: 17 = 16+1, 而 3^4 ≡ −1 (mod 41)") </text>
+    <text x="80" y="70" font-size="11" fill="#5b5e66">r₀ = 0 (no terminal signal yet),  s₀ 包含全部隐变量</text>
+
+    <!-- t=1 -->
+    <rect x="20" y="80" width="680" height="60" rx="8" fill="#fff" stroke="#888"/>
+    <text x="40" y="103" font-size="11" font-weight="600" fill="#5b5e66">t=1</text>
+    <text x="80" y="103" font-size="11.5">o₁ = thought 之后 KV cache 状态</text>
+    <text x="80" y="120" font-size="11.5" fill="#cc4a1b">a₁ = tool_call(python, "pow(3, 17, 41)")</text>
+    <text x="80" y="135" font-size="11" fill="#5b5e66">r₁ = 0 (中间步骤),  这一步改变 P(s₂|s₁,a₁)</text>
+
+    <!-- t=2 -->
+    <rect x="20" y="145" width="680" height="60" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="40" y="168" font-size="11" font-weight="600" fill="#2f6feb">t=2</text>
+    <text x="80" y="168" font-size="11.5">o₂ = tool_response("3")  ← <em>partial</em>: agent 看到 "3", 不知道 Python 内部用了什么算法</text>
+    <text x="80" y="185" font-size="11.5" fill="#cc4a1b">a₂ = memory.write("3^17 mod 41 = 3")</text>
+    <text x="80" y="200" font-size="11" fill="#5b5e66">r₂ = 0</text>
+
+    <!-- t=3 -->
+    <rect x="20" y="210" width="680" height="60" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="40" y="233" font-size="11" font-weight="600" fill="#cc4a1b">t=3</text>
+    <text x="80" y="233" font-size="11.5">o₃ = updated history</text>
+    <text x="80" y="250" font-size="11.5" fill="#cc4a1b">a₃ = answer("3")</text>
+    <text x="80" y="265" font-size="11" fill="#5b5e66">r₃ = +1 (verifier 判等)</text>
+
+    <!-- trajectory return -->
+    <rect x="20" y="280" width="680" height="60" rx="8" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="40" y="303" font-size="11" font-weight="600" fill="#a8353e">trajectory</text>
+    <text x="120" y="303" font-size="11.5">τ = (o₀,a₀,...,o₃,a₃,r₃),  cumulative return G = 1 (γ=1)</text>
+    <text x="120" y="320" font-size="11.5">优化目标: J = E<sub>τ</sub>[Σ r<sub>t</sub>] —— 反向传播给<em>每一步</em>的 a<sub>t</sub></text>
+    <text x="120" y="335" font-size="11" fill="#5b5e66">credit assignment 应能识别: a₁ (调 tool) 是 critical decision, 比 a₀ 重要</text>
+  </svg>
+  <figcaption>同一题在 Agentic POMDP 下的 trajectory 展开。注意三件事: ① observation 是 partial 的(t=2 的 tool 输出只有一个数字,真实 state 含 Python interpreter 内部上下文);② action 是 mixed-modal(thought / tool_call / memory_write / answer 各有自己的子空间);③ reward 是稀疏的,只在 t=3 出现。这正是 RLHF/GRPO 看不到的结构。</figcaption>
+</div>
+
+<h3>7.3 同一条 trajectory, 不同 algorithm 怎么处理</h3>
+
+<table>
+  <tr><th>算法</th><th>credit 怎么分</th><th>问题</th></tr>
+  <tr><td>RLHF / DPO</td><td>把整条压成一对 (x, y),按 preference 训</td><td>tool_call 的因果完全丢失</td></tr>
+  <tr><td>vanilla GRPO</td><td>token-level Â = +1 / +1 / +1 / ...</td><td>"调 tool" 这个 step 跟"\n" token 同等重要</td></tr>
+  <tr><td>DAPO + token-level loss</td><td>同上但按长度归一</td><td>仍未识别 step 边界</td></tr>
+  <tr><td><strong>StepPO / HiPER</strong></td><td>识别 step 边界, 给 a₁ 更高 advantage</td><td>正确视角, 但需 step segmentation</td></tr>
+  <tr><td><strong>Memory-R1 / OpenClaw-RL</strong></td><td>从 next-state 里抽 evaluative + directive 双信号</td><td>需要 PRM judge / hindsight teacher</td></tr>
+</table>
+
+<p>反向论证: <strong>如果不把 a₁ (调 tool 决策) 单独 credit,会发生什么?</strong> RL 训练后会观察到模型仍在生成"先 thought 再 thought 再 thought ... 然后给答案"这种 <em>纯 CoT 风格</em> ——因为 tool_call 跟纯 CoT 在 reward 上没区别,而且 tool_call 在数据里占少数 token。这正是为什么单纯 GRPO 训不出 robust tool agent 的根因。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>类型</th><th>定位差异</th></tr>
+  <tr><td><strong>Landscape Survey 2509.02547</strong> (Zhang et al.)</td><td>survey</td><td>覆盖更全面,library-centric, breadth-first; 本文更<em>position-paper</em>, 聚焦概念重定义</td></tr>
+  <tr><td><strong>INTELLECT-3</strong> (models/notes/08)</td><td>具体训练</td><td>Agentic RL 的实证落地: 用 RL 训能调工具的 30B 模型, 验证本文 §3 所主张的多步 trajectory 训练; 是"位置文章主张被实践"的例子</td></tr>
+  <tr><td><strong>NVIDIA NeMo-RL</strong> (spec-rl/notes/01)</td><td>系统</td><td>关心的是 RL rollout 怎么<em>更快</em>, 与本文正交; 但二者结合即:用 spec decoding 加速 Agentic POMDP 的多步 rollout(后者轨迹更长,加速空间更大)</td></tr>
+  <tr><td><strong>Kimi K2.5 Agent Swarm</strong> (models/notes/06)</td><td>系统/方法</td><td>Multi-agent rollout 实现, 把本文 §4 的 capability taxonomy 推到 multi-agent layer。本文的 single-agent POMDP 是 K2.5 swarm 的 building block</td></tr>
+  <tr><td>sibling 01 DR-Venus</td><td>data/RL</td><td>研究 long-horizon retrieval 训练 — §6.3 capability boundary 的具体子问题</td></tr>
+  <tr><td>sibling 02 LiteResearcher</td><td>agent 框架</td><td>multi-step research agent, 印证 §3 多步 trajectory 必要性</td></tr>
+  <tr><td>sibling 03 Agent-World</td><td>environment</td><td>对应 §6.1 RLAnything 的同一类问题</td></tr>
+  <tr><td>sibling 04 MemPalace</td><td>memory</td><td>对应 §4.3 memory capability 的具体方法</td></tr>
+</table>
+
+<div class="nb">
+  <strong>读法建议:</strong> 本文 + Landscape Survey 2509 一起读最划算。前者给概念框架,后者给方法穷举。再加 INTELLECT-3 / Kimi K2.5 看实证落地。如果只读一份, <em>本文的 §3 (Agentic POMDP framing) 和 §4 capability taxonomy</em> 是新读者最快"对齐到 Agentic RL 思维方式"的入口。
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文的局限</h3>
+<ul>
+  <li><strong>Position 而非 quantitative.</strong>没有 benchmark 数据支持"Agentic POMDP 训出的 agent 比退化 MDP 训的强"——这是 follow-up 工作的事;</li>
+  <li><strong>POMDP 框架仍偏 abstract.</strong>真的怎么 estimate observation function Z(o|s,a)、怎么处理 latent state 都没具体方法论;</li>
+  <li><strong>对 Trustworthy/Safety 章节笔墨偏少.</strong>对 multi-agent collusion / reward hacking 在长程 trajectory 下被放大的现象没深谈;</li>
+  <li><strong>没区分 inference-time agent 和 training-time agent.</strong>很多被引方法 (ReAct, MCTS) 是纯 prompting,不涉及参数更新,严格讲不是"agentic RL"。</li>
+</ul>
+
+<h3>我的疑问 (待验证)</h3>
+<ol>
+  <li>POMDP 化框架在<strong>credit assignment 实际效果</strong>上是否真比 token-level GRPO 强?StepPO/HiPER 在 ALFWorld/SWE-bench 上的对比目前还没大规模复现;</li>
+  <li>论文的 capability taxonomy (action/plan/memory/tool) 与 Landscape Survey 2509 的分类有没有冲突?如果有,谁更适合做训练实践的指导?</li>
+  <li>"environment as optimization target" (RLAnything) 实际上和 PBT/AutoML 有多少 overlap?是否新瓶装旧酒?</li>
+  <li>本文谈 multi-modal action space (token + tool + memory),但没讨论<strong>不同 action 维度的 advantage scale 如何归一化</strong>——这是工程上必爆的痛点;</li>
+  <li>把 LLM 当 POMDP policy 时, hidden state 是 KV cache 还是 context tokens?这俩的语义其实不同——前者随 layer 不同,后者是 first-class symbolic;</li>
+  <li>论文表 1 里 "Designs" 那一列只有自己打勾。从被引文献分布看,Landscape Survey 2509 也覆盖了同三件事。这种 self-positioning 是否过强?</li>
+</ol>
+
+<h3>个人 take</h3>
+<p>这篇 paper 的最大价值不在"提出了什么新方法",而在于<strong>给整个 field 提供了一组可以反复引用的 vocabulary</strong>:degenerate single-step MDP、Agentic POMDP、four-component taxonomy、step-level credit assignment。这些词在过去半年的论文里已经在自发出现,本文提供了把它们正式拼接起来的<em>位置坐标</em>。读者(尤其是工程读者)拿来给自己的 RL 训练 stack 做"我现在做的是 ① / ② / ③ 哪一档?"的自检很有用。</p>
+
+<hr>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> RLHF/DPO/GRPO 都是 single-step degenerate MDP, 不是真 RL;真 RL = Agentic POMDP<br>
+  <span class="pill">公式</span> J<sub>RLHF</sub> 是 J<sub>agentic</sub> 在 H=1, full obs, single action 时的极端退化<br>
+  <span class="pill">能力四件套</span> Action / Planning / Memory / Tools(围绕 LLM policy 中心)<br>
+  <span class="pill">算法谱系</span> PPO → GRPO → DAPO/GSPO/SAPO,但全在 single response 内打转<br>
+  <span class="pill">真正缺失</span> step/turn-level credit assignment(StepPO/HiPER 这条线还在早期)<br>
+  <span class="pill">挑战</span> Environment 要可优化 (RLAnything)、Trustworthy (G-Safeguard/FSPO)、Capability Boundary (RL-PLUS)<br>
+  <span class="pill">阅读组合</span> 本文 + Survey 2509 + INTELLECT-3 + Kimi K2.5 ≈ Agentic RL 全栈观
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-09 · 配套论文 PDF: <code>/data/szhang967/papers/paper-notes/agents/RethinkingAgenticRL_2604.27859.pdf</code>
+</p>
+
+</main>
+
+<script>
+  function setOp(id, op){ const el=document.getElementById(id); if(el) el.setAttribute('opacity', op); }
+</script>
+
+</body>
+</html>

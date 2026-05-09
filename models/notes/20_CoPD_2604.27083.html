@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Co-Evolving Policy Distillation (CoPD, 2604.27083)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Co-Evolving Policy Distillation: 把 RLVR 与 OPD 拧成一股绳</h1>
+<div class="meta">
+  Naibin Gu, Chenxu Yang, Qingyi Si et al. · CAS / UCAS / JD.COM · 2026-04-29 · arXiv:2604.27083<br>
+  关键词: RLVR · On-Policy Distillation · Multi-Capability Consolidation · Co-Evolution · GRPO · Multimodal
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把多个 expert 的 RLVR 训练和它们之间的 OPD 完全交错并行,让 expert 互为师生<em>边训边蒸</em>,以此同时绕开 mixed RLVR 的 capability divergence cost 和 sequential pipeline 的 absorption gap,在文本 + 图像 + 视频三路推理上做出 all-in-one 模型,甚至超过各自的 domain expert。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">r=0.89</div><div class="l">teacher-student top-k overlap 与 OPD gain 的相关</div></div>
+    <div class="stat"><div class="n">≥0.90</div><div class="l">CoPD 全程维持的 top-k overlap (静态 OPD 跌至 ~0.5)</div></div>
+    <div class="stat"><div class="n">+1.6 pt</div><div class="l">CoPD 三路 overall avg 比 MOPD 多出</div></div>
+  </div>
+  <p><strong>立场:</strong>这不是新的 KD 损失或新的 RL 算法,而是<em>训练编排 (training schedule)</em> 论文。核心论点只有一句:teacher 和 student 之间的"行为距离"必须被<strong>主动维持</strong>在可吸收范围内,而<em>静态 pipeline 必然把这个距离推到吸收效率极低的区域</em>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机 — 为什么 mixed RLVR 与 sequential pipeline 都不够</a></li>
+    <li><a href="#sec2">背景速查 (RLVR / OPD / GRPO 术语 + 速记公式)</a></li>
+    <li><a href="#sec3">统一分析: 三种范式在同一坐标系下的 utility</a></li>
+    <li><a href="#sec4">行为一致性假设 + Pilot Study</a></li>
+    <li><a href="#sec5">CoPD 方法详解 (alternating + 双向 + hub-spoke)</a></li>
+    <li><a href="#sec6">Worked example: 两个 expert 在 4 个 cycle 内如何"互相拽回来"</a></li>
+    <li><a href="#sec7">实验关键结果 (2 路 / 3 路 / Ablation)</a></li>
+    <li><a href="#sec8">与同类工作对比</a></li>
+    <li><a href="#sec9">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机 — 多能力整合到一个 policy,究竟难在哪?</h2>
+
+<h3>1.1 历史脉络: All-in-one 模型的两条主流路线</h3>
+<p>2024 年之后,RLVR(rule-based verifiable reward 驱动的 RL)逐渐取代 RLHF 成为大模型 post-training 的主流。GRPO / DAPO / GSPO 一批工作把它做成可规模化的训练机制,DeepSeek-R1、Vision-R1、Video-R1 这些系列证明了 RLVR 能<em>专门为某种能力</em>大幅拉升 reasoning 表现。</p>
+<p>但只要你想在<strong>一个</strong>模型里同时容纳多种能力(文本数学 + 图像推理 + 视频理解),就要面对一个老问题: <em>怎么把这些能力都装进同一组参数</em>。社区里实际跑通的路线有两条:</p>
+<ul>
+  <li><strong>Mixed RLVR</strong>: 把所有 capability 的数据混在一个 pool 里,跑一次 RLVR。简单粗暴,工业上很常见。</li>
+  <li><strong>Sequential pipeline (RLVR-then-OPD)</strong>: 先用 RLVR 把每个 capability 单独训成 expert,再用 on-policy distillation(MOPD,multi-teacher OPD)把这些 expert 蒸到一个 student 里。Qwen3、Kimi K2.5、GLM-5 都是走这条路。</li>
+</ul>
+
+<h3>1.2 Mixed RLVR 为什么不够: capability divergence cost</h3>
+
+<p>论文形式化了一个直觉:不同 capability 的最优梯度方向其实是<strong>互相冲突</strong>的——文本数学的最优 update 可能压缩 visual token attention,而图像推理的最优 update 反过来强化。混合训练时每一步的 update 是这两个方向的<em>平均</em>,体现为 <span class="term">gradient conflict</span>。</p>
+
+<div class="formula">U<sub>mix</sub> ≈ X(D₁,D₂) − Φ(D₁,D₂)</div>
+
+<p>这里 X 是把每条数据"完美应用"到 unified policy 时能拿到的最大 capability,而 Φ &gt; 0 是不同 capability 间 gradient 冲突的代价——即论文称的 <strong>capability divergence cost</strong>。这就是经典的 seesaw effect:数学能力涨了图像就跌,反之亦然,无论怎么调 mixing ratio 都消不掉。</p>
+
+<h3>1.3 Sequential pipeline 为什么不够: behavioral pattern gap</h3>
+
+<p>OPD 看起来能避开 gradient conflict——每个 expert 单独训,然后再蒸到 student。问题在 <strong>OPD 的训练动力学</strong>本身:</p>
+
+<div class="formula">L<sub>OPD</sub>(θ) = E<sub>x, y∼π<sub>θ</sub></sub> [ (1/|y|) Σ<sub>t</sub> D<sub>KL</sub>(π<sub>T</sub> ‖ π<sub>θ</sub>) ]</div>
+
+<p>OPD 的 supervision 落在 <em>student 自己采到的状态 y&lt;t 上</em>。当 teacher 的 token-level distribution 与 student 的差太多——即 <strong>π<sub>T</sub>(·|y&lt;t) 与 π<sub>θ</sub>(·|y&lt;t) overlap 极低</strong>——KL 几乎全部集中在 student "几乎不可能去的方向",梯度推不动 student 实际访问到的状态。</p>
+
+<p>论文的 pilot study 用 top-k token overlap (k=10) 量化这件事,得到两个数据点:</p>
+<ul>
+  <li>静态 RLVR 训出来的 expert 与 base model(student 的代理)的 top-k overlap 在训练过程中<strong>单调下降</strong>,symmetric KL 上涨一个数量级;</li>
+  <li>把这同一个 teacher 配上不同 overlap 的 student 跑 OPD,gain 与 overlap 强相关 r=0.89,R²=0.79。</li>
+</ul>
+
+<p>结论很硬: <strong>"先把 expert 训到 convergence,再 OPD"这个流程的设计点恰好把 teacher-student overlap 推到吸收效率最低的区域</strong>。这就是 behavioral pattern gap。</p>
+
+<div class="formula">U<sub>static</sub> ≈ η(O<sub>low</sub>) · X(D₁,D₂)</div>
+
+<p>其中 η(O) ∈ [0,1] 是 absorption efficiency,O 是 overlap。Mixed RLVR 是 a=1 但 b=−Φ;static pipeline 是 a=η(O<sub>low</sub>) 偏小但 b=0。两条路各自牺牲一半。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:700px">
+    <!-- title -->
+    <text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#1f2024">三种范式各自损失了什么 (utility decomposition)</text>
+
+    <!-- mixed rlvr -->
+    <text x="120" y="60" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Mixed RLVR</text>
+    <rect x="40" y="75" width="160" height="30" rx="5" fill="#cce5ff" stroke="#2f6feb"/>
+    <text x="120" y="95" text-anchor="middle" font-size="11" fill="#1f2024">X(D₁,D₂) 全部信号</text>
+    <rect x="80" y="115" width="80" height="22" rx="4" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="120" y="131" text-anchor="middle" font-size="10" fill="#a8353e">−Φ 冲突</text>
+    <text x="120" y="160" text-anchor="middle" font-size="11" fill="#5b5e66">a=1, b=−Φ</text>
+
+    <!-- sequential -->
+    <text x="360" y="60" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Sequential RLVR→OPD</text>
+    <rect x="280" y="75" width="160" height="30" rx="5" fill="#cce5ff" stroke="#2f6feb" opacity="0.4"/>
+    <rect x="280" y="75" width="55" height="30" rx="5" fill="#cce5ff" stroke="#2f6feb"/>
+    <text x="360" y="95" text-anchor="middle" font-size="11" fill="#1f2024">η(O<sub>low</sub>) · X (吸收一小块)</text>
+    <text x="360" y="125" text-anchor="middle" font-size="11" fill="#a8353e">overlap 已经掉到低 η 区</text>
+    <text x="360" y="160" text-anchor="middle" font-size="11" fill="#5b5e66">a=η(O<sub>low</sub>) ≪ 1, b=0</text>
+
+    <!-- copd -->
+    <text x="600" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="#1f7a4a">CoPD (本文)</text>
+    <rect x="520" y="75" width="160" height="30" rx="5" fill="#cce5ff" stroke="#2f6feb" opacity="0.5"/>
+    <rect x="520" y="75" width="135" height="30" rx="5" fill="#cce5ff" stroke="#2f6feb"/>
+    <text x="600" y="95" text-anchor="middle" font-size="11" fill="#1f2024">η(O<sub>mod</sub>) · X (大部分)</text>
+    <text x="600" y="125" text-anchor="middle" font-size="11" fill="#1f7a4a">overlap 主动维持在高 η 区</text>
+    <text x="600" y="160" text-anchor="middle" font-size="11" fill="#5b5e66">a=η(O<sub>mod</sub>) ≈ 1, b=0</text>
+
+    <!-- η(O) curve at bottom -->
+    <line x1="60" y1="290" x2="660" y2="290" stroke="#888"/>
+    <line x1="60" y1="200" x2="60" y2="290" stroke="#888"/>
+    <text x="660" y="305" font-size="11" fill="#5b5e66">overlap O →</text>
+    <text x="48" y="205" font-size="11" fill="#5b5e66" text-anchor="end">η</text>
+    <!-- bell-shaped η curve -->
+    <path d="M 60 285 Q 200 285 280 260 Q 360 200 480 200 Q 560 200 640 260" stroke="#2f6feb" stroke-width="2" fill="none"/>
+    <!-- markers -->
+    <circle cx="170" cy="276" r="5" fill="#a8353e"/>
+    <text x="170" y="268" text-anchor="middle" font-size="10" fill="#a8353e" font-weight="600">static</text>
+    <text x="170" y="312" text-anchor="middle" font-size="10" fill="#a8353e">O_low</text>
+    <circle cx="450" cy="200" r="5" fill="#1f7a4a"/>
+    <text x="450" y="192" text-anchor="middle" font-size="10" fill="#1f7a4a" font-weight="600">CoPD</text>
+    <text x="450" y="312" text-anchor="middle" font-size="10" fill="#1f7a4a">O_mod</text>
+    <circle cx="630" cy="262" r="5" fill="#cc4a1b"/>
+    <text x="630" y="254" text-anchor="middle" font-size="10" fill="#cc4a1b">O→1</text>
+    <text x="630" y="312" text-anchor="middle" font-size="10" fill="#cc4a1b">collapse</text>
+  </svg>
+  <figcaption>上半: 三种范式 utility 拆解。Mixed RLVR 全信号但被 Φ 蚀掉一块;static OPD 没冲突但只吸收 η(O_low)·X 这一小条;CoPD 既消掉 Φ,又把 O 维持在 η 较高的区域。下半: η(O) 是<strong>钟形</strong>的——overlap 太低 student 听不懂,overlap 趋近 1 又意味着 KL=0 没新信息可传,所以"主动维持中等 overlap"才是最优工作点。</figcaption>
+</div>
+
+<h3>1.4 缺失的那一块: 不只是"什么时候蒸",还要"双向 + 持续"</h3>
+<p>把上面的分析翻译成<strong>设计要求</strong>,论文识别出三条耦合条件:</p>
+<ol>
+  <li><strong>蒸馏必须发生在 expert 训练<em>过程中</em>而非<em>之后</em></strong> —— 否则 overlap 已经掉光;</li>
+  <li><strong>teacher 必须随 student 一起进化</strong> —— 否则 overlap 又会单方面被 RLVR 推开;</li>
+  <li><strong>capability-specific RLVR 不能停</strong> —— 否则 teacher 没新东西可教,信息量退化。</li>
+</ol>
+<p>三条同时满足才是 CoPD 的设计:RLVR + 双向 mutual OPD,两个阶段交替,N 个 cycle 跑完。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<h3>2.1 关键术语</h3>
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">RLVR</span></td><td>Reinforcement Learning with Verifiable Rewards. reward 来自规则验证(数学答案对错、代码 unit test 等),取代 RLHF 的学习型 reward model</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>Group Relative Policy Optimization. PPO 变体,用 group 内 reward 标准化估 advantage,无需 value model</td></tr>
+  <tr><td><span class="term">OPD / On-Policy Distillation</span></td><td>蒸馏发生在 student 自己 sample 出的 trajectory 上,teacher 在每个 token 位给出 KL supervision</td></tr>
+  <tr><td><span class="term">MOPD</span></td><td>Multi-teacher OPD. 多个 expert 同时作为 teacher,共同蒸到一个 student</td></tr>
+  <tr><td><span class="term">Mixed RLVR</span></td><td>把多个 capability 的训练数据混进一个 pool 跑一次 RLVR</td></tr>
+  <tr><td><span class="term">Capability divergence cost (Φ)</span></td><td>不同 capability 梯度方向冲突造成的优化损失</td></tr>
+  <tr><td><span class="term">Behavioral pattern gap</span></td><td>teacher 与 student 在 student 自己访问的状态上,token 分布的差异</td></tr>
+  <tr><td><span class="term">Top-k overlap O<sub>k</sub></span></td><td>O<sub>k</sub>(π<sub>θ</sub>,π<sub>T</sub>) = E [|Topk(π<sub>θ</sub>) ∩ Topk(π<sub>T</sub>)| / k] 沿 student 的 on-policy 轨迹</td></tr>
+  <tr><td><span class="term">Absorption efficiency η(O)</span></td><td>OPD signal 实际转化为 capability 增益的比例,论文论证它是 O 的递增函数(到饱和点前)</td></tr>
+  <tr><td><span class="term">Mutual / bidirectional OPD</span></td><td>两个 branch 互为师生,各自在对方数据上 rollout、用对方的 logits 作 supervision</td></tr>
+  <tr><td><span class="term">Hub-and-spoke topology</span></td><td>K 个 branch 时不做 K² 全配对蒸馏,选一个 branch 作 hub 与每个 spoke 做双向 OPD</td></tr>
+</table>
+
+<h3>2.2 OPD 的标准流程 (复习)</h3>
+<ol>
+  <li>Student π<sub>θ</sub> 在 prompt x 上 sample 出 trajectory y = (y₁,...,y<sub>T</sub>);</li>
+  <li>Teacher π<sub>T</sub> 在每个前缀 (x, y&lt;t) 上 forward 一次,得 token 级分布 π<sub>T</sub>(·|x, y&lt;t);</li>
+  <li>loss = (1/|y|) Σ<sub>t</sub> KL(π<sub>T</sub> ‖ π<sub>θ</sub>),反传更新 student;</li>
+  <li>关键: rollout <em>来自 student</em>,所以 supervision 永远落在"student 实际能采到的状态"上——这是它优于 off-policy KD 的本质。</li>
+</ol>
+
+<h3>2.3 GRPO 一行回忆</h3>
+<div class="formula">L<sub>GRPO</sub> = E [ (1/G) Σ<sub>i</sub> (1/|y<sub>i</sub>|) Σ<sub>t</sub> min(ρ<sub>i,t</sub>·Â<sub>i</sub>, clip(ρ<sub>i,t</sub>,1±ε)·Â<sub>i</sub>) ]</div>
+<p>对 prompt 采 G 条 rollouts,Â<sub>i</sub> = (r<sub>i</sub> − r̄)/σ<sub>r</sub> 是 group-relative advantage,ρ<sub>i,t</sub> 是 importance ratio。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 统一分析框架: 三种范式在同一坐标系下</h2>
+
+<p>论文 §2.1 给出一个非常聪明的统一公式:</p>
+
+<div class="formula">U<sub>P</sub> ≈ a<sub>P</sub> · X(D₁,D₂) + b<sub>P</sub></div>
+
+<p>其中 a∈[0,1] 是"信号转化效率",b≤0 是"额外冲突损失"。三种范式落在同一框架的不同点上:</p>
+
+<table>
+  <tr><th>范式</th><th>a</th><th>b</th><th>主导失败模式</th></tr>
+  <tr><td>Mixed RLVR</td><td>1</td><td><span class="no">−Φ &lt; 0</span></td><td>capability divergence (gradient conflict)</td></tr>
+  <tr><td>Static RLVR-then-OPD</td><td><span class="no">η(O<sub>low</sub>) ≪ 1</span></td><td>0</td><td>behavioral pattern gap (低吸收效率)</td></tr>
+  <tr><td><strong>CoPD</strong></td><td><span class="ok">η(O<sub>mod</sub>) ≈ 1</span></td><td>0</td><td>—— 两边都规避</td></tr>
+</table>
+
+<p>这是论文的 narrative spine: 它把"两种已有范式的 failure mode"归结为<strong>同一个 utility 公式中的不同退化方式</strong>。CoPD 的存在就是为了同时让 a 和 b 都靠近最优。</p>
+
+<div class="nb">
+  <strong>反向论证:</strong>如果只把 OPD 提前(满足条件 ①),但 teacher 仍然用一个固定 expert,那 student 一边被 OPD 拉向 teacher,一边被自己的 RLVR 推开,overlap 仍会逐步偏离;不引入 RLVR (条件 ③),teacher 与 student 又会合二为一,KL→0,信息量耗尽。所以三个条件缺一不可。
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · 行为一致性假设 + Pilot Study</h2>
+
+<h3>4.1 假设</h3>
+<blockquote>
+"OPD signal 越易被 student 吸收,当 teacher 与 student 沿 student 自己的 on-policy 轨迹表现出越接近的 token 级分布。"
+</blockquote>
+
+<h3>4.2 实验 1: η 随 overlap 单调上升</h3>
+<p>固定一个 image-domain teacher,通过<strong>调 sampling temperature</strong> 在 base 上跑短训得到一系列 student,使它们与 teacher 的 top-k overlap 不同。然后用相同 OPD 配置跑相同 budget,看 WeMath gain。</p>
+<p>结果: 线性拟合 r=0.89, R²=0.79。同一个 teacher 下,<em>越行为相近的 student 吸收得越多</em>。</p>
+
+<h3>4.3 实验 2: RLVR 训练把 overlap 推向低 η 区</h3>
+<p>从 shared base π₀ 出发,独立训文本 expert 与图像 expert,定期测每个 expert 与 π₀ 在 on-policy rollout 上的 top-k overlap 与 symmetric KL。π₀ 在这里被当作"最终的 student 代理"。</p>
+<ul>
+  <li>Top-k overlap <strong>单调下降</strong>;</li>
+  <li>Symmetric KL 涨了一个数量级;</li>
+  <li>两个 branch 趋势一致 → 这是 RLVR 训练的<em>普遍属性</em>,不是某种 capability 的特殊。</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+    <!-- left panel: η(O) curve from exp1 -->
+    <text x="160" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2024">Exp 1: OPD gain vs overlap</text>
+    <line x1="50" y1="200" x2="280" y2="200" stroke="#888"/>
+    <line x1="50" y1="40" x2="50" y2="200" stroke="#888"/>
+    <text x="165" y="220" text-anchor="middle" font-size="11" fill="#5b5e66">top-k overlap O</text>
+    <text x="40" y="120" text-anchor="middle" font-size="11" fill="#5b5e66" transform="rotate(-90 40 120)">post-OPD gain</text>
+    <!-- scatter points -->
+    <circle cx="80" cy="180" r="4" fill="#cc4a1b"/>
+    <circle cx="110" cy="160" r="4" fill="#cc4a1b"/>
+    <circle cx="140" cy="135" r="4" fill="#cc4a1b"/>
+    <circle cx="170" cy="115" r="4" fill="#cc4a1b"/>
+    <circle cx="200" cy="90" r="4" fill="#cc4a1b"/>
+    <circle cx="230" cy="75" r="4" fill="#cc4a1b"/>
+    <circle cx="260" cy="58" r="4" fill="#cc4a1b"/>
+    <line x1="70" y1="190" x2="270" y2="50" stroke="#2f6feb" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="225" y="178" font-size="11" fill="#2f6feb">r=0.89, R²=0.79</text>
+
+    <!-- right panel: overlap drops over rlvr training -->
+    <text x="540" y="20" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2024">Exp 2: O 随 RLVR 训练单调下降</text>
+    <line x1="380" y1="200" x2="700" y2="200" stroke="#888"/>
+    <line x1="380" y1="40" x2="380" y2="200" stroke="#888"/>
+    <text x="540" y="220" text-anchor="middle" font-size="11" fill="#5b5e66">RLVR step →</text>
+    <text x="370" y="120" text-anchor="middle" font-size="11" fill="#5b5e66" transform="rotate(-90 370 120)">O / sym KL</text>
+    <!-- overlap curve down -->
+    <path d="M 390 65 Q 470 80 540 110 Q 620 145 695 175" stroke="#1f7a4a" stroke-width="2" fill="none"/>
+    <text x="610" y="100" font-size="11" fill="#1f7a4a">top-k overlap ↓</text>
+    <!-- KL curve up -->
+    <path d="M 390 190 Q 470 175 540 145 Q 620 100 695 60" stroke="#a8353e" stroke-width="2" fill="none"/>
+    <text x="450" y="190" font-size="11" fill="#a8353e">symKL ↑ (~10×)</text>
+
+    <!-- shaded region: low-η zone -->
+    <rect x="600" y="40" width="100" height="160" fill="#f8d7da" opacity="0.3"/>
+    <text x="650" y="55" text-anchor="middle" font-size="10" fill="#a8353e" font-weight="600">low-η</text>
+    <text x="650" y="68" text-anchor="middle" font-size="10" fill="#a8353e">trap</text>
+  </svg>
+  <figcaption>左: 同一 teacher、不同 overlap 的 student,跑 OPD 后 gain 与 overlap 强正相关 (r=0.89)。右: 标准 RLVR 训练时 expert 与 base 的 overlap 单调下降、symmetric KL 涨一个数量级——这恰好把 expert 推到右图阴影区,即左图坐标轴最左端 η 最低的位置。两张图合在一起就是论文的核心实证: <em>静态 pipeline 必然在 η 最差的工作点做 OPD</em>。</figcaption>
+</div>
+
+<h3>4.4 钟形 η 的另一面: overlap → 1 也会塌</h3>
+<p>论文还提出一个边界条件: 当 teacher 与 student 行为完全一致时, KL(π<sub>T</sub>‖π<sub>θ</sub>)→0, OPD gain 必然为 0。这意味着<strong>"一直跑 OPD 不切换"也不行</strong>——teacher 与 student 会收敛到同一个分布,从此再无新信号。所以 CoPD 的"周期性插入 RLVR phase"不只是工程方便,而是<em>主动制造适度的行为差距</em>,让 supervision 保持信息量。</p>
+
+<hr>
+
+<h2 id="sec5">5 · CoPD 方法详解</h2>
+
+<h3>5.1 总体: alternating 两阶段 × N cycles</h3>
+
+<div class="fig">
+  <svg id="copdSvg" viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- Three timelines: mixed / sequential / copd -->
+    <!-- Mixed RLVR -->
+    <text x="50" y="35" font-size="12" fill="#5b5e66" text-anchor="end">Mixed</text>
+    <rect x="60" y="20" width="600" height="20" fill="#cc4a1b" opacity="0.5"/>
+    <text x="360" y="34" text-anchor="middle" font-size="11" fill="#fff">单 model · 数据混合 RLVR</text>
+
+    <!-- Sequential -->
+    <text x="50" y="80" font-size="12" fill="#5b5e66" text-anchor="end">Sequential</text>
+    <rect x="60" y="65" width="220" height="18" fill="#2f6feb" opacity="0.6"/>
+    <text x="170" y="78" text-anchor="middle" font-size="10" fill="#fff">expert₁ RLVR</text>
+    <rect x="60" y="85" width="220" height="18" fill="#1f7a4a" opacity="0.6"/>
+    <text x="170" y="98" text-anchor="middle" font-size="10" fill="#fff">expert₂ RLVR</text>
+    <rect x="290" y="75" width="370" height="28" fill="#d2a32a" opacity="0.55"/>
+    <text x="475" y="93" text-anchor="middle" font-size="11" fill="#1f2024">MOPD into one student (在 O_low 上)</text>
+
+    <!-- CoPD -->
+    <text x="50" y="170" font-size="12" fill="#5b5e66" text-anchor="end">CoPD</text>
+    <!-- 4 cycles, each: RL phase narrow + OPD phase wide; teacher-student arrows in OPD -->
+    <g id="cycles">
+      <!-- cycle 1 -->
+      <rect x="60" y="135" width="60" height="18" fill="#2f6feb" opacity="0.7"/>
+      <rect x="60" y="155" width="60" height="18" fill="#1f7a4a" opacity="0.7"/>
+      <text x="90" y="190" text-anchor="middle" font-size="9" fill="#5b5e66">RL₁</text>
+      <rect x="125" y="135" width="50" height="18" fill="#fff3cd" stroke="#cc4a1b"/>
+      <rect x="125" y="155" width="50" height="18" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="150" y="190" text-anchor="middle" font-size="9" fill="#cc4a1b" font-weight="600">mOPD</text>
+      <!-- bidirectional arrow inside -->
+      <path d="M 138 144 L 162 144" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#aB)"/>
+      <path d="M 162 164 L 138 164" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#aB)"/>
+
+      <!-- cycle 2 -->
+      <rect x="185" y="135" width="60" height="18" fill="#2f6feb" opacity="0.7"/>
+      <rect x="185" y="155" width="60" height="18" fill="#1f7a4a" opacity="0.7"/>
+      <rect x="250" y="135" width="50" height="18" fill="#fff3cd" stroke="#cc4a1b"/>
+      <rect x="250" y="155" width="50" height="18" fill="#fff3cd" stroke="#cc4a1b"/>
+      <path d="M 263 144 L 287 144" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#aB)"/>
+      <path d="M 287 164 L 263 164" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#aB)"/>
+
+      <!-- cycle 3 -->
+      <rect x="310" y="135" width="60" height="18" fill="#2f6feb" opacity="0.7"/>
+      <rect x="310" y="155" width="60" height="18" fill="#1f7a4a" opacity="0.7"/>
+      <rect x="375" y="135" width="50" height="18" fill="#fff3cd" stroke="#cc4a1b"/>
+      <rect x="375" y="155" width="50" height="18" fill="#fff3cd" stroke="#cc4a1b"/>
+      <path d="M 388 144 L 412 144" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#aB)"/>
+      <path d="M 412 164 L 388 164" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#aB)"/>
+
+      <!-- cycle 4 -->
+      <rect x="435" y="135" width="60" height="18" fill="#2f6feb" opacity="0.7"/>
+      <rect x="435" y="155" width="60" height="18" fill="#1f7a4a" opacity="0.7"/>
+      <rect x="500" y="135" width="50" height="18" fill="#fff3cd" stroke="#cc4a1b"/>
+      <rect x="500" y="155" width="50" height="18" fill="#fff3cd" stroke="#cc4a1b"/>
+      <path d="M 513 144 L 537 144" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#aB)"/>
+      <path d="M 537 164 L 513 164" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#aB)"/>
+
+      <!-- Merge -->
+      <rect x="565" y="135" width="80" height="38" fill="#cce5ff" stroke="#2f6feb" stroke-width="1.5"/>
+      <text x="605" y="158" text-anchor="middle" font-size="11" fill="#2f6feb" font-weight="600">Merge</text>
+      <text x="605" y="170" text-anchor="middle" font-size="10" fill="#2f6feb">θ*</text>
+    </g>
+
+    <text x="60" y="135" font-size="9" fill="#5b5e66" dy="-3">θ₁:</text>
+    <text x="60" y="155" font-size="9" fill="#5b5e66" dy="-3">θ₂:</text>
+
+    <!-- legend -->
+    <rect x="60" y="210" width="14" height="10" fill="#2f6feb" opacity="0.7"/>
+    <text x="80" y="219" font-size="11" fill="#5b5e66">RLVR (branch-specific)</text>
+    <rect x="240" y="210" width="14" height="10" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="260" y="219" font-size="11" fill="#5b5e66">Mutual OPD (双向)</text>
+    <rect x="430" y="210" width="14" height="10" fill="#cce5ff" stroke="#2f6feb"/>
+    <text x="450" y="219" font-size="11" fill="#5b5e66">Parameter merge (最后一次)</text>
+
+    <!-- play marker for animation -->
+    <line id="cursor" x1="60" y1="125" x2="60" y2="180" stroke="#a8353e" stroke-width="2" opacity="0"/>
+
+    <defs>
+      <marker id="aB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+  </svg>
+  <div class="ctrl">
+    <button onclick="playCoPD()">▶ 播放 cycle 流程</button>
+    <button onclick="resetCoPD()">⟲ 重置</button>
+  </div>
+  <figcaption>三种 paradigm 时间线对照。Mixed RLVR 是单条粗线;Sequential 是两条平行 RLVR 线 → 一段长 MOPD;CoPD 把整条时间轴切成 N 个 cycle,每 cycle 内 RLVR 与<em>双向</em> mutual OPD 都贴着发生,最后做一次 parameter merge。每个 cycle 内的双向箭头表示两个 branch 互为 teacher/student。</figcaption>
+</div>
+
+<h3>5.2 Phase I: Branch-specific RLVR</h3>
+<p>第 n 个 cycle 的 Phase I,每个 branch k 各自在自己的 D<sub>k</sub> 上做 S<sub>RL</sub> 步标准 GRPO:</p>
+<div class="formula">θ<sub>k</sub><sup>(n,I)</sup> = RLVR(θ<sub>k</sub><sup>(n−1)</sup>; D<sub>k</sub>, r<sub>k</sub>, S<sub>RL</sub>)</div>
+<p>这一步刻意把两个 branch 拉开——若不拉开就没东西可教对方。</p>
+
+<h3>5.3 Phase II: Bidirectional Mutual OPD</h3>
+<p>在 Phase II,branch k 拿<strong>对方</strong>的 prompt x'∼D<sub>j</sub> sample 自己的 rollout,然后用对方 branch j 的 logits 作 token-level supervision。论文给出的 token-level advantage 形式很巧妙:</p>
+<div class="formula">δ<sub>i,t</sub><sup>(k←j)</sup> = log π<sub>θ<sub>j</sub></sub>(y<sub>i,t</sub><sup>(k)</sup>|x', y&lt;t) − log π<sub>θ<sub>k</sub></sub>(y<sub>i,t</sub><sup>(k)</sup>|x', y&lt;t)</div>
+<div class="formula">Â<sub>i,t</sub><sup>(k)</sup> = β<sub>k</sub> · δ<sub>i,t</sub><sup>(k←j)</sup></div>
+<p>即把"teacher 给 student 实际产出 token 的 log-prob 增量"<em>当成 token 级 advantage</em>,再用 PPO/GRPO 那套 clipped surrogate 优化。这等价于一种 reverse KL 蒸馏,但被嫁接到 RL 框架里——同一份 update 路径既能跑 RLVR 也能跑 OPD。</p>
+
+<p>Algorithm 1 里 mutual OPD phase 实际还包含<em>同时进行的 native RLVR</em> (line 10–12),不是纯蒸馏。这把"capability-specific 训练不能停"显式编码进算法。</p>
+
+<div class="nb">
+  <strong>关键工程细节:</strong>由于双向对称、两边都从同一 base 出发并被 mutual OPD 紧紧拉住,K 个 branch 训完后参数没有 drift 太远,直接做 <em>parameter merge</em>(简单地 weight-average 或 task-arithmetic 风格)就能得到 unified model。这是 CoPD 能"all-in-one"出最终模型的物理基础——<strong>没有 merge,前面所有 mutual 设计都是空中楼阁</strong>。
+</div>
+
+<h3>5.4 K &gt; 2 时的 hub-and-spoke</h3>
+<p>K 个 branch 全配对蒸馏要 K(K−1) 对 OPD,O(K²) 复杂度。论文用 hub-and-spoke: 选一个 branch 做 hub(三路设置里是文本 branch,因为 image/video branch 都是 VL 模型,reasoning 大头都靠 LLM 子组件),其余 spoke branch 只与 hub 双向 OPD。这样 OPD 对数降到 O(K)。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 700 220" width="100%" style="max-width:680px">
+    <!-- 2-branch -->
+    <text x="120" y="25" text-anchor="middle" font-size="13" font-weight="600">2-branch</text>
+    <circle cx="80" cy="100" r="28" fill="#cce5ff" stroke="#2f6feb"/>
+    <text x="80" y="105" text-anchor="middle" font-size="11" fill="#2f6feb">θ₁</text>
+    <circle cx="180" cy="100" r="28" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="180" y="105" text-anchor="middle" font-size="11" fill="#cc4a1b">θ₂</text>
+    <path d="M 108 90 L 152 90" stroke="#888" stroke-width="1.5" marker-end="url(#aH)"/>
+    <path d="M 152 110 L 108 110" stroke="#888" stroke-width="1.5" marker-end="url(#aH)"/>
+
+    <!-- 3-branch hub-spoke -->
+    <text x="370" y="25" text-anchor="middle" font-size="13" font-weight="600">3-branch (hub-spoke)</text>
+    <circle cx="370" cy="100" r="28" fill="#cce5ff" stroke="#2f6feb" stroke-width="2"/>
+    <text x="370" y="98" text-anchor="middle" font-size="11" fill="#2f6feb">θ_text</text>
+    <text x="370" y="112" text-anchor="middle" font-size="9" fill="#5b5e66">(hub)</text>
+    <circle cx="290" cy="160" r="24" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="290" y="165" text-anchor="middle" font-size="11" fill="#cc4a1b">θ_img</text>
+    <circle cx="450" cy="160" r="24" fill="#d4edda" stroke="#1f7a4a"/>
+    <text x="450" y="165" text-anchor="middle" font-size="11" fill="#1f7a4a">θ_vid</text>
+    <!-- arrows -->
+    <path d="M 354 124 L 304 144" stroke="#888" stroke-width="1.5" marker-end="url(#aH)"/>
+    <path d="M 304 154 L 354 134" stroke="#888" stroke-width="1.5" marker-end="url(#aH)"/>
+    <path d="M 386 124 L 436 144" stroke="#888" stroke-width="1.5" marker-end="url(#aH)"/>
+    <path d="M 436 154 L 386 134" stroke="#888" stroke-width="1.5" marker-end="url(#aH)"/>
+    <!-- no direct img-vid edge -->
+    <path d="M 314 170 L 426 170" stroke="#aaa" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="370" y="195" text-anchor="middle" font-size="10" fill="#888">img/vid 不直连 (省一对 OPD)</text>
+
+    <!-- N-branch -->
+    <text x="600" y="25" text-anchor="middle" font-size="13" font-weight="600">N-branch</text>
+    <circle cx="600" cy="100" r="22" fill="#cce5ff" stroke="#2f6feb" stroke-width="2"/>
+    <text x="600" y="105" text-anchor="middle" font-size="10" fill="#2f6feb">hub</text>
+    <circle cx="540" cy="60" r="14" fill="#fff" stroke="#888"/>
+    <circle cx="660" cy="60" r="14" fill="#fff" stroke="#888"/>
+    <circle cx="540" cy="160" r="14" fill="#fff" stroke="#888"/>
+    <circle cx="660" cy="160" r="14" fill="#fff" stroke="#888"/>
+    <circle cx="600" cy="170" r="14" fill="#fff" stroke="#888"/>
+    <line x1="555" y1="70" x2="585" y2="90" stroke="#888"/>
+    <line x1="645" y1="70" x2="615" y2="90" stroke="#888"/>
+    <line x1="555" y1="150" x2="585" y2="115" stroke="#888"/>
+    <line x1="645" y1="150" x2="615" y2="115" stroke="#888"/>
+    <line x1="600" y1="156" x2="600" y2="124" stroke="#888"/>
+    <text x="600" y="200" text-anchor="middle" font-size="10" fill="#888">O(K) edges</text>
+
+    <defs>
+      <marker id="aH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#888"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>从 2 branch 到 K branch 的拓扑。在三路里把<em>文本</em> branch 当 hub 是设计选择: image / video 都是 VL 模型,其推理大头由 LLM 子模块承担,所以 text branch 学到的"推理风格"对它们最易迁移;反之则未必。如果改成 image hub,论文没报告但暗示效果会不如 text hub。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · Worked Example: 两个 expert 跑 4 个 cycle 的内部状态</h2>
+
+<p>抽象不够实在,这里把 paper 里 Figure 4 的 dynamics 数据(top-k overlap、symKL)结合算法流程,用一个具体的 trace 走一遍。设置: branch₁ = text(数学题,Polaris-53K), branch₂ = image(MMFineReason-123K), 同 base π₀ = Qwen3-VL-4B-Instruct, S<sub>RL</sub>=15, S<sub>OPD</sub>=10, β=1.0。</p>
+
+<table>
+  <tr><th>时刻</th><th>动作</th><th>O<sub>10</sub>(θ₁,θ₂)</th><th>symKL</th><th>变化机制</th></tr>
+  <tr><td>cycle 0 / 起点</td><td>θ₁=θ₂=π₀</td><td><strong>1.00</strong></td><td>0</td><td>同一个 base,完全一致</td></tr>
+  <tr><td>cycle 1 · Phase I</td><td>各自 RLVR 15 步</td><td>0.93</td><td>0.4</td><td>两个 branch 沿不同 capability gradient 偏离</td></tr>
+  <tr><td>cycle 1 · Phase II</td><td>互蒸 10 步 (双向)</td><td><strong>0.96</strong></td><td>0.2</td><td>每个 branch 在对方 prompt 上 rollout,用对方 logits 拉回</td></tr>
+  <tr><td>cycle 2 · Phase I</td><td>RLVR 15 步</td><td>0.91</td><td>0.5</td><td>再次拉开,但起点已含对方知识</td></tr>
+  <tr><td>cycle 2 · Phase II</td><td>互蒸 10 步</td><td><strong>0.94</strong></td><td>0.25</td><td>新一轮 mutual OPD 把双方 capability 又混合一次</td></tr>
+  <tr><td>...</td><td>共 N cycle</td><td>稳定 ≥ 0.90</td><td>低</td><td>每 cycle 一推一拉,overlap 围绕 ~0.92 振荡</td></tr>
+  <tr><td>对照: static pipeline</td><td>跑同样总 step 但全是 RLVR</td><td class="no">~0.50</td><td class="no">~5×</td><td>单调下降到低 η 区,此时再跑 OPD 已晚</td></tr>
+  <tr><td>cycle N 结束</td><td>Merge θ₁, θ₂</td><td>—</td><td>—</td><td>θ* 同时具有两个 branch 的能力</td></tr>
+</table>
+
+<h4>具体 token 级 trace (Phase II, branch₁ = student / branch₂ = teacher)</h4>
+<p>设 prompt x'∈D₂(图像题): "图中三角形三边为 3, 4, 5,求面积"。student θ₁(text branch)生成 rollout:</p>
+<pre>"<u>由</u> <u>勾股</u> <u>定理</u>, <u>这是</u> <u>直角</u> <u>三角形</u>, <u>面积</u> = (3×4)/2 = 6"</pre>
+<p>对 token "勾股" 这一位:</p>
+<ul>
+  <li>θ₁(text, 推理强): logπ<sub>θ₁</sub>("勾股"|x', y&lt;t) = −0.18 (常见 token,概率高)</li>
+  <li>θ₂(image, 视觉对齐): logπ<sub>θ₂</sub>("勾股"|x', y&lt;t) = −0.05 (image expert 在数学概念识别上其实更准)</li>
+  <li>δ<sub>t</sub><sup>(1←2)</sup> = (−0.05) − (−0.18) = +0.13</li>
+  <li>这个正的 token-level advantage 推 θ₁ 提高 "勾股" 的产生概率——<em>image expert 在它擅长的数学+视觉融合点上把 text branch 拉了一手</em></li>
+</ul>
+<p>反之若某 token θ₁ 的 log-prob 已经显著高于 θ₂(text branch 自己更专),δ 为负或接近 0,update 微弱——OPD 不会让 student 退步到老师水平。这与 PPO clip 的语义一致。</p>
+
+<details>
+  <summary>反向论证: 假如取消"双向"会怎样?</summary>
+  <p>论文 Table 3 的 ablation 给出了清楚答案。把 I-OPD(image branch 教 text)拿掉,text reasoning avg 从 58.76 跌到 57.41;把 T-OPD 拿掉,image reasoning avg 从 56.97 跌到 56.48。每条单向 OPD 都有独立贡献——这是<strong>"互"的实证必要性</strong>,不是冗余对称。
+  </p>
+</details>
+
+<details>
+  <summary>反向论证: 假如取消"过程中"(把 OPD 全堆到最后)?</summary>
+  <p>这就退化为 static OPD pipeline。Table 1 显示 OPD<sub>V→T</sub> overall 56.09, OPD<sub>T→V</sub> 56.29, 而 CoPD 57.71。差距 ~1.4 pt 全部来自"OPD 在低 η 区跑 vs 高 η 区跑"的 absorption 差异。Figure 4(c) 进一步显示, 即使把 S<sub>RL</sub>:S<sub>OPD</sub> 比例调成各种值,CoPD 也始终高过 static OPD baseline。</p>
+</details>
+
+<hr>
+
+<h2 id="sec7">7 · 实验关键结果</h2>
+
+<h3>7.1 Two-branch (text + image) 主表</h3>
+<table>
+  <tr><th>Model</th><th>Image Avg</th><th>Text Avg</th><th>Overall</th></tr>
+  <tr><td>Base (Qwen3-VL-4B)</td><td>54.00</td><td>55.78</td><td>54.74</td></tr>
+  <tr><td>Image-Expert (单独 RLVR)</td><td>55.76</td><td>55.51</td><td>55.65</td></tr>
+  <tr><td>Text-Expert (单独 RLVR)</td><td>54.88</td><td>57.89</td><td>56.13</td></tr>
+  <tr><td>Mixed RLVR</td><td>55.69</td><td><span class="no">55.48</span></td><td><span class="no">55.60</span></td></tr>
+  <tr><td>OPD (V→T)</td><td>55.99</td><td>56.23</td><td>56.09</td></tr>
+  <tr><td>OPD (T→V)</td><td>56.44</td><td>56.09</td><td>56.29</td></tr>
+  <tr><td><strong>CoPD</strong></td><td><strong>56.97</strong></td><td><strong>58.76</strong></td><td><strong>57.71</strong></td></tr>
+</table>
+
+<p><strong>三个值得注意的现象:</strong></p>
+<ul>
+  <li><strong>Mixed RLVR 在 text 上 (55.48) 比 base (55.78) 还<em>跌</em></strong>: 这是 capability divergence 的直接证据,数据混合干扰干净。</li>
+  <li><strong>Static OPD 两个方向都救不回来全部</strong>: V→T 让 text 涨到 56.23(仍低于 Text-Expert 的 57.89),T→V 让 image 涨到 56.44(略高于 Image-Expert 56.97 — 略好,但 text 不动)。</li>
+  <li><strong>CoPD 在两个能力上同时<em>超过</em>各自 expert</strong> (57.89→58.76 text, 55.76→56.97 image)。这是论文最 punchy 的发现: <em>两个能力不是 zero-sum 而是 mutual gain</em>——这违反"一个 model 总会在某个能力上不如专家"的 conventional ceiling。</li>
+</ul>
+
+<h3>7.2 Three-branch (text + image + video) 拓展</h3>
+<table>
+  <tr><th>Model</th><th>Image</th><th>Text</th><th>Video</th><th>Overall</th></tr>
+  <tr><td>Mixed RLVR</td><td>56.17</td><td>55.39</td><td>59.62</td><td>56.79</td></tr>
+  <tr><td>MOPD (3 teacher)</td><td>56.37</td><td>56.80</td><td>58.32</td><td>56.99</td></tr>
+  <tr><td><strong>CoPD</strong></td><td><strong>57.12</strong></td><td><strong>58.63</strong></td><td>59.21</td><td><strong>58.12</strong></td></tr>
+</table>
+<p>有意思的是 Mixed RLVR 在<em>video</em> 上反而最高(59.62),论文解释为 video reasoning 受益于多样化数据;但代价是 text 跌到最低 (55.39)。CoPD 把 text 拉回 58.63,同时 video 保持 59.21,是真正的 "no trade-off"。</p>
+
+<h3>7.3 Ablation 关键发现</h3>
+<table>
+  <tr><th>Variant</th><th>Image</th><th>Text</th><th>Overall</th></tr>
+  <tr><td>CoPD (full)</td><td>56.97</td><td>58.76</td><td>57.71</td></tr>
+  <tr><td>w/o I-OPD</td><td>56.78</td><td>57.41</td><td>57.04</td></tr>
+  <tr><td>w/o T-OPD</td><td>56.48</td><td>57.78</td><td>57.02</td></tr>
+  <tr><td>Text-Branch only (no merge)</td><td>56.26</td><td>58.61</td><td>57.24</td></tr>
+  <tr><td>Image-Branch only (no merge)</td><td>56.78</td><td>57.17</td><td>56.94</td></tr>
+</table>
+<p>关键观察: <strong>即使不做 merge,单个 branch 已经超过 static OPD baseline</strong>(57.24 / 56.94 vs 56.09 / 56.29)。也就是说 mutual OPD 让每个 branch 在各自训练过程中就<em>已经吸收</em>了对方的能力——merge 是锦上添花而非依赖。这也意味着 CoPD 还能用作"训出多个互补 expert,部署时按需要 route"的方案。</p>
+
+<h3>7.4 S<sub>RL</sub> : S<sub>OPD</sub> ratio</h3>
+<p>Figure 4(c): 1.5:1 在 image / text / overall 都最优。论文解释: S<sub>RL</sub> 太短 → 拉不开足够 capability gap, OPD 没新东西可传;S<sub>RL</sub> 太长 → overlap 跌出可吸收范围, OPD 来不及救。1.5:1 是"探索-巩固"的 sweet spot。</p>
+
+<h3>7.5 Training dynamics 的图证 (Fig 4 a/b)</h3>
+<ul>
+  <li>Static OPD baseline: 两 branch 间 top-k overlap 单调跌, symKL 涨一个数量级。</li>
+  <li>CoPD: top-k overlap <strong>始终 ≥ 0.90</strong> (在每个 cycle 内 RLVR 阶段微跌, OPD 阶段又涨回来), symKL 始终低。</li>
+</ul>
+<p>这张图直接对应方法的核心论证:<em>RLVR 制造分化 → 蒸馏才有信息;mutual OPD 拉回邻近 → 信号可吸收</em>。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>路线</th><th>与 CoPD 的关系</th></tr>
+  <tr><td>Vanilla RLVR (DeepSeek-R1, Vision-R1, Video-R1)</td><td>单 capability RL</td><td>CoPD 的"branch-specific RLVR phase"就是 vanilla RLVR; CoPD 在它之上加 mutual OPD</td></tr>
+  <tr><td>Mixed RLVR / scaling-laws-for-mixtures (Shukor 2025)</td><td>混合数据训一个 model + tune mixing ratio</td><td>CoPD 论证<em>无论 ratio 怎么调都消不掉 Φ</em>,这是结构性的</td></tr>
+  <tr><td>Sequential KD / MOPD (Qwen3, Kimi K2.5, GLM-5)</td><td>独立训 expert → 一次性蒸到 student</td><td>CoPD 直接 target 它的 absorption gap;Table 1 / Table 2 直接打过</td></tr>
+  <tr><td>On-Policy Distillation (Thinking Machines blog, 2025)</td><td>OPD 作为单向 KD 配方</td><td>CoPD 把它升级为<strong>双向 + 持续</strong></td></tr>
+  <tr><td>MoE routing alternatives (DeepSeek-V3, GLM-MoE)</td><td>用 MoE 把 capability 分到 expert,运行时 route</td><td>正交路线: CoPD 不改架构,只改训练;但训完的 model 仍是 dense,推理简单</td></tr>
+  <tr><td><a href="11_TIDE_2604.26951.html">TIDE (2604.26951)</a></td><td>跨架构 (AR ↔ dLLM) on-policy distillation</td><td>同样是"OPD 不要静态"的思路,但聚焦 cross-architecture, CoPD 聚焦 cross-capability</td></tr>
+  <tr><td>Multi-task RL (PCGrad, GradVac)</td><td>梯度投影减少 task 间冲突</td><td>处理 Φ &gt; 0 的另一思路 — 修 gradient 而不绕开;CoPD 是从结构上把每个 capability 隔离成独立 branch</td></tr>
+  <tr><td><a href="19_RL_Frameworks_Comparison.html">RL frameworks (verl/EasyR1)</a></td><td>训练栈</td><td>CoPD 实现在 EasyVideoR1 (verl + EasyR1) 之上 — 它是<em>调度</em>层,不需要新 framework</td></tr>
+  <tr><td>RLSD / NPO (作者前作 Self-Taught RLVR series)</td><td>"informed self" / "temporal self"</td><td>CoPD 是同系列第三篇 "parallel self" — 多个并行的自己互教</td></tr>
+</table>
+
+<div class="nb">
+  <strong>定位:</strong>CoPD 是<em>训练编排</em>论文,不是 algorithm 论文。它的所有工具(GRPO、OPD、parameter merge)都是 off-the-shelf;贡献是把"什么时候做、谁教谁、是否对称"这套问题想清楚并用 utility 公式说服读者。这种类型的论文,实证强度比理论新颖度更重要——而它的两个 pilot study 实验恰恰把"行为距离 ↔ absorption 效率"钉得很死。
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文承认 / 我读出的局限</h3>
+<ul>
+  <li><strong>Parameter merge 的可行性高度依赖 "branch 没漂太远"</strong>。三 branch 已经报告 OK,但 K=5/10 时 mutual OPD 维持的 overlap 是否还够 merge?Hub-spoke 结构里 spoke-spoke 没有直接拉力,可能更早断。</li>
+  <li><strong>所有实验都基于 Qwen3-VL-4B-Instruct 一种 base</strong>。Mixing ratio / behavioral overlap 的动力学未必对其他 base 成立(尤其原生 reasoning 模型如 Qwen3-Think)。</li>
+  <li><strong>S<sub>RL</sub>:S<sub>OPD</sub> = 1.5:1 是经验值</strong>,论文没给"如何根据 capability 数 / 数据规模自动选"的指导。</li>
+  <li><strong>3-branch 上 video reasoning 没超过 mixed RLVR (59.21 vs 59.62)</strong>。论文承认 video 受益于数据多样性;CoPD 在某些"靠数据 diversity 而非 capability specialization"的能力上可能不显著。</li>
+  <li><strong>Hub 选择是手工的</strong> (text=hub),论文没消融"image=hub"或"video=hub"的对比。</li>
+  <li><strong>计算成本被低估</strong>。Phase II 里每 step 要在<em>对方 dataset</em> 上 rollout + forward 对方 model,这相比 mixed RLVR 显然更贵——但论文只说"total steps 与 static OPD 相同"是否包含 rollout 成本不清楚。</li>
+</ul>
+
+<h3>我的疑问 (落地后想验证)</h3>
+<ol>
+  <li>"互蒸"用 reverse KL (δ = log π<sub>j</sub> − log π<sub>k</sub>) 对应 mode-seeking 行为,如果换成 forward KL (mean-seeking) 是否会让 overlap 维持更稳但 capability 提升变弱?</li>
+  <li>Phase II 内同时跑 native RLVR + cross-branch OPD,两者 batch 怎么混?Algorithm 1 line 12 说"combine native and cross-branch batches",但相对权重 β<sub>k</sub> = 1 是固定还是 schedule?</li>
+  <li>能否把 mutual OPD 改造成 sample-level (而非整个 phase),即<em>每条 prompt 上都同时算 RL loss + OPD loss</em>?这会让 overlap 维持得更紧,但梯度方向冲突是否变成另一个 Φ?</li>
+  <li>对于 capability 高度相关的子集(如 image math 与 text math),是否还需要 explicit branch 分离?会不会一个 capability 就够?</li>
+  <li>K → 大时,merge 应该用什么(simple average / TIES / DARE)?论文没说。merge 失败时 fallback 到"每 branch 单独部署 + router" 的 cost 多大?</li>
+  <li>这套机制能否扩展到 RLHF (preference-based reward)?reward 不再是 verifiable rule 时,branch-specific reward 之间冲突可能更微妙。</li>
+</ol>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> 不是新算法,是 schedule 论文 — 把 RLVR 与 OPD 编排成 alternating + 双向<br>
+  <span class="pill">核心</span> teacher-student 行为距离决定 OPD absorption,<em>必须主动维持</em><br>
+  <span class="pill">公式</span> U = a·X + b: mixed (a=1, b=−Φ); static (a=η(O_low), b=0); CoPD (a=η(O_mod), b=0)<br>
+  <span class="pill">证据</span> r=0.89 (overlap↔gain), CoPD overlap ≥0.90 vs static 跌至 ~0.5<br>
+  <span class="pill">惊讶</span> CoPD 在 text/image 都<em>超过</em>各自 expert — 打破"unified ≤ specialist"的 ceiling<br>
+  <span class="pill">尺度</span> 2-branch + 3-branch 都验证;hub-and-spoke 把 OPD 数从 O(K²) 降到 O(K)
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-09 · 配套 PDF: <code>/data/szhang967/papers/paper-notes/models/CoPD_2604.27083.pdf</code><br>
+  相关阅读: <a href="11_TIDE_2604.26951.html">TIDE</a> · <a href="14_MTP_Gloeckle_2404.19737.html">MTP</a> · <a href="19_RL_Frameworks_Comparison.html">RL frameworks</a>
+</p>
+
+</main>
+
+<script>
+  function setOp(id, op){ const el=document.getElementById(id); if(el) el.setAttribute('opacity', op); }
+  function resetCoPD(){
+    const cur = document.getElementById('cursor');
+    if(cur) cur.setAttribute('opacity','0');
+  }
+  function playCoPD(){
+    resetCoPD();
+    const cur = document.getElementById('cursor');
+    if(!cur) return;
+    cur.setAttribute('opacity','1');
+    let x = 60;
+    const target = 645;
+    const step = () => {
+      x += 6;
+      cur.setAttribute('x1', x);
+      cur.setAttribute('x2', x);
+      if (x < target) requestAnimationFrame(step);
+      else setTimeout(()=>cur.setAttribute('opacity','0'), 400);
+    };
+    requestAnimationFrame(step);
+  }
+</script>
+
+</body>
+</html>

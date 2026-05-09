@@ -47,6 +47,8 @@
 | 16 | [L-MTP (Leap MTP)](https://zhangshuibai.github.io/paper-notes/models/notes/16_LMTP_2505.17505.html) | 跳跃式 MTP / 非相邻 future / NeurIPS 2025 | 50 KB |
 | 17 | [MuToR (Registers)](https://zhangshuibai.github.io/paper-notes/models/notes/17_MuToR_2505.10518.html) | 可学习 register tokens 替代 n heads | 53 KB |
 | 18 | [FSP (Beyond MTP)](https://zhangshuibai.github.io/paper-notes/models/notes/18_FSP_2510.14751.html) | Future Summary Prediction / RevLM 蒸馏 | 41 KB |
+| 19 | [📊 RL 框架横评 (AReaL/veRL/slime/NeMo-RL/OpenRLHF…)](https://zhangshuibai.github.io/paper-notes/models/notes/19_RL_Frameworks_Comparison.html) | 10 框架 / 12 维对比 / 决策树 / sync vs async | 53 KB |
+| 20 | [CoPD (Co-Evolving Policy Distillation)](https://zhangshuibai.github.io/paper-notes/models/notes/20_CoPD_2604.27083.html) | RLVR + OPD 同步 / mutual teacher / 钟形 η(O) | 50 KB |
 
 ### MTP 系列阅读建议
 
@@ -73,6 +75,11 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 02 | [LiteResearcher](https://zhangshuibai.github.io/paper-notes/agents/notes/02_LiteResearcher_2604.17931.html) | Lite 虚拟 Web 世界 / 4B GAIA 71.3% 反超 30B | 50 KB |
 | 03 | [Agent-World](https://zhangshuibai.github.io/paper-notes/agents/notes/03_AgentWorld_2604.18292.html) | 1,978 真实环境 / 19,822 工具 / self-evolving arena | 60 KB |
 | 04 | [MemPalace 审视](https://zhangshuibai.github.io/paper-notes/agents/notes/04_MemPalace_2604.21284.html) | 空间隐喻 LLM 内存的批判分析 / 96.6% 主要来自哪 | 52 KB |
+| 05 | [Rethinking Agentic RL](https://zhangshuibai.github.io/paper-notes/agents/notes/05_RethinkingAgenticRL_2604.27859.html) | 范式重定义: 退化 single-step bandit → POMDP / capability taxonomy | 52 KB |
+| 06 | [AgentGym-RL](https://zhangshuibai.github.io/paper-notes/agents/notes/06_AgentGymRL_2509.08755.html) | 模块化框架 / ScalingInter-RL 课程 / 27 任务 | 57 KB |
+| 07 | [AgentRL](https://zhangshuibai.github.io/paper-notes/agents/notes/07_AgentRL_2510.04206.html) | 全异步管道 / cross-policy sampling / 跨任务标准化 | 52 KB |
+| 08 | [CoEvolve](https://zhangshuibai.github.io/paper-notes/agents/notes/08_CoEvolve_2604.15840.html) | agent ↔ data mutual evolution / GRPO + 信号驱动数据进化 | 44 KB |
+| 09 | [HeavySkill](https://zhangshuibai.github.io/paper-notes/agents/notes/09_HeavySkill_2605.02396.html) | Agent Swarm 内化为单模型 inner skill / parallel + summarize | 52 KB |
 
 ## 论文清单 (按时间)
 
@@ -122,6 +129,11 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | L-MTP (Leap MTP) | NeurIPS'25 | 2025-05 | [2505.17505](https://arxiv.org/abs/2505.17505) |
 | FastMTP | Tencent BAC | 2025-09 | [2509.18362](https://arxiv.org/abs/2509.18362) |
 | FSP (Beyond MTP) | — | 2025-10 | [2510.14751](https://arxiv.org/abs/2510.14751) |
+| CoPD (Co-Evolving Policy Distillation) | — | 2026-04 | [2604.27083](https://arxiv.org/abs/2604.27083) |
+| veRL/HybridFlow | ByteDance | 2024-09 | [2409.19256](https://arxiv.org/abs/2409.19256) |
+| AReaL | 清华 + 蚂蚁 | 2025-05 | [2505.24298](https://arxiv.org/abs/2505.24298) |
+| LlamaRL | Meta | 2025-05 | [2505.24034](https://arxiv.org/abs/2505.24034) |
+| Laminar | — | 2025-10 | [2510.12633](https://arxiv.org/abs/2510.12633) |
 
 ### Agent 训练 / 环境 / 内存
 

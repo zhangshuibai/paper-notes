@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · CoEvolve: Agent-Data Mutual Evolution (2604.15840)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>CoEvolve: Training LLM Agents via Agent-Data Mutual Evolution</h1>
+<div class="meta">
+  AMAP, Alibaba Group · Shidong Yang, Ziyu Ma, Tongwen Huang et al. · 2026-04-17 · arXiv:2604.15840<br>
+  关键词: LLM agent · GRPO · 数据进化 · forgetting signal · curriculum · self-play · AppWorld · BFCL
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>标准 GRPO 在<em>固定数据分布</em>上训练 agent 早晚撞墙;CoEvolve 让数据分布跟着 agent 一起演化——从训练 rollout 中抽取 forgetting / boundary / rare 三类信号,用 LLM 在真实环境中针对弱点重采,蒸馏成新任务、跑通环境验证、并入训练集,形成<em>agent ↔ data</em> 的闭环。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">+19.4 / +15.6 / +18.1</div><div class="l">Qwen2.5-7B / Qwen3-4B / 30B-A3B 平均提分</div></div>
+    <div class="stat"><div class="n">~10%</div><div class="l">相对 GRPO 的额外训练开销</div></div>
+    <div class="stat"><div class="n">269 → 204</div><div class="l">训练中 weakness signal 数量自然下降</div></div>
+  </div>
+  <p><strong>立场:</strong>这不是又一个 "synthetic data" 论文,而是把 <em>data distribution 本身当作可优化变量</em>,与 policy 同时 minimize 一个隐式联合目标。结构上是 AlphaZero self-play 的"环境/数据"侧泛化版,工程上落在 GRPO 之上做一层正交叠加。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么固定数据分布的 RL 注定撞墙</a></li>
+    <li><a href="#sec2">背景速查:GRPO / curriculum / self-play / forgetting</a></li>
+    <li><a href="#sec3">框架总览:三阶段闭环</a></li>
+    <li><a href="#sec4">Stage 1: GRPO 训练 + 三类 weakness signal</a></li>
+    <li><a href="#sec5">Stage 2: signal-guided 环境再探索</a></li>
+    <li><a href="#sec6">Stage 3: task abstraction & environment validation</a></li>
+    <li><a href="#sec7">worked example:文件操作任务的三轮演化</a></li>
+    <li><a href="#sec8">稳定性:为什么联合优化没有崩</a></li>
+    <li><a href="#sec9">实验关键结果与 ablation</a></li>
+    <li><a href="#sec10">与同类工作对比</a></li>
+    <li><a href="#sec11">局限 / 个人 take / 待验证问题</a></li>
+    <li><a href="#sec12">Memory points</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1. 动机:为什么固定数据分布的 RL 注定撞墙</h2>
+
+<h3>1.1 历史脉络:从模仿专家到 RL,但数据始终是个静态快照</h3>
+<p>训练 LLM agent 走过三个范式。<strong>第一代</strong>是 expert-supervised:让人类专家在真实环境里(网页、操作系统、应用 API)亲手交互,记录成 trajectory,然后做 SFT。代表如 WebGPT、Voyager 的早期变体、AppWorld 自带的人写训练集。问题清晰:一条轨迹动辄几分钟人力,长尾根本铺不满,agent 一旦碰到按钮文字从 "Book Now" 改成 "Reserve Now" 就懵了。</p>
+
+<p><strong>第二代</strong>是 LLM-synthesized:既然人类太贵,就让 GPT-4 / Claude 类大模型扮演专家自己跟环境玩,生成合成轨迹。AgentTrek、AgentBank、Explorer、LAM Simulator 都是这条路。便宜了,但探索是 <em>open-loop</em> 的——LLM 凭世界知识 random 地走,跟"agent 实际上哪里弱"无关。</p>
+
+<p><strong>第三代</strong>是 RL: DeepSeek-R1 把 GRPO 推上王座之后,大家把 GRPO 套到 agent 上(Agent-RL Scaling Law、DeepAgent 等)。policy 在变,但<em>数据集 D 是冻结的</em>——每个 epoch 反复采样同一批 prompts/tasks,只是 reward 信号驱动 policy 更新。这就是论文要打的靶:<strong>policy 演化、data 不动 → 训到一定步数,signal 信噪比塌方,GRPO 平台期到来</strong>。Fig 3(a) 显示 baseline 在 ~step 60 处先升到 0.29 后回落到 0.23,典型的"会的越练越熟、不会的永远碰不到"症状。</p>
+
+<h3>1.2 别的方案为什么不够</h3>
+<table>
+<thead><tr><th>方案</th><th>数据来源</th><th>是否 closed-loop</th><th>缺陷</th></tr></thead>
+<tbody>
+<tr><td>SFT on expert traces</td><td>人写</td><td><span class="no">否</span></td><td>贵、覆盖窄、generalization 差</td></tr>
+<tr><td>静态 synthetic (AgentTrek 等)</td><td>LLM open-loop 生成</td><td><span class="no">否</span></td><td>探索浅,与 agent 弱点解耦</td></tr>
+<tr><td>Reflexion / 自反思</td><td>当前 trajectory</td><td>半</td><td>停留在 inference-time,不修改训练分布</td></tr>
+<tr><td>ReST (self-training)</td><td>policy 自采</td><td>半</td><td>只在<em>已有 prompt</em>上反复采样,没新任务</td></tr>
+<tr><td>Curriculum Learning(手工)</td><td>人定难度递增</td><td><span class="no">否</span></td><td>课程是先验设的,不响应 agent 实际表现</td></tr>
+<tr><td>普通 GRPO</td><td>固定 D</td><td><span class="no">否</span></td><td>data distribution 与 policy 的 mismatch 越来越大</td></tr>
+<tr><td><strong>CoEvolve</strong></td><td>LLM × env × feedback</td><td><span class="ok">是</span></td><td>—— 本文要论证的方案 ——</td></tr>
+</tbody>
+</table>
+<p>关键 distinction:Reflexion 和 ReST 也"用了反馈",但它们要么停在 inference 不影响训练,要么只在固定 query 池上 resampling。CoEvolve 是<em>把 agent 推回环境去发现新的 executable query</em>——data evolution 不止是改写或筛选,而是<em>开拓</em>。</p>
+
+<h3>1.3 为什么这事不平凡(joint optimization 的稳定性问题)</h3>
+<p>"让数据跟着 agent 演化"听起来是显而易见的好主意,但工程上有三个坑:</p>
+<ol>
+<li><strong>双向反馈循环可能崩塌</strong>。agent 弱点 → 生成更多类似数据 → agent 在该区域过拟合 → 别的能力退化 → 反馈信号噪声化 → 进一步歪曲数据。这是 self-play 体系经典的 mode collapse / runaway dynamics 风险。</li>
+<li><strong>反馈信号是从当前 policy 派生的</strong>,policy 早期能力差时,signal 本身就 noisy(论文 Limitations 自己承认)。一开始就让 noisy signal 主导数据生成会放大错误。</li>
+<li><strong>合成任务可能不可执行</strong>。LLM "幻想"一个 task,但环境里压根没那个 API、那个文件、那个状态——这种垃圾任务掺进训练集,GRPO 的 advantage 估计就废了。</li>
+</ol>
+
+<div class="fig">
+<svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+<path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/></marker>
+<marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+<path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/></marker>
+</defs>
+<text x="350" y="20" text-anchor="middle" font-size="14" font-weight="600">固定数据 RL vs CoEvolve</text>
+<g transform="translate(20,40)">
+<text x="150" y="14" text-anchor="middle" font-size="12" fill="#5b5e66">(a) 标准 GRPO</text>
+<rect x="60" y="30" width="180" height="50" rx="8" fill="#f3eee0" stroke="#5b5e66"/>
+<text x="150" y="60" text-anchor="middle" font-size="13">Static Dataset D</text>
+<rect x="60" y="130" width="180" height="50" rx="8" fill="#fff" stroke="#5b5e66"/>
+<text x="150" y="160" text-anchor="middle" font-size="13">Policy π_θ</text>
+<line x1="150" y1="80" x2="150" y2="128" stroke="#2f6feb" marker-end="url(#ar1)"/>
+<text x="170" y="110" font-size="11" fill="#2f6feb">sample</text>
+<path d="M 70 155 Q 20 150 20 100 Q 20 50 60 50" fill="none" stroke="#2f6feb" marker-end="url(#ar1)"/>
+<text x="0" y="100" font-size="11" fill="#2f6feb">grad</text>
+<text x="150" y="220" text-anchor="middle" font-size="11" fill="#a8353e">→ 数据不响应 policy,平台期</text>
+</g>
+<g transform="translate(360,40)">
+<text x="160" y="14" text-anchor="middle" font-size="12" fill="#5b5e66">(b) CoEvolve</text>
+<rect x="60" y="30" width="200" height="50" rx="8" fill="#f3eee0" stroke="#cc4a1b"/>
+<text x="160" y="60" text-anchor="middle" font-size="13">Evolving Data D_t</text>
+<rect x="60" y="130" width="200" height="50" rx="8" fill="#fff" stroke="#cc4a1b"/>
+<text x="160" y="160" text-anchor="middle" font-size="13">Policy π_θ + signals</text>
+<line x1="160" y1="80" x2="160" y2="128" stroke="#cc4a1b" marker-end="url(#ar2)"/>
+<text x="180" y="110" font-size="11" fill="#cc4a1b">sample</text>
+<path d="M 60 155 Q 10 150 10 100 Q 10 50 60 50" fill="none" stroke="#cc4a1b" marker-end="url(#ar2)"/>
+<text x="-10" y="100" font-size="11" fill="#cc4a1b">grad</text>
+<path d="M 260 155 Q 320 150 320 100 Q 320 50 260 50" fill="none" stroke="#cc4a1b" marker-end="url(#ar2)"/>
+<text x="320" y="100" font-size="11" fill="#cc4a1b">signal</text>
+<text x="160" y="220" text-anchor="middle" font-size="11" fill="#1f7a4a">→ data 跟着 policy 弱点演化</text>
+</g>
+</svg>
+<figcaption>图 1. 左:标准 GRPO 单向反馈,数据是冷冻的;右:CoEvolve 在 D 与 π 之间建第二条反馈链,data 也成为可塑变量。</figcaption>
+</div>
+
+<p>论文给出三剂稳定性药方:(1) signal 是<em>低门槛、易解释</em>的统计量(forgetting / boundary / rare),不是某个学到的 critic,避免"以噪治噪";(2) <em>environment validation</em> 强制每个合成任务跑通真实环境才能入库,过滤幻觉;(3) 数据分布是<em>追加</em>的而非<em>替换</em>(D_t = D_0 ∪ 历次合成),保留旧任务防灾难性遗忘。下文按这条主线展开。</p>
+
+<h2 id="sec2">2. 背景速查</h2>
+<table>
+<thead><tr><th>术语</th><th>含义 / 与本文关系</th></tr></thead>
+<tbody>
+<tr><td><code>GRPO</code></td><td>Group Relative Policy Optimization。每个 prompt 采 K 条 trajectory,advantage 用组内 reward z-score。CoEvolve 直接用 GRPO 作底层 RL,不改它。</td></tr>
+<tr><td><code>forgetting signal</code></td><td>Toneva 2018 的概念:某样本曾经预测对、现在预测错。CoEvolve 把它从 supervised 推到 RL trajectory 级别。</td></tr>
+<tr><td><code>boundary signal</code></td><td>同任务的 K 条 rollout 既有成功又有失败 → policy 处于决策边界。等价于 high-variance reward 任务。</td></tr>
+<tr><td><code>rare signal</code></td><td>action pattern 出现频率 < θ% 但 > 0 → 系统性 underexplored。</td></tr>
+<tr><td><code>self-play</code></td><td>AlphaZero 风格:opponent 跟自己一起强。CoEvolve 把"opponent"换成"data",但闭环结构同源。</td></tr>
+<tr><td><code>POET</code> (Wang et al. 2019)</td><td>Open-ended evolution:同时演化 agent 与 environment。CoEvolve 是其精神 LLM 版。</td></tr>
+<tr><td><code>AppWorld</code></td><td>模拟应用生态(日历、邮件、Spotify 等),agent 通过 Python API 调用完成任务,30 步上限。</td></tr>
+<tr><td><code>BFCL-V3 Multi-Turn</code></td><td>Berkeley Function Calling Leaderboard:多轮 tool-use,任一中间步出错即整条失败,长程 strict metric。</td></tr>
+<tr><td><code>TGC / SGC</code></td><td>AppWorld 指标:Task / Scenario Goal Completion。SGC 要求 scenario 内所有子任务都成功,更难。</td></tr>
+</tbody>
+</table>
+
+<h3>GRPO 一句话回顾</h3>
+<div class="formula">
+J(θ) = (1/Σ|τ_k|) Σ_k Σ_t CLIP(r_{k,t}(θ), Â_k, ε) − β·KL(π_θ ‖ π_ref)
+</div>
+<p>其中 r_{k,t} = π_θ(a^k_t|s^k_t) / π_{θ_old}(a^k_t|s^k_t),Â_k 是 group-relative advantage(组内 z-score),CLIP 同 PPO。CoEvolve 在<em>哪里采 prompt</em> 这一步把 D 换成 D_t,其余完全不动。</p>
+
+<h2 id="sec3">3. 框架总览:三阶段闭环</h2>
+
+<div class="fig">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="ax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/></marker>
+<marker id="ay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/></marker>
+</defs>
+<text x="360" y="22" text-anchor="middle" font-size="15" font-weight="600">CoEvolve 三阶段闭环</text>
+
+<rect x="20" y="60" width="200" height="190" rx="10" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+<text x="120" y="85" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Stage 1</text>
+<text x="120" y="105" text-anchor="middle" font-size="12">GRPO 训练</text>
+<text x="120" y="125" text-anchor="middle" font-size="12">+ signal extraction</text>
+<line x1="40" y1="140" x2="200" y2="140" stroke="#e2dfd5"/>
+<text x="120" y="165" text-anchor="middle" font-size="11">forgetting</text>
+<text x="120" y="185" text-anchor="middle" font-size="11">boundary</text>
+<text x="120" y="205" text-anchor="middle" font-size="11">rare</text>
+<text x="120" y="235" text-anchor="middle" font-size="11" fill="#5b5e66">→ signal-annotated</text>
+
+<rect x="260" y="60" width="200" height="190" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+<text x="360" y="85" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Stage 2</text>
+<text x="360" y="105" text-anchor="middle" font-size="12">signal-guided</text>
+<text x="360" y="125" text-anchor="middle" font-size="12">re-exploration</text>
+<line x1="280" y1="140" x2="440" y2="140" stroke="#e2dfd5"/>
+<text x="360" y="165" text-anchor="middle" font-size="11">LLM reads context</text>
+<text x="360" y="185" text-anchor="middle" font-size="11">multi-round × multi-step</text>
+<text x="360" y="210" text-anchor="middle" font-size="11">真实 env 中跑</text>
+<text x="360" y="235" text-anchor="middle" font-size="11" fill="#5b5e66">→ (a_t, o_t, id) triplets</text>
+
+<rect x="500" y="60" width="200" height="190" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="1.5"/>
+<text x="600" y="85" text-anchor="middle" font-size="13" font-weight="600" fill="#1f7a4a">Stage 3</text>
+<text x="600" y="105" text-anchor="middle" font-size="12">abstraction</text>
+<text x="600" y="125" text-anchor="middle" font-size="12">+ env validation</text>
+<line x1="520" y1="140" x2="680" y2="140" stroke="#e2dfd5"/>
+<text x="600" y="165" text-anchor="middle" font-size="11">triplets → task spec</text>
+<text x="600" y="185" text-anchor="middle" font-size="11">execute in real env</text>
+<text x="600" y="205" text-anchor="middle" font-size="11">通过 → 入库</text>
+<text x="600" y="235" text-anchor="middle" font-size="11" fill="#5b5e66">→ D_{t+1} = D_t ∪ new</text>
+
+<line x1="220" y1="155" x2="258" y2="155" stroke="#2f6feb" stroke-width="2" marker-end="url(#ax)"/>
+<line x1="460" y1="155" x2="498" y2="155" stroke="#cc4a1b" stroke-width="2" marker-end="url(#ay)"/>
+
+<path d="M 600 250 Q 600 290 360 290 Q 120 290 120 250" fill="none" stroke="#1f7a4a" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#ax)"/>
+<text x="360" y="306" text-anchor="middle" font-size="11" fill="#1f7a4a">D_{t+1} 喂回 GRPO 下一轮</text>
+</svg>
+<figcaption>图 2. 闭环三阶段。每 F=10 个 GRPO step 触发一次 Stage 2/3,生成的新任务并入 D。Initial D_0 由 LLM unguided 探索得到(N=100)。</figcaption>
+</div>
+
+<p>这套结构与 AlphaZero 的 self-play 同构:<em>policy ↔ opponent</em> 改成 <em>policy ↔ data distribution</em>。所不同的是 AlphaZero 的 opponent 总是当前 policy 自己,而 CoEvolve 的 data 是由<em>外部 LLM</em>(论文用 Qwen3-Max)在 weakness 信号驱动下生成的——所以严格说更像 POET 的"LLM-as-environment-generator"变体。</p>
+
+<h2 id="sec4">4. Stage 1: GRPO 训练 + 三类 weakness signal</h2>
+
+<h3>4.1 三个信号的精确定义</h3>
+<p>训练循环里每个 task x ∈ D_t 都跑 K=8 条 trajectory。在更新 policy 的<em>同时</em>,对每条 trajectory 记三种标签:</p>
+
+<table>
+<thead><tr><th>信号</th><th>触发条件</th><th>语义</th></tr></thead>
+<tbody>
+<tr><td><strong>forgetting</strong></td><td>近 W 步窗口内存在 s_i ≥ 0.5,但 s_now &lt; 0.5</td><td>policy 退化:之前会做的现在又不会了</td></tr>
+<tr><td><strong>boundary</strong></td><td>同 task 的 K 条 rollout 中既有 R̃ &gt; 0.5 又有 R̃ &lt; 0.5</td><td>policy 在决策边界震荡</td></tr>
+<tr><td><strong>rare</strong></td><td>action pattern p 的 c_p / N &lt; θ/100,θ=5,且 c_p &gt; 0</td><td>系统性 underexplored 模式</td></tr>
+</tbody>
+</table>
+
+<p>三种是 <em>OR</em> 的:同一 trajectory 可同时被多个信号标注,全部保留。Fig 4 显示 boundary 占比最高(AppWorld 51.4%、BFCL 45.5%),forgetting 次之、rare 最少。</p>
+
+<div class="fig">
+<svg viewBox="0 0 700 240" xmlns="http://www.w3.org/2000/svg">
+<text x="350" y="22" text-anchor="middle" font-size="14" font-weight="600">三类 signal 的判定示意</text>
+<g transform="translate(20,50)">
+<text x="100" y="14" text-anchor="middle" font-size="12" fill="#cc4a1b">forgetting</text>
+<rect x="20" y="30" width="160" height="70" fill="#fff" stroke="#e2dfd5"/>
+<polyline points="20,90 50,50 80,55 110,80 140,85 170,95" fill="none" stroke="#1f7a4a" stroke-width="2"/>
+<line x1="20" y1="65" x2="180" y2="65" stroke="#a8353e" stroke-dasharray="3,3"/>
+<text x="155" y="60" font-size="10" fill="#a8353e">0.5</text>
+<circle cx="50" cy="50" r="4" fill="#1f7a4a"/>
+<circle cx="170" cy="95" r="4" fill="#a8353e"/>
+<text x="100" y="120" text-anchor="middle" font-size="10" fill="#5b5e66">高 → 低</text>
+</g>
+<g transform="translate(260,50)">
+<text x="100" y="14" text-anchor="middle" font-size="12" fill="#cc4a1b">boundary</text>
+<rect x="20" y="30" width="160" height="70" fill="#fff" stroke="#e2dfd5"/>
+<line x1="20" y1="65" x2="180" y2="65" stroke="#a8353e" stroke-dasharray="3,3"/>
+<text x="155" y="60" font-size="10" fill="#a8353e">0.5</text>
+<circle cx="40" cy="45" r="4" fill="#1f7a4a"/>
+<circle cx="65" cy="50" r="4" fill="#1f7a4a"/>
+<circle cx="100" cy="48" r="4" fill="#1f7a4a"/>
+<circle cx="120" cy="90" r="4" fill="#a8353e"/>
+<circle cx="150" cy="92" r="4" fill="#a8353e"/>
+<text x="100" y="120" text-anchor="middle" font-size="10" fill="#5b5e66">同 task 内分裂</text>
+</g>
+<g transform="translate(500,50)">
+<text x="100" y="14" text-anchor="middle" font-size="12" fill="#cc4a1b">rare</text>
+<rect x="20" y="30" width="160" height="70" fill="#fff" stroke="#e2dfd5"/>
+<rect x="25" y="80" width="20" height="15" fill="#2f6feb"/><text x="35" y="78" font-size="9" text-anchor="middle">A</text>
+<rect x="50" y="40" width="20" height="55" fill="#2f6feb"/><text x="60" y="38" font-size="9" text-anchor="middle">B</text>
+<rect x="75" y="55" width="20" height="40" fill="#2f6feb"/><text x="85" y="53" font-size="9" text-anchor="middle">C</text>
+<rect x="100" y="85" width="20" height="10" fill="#cc4a1b"/><text x="110" y="83" font-size="9" text-anchor="middle">D*</text>
+<rect x="125" y="60" width="20" height="35" fill="#2f6feb"/><text x="135" y="58" font-size="9" text-anchor="middle">E</text>
+<text x="100" y="120" text-anchor="middle" font-size="10" fill="#5b5e66">D 频率 &lt; 5%</text>
+</g>
+<text x="350" y="200" text-anchor="middle" font-size="11" fill="#5b5e66">三者正交,常常叠加;forgetting 抓 regression,boundary 抓不稳定,rare 抓覆盖盲区</text>
+</svg>
+<figcaption>图 3. 三类信号的几何直觉。注意:这是<em>无监督</em> heuristics,不需要额外训练 critic / classifier。</figcaption>
+</div>
+
+<h3>4.2 worked example</h3>
+<p>设 task = "把 Spotify 上 Like 数最高的歌的歌名改成大写发到我的 Twitter"。在 step 60 训练步,K=8 条 rollout 的 reward 是:<code>{1, 1, 1, 0, 1, 0, 0, 1}</code>(5 succ / 3 fail) → boundary 触发。窗口 W=10 内,这个 task 的 score history = <code>[0.6, 0.7, 0.8, 0.9, 0.7, 0.5, 0.3, 0.4, 0.5, 0.625]</code>(s_now=0.625 ≥ 0.5,所以 forgetting 不触发,但若 s_now=0.4 则触发)。同时这条 trajectory 用了 <code>spotify.search_by_likes()</code>,在全局 50000 次 action 中只出现 200 次(0.4% &lt; 5%) → rare 触发。该 trajectory 被打上 {boundary, rare} 双标签,送进 Stage 2。</p>
+
+<div class="nb"><strong>反向论证:</strong>如果只用 boundary 一种信号会怎样?Table 5 给的实验答案:去掉 forgetting 掉 4 分(49.36 → 45.18),去掉 boundary 掉 2.2,去掉 rare 掉 2.2。forgetting 杀伤最大,因为它专门抓 <em>regression</em> ——RL 训练里"会的忘了"是最隐蔽也最致命的 bug。</p>
+
+<h2 id="sec5">5. Stage 2: signal-guided 环境再探索</h2>
+
+<h3>5.1 把"为什么失败"翻译成"去哪里探索"</h3>
+<p>对每条 signal-annotated trajectory,系统把<em>整段交互历史</em>(task 描述、agent 动作序列、env 反馈)喂给一个外部强 LLM(Qwen3-Max),prompt 它做两件事:</p>
+<ol>
+<li><strong>Reflection:</strong>诊断失败原因或不稳定来源。例如:"agent 反复调用 <code>spotify.search()</code> 但忽略了 <code>limit</code> 参数,导致返回截断"。</li>
+<li><strong>构造 exploration context:</strong>把诊断结构化成"在<em>哪里</em>、<em>怎样</em>探索"的指令。</li>
+</ol>
+<p>然后用这个 context 去驱动同一个 LLM <em>在真实环境中</em>再跑——两个正交维度的探索:</p>
+<ul>
+<li><strong>multi-round:</strong> 同一 context 启动 R 次独立 rollout,鼓励行为多样性</li>
+<li><strong>multi-step:</strong> 每条 rollout 在环境里走多步,根据中间观察修正动作</li>
+</ul>
+<p>每步记 (a_t, o_t, id) 三元组,id 标记属于哪次 rollout。最终 Stage 2 输出一堆 step-level triplets,按 task context 分组送 Stage 3。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="bx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+<path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/></marker>
+</defs>
+<text x="360" y="20" text-anchor="middle" font-size="14" font-weight="600">Signal → Context → Re-exploration</text>
+
+<rect x="20" y="50" width="170" height="60" rx="8" fill="#fff8e8" stroke="#d2a32a"/>
+<text x="105" y="73" text-anchor="middle" font-size="12">signal-annotated</text>
+<text x="105" y="92" text-anchor="middle" font-size="12">trajectory τ</text>
+
+<rect x="240" y="50" width="170" height="60" rx="8" fill="#fff" stroke="#cc4a1b"/>
+<text x="325" y="73" text-anchor="middle" font-size="12">LLM reflection:</text>
+<text x="325" y="92" text-anchor="middle" font-size="12">"在 X 处用 Y 方式失败"</text>
+
+<rect x="460" y="50" width="170" height="60" rx="8" fill="#fff" stroke="#cc4a1b"/>
+<text x="545" y="73" text-anchor="middle" font-size="12">structured context</text>
+<text x="545" y="92" text-anchor="middle" font-size="12">(where + how to explore)</text>
+
+<line x1="190" y1="80" x2="238" y2="80" stroke="#2f6feb" stroke-width="2" marker-end="url(#bx)"/>
+<line x1="410" y1="80" x2="458" y2="80" stroke="#2f6feb" stroke-width="2" marker-end="url(#bx)"/>
+
+<rect x="240" y="160" width="170" height="80" rx="8" fill="#f3eee0" stroke="#1f7a4a"/>
+<text x="325" y="183" text-anchor="middle" font-size="12">Real Environment</text>
+<text x="325" y="205" text-anchor="middle" font-size="11">multi-round × multi-step</text>
+<text x="325" y="225" text-anchor="middle" font-size="11" fill="#1f7a4a">→ (a_t, o_t, id)</text>
+
+<line x1="545" y1="110" x2="410" y2="160" stroke="#2f6feb" stroke-width="2" marker-end="url(#bx)"/>
+<text x="500" y="138" font-size="11" fill="#2f6feb">guide</text>
+
+<g transform="translate(450,160)">
+<rect x="20" y="0" width="40" height="20" fill="#fff" stroke="#5b5e66"/><text x="40" y="14" font-size="10" text-anchor="middle">a₁</text>
+<rect x="65" y="0" width="40" height="20" fill="#fff" stroke="#5b5e66"/><text x="85" y="14" font-size="10" text-anchor="middle">a₂</text>
+<rect x="110" y="0" width="40" height="20" fill="#fff" stroke="#5b5e66"/><text x="130" y="14" font-size="10" text-anchor="middle">a₃</text>
+<rect x="20" y="25" width="40" height="20" fill="#f3eee0" stroke="#5b5e66"/><text x="40" y="39" font-size="10" text-anchor="middle">o₁</text>
+<rect x="65" y="25" width="40" height="20" fill="#f3eee0" stroke="#5b5e66"/><text x="85" y="39" font-size="10" text-anchor="middle">o₂</text>
+<rect x="110" y="25" width="40" height="20" fill="#f3eee0" stroke="#5b5e66"/><text x="130" y="39" font-size="10" text-anchor="middle">o₃</text>
+<text x="85" y="65" font-size="10" text-anchor="middle" fill="#5b5e66">round id=k</text>
+</g>
+</svg>
+<figcaption>图 4. Signal → reflection → context → re-exploration 流程。注意 re-exploration 是<em>真去环境跑</em>,不是 LLM 闭着眼瞎想——这是与一般 synthetic data 的本质区别。</figcaption>
+</div>
+
+<h2 id="sec6">6. Stage 3: task abstraction & environment validation</h2>
+
+<h3>6.1 从动作流到任务规格</h3>
+<p>Stage 2 的 triplets 是 <em>低层</em>动作记录,直接拿来训 GRPO 不行——GRPO 需要的是 (task query, executable solution) 对。Stage 3 做两件事:</p>
+<ol>
+<li><strong>Triplet aggregation + LLM abstraction:</strong>把同 context 下多次 rollout 的 triplets 聚成一组,prompt LLM 反向推断"这组动作是为了完成什么任务",生成 (task query, solution sequence) pair。例如把 5 次涉及 <code>cp / cat / echo</code> 的探索抽象成 "Create a non-empty test file, copy it, verify content identical"。</li>
+<li><strong>Environment validation:</strong>把生成的 (query, solution) 重新提交给一个 LLM agent 在真实 env 里执行。三种结局:
+<ul>
+<li>执行成功 → <span class="ok">accept</span></li>
+<li>执行失败但 env 给了 positive reward → <span class="ok">retain</span>(部分正确也算)</li>
+<li>执行失败且 reward = 0 → <span class="no">discard</span></li>
+</ul>
+</li>
+</ol>
+<p>幸存者并入 D_{t+1}。整个 pipeline 一次循环大约消耗 9.7%–12.8% 的相对训练时间(Table 7)。</p>
+
+<div class="nb"><strong>为什么 validation 不可省:</strong>Table 11 显示去掉 validation 后,AppWorld 从 35.71 跌到 27.38(-8 pts),BFCL 从 63.00 跌到 58.50(-4.5 pts)。原因:abstraction 步 LLM 容易"美化"动作序列、写出一个看似合理但环境里其实不存在的 API 或前置状态——这种任务进训练集会让 advantage 全为 0(永远失败)或全为 1(永远成功),GRPO 的 group-relative 信号失效。</div>
+
+<h2 id="sec7">7. Worked Example: 文件操作任务的三轮演化</h2>
+
+<p>用论文 Fig 6 的 BFCL 文件操作家族为例,模拟三轮 CoEvolve 演化:</p>
+
+<h4>Round 0 (D_0,初始 unguided 合成,N=100)</h4>
+<pre>Task: "Transfer a duplicate of 'test_document.txt' over to the
+       archives folder and rename it 'final_document.txt'"
+Solution:
+  cp(source='test_document.txt', destination='archives')
+  cd(folder='archives')
+  mv(source='test_document.txt', destination='final_document.txt')</pre>
+<p>Agent 在 step 0–60 的 GRPO 训练中,这种"线性 3 步"任务全部学会,reward → 1.0。但它从没学过<em>验证拷贝结果</em>。</p>
+
+<h4>Round 1 (step 60 触发 stage 2/3)</h4>
+<p>boundary signal 触发:某些 file 类任务的 K=8 中混了成功和失败,失败的都涉及"目标文件已存在"。LLM reflection: "agent 没有处理 destination 已存在的情况"。Re-exploration 在环境里跑出涉及 <code>touch / echo / cat / cp</code> 的多种序列。Abstraction 给出:</p>
+<pre>Task: "Create a non-empty test file 'test.txt', copy it to
+       'test_copy.txt', and verify both files have identical content"
+Solution:
+  touch(file_name='test.txt')
+  echo(content='This is test content...', file_name='test.txt')
+  cp(source='test.txt', destination='test_copy.txt')
+  cat(file_name='test.txt')
+  cat(file_name='test_copy.txt')</pre>
+<p>Validation pass → 入 D_61。注意这是<em>结构上</em>更长(5 步)、<em>语义上</em>引入 "verification" 概念的全新任务,与 D_0 中的任何任务都不近邻(论文 Fig 5 显示大部分合成任务的 max cosine 落在 0.4–0.7)。</p>
+
+<h4>Round 2 (step 120,训练结束前最后一次)</h4>
+<p>forgetting signal 触发:部分 round-1 加入的 verification 类任务,在 step 100 之后开始 score 退化(window 内有 0.7,现在 0.3)。Reflection:"agent 在长 task 末尾误用 cat 的输出格式"。Re-exploration 加入 <code>diff / wc / md5sum</code> 等罕见 action(rare signal 协同触发)。新任务:</p>
+<pre>Task: "Create file A with 100 random bytes, copy to B, then
+       confirm via byte-count that A and B match"
+Solution: ... (含 wc -c 比较步骤)</pre>
+<p>这条 rare-action 任务再次扩大覆盖。整个轨迹:<em>D_0 → D_61 → D_121</em>,任务结构从 3 步 → 5 步 → 7+ 步,与 Fig 7 观察到的"synthesized 比 original 更长尾、步数更多"完全吻合。</p>
+
+<h2 id="sec8">8. 稳定性:为什么联合优化没有崩</h2>
+
+<p>这是这篇论文最值得 RL 工程师细看的地方。Joint optimization 听起来美,实际有 4 个隐式机制在防 collapse:</p>
+
+<ol>
+<li><strong>D_t 是单调追加,不替换。</strong>D_t = D_0 ∪ ⋃_{i&lt;t} new_i。即便后期生成偏离了,D_0 的 100 个种子任务一直在,policy 不会失去原始锚点。</li>
+<li><strong>signal 都是<em>低阶统计</em>,不是 learned predictor。</strong>forgetting 用滑窗 score、boundary 看 reward 方差、rare 看频率——三者噪声有界、可解释、不会随 policy 演化飘移。对比那些用学到的 reward model 来选 hard examples 的工作,这套设计稳得多。</li>
+<li><strong>environment validation 是硬过滤。</strong>合成任务必须真在环境里跑通才进库,LLM 幻觉无法污染 D_t。</li>
+<li><strong>signal-driven pass rate 自然趋稳。</strong>论文 Fig 3(d) 显示 0.71 → 0.85 → 0.80 ——agent 越练越能解决 signal 区域,新合成任务的难度就<em>自适应</em>地保持在边缘可学习区(GRPO 的 advantage 才有信号)。这是个隐式 curriculum 自调节:不是手工设的难度递增,而是<em>难度始终贴着能力边界</em>。</li>
+</ol>
+
+<div class="fig">
+<svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+<text x="350" y="20" text-anchor="middle" font-size="14" font-weight="600">Joint convergence trajectory(论文 Fig 3 重绘)</text>
+<g transform="translate(50,40)">
+<line x1="0" y1="200" x2="600" y2="200" stroke="#5b5e66"/>
+<line x1="0" y1="0" x2="0" y2="200" stroke="#5b5e66"/>
+<text x="-30" y="100" font-size="11" fill="#5b5e66" transform="rotate(-90 -30 100)">value</text>
+<text x="300" y="220" text-anchor="middle" font-size="11" fill="#5b5e66">training step</text>
+<text x="0" y="-5" font-size="10" fill="#5b5e66">0.9</text>
+<text x="0" y="105" font-size="10" fill="#5b5e66">0.5</text>
+<text x="600" y="215" text-anchor="end" font-size="10" fill="#5b5e66">120</text>
+
+<polyline points="0,160 100,140 200,110 300,90 400,75 500,68 600,65" fill="none" stroke="#1f7a4a" stroke-width="2.5"/>
+<text x="610" y="65" font-size="11" fill="#1f7a4a">CoEvolve perf</text>
+<polyline points="0,165 100,145 200,120 300,105 400,115 500,135 600,145" fill="none" stroke="#a8353e" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="610" y="145" font-size="11" fill="#a8353e">baseline (退化)</text>
+
+<polyline points="0,30 100,40 200,55 300,70 400,80 500,90 600,98" fill="none" stroke="#cc4a1b" stroke-width="2"/>
+<text x="610" y="98" font-size="11" fill="#cc4a1b">#signals: 269→204</text>
+
+<polyline points="0,80 100,55 200,40 300,35 400,40 500,45 600,48" fill="none" stroke="#2f6feb" stroke-width="2"/>
+<text x="610" y="48" font-size="11" fill="#2f6feb">pass rate: .71→.85→.80</text>
+</g>
+</svg>
+<figcaption>图 5. 三条曲线齐头并进:perf 上升 + signal 下降 + pass rate 稳定 = 良性闭环。baseline 在 step 60 后 perf 回落是经典的 GRPO over-fit 现象,CoEvolve 不出现。</figcaption>
+</div>
+
+<h2 id="sec9">9. 实验关键结果与 ablation</h2>
+
+<h3>9.1 主表数字(Table 1 摘要)</h3>
+<table>
+<thead><tr><th>Backbone</th><th>AppWorld TestN TGC</th><th>BFCL Multi-turn</th><th>5-bench Avg.</th></tr></thead>
+<tbody>
+<tr><td>Qwen2.5-7B-Inst</td><td>1.19 → <strong>27.98</strong></td><td>13.5 → <strong>61.5</strong></td><td>3.08 → 22.51 (<span class="ok">+19.4</span>)</td></tr>
+<tr><td>Qwen3-4B-Inst</td><td>16.67 → <strong>35.71</strong></td><td>26.5 → <strong>63.0</strong></td><td>11.72 → 27.30 (<span class="ok">+15.6</span>)</td></tr>
+<tr><td>Qwen3-30B-A3B</td><td>31.55 → <strong>54.76</strong></td><td>43.5 → <strong>67.0</strong></td><td>22.64 → 40.78 (<span class="ok">+18.1</span>)</td></tr>
+<tr><td>对比 Claude-Sonnet-4.5</td><td>73.81</td><td>69.0</td><td>56.08</td></tr>
+<tr><td>对比 GPT-4</td><td>30.40</td><td>54.0</td><td>25.94</td></tr>
+</tbody>
+</table>
+<p>读这表的关键不是绝对数(Claude 还是赢),而是<strong>纯 GRPO 的提升上限被打破</strong>:Table 2 显示在 GRPO 已经收敛之上 CoEvolve 还能再加 +6 (4B AppWorld) / +5 (4B BFCL) / +6 (30B AppWorld)。</p>
+
+<h3>9.2 关键 ablation</h3>
+<ul>
+<li><strong>Phase ablation(Table 3,Qwen3-4B 平均)</strong>:zero-shot 21.6 → +synthetic 43.3 → +random expl. 45.4 → <strong>+feedback 49.4</strong>。最后 4 分纯由 feedback 提供。</li>
+<li><strong>Signal ablation(Table 5)</strong>:去掉 forgetting -4.2,boundary -2.2,rare -2.2。三者互补。</li>
+<li><strong>Validation ablation(Table 11)</strong>:AppWorld -8.3,BFCL -4.5。证 validation 不可省。</li>
+<li><strong>Cross-domain(Table 6)</strong>:训 AppWorld → 测 BFCL,从 26.5 涨到 45.0;训 BFCL → 测 AppWorld 涨幅小(16.7→19.0)。说明 AppWorld 的复杂任务能教出更通用的 tool-use 元技能。</li>
+<li><strong>Hyperparameter(Table 4 / 14)</strong>:N=100、F=10 是甜点。F=2 更频繁更新略好(BFCL 62)但贵;F=40 太稀疏退化。</li>
+<li><strong>Cost(Table 7)</strong>:CoEvolve 占总训练时间 9.7%–12.8%,换 +22.92% / +8.62% 相对增益,ROI 显著。</li>
+</ul>
+
+<h2 id="sec10">10. 与同类工作对比</h2>
+
+<table>
+<thead><tr><th>方法</th><th>数据演化?</th><th>反馈来源</th><th>新任务来源</th><th>与 CoEvolve 关键差异</th></tr></thead>
+<tbody>
+<tr><td><a href="03_AgentWorld_2604.18292.html">AgentWorld</a></td><td><span class="ok">是</span> (env 演化)</td><td>RL reward</td><td>动态生成 env 配置</td><td>演化的是<em>环境</em>不是<em>任务集</em>;CoEvolve env 固定,任务集滚动</td></tr>
+<tr><td>POET (2019)</td><td><span class="ok">是</span></td><td>共演化</td><td>变异 env</td><td>CoEvolve 是 LLM-agent 时代的精神继承,但用 LLM 替代 EA 算子</td></tr>
+<tr><td>AlphaZero self-play</td><td>—</td><td>对手 = 自己</td><td>新对局自然生成</td><td>结构同源,但 CoEvolve 不是 zero-sum;data 不是 opponent</td></tr>
+<tr><td>SEC / SELAUR / Self-Evolving World Knowledge</td><td>半</td><td>self-judge</td><td>改写已有数据</td><td>停在<em>改写</em>层,不真去环境探索新 executable query</td></tr>
+<tr><td>PRIME / Process Reward</td><td><span class="no">否</span></td><td>process critic</td><td>—</td><td>正交工作:PRIME 改 reward,CoEvolve 改 prompt 分布</td></tr>
+<tr><td>Reflexion</td><td><span class="no">否</span></td><td>verbal reflection</td><td>同 task 重试</td><td>inference-time 自我修复,不进训练</td></tr>
+<tr><td>ReST (Gulcehre 2023)</td><td>半</td><td>policy 自采</td><td>固定 prompt 池</td><td>不会发现新 query</td></tr>
+<tr><td>Curriculum Learning(手工)</td><td><span class="no">否</span></td><td>—</td><td>人定难度</td><td>课程是 prior;CoEvolve 是 emergent curriculum</td></tr>
+<tr><td>Co-evolving Coder & Unit Tester (Wang 2025c)</td><td><span class="ok">是</span></td><td>coder vs tester</td><td>测试用例</td><td>对偶任务专用;CoEvolve 是单 agent 通用框架</td></tr>
+</tbody>
+</table>
+
+<p>CoEvolve 相对 <a href="03_AgentWorld_2604.18292.html">AgentWorld</a>(同期工作)最 sharpest 的差异:AgentWorld 演化<em>环境本身</em>(生成新场景、新 entity),CoEvolve 在固定环境(AppWorld、BFCL)里演化<em>任务分布</em>。两者其实可叠加——理论上一个能同时演化 env 又演化 task 的系统是更彻底的 POET 复刻。</p>
+
+<h2 id="sec11">11. 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+<li><strong>外部 LLM 依赖:</strong>Stage 2/3 用 Qwen3-Max 做 reflection / abstraction。Table 12 显示用更弱的 LLM 做 explorer 时增益缩水(Qwen3-4B 只到 56.5)。这意味着 CoEvolve 在某种意义上是"用大模型蒸馏小模型 agent"的间接形式,与 pure self-improvement 还有距离。</li>
+<li><strong>signal 在早期 noisy:</strong>论文自承 limitation——policy 早期不成熟时,forgetting/boundary 的统计基础就薄。可能需要 warm-up 阶段不加 evolution。</li>
+<li><strong>safety 风险:</strong>autonomous reshape 训练分布意味着 agent 可能向危险区域演化。论文提了一句要 human oversight,但没具体方案。</li>
+<li><strong>boundary signal 占比 50%+:</strong>是不是说明三个信号其实重复多?但 Table 5 ablation 又说 forgetting 单独贡献最大,而 boundary 占比最大。两者矛盾的可能解释:boundary 数量多但每条 marginal 价值小,forgetting 数量少但<em>每条信息密度高</em>。</li>
+<li><strong>evaluation set 与 D_t 的潜在 leakage:</strong>Fig 5 显示部分合成任务对 validation 任务 cosine 高达 0.9。虽然作者说 mixed similarity 最好,但 0.9+ 那一档应该排除以严防 leak。</li>
+</ul>
+
+<p><strong>个人 take:</strong>这是一篇<em>结构清晰、工程可复现</em>的论文,不靠新 RL 算法,只靠"把数据当变量"这一招。它的真正价值不是 +18 分,而是给社区提供了一个可叠加的<em>第二条优化轴</em>:大家以前 90% 的精力在改 J(θ) 这个目标函数,本文论证了改 D_t 同样有杠杆。再过一年,我估计 GRPO + data evolution 会变成 agent RL 的默认 recipe,就像 PPO + KL penalty 当年那样。</p>
+
+<h3>待验证问题(顺序排列)</h3>
+<ol>
+<li>把 D_t 上限去掉(无限增长)会怎样?会 OOD 还是会更好?</li>
+<li>signal 三选一时,只留 forgetting 是不是已经能恢复 95% 性能?</li>
+<li>用 GRPO 之外的 RL(GSPO、StepGPO)做底层,evolution 的增益还在吗?</li>
+<li>把 explorer 也换成被训练的 policy(纯 self-play),不依赖 Qwen-Max,会崩还是稳?</li>
+<li>Cross-domain transfer 不对称(AppWorld→BFCL +18.5,反向 +2.4),为什么?是 task 复杂度不对称还是 signal 类型分布不同?</li>
+<li>把 AgentWorld 的 env 演化与 CoEvolve 的 task 演化叠加,POET-完整版,能否再上一个台阶?</li>
+</ol>
+
+<h2 id="sec12">12. Memory points(冷回忆用)</h2>
+
+<div class="kv"><span class="pill">立场</span><strong>data 是变量。</strong>GRPO 改 J(θ),CoEvolve 改 D_t,二者正交且可叠加。</div>
+<div class="kv"><span class="pill">三信号</span><strong>forgetting / boundary / rare</strong>。低阶统计、无监督、互补。forgetting 杀伤最大。</div>
+<div class="kv"><span class="pill">三阶段</span>① GRPO + signal ② signal-guided real-env re-exploration ③ abstraction + env validation。</div>
+<div class="kv"><span class="pill">闭环防崩</span>D_t 单调追加 + signal 是 heuristic + env validation 硬过滤 + pass rate 自适应。</div>
+<div class="kv"><span class="pill">关键超参</span>N=100 init tasks,F=10 GRPO step 一次 evolution,K=8 group size,W=10 forgetting window,θ=5% rare 阈值。</div>
+<div class="kv"><span class="pill">成本</span>~10% 额外训练时间,换 +6 ~ +20 绝对分。</div>
+<div class="kv"><span class="pill">类比</span>AlphaZero (policy ↔ opponent) → CoEvolve (policy ↔ data)。POET 的 LLM 时代版本。</div>
+<div class="kv"><span class="pill">区别 AgentWorld</span>AgentWorld 演化 env,CoEvolve 演化 task 分布,可叠加。</div>
+<div class="kv"><span class="pill">关键 ablation</span>去 validation -8 / 去 forgetting -4 / 去 boundary -2 / 去 rare -2。</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center">CoEvolve 精读 · 2026-05 · arxiv:2604.15840 · 与 <a href="03_AgentWorld_2604.18292.html">03 AgentWorld</a> 互参</p>
+
+</main>
+</body>
+</html>

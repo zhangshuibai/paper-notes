@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RL Post-Training 框架横向对比 (2026)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:820px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.92em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  section.fw{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:22px 0}
+  section.fw h3{margin-top:0}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>RL Post-Training 框架横向对比 (2026 春)</h1>
+<div class="meta">
+  Comparison / Landscape Note · 2026-05-09<br>
+  关键词: veRL · AReaL · slime · NeMo-RL · OpenRLHF · prime-rl · Laminar · LlamaRL · PipelineRL · GRPO · DAPO · async RL · hybrid engine
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>2026 年的 RL post-training 已经从"PPO + RLHF 时代的脚本玩具"升级成"GRPO + reasoning + agentic 时代的 frontier-scale 系统",<strong>主流大五</strong>是 <code>veRL / AReaL / slime / NeMo-RL / OpenRLHF</code>,大致沿"hybrid engine"和"disaggregated async"两条路线分化。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">5</div><div class="l">主流框架 (Big 5)</div></div>
+    <div class="stat"><div class="n">vLLM + SGLang</div><div class="l">几乎所有框架的 rollout 后端</div></div>
+    <div class="stat"><div class="n">GRPO + PPO + DAPO</div><div class="l">默认算法栈 (各家有变体)</div></div>
+  </div>
+  <p><strong>立场:</strong><span class="pill">async</span><span class="pill">hybrid</span><span class="pill">disaggregated</span> Async 已经是确定方向;争议在 <em>hybrid engine</em>(actor / rollout 共置 GPU,如 veRL / OpenRLHF)还是 <em>disaggregated</em>(rollout / training 完全解耦,如 AReaL / slime)。Reasoning 工程优先选前者,agentic / 大规模 MoE 优先选后者。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">为什么会有这么多框架</a></li>
+    <li><a href="#sec2">框架画像 — 主流大五</a>
+      <ol>
+        <li><a href="#verl">veRL / HybridFlow</a></li>
+        <li><a href="#areal">AReaL</a></li>
+        <li><a href="#slime">slime</a></li>
+        <li><a href="#nemo">NeMo-RL</a></li>
+        <li><a href="#openrlhf">OpenRLHF</a></li>
+      </ol>
+    </li>
+    <li><a href="#sec3">第二梯队 (Notable supporting)</a></li>
+    <li><a href="#sec4">横向对比表 — 主流大五</a></li>
+    <li><a href="#sec5">设计选择详解</a></li>
+    <li><a href="#sec6">选型决策树</a></li>
+    <li><a href="#sec7">趋势 + 我的判断</a></li>
+    <li><a href="#sec8">记忆要点</a></li>
+  </ol>
+</nav>
+
+<!-- shared svg defs -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+    </marker>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#cc4a1b"/>
+    </marker>
+    <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+</svg>
+
+<hr>
+
+<h2 id="sec1">1 · 为什么会有这么多框架</h2>
+
+<h3>1.1 历史脉络: 从 RLHF 到 reasoning 再到 agentic</h3>
+<p>2022–2023 是 <strong>RLHF 时代</strong>: InstructGPT 范式下,主要工作是 PPO + reward model 对齐人类偏好。彼时框架的代表是 <code>trlX</code>、<code>DeepSpeed-Chat</code>、<code>OpenRLHF</code>。瓶颈在 <em>训练侧</em>(critic / reward 同时占显存),rollout token 短(~512),并不是核心问题。</p>
+<p>2024 年 DeepSeekMath 提出 <strong>GRPO</strong>,o1 / R1 把 reasoning trace 拉到 4k–32k token,问题彻底翻转: <em>generation 占了 RL step 的 65–72%</em>(NeMo-RL × EAGLE3 论文实测)。这一阶段催生了:</p>
+<ul>
+  <li><strong>veRL / HybridFlow</strong> (字节 Seed, 2024-09 arXiv): 把 actor 和 rollout 放到<em>同一组 GPU</em>共享显存,sleep/wake 切换 — 显存利用率高。</li>
+  <li><strong>AReaL</strong> (清华 IIIS + 蚂蚁, 2025-05): 干脆把 rollout 和 training 拆成两个 cluster,通过 RPC / staleness-enhanced PPO 异步推进。</li>
+  <li><strong>slime</strong> (智谱 THUDM, 2025): GLM-4.5/4.6/4.7 背后的 RL 栈,Megatron + SGLang 桥接,sync / async 双模。</li>
+</ul>
+<p>2025 下半年起 <strong>agentic RL</strong> 又推一把: 多轮、tool-call、长 episode、单步内可能调外部 search / code interpreter,使得 rollout 的延迟分布从"近似齐整"变成"极度长尾"。<code>prime-rl</code>、<code>Laminar</code>、<code>OpenRLHF v0.8</code> 的 agentic 模式都是这一拨的产物。</p>
+
+<h3>1.2 主要分歧轴</h3>
+<table>
+  <tr><th>维度</th><th>选项 A</th><th>选项 B</th><th>取舍</th></tr>
+  <tr><td>同步性</td><td>Sync (alternating)</td><td>One-step / fully / trajectory async</td><td>A 简单 reproducible;B 利用率高,需处理 policy lag</td></tr>
+  <tr><td>引擎布局</td><td>Hybrid engine (共置)</td><td>Disaggregated (RPC 解耦)</td><td>A 显存高效;B 可扩展、调度灵活</td></tr>
+  <tr><td>编排</td><td>Ray</td><td>Megatron / NCCL native</td><td>A 弹性 + 多控制器;B 性能、紧耦合</td></tr>
+  <tr><td>Rollout backend</td><td>vLLM</td><td>SGLang / 自研</td><td>A 生态成熟;B radix cache / 多模态更友好</td></tr>
+  <tr><td>算法主轴</td><td>GRPO + DAPO</td><td>PPO + 自研 (CISPO / IcePop / PRIME)</td><td>大势已是 critic-free, GRPO 家族</td></tr>
+</table>
+
+<div class="fig">
+<svg viewBox="0 0 760 220" width="100%" style="max-width:740px">
+  <text x="380" y="20" text-anchor="middle" font-size="13" font-weight="600">主流大五时间线 (近似首次公开 / 关键 release)</text>
+  <line x1="40" y1="120" x2="720" y2="120" stroke="#888" stroke-width="1.5"/>
+  <g font-size="11" fill="#5b5e66">
+    <text x="40" y="200" text-anchor="middle">2023</text>
+    <text x="180" y="200" text-anchor="middle">2024 H1</text>
+    <text x="320" y="200" text-anchor="middle">2024 H2</text>
+    <text x="460" y="200" text-anchor="middle">2025 H1</text>
+    <text x="600" y="200" text-anchor="middle">2025 H2</text>
+    <text x="710" y="200" text-anchor="middle">2026 Q1</text>
+  </g>
+  <!-- ticks -->
+  <g stroke="#888">
+    <line x1="40" y1="115" x2="40" y2="125"/>
+    <line x1="180" y1="115" x2="180" y2="125"/>
+    <line x1="320" y1="115" x2="320" y2="125"/>
+    <line x1="460" y1="115" x2="460" y2="125"/>
+    <line x1="600" y1="115" x2="600" y2="125"/>
+    <line x1="710" y1="115" x2="710" y2="125"/>
+  </g>
+  <!-- OpenRLHF -->
+  <circle cx="50" cy="120" r="6" fill="#2f6feb"/>
+  <line x1="50" y1="114" x2="50" y2="80" stroke="#2f6feb"/>
+  <text x="55" y="74" font-size="11" fill="#2f6feb" font-weight="600">OpenRLHF (2023-12)</text>
+  <!-- veRL / HybridFlow paper -->
+  <circle cx="320" cy="120" r="6" fill="#cc4a1b"/>
+  <line x1="320" y1="126" x2="320" y2="160" stroke="#cc4a1b"/>
+  <text x="320" y="175" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">veRL / HybridFlow (2409.19256)</text>
+  <!-- NeMo-RL -->
+  <circle cx="430" cy="120" r="6" fill="#1f7a4a"/>
+  <line x1="430" y1="114" x2="430" y2="80" stroke="#1f7a4a"/>
+  <text x="430" y="74" font-size="11" fill="#1f7a4a" font-weight="600">NeMo-RL (2025 init)</text>
+  <!-- AReaL -->
+  <circle cx="495" cy="120" r="6" fill="#7a3a99"/>
+  <line x1="495" y1="126" x2="495" y2="100" stroke="#7a3a99"/>
+  <text x="495" y="92" text-anchor="middle" font-size="11" fill="#7a3a99" font-weight="600">AReaL (2505.24298)</text>
+  <!-- slime -->
+  <circle cx="565" cy="120" r="6" fill="#a8353e"/>
+  <line x1="565" y1="114" x2="565" y2="50" stroke="#a8353e"/>
+  <text x="565" y="44" text-anchor="middle" font-size="11" fill="#a8353e" font-weight="600">slime (THUDM)</text>
+  <!-- veRL 1T -->
+  <circle cx="690" cy="120" r="6" fill="#cc4a1b"/>
+  <line x1="690" y1="126" x2="690" y2="155" stroke="#cc4a1b"/>
+  <text x="690" y="170" text-anchor="middle" font-size="10" fill="#cc4a1b">veRL 1T LoRA</text>
+  <!-- AReaL agent rebrand -->
+  <circle cx="650" cy="120" r="5" fill="#7a3a99"/>
+  <line x1="650" y1="114" x2="650" y2="65" stroke="#7a3a99"/>
+  <text x="650" y="58" text-anchor="middle" font-size="10" fill="#7a3a99">AReaL → agent</text>
+</svg>
+<figcaption>大五时间线:OpenRLHF 是最早的 RLHF 库;HybridFlow 论文 (EuroSys'25) 把 hybrid engine 概念定下来;AReaL / slime / NeMo-RL 集中在 2025 年,各自走出不同设计路线;2025-12 veRL 已经能跑 1T-参数 GRPO+LoRA on 64×H800。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 框架画像 — 主流大五</h2>
+
+<section class="fw" id="verl">
+  <h3>2.1 veRL / HybridFlow</h3>
+  <div class="kv">
+    <strong>定位:</strong>ByteDance Seed 出品,EuroSys'25 中稿,目前社区生态最大、最"全场景"的 RL post-training 框架。<br>
+    <strong>团队:</strong>ByteDance Seed → 现在由社区共同维护。<br>
+    <strong>arXiv:</strong>2409.19256 (HybridFlow 论文)。<br>
+    <strong>GitHub:</strong><code>volcengine/verl</code>。<br>
+    <strong>设计亮点:</strong>
+    <ul>
+      <li><em>Hybrid single + multi-controller</em>: 用 Ray 做 actor-style 多控制器分发,但每个 worker 内部走经典 SPMD;dataflow 层面像 single-controller(易写),计算层面像 multi-controller(高效)。</li>
+      <li><em>Hybrid engine</em>: 训练 actor 和 rollout actor 共享同一组 GPU 显存,通过 sleep / wake / weight resharding 切换,极大提高 GPU 利用率。</li>
+      <li>2025-12 公开成功跑 <strong>1T 参数 GRPO + LoRA on 64×H800</strong>,目前 frontier-scale 实战记录最深的开源框架。</li>
+    </ul>
+    <strong>适用场景:</strong>reasoning RL (数学/代码) + 大规模 MoE + 多算法实验;字节 Seed-Thinking、vivo BlueLM-2.5、阿里部分内部项目都在用。<br>
+    <strong>局限:</strong>代码量大、入门曲线陡;hybrid engine 在 sequence parallel + ZeRO-3 + sleep mode 组合下偶发 NCCL 死锁;agentic 多轮支持比 AReaL 晚。<br>
+  </div>
+  <p>veRL 的核心论点是: 经典 RLHF 框架(DeepSpeed-Chat 风格)把 actor / critic / reward / rollout 分四组 GPU,内存浪费严重;但纯 SPMD 又不便编写复杂数据流。HybridFlow 提出"<em>外层 single-controller 描述 dataflow,内层 multi-controller 跑 SPMD</em>"的两层架构,以 Ray 做编排底座,并把 actor 与 rollout 放进<strong>共享 GPU 显存的 hybrid engine</strong>—— actor 训练时 rollout 进 sleep,显存交还给 actor;rollout 时反之。这套设计在 70B–235B MoE 上把 RL step time 减小 30–50%。社区生态层面,veRL 是大五里 contributor 数量、开源 PR 量最大的框架,基本所有新算法(DAPO、IcePop、TIS、CISPO)首发都先开 veRL 分支。它的代价是 <em>抽象层多</em>—— Worker / Resource Pool / Single-Controller / Megatron Backend 四层在小集群跑 demo 时显得过重,但在 256+ GPU 是非常划算的。</p>
+</section>
+
+<section class="fw" id="areal">
+  <h3>2.2 AReaL</h3>
+  <div class="kv">
+    <strong>定位:</strong>清华 IIIS + 蚂蚁(inclusionAI)联合研发,fully async + decoupled rollout/training 的标杆,目前在向 "RL Bridge for LLM-based Agent Applications" 方向收敛。<br>
+    <strong>团队:</strong>IIIS Tsinghua + inclusionAI (Ant)。<br>
+    <strong>arXiv:</strong>2505.24298 (NeurIPS'25 spotlight)。<br>
+    <strong>GitHub:</strong><code>inclusionAI/AReaL</code>。<br>
+    <strong>设计亮点:</strong>
+    <ul>
+      <li><em>Fully async</em>: rollout cluster 和 training cluster 完全解耦,通过 trajectory queue 推送数据,无 lockstep。</li>
+      <li><em>Staleness-enhanced PPO</em>: 修正旧 trajectory 的 importance ratio,让 policy lag 在大 staleness (≥4 步) 下依然稳定收敛。</li>
+      <li>实测 <strong>up to 2.77×</strong> 端到端 speedup vs sync,且 reward 收敛轨迹与 sync 几乎重合。</li>
+    </ul>
+    <strong>适用场景:</strong>agentic RL(多轮、tool、长尾 latency)、大规模 reasoning(rollout 与 training 不易对齐)、研究异步算法。<br>
+    <strong>局限:</strong>需要双 cluster + 中间 trajectory queue,部署比 hybrid engine 复杂;早期 staleness 调参敏感,新版引入自动 staleness budget 缓解。<br>
+  </div>
+  <p>AReaL 是把"RL 训练 = 一个生产-消费系统"这件事认真当回事的框架。它的判断是: rollout 长尾必然存在(reasoning trace 长度方差大、agentic 工具调用更甚),lockstep sync 的 utilization 上限注定不高;与其反复优化 hybrid engine 的 sleep/wake 切换,不如<em>从设计层就把两端解耦</em>。AReaL 论文最有价值的贡献是 <strong>staleness-enhanced PPO</strong> 的稳定性证明 —— 它用一个轻量的 importance ratio 修正,把"用 4 步前的 policy 生成的 trajectory 也能稳定训练"这件事变成数学保证而不是 hack。2025 年下半年 AReaL 显著向 agent 方向倾斜,推出 "RL Bridge" 接口,把 agent framework(LangGraph、AutoGPT 风格)直接接到 RL backbone,这一步走在 veRL 前面。</p>
+</section>
+
+<section class="fw" id="slime">
+  <h3>2.3 slime</h3>
+  <div class="kv">
+    <strong>定位:</strong>智谱(THUDM)出品,GLM-4.5/4.6/4.7 系列背后的 RL 栈,Megatron-LM × SGLang 的工业化桥接。<br>
+    <strong>团队:</strong>THUDM / 智谱 AI。<br>
+    <strong>arXiv:</strong>无独立论文,但作为 GLM-4.6 / GLM-4.7 报告的关键基础设施被引用。<br>
+    <strong>GitHub:</strong><code>THUDM/slime</code>。<br>
+    <strong>设计亮点:</strong>
+    <ul>
+      <li><em>Megatron + SGLang</em> 直连: training 走 MegatronLM(tensor + pipeline + sequence + context parallel),rollout 走 SGLang(radix cache + structured output 友好)。</li>
+      <li>同时支持 <em>sync + async</em> 双模:小作业 sync 简单 reproducible,大规模 MoE async 收敛。</li>
+      <li>已成功用于 <strong>GLM-4.5 / 4.6 / 4.7 (300B+ MoE)</strong>;并被 P1 / TritonForge / RLVE 等 RLVR 工作复用。</li>
+    </ul>
+    <strong>适用场景:</strong>已经在用 Megatron-LM 训练栈的团队、需要 SGLang 特性(JSON schema、tool grammar)的 agentic 工作、frontier MoE。<br>
+    <strong>局限:</strong>非 Megatron 用户上手成本高;SGLang 后端在某些 tokenizer / chat template 边界上比 vLLM 兼容性弱;社区文档比 veRL 少。<br>
+  </div>
+  <p>slime 在大五里是"最像生产代码"的一个—— 它没有像 veRL 那样追求"在一切 dataflow 上抽象优雅",而是直接选择 <em>Megatron-LM 训练 + SGLang rollout</em> 这个工业组合。智谱内部的训练惯性是 Megatron,所以 slime 不试图重新发明 backbone 而是做"桥"。它的 sync 模式跑 GRPO 时几乎和单机脚本一样直观;async 模式则用一个轻量的 stale-buffer 配合 Megatron 的 distributed optimizer 实现重叠。slime 真正的看点是 <strong>SGLang 这条 rollout 路径在 agentic 场景下更顺手</strong> —— SGLang 的 structured output、grammar、Python interpreter 连接器,在 RL trajectory 阶段比 vLLM 更原生。GLM 系列从 4.5 到 4.7 的能力跃迁,RL 段的工程能力 slime 是关键支柱。最近 P1 / TritonForge / RLVE 等论文都把 slime 作为 default RL framework,证明它已经超越"自家自用"成为公共基础设施。</p>
+</section>
+
+<section class="fw" id="nemo">
+  <h3>2.4 NeMo-RL</h3>
+  <div class="kv">
+    <strong>定位:</strong>NVIDIA 官方出品,NeMo 生态的 RL 子项,接口最干净、与 NVIDIA 软件栈(Megatron-Core / TransformerEngine / vLLM / EAGLE-3) 集成最深。<br>
+    <strong>团队:</strong>NVIDIA。<br>
+    <strong>arXiv:</strong>无独立 framework 论文,但姊妹论文 NeMo-RL × EAGLE3 (2604.26779) 是 spec decoding 集成展示。<br>
+    <strong>GitHub:</strong><code>NVIDIA/NeMo-RL</code> (前称 NeMo-Aligner)。<br>
+    <strong>设计亮点:</strong>
+    <ul>
+      <li>多轮 + 环境抽象做得最系统(<code>Env</code> / <code>Tool</code> / <code>Trajectory</code> 接口),用于 INTELLECT-3-style agentic 流。</li>
+      <li>原生集成 <em>speculative decoding</em>(EAGLE-3 head 可以直接挂 vLLM rollout 上),为 frontier-scale 上 ~2.5× e2e 加速提供路径。</li>
+      <li>FP8 训练 / FP4 inference / TransformerEngine 这些 NVIDIA 内核加速能直接吃到。</li>
+    </ul>
+    <strong>适用场景:</strong>已经在 NeMo / Megatron-Core 生态、需要前沿硬件加速(GB200, Spec Dec)、多轮 / 工具的 agentic 训练。<br>
+    <strong>局限:</strong>"NVIDIA-flavored" — NeMo 配置体系庞大;非 NVIDIA 卡支持有限;社区 PR 速度比 veRL 慢。<br>
+  </div>
+  <p>NeMo-RL 的产品哲学和别家不同:它不追求"开箱即用最快上手",而是把"<em>把 RL 当成一个深度集成进 NVIDIA 软件栈的子模块</em>"做得很完整。它把 environment / tool / trajectory 抽象做成一等公民—— 这点其它框架(尤其 OpenRLHF 早期)都很弱。NVIDIA 把 NeMo-RL 当成"展示什么是 frontier-scale RL"的官方 reference: 既能跑 405B,也能集成 EAGLE-3 spec decoding,还能跟 NVIDIA Earth-2 / BioNeMo 这些 domain 应用打通。最近 INTELLECT-3 报告里讨论的 agentic flow 中,NeMo-RL 提供了多轮 trajectory 接口的设计参考(虽然他们最后用 prime-rl)。看 <a href="01_NVIDIA_NeMoRL_EAGLE3.html">姊妹笔记 01</a>: spec decoding × NeMo-RL 的集成是该框架的代表性样板。</p>
+</section>
+
+<section class="fw" id="openrlhf">
+  <h3>2.5 OpenRLHF</h3>
+  <div class="kv">
+    <strong>定位:</strong>最早一批被 RLHF 社区广泛采用的开源库 (2023 末),Ray 原生 + DeepSpeed + vLLM,以"上手最快"和"Ray-friendly"著称。<br>
+    <strong>团队:</strong>社区驱动 (主导贡献来自 OpenLLMAI 与多家研究机构)。<br>
+    <strong>arXiv:</strong>2405.11143 (OpenRLHF 报告)。<br>
+    <strong>GitHub:</strong><code>OpenRLHF/OpenRLHF</code>。<br>
+    <strong>设计亮点:</strong>
+    <ul>
+      <li>Ray-native: 用 Ray Actor 把 actor / critic / reward / rollout 分开管理,容易理解、容易拓展。</li>
+      <li>训练后端 DeepSpeed (ZeRO-3),rollout 后端 vLLM,组合简单。</li>
+      <li>v0.8.0 (2025) 加入了显式的 <strong>async 模式 + agentic RL</strong> 支持,补上了对 reasoning / agent 工作负载的短板。</li>
+    </ul>
+    <strong>适用场景:</strong>团队小、第一次做 RLHF / GRPO、模型规模 ≤ 70B、想用 Ray 做编排。<br>
+    <strong>局限:</strong>大模型 (≥200B) 的并行能力弱(无 Megatron 后端)、非 hybrid engine 模式 GPU 利用率不如 veRL;agentic / 多轮支持是后补的、API 不如 NeMo-RL 系统。<br>
+  </div>
+  <p>OpenRLHF 是大五里"<em>最适合从 0 到 1 跑通一遍 GRPO</em>"的框架。它的代码结构最薄、抽象最少:一份 actor、一份 critic、一份 reward、一份 vLLM rollout,Ray 负责把它们粘起来。对小团队、对学术 reproduction、对"想看清楚 RLHF 数据流到底是怎么走的",OpenRLHF 还是首选。它的弱点很明显—— DeepSpeed ZeRO-3 在 200B 级别难以高效;hybrid engine 没有原生支持;agentic / 多轮直到 v0.8 才有。所以 2025 下半年 OpenRLHF 的角色更像"教学 + 中等规模生产":你不会用它训 1T MoE,但你会用它训一个 14B 数学 RL 模型,因为部署最便宜。社区维护活跃,issue 响应快,文档清晰。</p>
+</section>
+
+<hr>
+
+<h2 id="sec3">3 · 第二梯队 (Notable supporting)</h2>
+
+<section class="fw">
+  <h3>3.1 prime-rl (Prime Intellect)</h3>
+  <div class="kv">
+    <strong>团队:</strong>Prime Intellect。<strong>GitHub:</strong><code>PrimeIntellect-ai/prime-rl</code>。<strong>使用方:</strong>INTELLECT-2 / INTELLECT-3。
+  </div>
+  <p>prime-rl 是 Prime Intellect 在 INTELLECT-2 (<a href="07_INTELLECT2_2505.07291.html">笔记 07</a>) 时孵化的 RL 框架,INTELLECT-3 (<a href="08_INTELLECT3_2512.16144.html">笔记 08</a>) 把它定位成"<em>三件套之一</em>": prime-rl + prime-environments + prime-protocol(后两者是环境定义和分布式协议)。它的特点是为 <strong>大规模 agentic RL</strong> 设计 —— rollout 可以跨数据中心、节点级 fault-tolerant、和 prime-environments 的 diverse env library 紧密耦合。INTELLECT-3 在 prime-rl 上跑了 thousands-of-environment 的 verifiable RL,并提出 "<em>recursive language models</em>"——RL 训练自己产生新的 RL training problems。这是 2026 上半年最有"研究方向感"的 RL 框架。</p>
+</section>
+
+<section class="fw">
+  <h3>3.2 Laminar</h3>
+  <div class="kv">
+    <strong>arXiv:</strong>2510.12633 · <strong>会议:</strong>EuroSys'26 · <strong>核心:</strong>trajectory-level async,"breaks lockstep"。
+  </div>
+  <p>Laminar 提出的论点是:agentic RL 的 trajectory 长尾分布在<em>同一个 batch 内</em>——有的 trajectory 一秒结束、有的几分钟。step-level async (AReaL 风格) 还是要等"这一批 trajectory 都好了再 train",依然有等待。Laminar 进一步把粒度<em>下放到 trajectory</em>: 每条 trajectory 完成就立刻进入 training queue,training side 维护一个 stale-aware PPO budget。实测在 multi-turn / tool-call workload 上比 step-level async 再快 1.5–2×。Laminar 目前没有自己独立产品化,但它的设计原则(把"完成事件"作为调度单位)在 AReaL / prime-rl 的最新版里已经渗透。</p>
+</section>
+
+<section class="fw">
+  <h3>3.3 LlamaRL</h3>
+  <div class="kv">
+    <strong>团队:</strong>Meta · <strong>arXiv:</strong>2505.24034 · <strong>规模:</strong>验证 8B / 70B / 405B。
+  </div>
+  <p>Meta 的内部 RL 框架,<em>PyTorch 原生</em>(无 Ray、无 Megatron 抽象层),靠 PyTorch FSDP-2 + torch.distributed 直接走。最大卖点是简单:整个 framework 的核心代码非常薄。论文报告 8B/70B/405B 上比 DeepSpeed-Chat 加速 <strong>up to 10.7×</strong>。它和 PipelineRL 共享一个观察 —— 与其引入复杂的多控制器抽象,不如把 generation 和 training 在 step 内做精细 overlap。LlamaRL 没有 hybrid engine,而是 disaggregated 但通过 NCCL 直接共享 weights,延迟极低。Meta 内部 Llama 系列 post-training 几乎都跑在它上面,但开源版本社区参与度有限。</p>
+</section>
+
+<section class="fw">
+  <h3>3.4 PipelineRL (ServiceNow)</h3>
+  <div class="kv">
+    <strong>团队:</strong>ServiceNow Research · <strong>核心:</strong>inflight weight updates · <strong>验证:</strong>7B / 32B on AIME / MATH-500。
+  </div>
+  <p>PipelineRL 的招牌是 <strong>inflight weight update</strong>: 当 rollout 还在生成长 trajectory 的<em>中段</em>时,后台已经悄悄把新 weights 推送给了 rollout engine,rollout 在不重启 KV cache 的前提下"切档"到新策略,从下一 token 开始就用新参数。这跟 chunked sync(把长 trajectory 切段、段间同步)是<em>两回事</em> —— inflight 不切 trajectory,只切 weights。这种粒度比 trajectory-level async 更细,但工程实现要求严格(KV cache + weights 一致性窗口)。ServiceNow 在 7B / 32B 数学 RL 上展示了 1.3–1.6× 收益,但 frontier-scale 还没看到公开复现。</p>
+</section>
+
+<section class="fw">
+  <h3>3.5 HybridFlow paper = veRL 的学术起点</h3>
+  <div class="kv">
+    <strong>arXiv:</strong>2409.19256 · <strong>会议:</strong>EuroSys 2025 · <strong>关系:</strong>veRL 的论文化版本。
+  </div>
+  <p>HybridFlow 是 veRL 在学术界的"出生证明"。论文里把 hybrid single+multi-controller、hybrid engine、3D parallelism resharding 这三件事讲清楚了;真要深入理解 veRL 的设计思想,这篇论文是必读。社区里有时把 HybridFlow 和 veRL 当两个名字混用,严格说前者是论文 + 原型,后者是社区开源版本(及其后续演进)。</p>
+</section>
+
+<hr>
+
+<h2 id="sec4">4 · 横向对比表 — 主流大五</h2>
+
+<table>
+  <tr>
+    <th>维度</th>
+    <th>veRL</th>
+    <th>AReaL</th>
+    <th>slime</th>
+    <th>NeMo-RL</th>
+    <th>OpenRLHF</th>
+  </tr>
+  <tr>
+    <td><strong>异步性</strong></td>
+    <td>sync + one-step async</td>
+    <td><strong>fully async</strong></td>
+    <td>sync + async (双模)</td>
+    <td>sync + one-step async</td>
+    <td>sync (v0.8 起 async)</td>
+  </tr>
+  <tr>
+    <td><strong>引擎共置</strong></td>
+    <td><strong>hybrid engine</strong></td>
+    <td>disaggregated</td>
+    <td>disaggregated</td>
+    <td>hybrid + disaggregated 双模</td>
+    <td>hybrid (Ray colocate) 可选</td>
+  </tr>
+  <tr>
+    <td><strong>分布式编排</strong></td>
+    <td>Ray + SPMD worker</td>
+    <td>RPC + custom scheduler</td>
+    <td>Megatron native + lightweight RPC</td>
+    <td>Megatron-Core / NeMo</td>
+    <td>Ray + DeepSpeed</td>
+  </tr>
+  <tr>
+    <td><strong>Rollout backend</strong></td>
+    <td>vLLM / SGLang</td>
+    <td>SGLang (主) / vLLM</td>
+    <td><strong>SGLang</strong></td>
+    <td>vLLM (+ EAGLE-3)</td>
+    <td>vLLM</td>
+  </tr>
+  <tr>
+    <td><strong>训练 backend</strong></td>
+    <td>FSDP / Megatron / DeepSpeed</td>
+    <td>Megatron / FSDP</td>
+    <td><strong>Megatron-LM</strong></td>
+    <td><strong>Megatron-Core + TE</strong></td>
+    <td>DeepSpeed ZeRO-3</td>
+  </tr>
+  <tr>
+    <td><strong>算法</strong></td>
+    <td>PPO / GRPO / DAPO / DPO / RLOO / IcePop / TIS</td>
+    <td>PPO / GRPO / DAPO + staleness-PPO</td>
+    <td>PPO / GRPO / DAPO / GLM-自研</td>
+    <td>PPO / GRPO / DPO / 多轮 RL</td>
+    <td>PPO / GRPO / DPO / KTO / IPO</td>
+  </tr>
+  <tr>
+    <td><strong>多轮 / 工具</strong></td>
+    <td><span class="ok">支持</span> (社区 verl-multi-turn)</td>
+    <td><span class="ok">原生</span> (RL Bridge for Agent)</td>
+    <td><span class="ok">支持</span> (SGLang grammar)</td>
+    <td><span class="ok">原生</span> (Env / Tool / Trajectory 接口)</td>
+    <td><span class="ok">v0.8 起</span></td>
+  </tr>
+  <tr>
+    <td><strong>VLM 支持</strong></td>
+    <td><span class="ok">是</span> (Qwen-VL, LLaVA)</td>
+    <td><span class="ok">是</span></td>
+    <td><span class="ok">GLM-V 系列已验证</span></td>
+    <td><span class="ok">是</span></td>
+    <td><span class="ok">部分</span></td>
+  </tr>
+  <tr>
+    <td><strong>主要使用方</strong></td>
+    <td>ByteDance Seed, vivo, 阿里, MiniMax M1 部分</td>
+    <td>蚂蚁, 清华, agentic 研究社区</td>
+    <td>智谱 GLM-4.x, P1, TritonForge, RLVE</td>
+    <td>NVIDIA 内部 + INTELLECT-3 参考</td>
+    <td>大量学术团队 + 中小工业团队</td>
+  </tr>
+  <tr>
+    <td><strong>License</strong></td>
+    <td>Apache-2.0</td>
+    <td>Apache-2.0</td>
+    <td>Apache-2.0</td>
+    <td>Apache-2.0</td>
+    <td>Apache-2.0</td>
+  </tr>
+  <tr>
+    <td><strong>活跃度</strong></td>
+    <td>★★★★★ (社区最大)</td>
+    <td>★★★★ (论文驱动)</td>
+    <td>★★★★ (智谱 + 外部)</td>
+    <td>★★★ (NVIDIA 主导)</td>
+    <td>★★★★ (老牌)</td>
+  </tr>
+  <tr>
+    <td><strong>frontier 实证</strong></td>
+    <td><strong>1T GRPO+LoRA / 64×H800</strong></td>
+    <td>~200B reasoning / agent</td>
+    <td><strong>GLM-4.7 (300B+ MoE)</strong></td>
+    <td>235B (sim 2.5× e2e)</td>
+    <td>≤ 70B</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2 id="sec5">5 · 设计选择详解</h2>
+
+<h3 id="sec5-1">5.1 Sync vs Async (四种节奏)</h3>
+
+<div class="fig">
+<svg viewBox="0 0 760 320" width="100%" style="max-width:740px">
+  <!-- legend -->
+  <rect x="540" y="6" width="14" height="12" fill="#cc4a1b"/><text x="558" y="17" font-size="11">rollout</text>
+  <rect x="610" y="6" width="14" height="12" fill="#2f6feb"/><text x="628" y="17" font-size="11">training</text>
+  <rect x="680" y="6" width="14" height="12" fill="#bdb59c"/><text x="698" y="17" font-size="11">idle/wait</text>
+
+  <!-- Row 1: Sync -->
+  <text x="6" y="50" font-size="12" font-weight="600">Sync</text>
+  <text x="6" y="64" font-size="10" fill="#5b5e66">(OpenRLHF, NeMo-RL default)</text>
+  <g>
+    <rect x="120" y="38" width="100" height="22" fill="#cc4a1b"/>
+    <rect x="220" y="38" width="40" height="22" fill="#2f6feb"/>
+    <rect x="260" y="38" width="100" height="22" fill="#cc4a1b"/>
+    <rect x="360" y="38" width="40" height="22" fill="#2f6feb"/>
+    <rect x="400" y="38" width="100" height="22" fill="#cc4a1b"/>
+    <rect x="500" y="38" width="40" height="22" fill="#2f6feb"/>
+    <rect x="540" y="38" width="100" height="22" fill="#cc4a1b"/>
+    <rect x="640" y="38" width="40" height="22" fill="#2f6feb"/>
+  </g>
+  <text x="120" y="78" font-size="10" fill="#5b5e66">交替推进:rollout → training → rollout → training (策略最新但 GPU 利用率低)</text>
+
+  <!-- Row 2: One-step async (hybrid engine, e.g. veRL) -->
+  <text x="6" y="120" font-size="12" font-weight="600">One-step async</text>
+  <text x="6" y="134" font-size="10" fill="#5b5e66">(veRL, NeMo-RL async)</text>
+  <g>
+    <rect x="120" y="108" width="120" height="22" fill="#cc4a1b"/>
+    <rect x="120" y="132" width="120" height="22" fill="#bdb59c"/>
+    <rect x="240" y="108" width="120" height="22" fill="#cc4a1b"/>
+    <rect x="240" y="132" width="60" height="22" fill="#2f6feb"/>
+    <rect x="300" y="132" width="60" height="22" fill="#bdb59c"/>
+    <rect x="360" y="108" width="120" height="22" fill="#cc4a1b"/>
+    <rect x="360" y="132" width="60" height="22" fill="#2f6feb"/>
+    <rect x="420" y="132" width="60" height="22" fill="#bdb59c"/>
+    <rect x="480" y="108" width="120" height="22" fill="#cc4a1b"/>
+    <rect x="480" y="132" width="60" height="22" fill="#2f6feb"/>
+    <rect x="540" y="132" width="60" height="22" fill="#bdb59c"/>
+    <rect x="600" y="108" width="60" height="22" fill="#cc4a1b"/>
+    <rect x="600" y="132" width="60" height="22" fill="#2f6feb"/>
+  </g>
+  <text x="120" y="174" font-size="10" fill="#5b5e66">staleness=1: rollout 用上一步 weights,training 同时跑</text>
+
+  <!-- Row 3: Fully async -->
+  <text x="6" y="210" font-size="12" font-weight="600">Fully async</text>
+  <text x="6" y="224" font-size="10" fill="#5b5e66">(AReaL, LlamaRL)</text>
+  <g>
+    <rect x="120" y="198" width="520" height="22" fill="#cc4a1b"/>
+    <rect x="120" y="222" width="520" height="22" fill="#2f6feb"/>
+  </g>
+  <text x="120" y="262" font-size="10" fill="#5b5e66">rollout 与 training 各自满负荷,通过 trajectory queue + staleness-PPO 桥接</text>
+
+  <!-- Row 4: Trajectory-level async -->
+  <text x="6" y="298" font-size="12" font-weight="600">Trajectory async</text>
+  <g>
+    <rect x="120" y="284" width="40" height="14" fill="#cc4a1b"/>
+    <rect x="160" y="284" width="80" height="14" fill="#cc4a1b" opacity="0.7"/>
+    <rect x="240" y="284" width="20" height="14" fill="#cc4a1b" opacity="0.5"/>
+    <rect x="260" y="284" width="120" height="14" fill="#cc4a1b" opacity="0.6"/>
+    <rect x="380" y="284" width="50" height="14" fill="#cc4a1b" opacity="0.8"/>
+    <rect x="430" y="284" width="200" height="14" fill="#cc4a1b" opacity="0.55"/>
+    <rect x="120" y="300" width="520" height="14" fill="#2f6feb"/>
+  </g>
+  <text x="120" y="319" font-size="10" fill="#5b5e66">每条 trajectory 完成即入 queue (Laminar):打破 batch lockstep,长尾不再卡全局</text>
+</svg>
+<figcaption>四种节奏对比。Sync 简单但 GPU 长时间空转;one-step async 是当前最稳的"中间档"(staleness=1, 实测和 sync 收敛几乎相同);fully async 在长尾大的 reasoning / agentic workload 上 utilization 最高;trajectory-level async 是 Laminar 提出的更细粒度做法,适合 latency 方差极大的 agentic 场景。</figcaption>
+</div>
+
+<p><strong>讨论要点:</strong>从 reproducibility 角度,sync > one-step > fully > trajectory;从 utilization 角度,顺序倒过来。<em>大多数生产团队的甜点</em>是 one-step async + hybrid engine(veRL 默认)或 fully async + disaggregated(AReaL)。LlamaRL 实测在 fully async 下与 sync 的 reward 差异 < 1%,说明 staleness-aware PPO 已经把"async 失控"的担忧基本消除。</p>
+
+<h3 id="sec5-2">5.2 Hybrid Engine vs Disaggregated</h3>
+
+<div class="fig">
+<svg viewBox="0 0 760 280" width="100%" style="max-width:740px">
+  <!-- LEFT: hybrid engine -->
+  <text x="180" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Hybrid engine (veRL / OpenRLHF colocate)</text>
+  <rect x="40" y="40" width="280" height="200" rx="10" fill="#fff8e8" stroke="#d2a32a" stroke-dasharray="4,3"/>
+  <text x="180" y="60" text-anchor="middle" font-size="11" fill="#5b5e66">同一组 GPU (例如 64×H800)</text>
+  <!-- alternating phases -->
+  <rect x="60" y="80" width="240" height="60" rx="6" fill="#cc4a1b" opacity="0.75"/>
+  <text x="180" y="115" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">Rollout phase: vLLM / SGLang 占满显存</text>
+  <text x="180" y="132" text-anchor="middle" font-size="10" fill="#fff">actor weights 仍在,但 optimizer state 被 swap</text>
+  <text x="180" y="155" text-anchor="middle" font-size="22" fill="#888">↕ sleep / wake</text>
+  <rect x="60" y="170" width="240" height="60" rx="6" fill="#2f6feb" opacity="0.75"/>
+  <text x="180" y="200" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">Training phase: Megatron + optimizer</text>
+  <text x="180" y="218" text-anchor="middle" font-size="10" fill="#fff">rollout engine sleep, 显存归还给 actor</text>
+  <text x="180" y="263" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">特点: 单组 GPU 利用率高;切换有 wake latency</text>
+
+  <!-- RIGHT: disaggregated -->
+  <text x="560" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Disaggregated (slime / AReaL / LlamaRL)</text>
+  <rect x="400" y="40" width="160" height="200" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+  <text x="480" y="60" text-anchor="middle" font-size="11" fill="#3a3b40">Rollout cluster</text>
+  <rect x="420" y="75" width="120" height="40" rx="6" fill="#cc4a1b" opacity="0.7"/>
+  <text x="480" y="100" text-anchor="middle" font-size="11" fill="#fff">SGLang ×N 节点</text>
+  <rect x="420" y="125" width="120" height="40" rx="6" fill="#cc4a1b" opacity="0.7"/>
+  <text x="480" y="150" text-anchor="middle" font-size="11" fill="#fff">SGLang ×N 节点</text>
+  <rect x="420" y="175" width="120" height="40" rx="6" fill="#cc4a1b" opacity="0.7"/>
+  <text x="480" y="200" text-anchor="middle" font-size="11" fill="#fff">SGLang ×N 节点</text>
+
+  <rect x="600" y="40" width="140" height="200" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+  <text x="670" y="60" text-anchor="middle" font-size="11" fill="#3a3b40">Training cluster</text>
+  <rect x="620" y="75" width="100" height="140" rx="6" fill="#2f6feb" opacity="0.7"/>
+  <text x="670" y="135" text-anchor="middle" font-size="12" fill="#fff" font-weight="600">Megatron</text>
+  <text x="670" y="155" text-anchor="middle" font-size="11" fill="#fff">TP/PP/SP/CP</text>
+
+  <!-- arrows between clusters -->
+  <path d="M 545 110 Q 580 110 600 130" stroke="#cc4a1b" fill="none" stroke-width="1.5" marker-end="url(#arrR)"/>
+  <text x="572" y="103" font-size="10" fill="#cc4a1b">trajectories</text>
+  <path d="M 600 175 Q 580 175 545 195" stroke="#2f6feb" fill="none" stroke-width="1.5" marker-end="url(#arrB)"/>
+  <text x="555" y="188" font-size="10" fill="#2f6feb">weights</text>
+
+  <text x="570" y="263" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">特点: 两侧独立扩缩;通信 = trajectory + weight 推送</text>
+</svg>
+<figcaption>左:hybrid engine 在<em>同一组</em> GPU 上交替跑 actor 和 rollout,显存高效但 wake/sleep 切换有开销;右:disaggregated 把 rollout 和 training 拆成两个 cluster,通过 RPC + weight broadcast 通信,切换无开销但需要多倒一份 weights。</figcaption>
+</div>
+
+<p>这两条路线的对赌点是: <strong>"GPU 显存有多金贵 vs 集群规模有多大"</strong>。在中等规模 (≤256 GPU) hybrid engine 几乎一定占优——你买不起两套独立的 100+ H800。当规模大到一定程度(>1024 GPU,frontier MoE),disaggregated 反而更有道理:rollout side 可以用更便宜的卡(L40S / A100)、training side 集中用 H100/B200,而且两侧的并行策略可以独立优化(rollout 用 TP=2 + DP 大;training 用 TP=8 + PP=8 + EP)。slime / AReaL 的实测在 GLM-4.6 / 200B 级别已经验证了 disaggregated 的扩展性。</p>
+
+<h3 id="sec5-3">5.3 Sharding 策略</h3>
+<p>四个角色的并行可以独立选择:</p>
+<table>
+  <tr><th>角色</th><th>典型并行</th><th>注意</th></tr>
+  <tr><td>Actor (training)</td><td>TP × PP × SP × ZeRO / FSDP</td><td>大模型常 TP=8, PP=4–8, EP for MoE</td></tr>
+  <tr><td>Rollout (vLLM/SGLang)</td><td>TP only (DP 自动 batch)</td><td>常用 TP=1/2/4,内存盯 KV cache</td></tr>
+  <tr><td>Critic / Reward (PPO 时)</td><td>同 actor 或更小</td><td>GRPO 已无 critic,这一项消失</td></tr>
+</table>
+<p>Hybrid engine 框架(veRL)需要做<strong>权重 reshard</strong>—— actor 训练时是 TP=8 + PP=4 的布局,切到 rollout 时变成 TP=2 + DP=16,中间要一次 all-to-all 重排。这是 veRL 工程实现里最 tricky 的一段。Disaggregated 框架(slime/AReaL)只需要把 actor 的最新 weights 序列化成 rollout 友好的布局推过去,实现简单,但每步多一次 weight 网络传输。NeMo-RL 的"fast weight transfer"利用 NVLink + NCCL 把这部分压到 1–2s。</p>
+
+<h3 id="sec5-4">5.4 Inflight weight updates (PipelineRL 的 signature)</h3>
+<p>常规 async 的最小调度单位是 <em>step</em>(或 trajectory): 一个 trajectory 生成完才同步 weights。<strong>Inflight weight update</strong> 进一步把粒度切细到 <em>token</em>: rollout engine 跑到 trajectory 中段,后台已经把新 weights swap 进 GPU,接下来这条 trajectory 后半段是用新 weights 生成的。这跟 chunked sync(把 32k trajectory 切 4 段、段间同步)的区别是 inflight <em>不重启 KV cache</em>—— 同一条 trajectory 物理上连续生成,只是参数换了。理论上这会引入"同一 trajectory 内分布混合"的问题,但 PipelineRL 实测在 7B / 32B 数学 RL 上 reward 与 sync 持平,且 e2e 加速 1.3–1.6×。这是 2026 上半年最具潜力的"未广泛采用但论证完整"的设计;猜测会被 veRL / slime 后续吸收。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 选型决策树 / 推荐场景</h2>
+
+<div class="fig">
+<svg viewBox="0 0 760 380" width="100%" style="max-width:740px">
+  <!-- root -->
+  <rect x="290" y="10" width="180" height="44" rx="8" fill="#fff" stroke="#888"/>
+  <text x="380" y="36" text-anchor="middle" font-size="12" font-weight="600">你的主要 workload?</text>
+
+  <!-- branches -->
+  <line x1="380" y1="54" x2="120" y2="90" stroke="#888" marker-end="url(#arr)"/>
+  <line x1="380" y1="54" x2="380" y2="90" stroke="#888" marker-end="url(#arr)"/>
+  <line x1="380" y1="54" x2="640" y2="90" stroke="#888" marker-end="url(#arr)"/>
+
+  <!-- L1 nodes -->
+  <rect x="30" y="92" width="180" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+  <text x="120" y="115" text-anchor="middle" font-size="11">Reasoning RL (math/code)</text>
+
+  <rect x="290" y="92" width="180" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+  <text x="380" y="115" text-anchor="middle" font-size="11">Agentic RL (multi-turn/tool)</text>
+
+  <rect x="550" y="92" width="180" height="36" rx="6" fill="#fff3cd" stroke="#d2a32a"/>
+  <text x="640" y="115" text-anchor="middle" font-size="11">RLHF / 偏好对齐</text>
+
+  <!-- Reasoning branch -->
+  <line x1="120" y1="128" x2="60" y2="170" stroke="#888" marker-end="url(#arr)"/>
+  <line x1="120" y1="128" x2="180" y2="170" stroke="#888" marker-end="url(#arr)"/>
+
+  <rect x="0" y="170" width="120" height="38" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+  <text x="60" y="185" text-anchor="middle" font-size="10">≥ 200B / MoE</text>
+  <text x="60" y="200" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">veRL / slime</text>
+
+  <rect x="130" y="170" width="120" height="38" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+  <text x="190" y="185" text-anchor="middle" font-size="10">中小规模, NV 栈</text>
+  <text x="190" y="200" text-anchor="middle" font-size="11" font-weight="600" fill="#1f7a4a">NeMo-RL</text>
+
+  <!-- Agentic branch -->
+  <line x1="380" y1="128" x2="320" y2="170" stroke="#888" marker-end="url(#arr)"/>
+  <line x1="380" y1="128" x2="440" y2="170" stroke="#888" marker-end="url(#arr)"/>
+
+  <rect x="260" y="170" width="120" height="38" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+  <text x="320" y="185" text-anchor="middle" font-size="10">研究 / 大规模 env</text>
+  <text x="320" y="200" text-anchor="middle" font-size="11" font-weight="600" fill="#7a3a99">AReaL / prime-rl</text>
+
+  <rect x="390" y="170" width="130" height="38" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+  <text x="455" y="185" text-anchor="middle" font-size="10">已用 NeMo / 多模态</text>
+  <text x="455" y="200" text-anchor="middle" font-size="11" font-weight="600" fill="#1f7a4a">NeMo-RL</text>
+
+  <!-- RLHF branch -->
+  <line x1="640" y1="128" x2="600" y2="170" stroke="#888" marker-end="url(#arr)"/>
+  <line x1="640" y1="128" x2="700" y2="170" stroke="#888" marker-end="url(#arr)"/>
+
+  <rect x="540" y="170" width="120" height="38" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+  <text x="600" y="185" text-anchor="middle" font-size="10">团队小 / 上手快</text>
+  <text x="600" y="200" text-anchor="middle" font-size="11" font-weight="600" fill="#2f6feb">OpenRLHF</text>
+
+  <rect x="670" y="170" width="90" height="38" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+  <text x="715" y="185" text-anchor="middle" font-size="10">大规模偏好</text>
+  <text x="715" y="200" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">veRL</text>
+
+  <!-- Special needs row -->
+  <line x1="380" y1="225" x2="380" y2="245" stroke="#888"/>
+  <text x="380" y="240" text-anchor="middle" font-size="11" font-weight="600" fill="#5b5e66">特殊需求叠加</text>
+
+  <rect x="30" y="260" width="170" height="38" rx="6" fill="#f3eee0" stroke="#888"/>
+  <text x="115" y="276" text-anchor="middle" font-size="10">Spec decoding 集成</text>
+  <text x="115" y="291" text-anchor="middle" font-size="11" font-weight="600" fill="#1f7a4a">→ NeMo-RL</text>
+
+  <rect x="220" y="260" width="170" height="38" rx="6" fill="#f3eee0" stroke="#888"/>
+  <text x="305" y="276" text-anchor="middle" font-size="10">MoE (≥300B)</text>
+  <text x="305" y="291" text-anchor="middle" font-size="11" font-weight="600" fill="#cc4a1b">→ veRL / slime</text>
+
+  <rect x="410" y="260" width="170" height="38" rx="6" fill="#f3eee0" stroke="#888"/>
+  <text x="495" y="276" text-anchor="middle" font-size="10">trajectory 长尾极端</text>
+  <text x="495" y="291" text-anchor="middle" font-size="11" font-weight="600" fill="#7a3a99">→ AReaL / Laminar</text>
+
+  <rect x="600" y="260" width="160" height="38" rx="6" fill="#f3eee0" stroke="#888"/>
+  <text x="680" y="276" text-anchor="middle" font-size="10">跨数据中心 / agent env</text>
+  <text x="680" y="291" text-anchor="middle" font-size="11" font-weight="600" fill="#a8353e">→ prime-rl</text>
+
+  <rect x="200" y="320" width="360" height="38" rx="6" fill="#f3eee0" stroke="#888"/>
+  <text x="380" y="345" text-anchor="middle" font-size="11">Inflight weight update / 实验前沿 → <tspan font-weight="600" fill="#cc4a1b">PipelineRL</tspan></text>
+</svg>
+<figcaption>简化版决策树。绝大多数团队会落到 veRL / slime / NeMo-RL / OpenRLHF 之一,AReaL / prime-rl 是当工作负载 agentic 强烈或长尾失控时的更优选;Laminar / PipelineRL 是研究前沿,适合愿意承担较高工程风险换取额外 1.5×+ 收益。</figcaption>
+</div>
+
+<h3>常见场景速查</h3>
+<ul>
+  <li><strong>Reasoning post-training (GRPO + 数学/代码 RL):</strong> 选 <code>veRL</code> 或 <code>slime</code> — 二者生态最成熟、算法跟进最快</li>
+  <li><strong>Agentic RL (多轮 + 工具 + 长 episode):</strong> 选 <code>AReaL</code>(论文级支持)或 <code>prime-rl</code>(跨节点 env 库)</li>
+  <li><strong>大规模 (>200B) frontier 训练:</strong> <code>veRL</code>(1T 验证)或 <code>NeMo-RL</code>(NVIDIA 内部 / 235B 仿真)</li>
+  <li><strong>刚开始做 RLHF, 团队小:</strong> <code>OpenRLHF</code> 上手最快,Ray 原生,代码量薄</li>
+  <li><strong>需要 speculative decoding 集成:</strong> <code>NeMo-RL</code> 直接支持(参考 <a href="../../spec-rl/notes/01_NVIDIA_NeMoRL_EAGLE3.html">姊妹笔记</a>)</li>
+  <li><strong>需要 MoE 训练:</strong> <code>veRL</code>(1T LoRA 已跑)或 <code>slime</code>(GLM-4.6 已跑 300B+ MoE)</li>
+  <li><strong>偏好生态 + 已有 Megatron 栈:</strong> <code>slime</code></li>
+  <li><strong>低延迟 PyTorch 原生:</strong> <code>LlamaRL</code>(开源版社区小但代码薄)</li>
+</ul>
+
+<hr>
+
+<h2 id="sec7">7 · 趋势 + 我的判断</h2>
+
+<h3>7.1 Async 是确定方向</h3>
+<p>从 AReaL (2.77×)、LlamaRL (10.7× vs DeepSpeed-Chat)、Laminar (再 1.5–2×)、PipelineRL (inflight 1.3–1.6×) 这条证据链看,async 在 reward 收敛轨迹基本不动的前提下,e2e 提速可观。同步 RL 的死穴是 <em>generation 长尾把 GPU 压在 idle</em>,这件事在 reasoning trace ≥ 8k 之后无法回避。2026 内 sync 仍是 sync default 的(教学 / reproducibility),但生产 default 一定是 async。</p>
+
+<h3>7.2 Hybrid engine vs disaggregated 还在拉锯</h3>
+<p>我的判断:<strong>大模型场景 disaggregated 更可扩展</strong>(slime / AReaL 在 GLM-4.6 / 200B 已验证),<strong>中等规模 hybrid engine 更省资源</strong>(veRL 在 70B / 235B 仍是性价比最高)。两条路线短期不会合并,但 NeMo-RL 这种"双模"框架会越来越多 —— 让用户根据集群规模切换。</p>
+
+<h3>7.3 Multi-turn + tool 是 2026 上半年最大变量</h3>
+<p>所有大五现在都在补多轮支持,但接口标准还没收敛: AReaL 的 RL Bridge、NeMo-RL 的 Env/Tool/Trajectory、OpenRLHF v0.8 的 agent runner、slime + SGLang grammar—— 各家做法都不同。下半年大概会出现某种"事实标准"(可能借鉴 OpenAI Gym / DSPy 的接口风格)。<strong>谁的多轮抽象先被多个团队采纳,谁就赢这一轮</strong>。</p>
+
+<h3>7.4 算法侧 GRPO 是 default,变体百花齐放</h3>
+<p>GRPO 已经是事实 default (无 critic、batch 内 group baseline),DAPO 是字节家在 GRPO 基础上加 token-level loss + clip-higher,逐渐普及。值得关注的算法变体: <strong>CISPO</strong>(MiniMax M1, 见 <a href="03_MiniMaxM1_2506.13585.html">笔记 03</a>)、<strong>IcePop</strong>(字节)、<strong>PRIME</strong>(implicit reward)、<strong>TIS</strong>(truncated importance sampling)。框架谁先适配谁先抢用户。</p>
+
+<h3>7.5 Frontier 实证是残酷过滤器</h3>
+<p>在 frontier-scale (200B+) 跑通过 RL 训练的框架本质是少数: veRL (1T LoRA)、slime (GLM-4.7 300B+ MoE)、NeMo-RL (NVIDIA 内部)、AReaL (~200B agent)。其余框架声称的支持很多停留在 70B 级别。"能跑 ≥200B"会成为 2026 评估 RL 框架的硬指标。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 记忆要点 (Memory points)</h2>
+
+<div class="kv">
+  <span class="pill">大五</span> veRL / AReaL / slime / NeMo-RL / OpenRLHF<br>
+  <span class="pill">两条路线</span> hybrid engine (veRL/OpenRLHF) vs disaggregated (slime/AReaL)<br>
+  <span class="pill">异步</span> sync → one-step → fully → trajectory-level (Laminar);staleness-PPO 是把 async 收敛性"证好"的关键<br>
+  <span class="pill">瓶颈</span> reasoning 时代 generation 占 65–72%,所有框架都在抢这块<br>
+  <span class="pill">backend</span> 训练 = Megatron / FSDP / DeepSpeed;rollout = vLLM / SGLang(SGLang 在 agentic 上略胜)<br>
+  <span class="pill">算法</span> GRPO default;DAPO / CISPO / IcePop / PRIME / TIS 是变体;PPO 已退潮(critic 太贵)<br>
+  <span class="pill">frontier</span> ≥200B 实证: veRL (1T LoRA) / slime (GLM-4.7) / NeMo-RL (235B sim)<br>
+  <span class="pill">agentic</span> AReaL "RL Bridge" 概念领先;NeMo-RL Env/Tool 抽象最系统;prime-rl 把 env 做成生态<br>
+  <span class="pill">前沿</span> Inflight weight update (PipelineRL) / trajectory async (Laminar) 是 2026 上半年值得跟的论文<br>
+  <span class="pill">坑</span> hybrid engine 的 weight reshard 死锁;disaggregated 的 weight broadcast 延迟;async 的 staleness 调参<br>
+  <span class="pill">立场</span> 不存在"最好"的框架,只有"和你团队栈匹配"的框架;先看你已经在用 Megatron / DeepSpeed / Ray 哪一个
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  Comparison Note v1 · 2026-05-09 · 关联笔记:
+  <a href="07_INTELLECT2_2505.07291.html">INTELLECT-2 (prime-rl)</a> ·
+  <a href="08_INTELLECT3_2512.16144.html">INTELLECT-3 (三件套)</a> ·
+  <a href="../../spec-rl/notes/01_NVIDIA_NeMoRL_EAGLE3.html">NeMo-RL × EAGLE-3</a>
+</p>
+
+</main>
+</body>
+</html>
