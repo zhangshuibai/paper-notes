@@ -71,7 +71,7 @@
 
 <h1>When Hidden States Drift: Can KV Caches Rescue Long-Range Speculative Decoding?</h1>
 <div class="meta">
-  Alibaba Qwen Applications · Tianyu Liu et al. · 2026-04-29 · arXiv:2604.26412<br>
+  Alibaba Qwen Applications · Tianyu Liu et al. · 2026-04-29 · <a href="https://arxiv.org/abs/2604.26412" target="_blank" rel="noopener">arXiv:2604.26412</a><br>
   关键词: speculative decoding · long-range decay · hidden state · KV cache · context preservation · KVShot · TTT · EAGLE-3 · Qwen3-8B
 </div>
 
@@ -603,7 +603,7 @@
   <li>warm-start + 序列训练 → gate 早期看到的 cross 输出全是噪声</li>
 </ul>
 
-<p>作者直接指向 <strong>block-wise training</strong>(具体引用 DFlash, arXiv:2602.06036,见<a href="07_DFlash_2602.06036.html">07_DFlash</a>):一次并行生成一整块 draft token,既允许 drafter 加深(mask-token parallel 摊薄成本),又给 KV proj 提供 dense diverse 梯度,还能 warm-start 时同时让两路获得有意义信号。这是这篇 paper 留给社区的"下一步该这么做"。</p>
+<p>作者直接指向 <strong>block-wise training</strong>(具体引用 DFlash, <a href="https://arxiv.org/abs/2602.06036" target="_blank" rel="noopener">arXiv:2602.06036</a>,见<a href="07_DFlash_2602.06036.html">07_DFlash</a>):一次并行生成一整块 draft token,既允许 drafter 加深(mask-token parallel 摊薄成本),又给 KV proj 提供 dense diverse 梯度,还能 warm-start 时同时让两路获得有意义信号。这是这篇 paper 留给社区的"下一步该这么做"。</p>
 
 <hr>
 

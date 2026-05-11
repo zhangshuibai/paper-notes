@@ -212,7 +212,7 @@
   <div class="kv">
     <strong>定位:</strong>ByteDance Seed 出品,EuroSys'25 中稿,目前社区生态最大、最"全场景"的 RL post-training 框架。<br>
     <strong>团队:</strong>ByteDance Seed → 现在由社区共同维护。<br>
-    <strong>arXiv:</strong>2409.19256 (HybridFlow 论文)。<br>
+    <strong>arXiv:</strong><a href="https://arxiv.org/abs/2409.19256" target="_blank" rel="noopener">2409.19256</a> (HybridFlow 论文)。<br>
     <strong>GitHub:</strong><code>volcengine/verl</code>。<br>
     <strong>设计亮点:</strong>
     <ul>
@@ -231,7 +231,7 @@
   <div class="kv">
     <strong>定位:</strong>清华 IIIS + 蚂蚁(inclusionAI)联合研发,fully async + decoupled rollout/training 的标杆,目前在向 "RL Bridge for LLM-based Agent Applications" 方向收敛。<br>
     <strong>团队:</strong>IIIS Tsinghua + inclusionAI (Ant)。<br>
-    <strong>arXiv:</strong>2505.24298 (NeurIPS'25 spotlight)。<br>
+    <strong>arXiv:</strong><a href="https://arxiv.org/abs/2505.24298" target="_blank" rel="noopener">2505.24298</a> (NeurIPS'25 spotlight)。<br>
     <strong>GitHub:</strong><code>inclusionAI/AReaL</code>。<br>
     <strong>设计亮点:</strong>
     <ul>
@@ -288,7 +288,7 @@
   <div class="kv">
     <strong>定位:</strong>最早一批被 RLHF 社区广泛采用的开源库 (2023 末),Ray 原生 + DeepSpeed + vLLM,以"上手最快"和"Ray-friendly"著称。<br>
     <strong>团队:</strong>社区驱动 (主导贡献来自 OpenLLMAI 与多家研究机构)。<br>
-    <strong>arXiv:</strong>2405.11143 (OpenRLHF 报告)。<br>
+    <strong>arXiv:</strong><a href="https://arxiv.org/abs/2405.11143" target="_blank" rel="noopener">2405.11143</a> (OpenRLHF 报告)。<br>
     <strong>GitHub:</strong><code>OpenRLHF/OpenRLHF</code>。<br>
     <strong>设计亮点:</strong>
     <ul>
@@ -317,7 +317,7 @@
 <section class="fw">
   <h3>3.2 Laminar</h3>
   <div class="kv">
-    <strong>arXiv:</strong>2510.12633 · <strong>会议:</strong>EuroSys'26 · <strong>核心:</strong>trajectory-level async,"breaks lockstep"。
+    <strong>arXiv:</strong><a href="https://arxiv.org/abs/2510.12633" target="_blank" rel="noopener">2510.12633</a> · <strong>会议:</strong>EuroSys'26 · <strong>核心:</strong>trajectory-level async,"breaks lockstep"。
   </div>
   <p>Laminar 提出的论点是:agentic RL 的 trajectory 长尾分布在<em>同一个 batch 内</em>——有的 trajectory 一秒结束、有的几分钟。step-level async (AReaL 风格) 还是要等"这一批 trajectory 都好了再 train",依然有等待。Laminar 进一步把粒度<em>下放到 trajectory</em>: 每条 trajectory 完成就立刻进入 training queue,training side 维护一个 stale-aware PPO budget。实测在 multi-turn / tool-call workload 上比 step-level async 再快 1.5–2×。Laminar 目前没有自己独立产品化,但它的设计原则(把"完成事件"作为调度单位)在 AReaL / prime-rl 的最新版里已经渗透。</p>
 </section>
@@ -325,7 +325,7 @@
 <section class="fw">
   <h3>3.3 LlamaRL</h3>
   <div class="kv">
-    <strong>团队:</strong>Meta · <strong>arXiv:</strong>2505.24034 · <strong>规模:</strong>验证 8B / 70B / 405B。
+    <strong>团队:</strong>Meta · <strong>arXiv:</strong><a href="https://arxiv.org/abs/2505.24034" target="_blank" rel="noopener">2505.24034</a> · <strong>规模:</strong>验证 8B / 70B / 405B。
   </div>
   <p>Meta 的内部 RL 框架,<em>PyTorch 原生</em>(无 Ray、无 Megatron 抽象层),靠 PyTorch FSDP-2 + torch.distributed 直接走。最大卖点是简单:整个 framework 的核心代码非常薄。论文报告 8B/70B/405B 上比 DeepSpeed-Chat 加速 <strong>up to 10.7×</strong>。它和 PipelineRL 共享一个观察 —— 与其引入复杂的多控制器抽象,不如把 generation 和 training 在 step 内做精细 overlap。LlamaRL 没有 hybrid engine,而是 disaggregated 但通过 NCCL 直接共享 weights,延迟极低。Meta 内部 Llama 系列 post-training 几乎都跑在它上面,但开源版本社区参与度有限。</p>
 </section>
@@ -341,7 +341,7 @@
 <section class="fw">
   <h3>3.5 HybridFlow paper = veRL 的学术起点</h3>
   <div class="kv">
-    <strong>arXiv:</strong>2409.19256 · <strong>会议:</strong>EuroSys 2025 · <strong>关系:</strong>veRL 的论文化版本。
+    <strong>arXiv:</strong><a href="https://arxiv.org/abs/2409.19256" target="_blank" rel="noopener">2409.19256</a> · <strong>会议:</strong>EuroSys 2025 · <strong>关系:</strong>veRL 的论文化版本。
   </div>
   <p>HybridFlow 是 veRL 在学术界的"出生证明"。论文里把 hybrid single+multi-controller、hybrid engine、3D parallelism resharding 这三件事讲清楚了;真要深入理解 veRL 的设计思想,这篇论文是必读。社区里有时把 HybridFlow 和 veRL 当两个名字混用,严格说前者是论文 + 原型,后者是社区开源版本(及其后续演进)。</p>
 </section>

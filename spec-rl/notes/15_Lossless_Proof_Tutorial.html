@@ -90,7 +90,7 @@
 <h1>Speculative Decoding 为什么是 Lossless 的 — 详细证明教程</h1>
 <div class="meta">
   教程 · Chinese walkthrough with full proof · 面向数学基础较弱的工程师<br>
-  Source: Leviathan et al. 2023 (arXiv:2211.17192) · Chen et al. 2023 (arXiv:2302.01318)<br>
+  Source: Leviathan et al. 2023 (<a href="https://arxiv.org/abs/2211.17192" target="_blank" rel="noopener">arXiv:2211.17192</a>) · Chen et al. 2023 (<a href="https://arxiv.org/abs/2302.01318" target="_blank" rel="noopener">arXiv:2302.01318</a>)<br>
   关键词: speculative decoding · rejection sampling · lossless · importance sampling · acceptance probability
 </div>
 
@@ -741,7 +741,7 @@
   <p><span class="pill">退化情形</span> <span class="m">q = p</span> ⇒ 永不拒绝,最大加速;<span class="m">q ⊥ p</span> ⇒ 永远拒绝,退化成 AR,但永远不偏。</p>
   <p><span class="pill">陷阱</span> 拒绝时<em>不能</em>从 <span class="m">p</span> 重采,会双重计算 <span class="m">min</span> 部分;<em>不能</em>用 <span class="m">|p − q|</span> 替代 <span class="m">(p − q)<sup>+</sup></span>,会在 <span class="m">q &gt; p</span> 的 token 上多加。</p>
   <p><span class="pill">工程红线</span> Lossless 仅在"target/draft 用同一标准化分布算 ratio"时成立;temperature / top-k / top-p / dtype 必须 fold 进 <span class="m">p</span> 和 <span class="m">q</span> 后再做 spec sampling。</p>
-  <p><span class="pill">来源</span> Leviathan et al. 2023 (arXiv:2211.17192),Appendix A.1;Chen et al. 2023 (arXiv:2302.01318),Theorem 1。两篇独立同时给出几乎一致的证明。</p>
+  <p><span class="pill">来源</span> Leviathan et al. 2023 (<a href="https://arxiv.org/abs/2211.17192" target="_blank" rel="noopener">arXiv:2211.17192</a>),Appendix A.1;Chen et al. 2023 (<a href="https://arxiv.org/abs/2302.01318" target="_blank" rel="noopener">arXiv:2302.01318</a>),Theorem 1。两篇独立同时给出几乎一致的证明。</p>
 </div>
 
 <hr>
