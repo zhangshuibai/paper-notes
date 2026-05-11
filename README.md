@@ -49,6 +49,7 @@
 | 18 | [FSP (Beyond MTP)](https://zhangshuibai.github.io/paper-notes/models/notes/18_FSP_2510.14751.html) | Future Summary Prediction / RevLM 蒸馏 | 41 KB |
 | 19 | [📊 RL 框架横评 (AReaL/veRL/slime/NeMo-RL/OpenRLHF…)](https://zhangshuibai.github.io/paper-notes/models/notes/19_RL_Frameworks_Comparison.html) | 10 框架 / 12 维对比 / 决策树 / sync vs async | 53 KB |
 | 20 | [CoPD (Co-Evolving Policy Distillation)](https://zhangshuibai.github.io/paper-notes/models/notes/20_CoPD_2604.27083.html) | RLVR + OPD 同步 / mutual teacher / 钟形 η(O) | 50 KB |
+| 21 | [Prism (test-time scaling for dLLM)](https://zhangshuibai.github.io/paper-notes/models/notes/21_Prism_2602.01842.html) | 离散扩散 LLM 的 hierarchical search + self-verify | 50 KB |
 
 ### MTP 系列阅读建议
 
@@ -130,6 +131,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | FastMTP | Tencent BAC | 2025-09 | [2509.18362](https://arxiv.org/abs/2509.18362) |
 | FSP (Beyond MTP) | — | 2025-10 | [2510.14751](https://arxiv.org/abs/2510.14751) |
 | CoPD (Co-Evolving Policy Distillation) | — | 2026-04 | [2604.27083](https://arxiv.org/abs/2604.27083) |
+| Prism (test-time scaling for dLLM) | — | 2026-02 | [2602.01842](https://arxiv.org/abs/2602.01842) |
 | veRL/HybridFlow | ByteDance | 2024-09 | [2409.19256](https://arxiv.org/abs/2409.19256) |
 | AReaL | 清华 + 蚂蚁 | 2025-05 | [2505.24298](https://arxiv.org/abs/2505.24298) |
 | LlamaRL | Meta | 2025-05 | [2505.24034](https://arxiv.org/abs/2505.24034) |
