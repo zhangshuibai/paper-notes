@@ -371,8 +371,239 @@ s<em>ᵢ</em> = R( concat[ <em>e</em>, s<em>ᵢ₋₁</em> ] · W<em>adapter</em
   <li>truncate=8:激活内存 ∝ 8 × 8 = 64 层 — 跟一个 64 层非循环模型差不多。</li>
 </ul>
 
+<div class="fig">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+    <marker id="arrBack" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+    <marker id="arrStop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+
+  <!-- title -->
+  <text x="360" y="20" text-anchor="middle" font-size="14" fill="#1f2024" font-weight="600">Training: r = 12 采样, truncated BP through last 8</text>
+
+  <!-- forward chain: x -> P -> e -> R x12 -> C -> p -->
+  <!-- input -->
+  <rect x="20" y="80" width="50" height="40" fill="#e7eefb" stroke="#2f6feb"/>
+  <text x="45" y="105" text-anchor="middle" font-size="12">x</text>
+
+  <!-- P -->
+  <rect x="80" y="80" width="50" height="40" fill="#e7eefb" stroke="#2f6feb"/>
+  <text x="105" y="105" text-anchor="middle" font-size="13">P</text>
+
+  <line x1="70" y1="100" x2="78" y2="100" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr2)"/>
+
+  <!-- e label -->
+  <text x="140" y="95" font-size="11" fill="#5b5e66">e</text>
+  <line x1="130" y1="100" x2="150" y2="100" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr2)"/>
+
+  <!-- 12 R blocks; positions x=155..585 step 36 -->
+  <!-- Stop-grad region: i=1..4 (positions 0..3) -->
+  <!-- Grad region: i=5..12 (positions 4..11) -->
+  <g font-size="11">
+    <!-- i=1 -->
+    <rect x="155" y="80" width="32" height="40" fill="#ececec" stroke="#9a9a9a"/>
+    <text x="171" y="105" text-anchor="middle">R₁</text>
+    <!-- i=2 -->
+    <rect x="190" y="80" width="32" height="40" fill="#ececec" stroke="#9a9a9a"/>
+    <text x="206" y="105" text-anchor="middle">R₂</text>
+    <!-- i=3 -->
+    <rect x="225" y="80" width="32" height="40" fill="#ececec" stroke="#9a9a9a"/>
+    <text x="241" y="105" text-anchor="middle">R₃</text>
+    <!-- i=4 -->
+    <rect x="260" y="80" width="32" height="40" fill="#ececec" stroke="#9a9a9a"/>
+    <text x="276" y="105" text-anchor="middle">R₄</text>
+    <!-- i=5 -->
+    <rect x="295" y="80" width="32" height="40" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="311" y="105" text-anchor="middle">R₅</text>
+    <!-- i=6..12 -->
+    <rect x="330" y="80" width="32" height="40" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="346" y="105" text-anchor="middle">R₆</text>
+    <rect x="365" y="80" width="32" height="40" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="381" y="105" text-anchor="middle">R₇</text>
+    <rect x="400" y="80" width="32" height="40" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="416" y="105" text-anchor="middle">R₈</text>
+    <rect x="435" y="80" width="32" height="40" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="451" y="105" text-anchor="middle">R₉</text>
+    <rect x="470" y="80" width="32" height="40" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="486" y="105" text-anchor="middle">R₁₀</text>
+    <rect x="505" y="80" width="32" height="40" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="521" y="105" text-anchor="middle">R₁₁</text>
+    <rect x="540" y="80" width="32" height="40" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="556" y="105" text-anchor="middle">R₁₂</text>
+  </g>
+
+  <!-- C -->
+  <rect x="585" y="80" width="50" height="40" fill="#fff2cc" stroke="#d2a32a"/>
+  <text x="610" y="105" text-anchor="middle" font-size="13">C</text>
+
+  <!-- forward arrows between R blocks (small) -->
+  <g stroke="#2f6feb" stroke-width="1.5" fill="none">
+    <line x1="187" y1="100" x2="190" y2="100"/>
+    <line x1="222" y1="100" x2="225" y2="100"/>
+    <line x1="257" y1="100" x2="260" y2="100"/>
+    <line x1="292" y1="100" x2="295" y2="100"/>
+    <line x1="327" y1="100" x2="330" y2="100"/>
+    <line x1="362" y1="100" x2="365" y2="100"/>
+    <line x1="397" y1="100" x2="400" y2="100"/>
+    <line x1="432" y1="100" x2="435" y2="100"/>
+    <line x1="467" y1="100" x2="470" y2="100"/>
+    <line x1="502" y1="100" x2="505" y2="100"/>
+    <line x1="537" y1="100" x2="540" y2="100"/>
+    <line x1="572" y1="100" x2="585" y2="100" marker-end="url(#arr2)"/>
+  </g>
+
+  <!-- p / loss -->
+  <line x1="635" y1="100" x2="660" y2="100" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr2)"/>
+  <text x="690" y="95" text-anchor="middle" font-size="12" fill="#1f2024">p</text>
+  <text x="690" y="115" text-anchor="middle" font-size="11" fill="#5b5e66">loss</text>
+
+  <!-- input injection: e arrows to every R from above -->
+  <g stroke="#9a9a9a" stroke-width="1" stroke-dasharray="2 2" fill="none">
+    <path d="M140 75 Q 140 55 171 55 L 171 80"/>
+    <path d="M140 75 Q 140 55 206 55 L 206 80"/>
+    <path d="M140 75 Q 140 55 311 55 L 311 80"/>
+    <path d="M140 75 Q 140 55 556 55 L 556 80"/>
+  </g>
+  <text x="380" y="48" font-size="10" fill="#5b5e66" font-style="italic">e 注入每一次 R(input injection)</text>
+
+  <!-- Forward label -->
+  <text x="350" y="142" text-anchor="middle" font-size="11" fill="#2f6feb" font-weight="600">→ forward(全部 12 次)</text>
+
+  <!-- Backward chain (only i=5..12) -->
+  <g stroke="#cc4a1b" stroke-width="2" fill="none">
+    <line x1="660" y1="180" x2="635" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="585" y1="180" x2="572" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="540" y1="180" x2="537" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="505" y1="180" x2="502" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="470" y1="180" x2="467" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="435" y1="180" x2="432" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="400" y1="180" x2="397" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="365" y1="180" x2="362" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="330" y1="180" x2="327" y2="180" marker-end="url(#arrBack)"/>
+    <line x1="295" y1="180" x2="282" y2="180" marker-end="url(#arrBack)"/>
+  </g>
+  <!-- backward dashed continuing only to prelude (not through stop-grad R1..R4) -->
+  <path d="M278 180 Q 200 180 150 130 L 130 120" stroke="#cc4a1b" stroke-width="2" fill="none" stroke-dasharray="6 3" marker-end="url(#arrBack)"/>
+  <text x="200" y="200" font-size="10" fill="#cc4a1b">gradient 跳过 R₁..R₄,经 skip 连接到达 P</text>
+
+  <!-- Stop sign at R4 -->
+  <text x="276" y="75" text-anchor="middle" font-size="14" fill="#a8353e">✕</text>
+  <text x="276" y="155" text-anchor="middle" font-size="10" fill="#a8353e">stop_grad</text>
+
+  <!-- Backward label -->
+  <text x="350" y="220" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">← backward(只回 8 次:i=5..12)</text>
+
+  <!-- Legend -->
+  <g font-size="11">
+    <rect x="40" y="250" width="20" height="14" fill="#ececec" stroke="#9a9a9a"/>
+    <text x="68" y="261">前向但不存激活 (i ≤ r − 8)</text>
+    <rect x="260" y="250" width="20" height="14" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="288" y="261">前向 + 反传 (last 8)</text>
+    <line x1="430" y1="258" x2="460" y2="258" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="468" y="261">gradient 流向</text>
+    <line x1="575" y1="258" x2="605" y2="258" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="2 2"/>
+    <text x="613" y="261">e 注入</text>
+  </g>
+
+  <!-- Sample r from distribution annotation -->
+  <text x="360" y="290" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">每步: r ~ Poisson-Lognormal(mean = curriculum(t))</text>
+  <text x="360" y="306" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">本步采到 r = 12 → 12 次 forward, 后 8 次带梯度</text>
+</svg>
+<figcaption>图 3 (训练):每步采一个 r(本例 r=12),前向跑 12 次 R,但只对最后 8 次回传梯度(绿色)。前 4 次(灰色)只前向,不存激活 — 把内存控制在"8 倍 R 块"的尺度,跟训练一个 64 层非循环模型相当。这是 truncated backprop through time 在 depth-recurrence 上的对应物。</figcaption>
+</div>
+
 <h4>推理时</h4>
 <p>没有 BP,r 可以拉到 32, 64, 128。论文实测 r 从 1 → 32,GSM8K acc 从 26% → 52%,等价于一个"用算力换准确率"的旋钮。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+
+  <text x="360" y="20" text-anchor="middle" font-size="14" fill="#1f2024" font-weight="600">Inference: r 是用户旋钮,无 BP,无内存增长</text>
+
+  <!-- Three scenarios stacked -->
+  <!-- Row 1: r=1 -->
+  <text x="20" y="60" font-size="12" fill="#5b5e66">r = 1</text>
+  <rect x="60" y="48" width="32" height="24" fill="#e7eefb" stroke="#2f6feb"/>
+  <text x="76" y="64" text-anchor="middle" font-size="11">P</text>
+  <line x1="92" y1="60" x2="100" y2="60" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr3)"/>
+  <rect x="100" y="48" width="32" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+  <text x="116" y="64" text-anchor="middle" font-size="11">R₁</text>
+  <line x1="132" y1="60" x2="140" y2="60" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr3)"/>
+  <rect x="140" y="48" width="32" height="24" fill="#fff2cc" stroke="#d2a32a"/>
+  <text x="156" y="64" text-anchor="middle" font-size="11">C</text>
+  <text x="190" y="64" font-size="11" fill="#5b5e66">→ "the"</text>
+  <text x="280" y="64" font-size="11" fill="#a8353e">GSM8K 26%</text>
+
+  <!-- Row 2: r=8 -->
+  <text x="20" y="115" font-size="12" fill="#5b5e66">r = 8</text>
+  <rect x="60" y="103" width="32" height="24" fill="#e7eefb" stroke="#2f6feb"/>
+  <text x="76" y="119" text-anchor="middle" font-size="11">P</text>
+  <g>
+    <rect x="100" y="103" width="22" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="111" y="119" text-anchor="middle" font-size="10">R₁</text>
+    <rect x="124" y="103" width="22" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="135" y="119" text-anchor="middle" font-size="10">R₂</text>
+    <rect x="148" y="103" width="22" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="159" y="119" text-anchor="middle" font-size="10">R₃</text>
+    <rect x="172" y="103" width="22" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="183" y="119" text-anchor="middle" font-size="10">R₄</text>
+    <rect x="196" y="103" width="22" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="207" y="119" text-anchor="middle" font-size="10">R₅</text>
+    <rect x="220" y="103" width="22" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="231" y="119" text-anchor="middle" font-size="10">R₆</text>
+    <rect x="244" y="103" width="22" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="255" y="119" text-anchor="middle" font-size="10">R₇</text>
+    <rect x="268" y="103" width="22" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="279" y="119" text-anchor="middle" font-size="10">R₈</text>
+  </g>
+  <rect x="295" y="103" width="32" height="24" fill="#fff2cc" stroke="#d2a32a"/>
+  <text x="311" y="119" text-anchor="middle" font-size="11">C</text>
+  <text x="345" y="119" font-size="11" fill="#5b5e66">→ "answer is"</text>
+  <text x="455" y="119" font-size="11" fill="#d2a32a">GSM8K 41%</text>
+
+  <!-- Row 3: r=32 -->
+  <text x="20" y="170" font-size="12" fill="#5b5e66">r = 32</text>
+  <rect x="60" y="158" width="32" height="24" fill="#e7eefb" stroke="#2f6feb"/>
+  <text x="76" y="174" text-anchor="middle" font-size="11">P</text>
+  <!-- 32 thin blocks -->
+  <g>
+    <rect x="100" y="158" width="448" height="24" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="324" y="174" text-anchor="middle" font-size="11" fill="#1f7a4a">R₁ R₂ R₃ … R₃₁ R₃₂  (32 次循环, KV cache 不增长)</text>
+  </g>
+  <rect x="551" y="158" width="32" height="24" fill="#fff2cc" stroke="#d2a32a"/>
+  <text x="567" y="174" text-anchor="middle" font-size="11">C</text>
+  <text x="595" y="174" font-size="11" fill="#5b5e66">→ "42"</text>
+  <text x="640" y="174" font-size="11" fill="#1f7a4a" font-weight="600">52%</text>
+
+  <!-- Knob illustration on right -->
+  <g>
+    <circle cx="660" cy="60" r="22" fill="#fff" stroke="#5b5e66" stroke-width="1.5"/>
+    <line x1="660" y1="60" x2="660" y2="40" stroke="#a8353e" stroke-width="2"/>
+    <text x="660" y="98" text-anchor="middle" font-size="10" fill="#5b5e66">r=1 旋钮</text>
+
+    <circle cx="660" cy="170" r="22" fill="#fff" stroke="#5b5e66" stroke-width="1.5"/>
+    <line x1="660" y1="170" x2="675" y2="155" stroke="#1f7a4a" stroke-width="2"/>
+    <text x="660" y="208" text-anchor="middle" font-size="10" fill="#5b5e66">r=32 旋钮</text>
+  </g>
+
+  <!-- bottom annotation -->
+  <text x="360" y="240" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">同一份权重 / 不重训 / 上下文长度不变 / KV cache 不增</text>
+  <text x="360" y="258" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">更多算力 → 更深的 latent reasoning → 更准的答案 (CoT 是把算力花在 output token,这里是花在 hidden)</text>
+</svg>
+<figcaption>图 4 (推理):r 是一个推理时旋钮,从 1 拨到 32,等于在 hidden state 上多迭代 32 次。同一份权重、不重训、序列长度不变、KV cache 不增长 — 算力换准确率。这跟 chain-of-thought 把算力花在 output token 是互补关系:一个对 latent,一个对 verbal。</figcaption>
+</div>
 
 <details>
 <summary>反向论证:如果不做 input injection 会怎样?</summary>
