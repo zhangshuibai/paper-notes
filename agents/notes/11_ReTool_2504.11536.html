@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · ReTool: RL for Strategic Tool Use (2504.11536)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.88em;line-height:1.55}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.08em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>ReTool: Reinforcement Learning for Strategic Tool Use in LLMs</h1>
+<div class="meta">
+  Feng, Huang, Qu, Zhang, Qin, Zhong, Jiang, Chi, Zhong · ByteDance Seed · 2025-04-15 · <a href="https://arxiv.org/abs/2504.11536" target="_blank" rel="noopener">arXiv:2504.11536v2</a><br>
+  关键词: tool-integrated reasoning · code interpreter · PPO · outcome reward · cold-start SFT · AIME · neuro-symbolic
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>ReTool 把 Python <span class="term">code interpreter</span> 当作 deterministic verifier-tool, 用 cold-start SFT 教会基础格式后, 用 outcome-only reward 的 PPO 让 LLM <em>自己学会什么时候、用什么代码</em>来辅助推理——结果在 AIME 2024 上 Qwen2.5-32B-Instruct 训 400 步就达 67.0%, 比同 backbone 的纯 text RL (40.0%, 1080 步) 又快又强, 并 emergent 出 "Oops, let me fix that" 的 code self-correction 行为。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">67.0 vs 40.0</div><div class="l">AIME 2024: ReTool vs text-only RL (Qwen2.5-32B)</div></div>
+    <div class="stat"><div class="n">400 vs 1080</div><div class="l">training steps to convergence (~2.7× 更快)</div></div>
+    <div class="stat"><div class="n">−40 %</div><div class="l">最终 response length 比 SFT 前缩短 (10k → 6k tokens)</div></div>
+  </div>
+  <p><strong>立场:</strong>当 reasoning 任务包含<em>大量算术 / 枚举 / 符号操作</em>时, 长 CoT RL 是 token efficiency 上的死胡同; 让 RL outcome reward 直接信号化"<strong>调用 Python interpreter 是不是更好的决策</strong>", 就能在不引入 process reward 的前提下涌现出 strategic tool use。这是 Search-R1 把搜索当 tool 的 code-domain 对偶。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机: 为什么长 CoT RL 还不够</a></li>
+    <li><a href="#sec2">背景速查 (PPO / CI / sandbox / cold-start / outcome reward)</a></li>
+    <li><a href="#sec3">方法 3.1 — Code-integrated reasoning trajectory format</a></li>
+    <li><a href="#sec4">方法 3.2 — Cold-start SFT pipeline (D<sub>init</sub> → D<sub>CI</sub>)</a></li>
+    <li><a href="#sec5">方法 3.3 — RL stage (PPO + interpreter mask + KV reuse)</a></li>
+    <li><a href="#sec6">方法 3.4 — Worked example: 一道 AIME 题跑通整条 ReTool rollout</a></li>
+    <li><a href="#sec7">实验关键结果 (AIME / 训练动力学 / 涌现行为)</a></li>
+    <li><a href="#sec8">与同类工作对比 (text-RL / Search-R1 / ToolFormer / PoT / o1)</a></li>
+    <li><a href="#sec9">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机: 为什么长 CoT RL 在数学题上撞墙</h2>
+
+<h3>1.1 历史脉络: 从 PoT 到 long-CoT RL, 再到"长 CoT 不够"</h3>
+
+<p>从时间线看, "让 LLM 算数学" 这件事在 2023–2025 之间走了三段:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+    <line x1="40" y1="190" x2="700" y2="190" stroke="#888" stroke-width="1.5"/>
+    <text x="40" y="215" font-size="11" fill="#5b5e66">2022</text>
+    <text x="190" y="215" font-size="11" fill="#5b5e66">2023</text>
+    <text x="340" y="215" font-size="11" fill="#5b5e66">2024 初</text>
+    <text x="490" y="215" font-size="11" fill="#5b5e66">2024 末</text>
+    <text x="640" y="215" font-size="11" fill="#5b5e66">2025 春</text>
+    <g stroke="#888"><line x1="50" y1="186" x2="50" y2="194"/><line x1="200" y1="186" x2="200" y2="194"/><line x1="350" y1="186" x2="350" y2="194"/><line x1="500" y1="186" x2="500" y2="194"/><line x1="650" y1="186" x2="650" y2="194"/></g>
+
+    <rect x="20" y="75" width="220" height="55" rx="8" fill="#e3f2fd" stroke="#2f6feb" stroke-dasharray="4,3"/>
+    <text x="130" y="95" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">① Prompt-only / SFT-only tool</text>
+    <text x="130" y="113" text-anchor="middle" font-size="10.5" fill="#3a3b40">PoT · PAL · MathCoder · ToolFormer</text>
+
+    <rect x="250" y="75" width="200" height="55" rx="8" fill="#fff3cd" stroke="#d2a32a"/>
+    <text x="350" y="95" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">② Long-CoT RL (pure text)</text>
+    <text x="350" y="113" text-anchor="middle" font-size="10.5" fill="#3a3b40">o1 · DeepSeek-R1 · QwQ · s1</text>
+
+    <rect x="460" y="75" width="240" height="55" rx="8" fill="#f8d7da" stroke="#a8353e"/>
+    <text x="580" y="95" text-anchor="middle" font-size="12" font-weight="600" fill="#a8353e">③ RL + tool (本文 / Search-R1)</text>
+    <text x="580" y="113" text-anchor="middle" font-size="10.5" fill="#3a3b40">ReTool · ToRL · Search-R1</text>
+
+    <circle cx="50" cy="190" r="4" fill="#2f6feb"/><text x="50" y="65" text-anchor="middle" font-size="10.5" fill="#2f6feb">CoT prompt</text>
+    <circle cx="200" cy="190" r="4" fill="#2f6feb"/><text x="200" y="170" text-anchor="middle" font-size="10.5" fill="#2f6feb">PoT / PAL</text>
+    <circle cx="350" cy="190" r="4" fill="#d2a32a"/><text x="350" y="65" text-anchor="middle" font-size="10.5" fill="#cc4a1b">o1 launch</text>
+    <circle cx="500" cy="190" r="4" fill="#d2a32a"/><text x="500" y="170" text-anchor="middle" font-size="10.5" fill="#cc4a1b">DeepSeek-R1</text>
+    <circle cx="650" cy="190" r="4" fill="#a8353e"/><text x="650" y="65" text-anchor="middle" font-size="10.5" fill="#a8353e">ReTool / Search-R1</text>
+
+    <path d="M 50 145 Q 360 145 700 145" stroke="#a8353e" stroke-width="1.2" fill="none" stroke-dasharray="3,3" marker-end="url(#mArr1)"/>
+    <text x="370" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2024">"加工具" 的位置从 prompt 一路下沉到 RL training loop</text>
+
+    <defs>
+      <marker id="mArr1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#a8353e"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>三段进化: ① 2022–2023 时代用 <em>prompt 或 SFT</em> 把 Python 嵌进 reasoning, 模型按教好的固定 pattern 调; ② 2024 long-CoT RL 把推理重心拉回纯文本, 但数学题的<em>算术错误</em>问题没解决; ③ 2025 ReTool/Search-R1 把"是否调工具"这一<em>决策</em>本身丢回 RL outcome reward 让模型自己学。</figcaption>
+</div>
+
+<p>三段曲线的真正张力在第二段到第三段: long-CoT RL (R1-Zero 风格) 让模型把每一步算术都"用自然语言写"出来——但 LLM 对 <code>9430 mod 7</code> 这种<em>多位数模运算</em>的逐位推理本质上靠的是 token-level 的 implicit table lookup,错误率不为零, 且错一步导致后面整条 trajectory 报废。论文 Figure 6 的对比就是这个症状: 同一道四位数 mod 7 题, text-based reasoning 得出 N=5624 → Q+R=629 (错), CI-powered 得出 N=5694 → Q+R=699 (对)。</p>
+
+<h3>1.2 别的方案为什么不够 (对照表)</h3>
+
+<table>
+  <tr><th>方案</th><th>怎么做</th><th>本质局限</th></tr>
+  <tr><td>纯 CoT prompting</td><td>"让我们 step by step"</td><td><span class="no">算术误差累积, 没 verifier</span></td></tr>
+  <tr><td>PoT / PAL (prompt-only)</td><td>固定让模型生成完整 Python 程序</td><td><span class="no">把 reasoning 全外包给代码, 失去 natural-language 推理的灵活性</span></td></tr>
+  <tr><td>ToolFormer / MathCoder (SFT)</td><td>用 self-curated 含工具调用的轨迹做 SFT</td><td><span class="no">只学到训练分布里的固定调用 pattern, 不会<em>自适应</em>判断"该不该调"</span></td></tr>
+  <tr><td>DeepSeek-R1-Zero / QwQ (long-CoT RL)</td><td>outcome reward + GRPO/PPO, 但<em>纯文本</em></td><td><span class="no">超长 CoT (10k+ tokens), 算术 token 多但效率低</span></td></tr>
+  <tr><td>ToRL (concurrent, Qwen2.5-Math 1.5B/7B)</td><td>RL+tool 在小模型上</td><td><span class="no">scale 上不去, AIME 表现仍 suboptimal</span></td></tr>
+  <tr><td><strong>ReTool (本文)</strong></td><td>SFT cold-start → outcome-only RL, interpreter-mask, 32B scale</td><td>填上了 "RL + tool + 大模型 + 大数据" 这格</td></tr>
+</table>
+
+<p>关键观察是中间两行: SFT-tool 派和 long-CoT RL 派<em>都看到了对方的缺陷</em>, 但都没融合。SFT-tool 没有 outcome 信号, 只能模仿; long-CoT RL 有 outcome 信号, 但没工具。ReTool 的位置就是把这两件事在<em>同一 trajectory</em>内拼起来——模型一边写自然语言推理, 一边在合适的时机 <code>&lt;code&gt;...&lt;/code&gt;</code> 出去, sandbox 跑完把 <code>&lt;interpreter&gt;...&lt;/interpreter&gt;</code> 塞回上下文。</p>
+
+<h3>1.3 为什么这事不平凡</h3>
+
+<p>三件事让"RL + code interpreter"在工程上比想象的难:</p>
+
+<ol>
+  <li><strong>Mixed-source token 的 loss masking 必须做对。</strong>Trajectory 里既有 policy 自己生成的 token (会走梯度), 又有 sandbox 塞回来的 <code>&lt;interpreter&gt;</code> 段 (外部环境产物)。如果 interpreter 输出参与 loss, 等于让模型去"学"它本不该产出的字符——会立刻发散。论文用 <em>Interpreter Feedback Mask</em> 把这段从 loss 里 mask 掉。</li>
+  <li><strong>Rollout 必须 pause-resume。</strong>每次生成到 <code>&lt;/code&gt;</code> trigger 都要冻结 KV cache → 把 code 拿去执行 → 把 stdout 塞回 context → 继续 generate。论文做了 KV-cache reuse: <em>code 之前的 KV 不重算</em>, 只增量计算 interpreter feedback 段的 KV, 这才让 32B + multi-turn rollout 可负担。</li>
+  <li><strong>Sandbox 必须 async + load-balanced。</strong>同步等 Python 跑完会让 GPU 闲置; 论文用 pod-pool 的异步 sandbox, 每个 worker 按容量主动 pull 任务。这跟标准 RL infra 不同——environment 不是单 process 而是分布式服务。</li>
+  <li><strong>Cold-start 不能省。</strong>从 Qwen2.5-32B-Instruct 直接做 outcome RL, 模型连 <code>&lt;code&gt;</code> tag 都不会输出, reward 全是 -1, RL 完全无法启动。所以必须先做 SFT on D<sub>CI</sub> 把"调工具的语法"灌进去。</li>
+  <li><strong>Reward 只能粗 (outcome-only)。</strong>论文显式拒绝加 "code executability" reward——加了反而会 reward hacking (模型只为生成可执行代码而不解题)。<em>单一 sparse 信号</em>反而促成多样行为。</li>
+</ol>
+
+<p>把这五点凑齐, 才能让"模型自己学会该不该调 Python"这件事真的在 RL loop 里收敛。Figure 3 给出的训练动力学就是这五件事都做对了之后的结果: 平均 response length 先降后稳, code ratio 上升到 98%, code lines 升至 5×, code invocation timing 从 ~0.62 (响应中后段) 提前到 ~0.52 (前半段)——所有指标都指向"模型把 Python 当 first-class reasoning primitive"这件事真的发生了。</p>
+
+<div class="nb">
+<strong>论文最锋利的一句话:</strong>"我们故意 simplify reward design 来 alleviate reward hacking 并 promote more diverse problem-solving behaviors based on <em>mere outcome feedback</em>, 不考虑 code executability reward。"——翻译: 在 RL 里加 process reward 通常是 bad idea, 你以为你在引导, 其实你在挂剥洋葱。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">Code Interpreter (CI)</span></td><td>本文专指 Python sandbox, 接受 <code>print()</code>-based stdout 作为唯一返回通道</td></tr>
+  <tr><td><span class="term">Code-integrated reasoning</span></td><td>一条 trajectory 里 natural language thought / <code>&lt;code&gt;</code> / <code>&lt;interpreter&gt;</code> 交错的格式</td></tr>
+  <tr><td><span class="term">Sandbox</span></td><td>受限执行环境, 这里是 ByteDance 的 async pod pool, 每个 worker 拉任务跑 Python</td></tr>
+  <tr><td><span class="term">Cold-start SFT</span></td><td>RL 前的 SFT 阶段, 让模型先学会输出格式 / 基本工具使用模式</td></tr>
+  <tr><td><span class="term">PPO</span></td><td>Schulman 2017。clipped importance ratio + value baseline 的 on-policy 算法</td></tr>
+  <tr><td><span class="term">Outcome reward</span></td><td>只在 trajectory 终点判答案对错, 不给中间步骤打分 (与 process reward 相对)</td></tr>
+  <tr><td><span class="term">Interpreter mask</span></td><td>RL 训练时, <code>&lt;interpreter&gt;...&lt;/interpreter&gt;</code> 内的 token 不参与 loss / advantage 计算</td></tr>
+  <tr><td><span class="term">VeRL</span></td><td>Volcengine 开源的 RL training framework, 本文实现底座</td></tr>
+  <tr><td><span class="term">AIME</span></td><td>American Invitational Mathematics Examination, 30 题, 数学奥赛预选级难度</td></tr>
+  <tr><td><span class="term">TIR</span></td><td>Tool-Integrated Reasoning, Qwen2.5-Math-Instruct-TIR 的命名约定</td></tr>
+  <tr><td><span class="term">Pass@1 (avg@32)</span></td><td>同一题用 temperature=1.0 重复采样 32 次取平均, 估计单次正确率</td></tr>
+</table>
+
+<h4>PPO 速复习 (本文唯一公式)</h4>
+
+<div class="formula">
+  <em>J</em><sub>PPO</sub>(θ) = 𝔼<sub>(q,a)∼D, o<sub>≤t</sub>∼π<sub>θ_old</sub></sub> [ min( <em>w<sub>t</sub></em>·Â<sub>t</sub>,  clip(<em>w<sub>t</sub></em>, 1−ε, 1+ε)·Â<sub>t</sub> ) ]
+</div>
+<div class="formula">
+  <em>w<sub>t</sub></em> = π<sub>θ</sub>(o<sub>t</sub> | q, o<sub>&lt;t</sub>; CI) / π<sub>θ_old</sub>(o<sub>t</sub> | q, o<sub>&lt;t</sub>; CI)
+</div>
+
+<p>注意 ratio 的条件里多了 "; CI"——意思是 rollout 时 context 里穿插了 sandbox 返回的 interpreter feedback。这<em>不</em>是说 CI 进了 loss, 只是说生成 <em>w<sub>t</sub></em> 时模型看到的上下文包含 interpreter 输出。Loss 仍只在 model-generated token 上算 (见 §5)。Reward 极简:</p>
+
+<div class="formula"><em>R</em>(<em>a</em>, <em>â</em>) = +1 if is_equivalent(<em>a</em>, <em>â</em>) else −1</div>
+
+<p>其中 <em>a</em> 是 ground-truth, <em>â</em> 是 model 在 <code>\boxed{...}</code> 里给出的最终答案。<strong>没有</strong> step reward, <strong>没有</strong> KL 惩罚 (论文设 KL coef = 0.0), <strong>没有</strong> code-executability bonus。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 方法详解</h2>
+
+<h3 id="sec3a">3.1 Trajectory format: thought / code / interpreter 交错</h3>
+
+<p>ReTool 的核心 abstraction 是把一条 rollout 形式化为:</p>
+
+<div class="formula">τ = [ <em>t</em><sub>1</sub> ⊕ <em>c</em><sub>1</sub> ⊕ <em>f</em><sub>1</sub> ⊕ <em>t</em><sub>2</sub> ⊕ <em>c</em><sub>2</sub> ⊕ <em>f</em><sub>2</sub> ⊕ … ⊕ <em>o</em> ]</div>
+
+<p>其中 <em>t<sub>i</sub></em> 是自然语言 thought (model 生成), <em>c<sub>i</sub></em> 是 <code>&lt;code&gt;```python ... ```&lt;/code&gt;</code> 段 (model 生成), <em>f<sub>i</sub></em> 是 <code>&lt;interpreter&gt;...&lt;/interpreter&gt;</code> 段 (sandbox 返回, <strong>外部</strong>), <em>o</em> 是 <code>&lt;answer&gt;\boxed{...}&lt;/answer&gt;</code>。<em>i</em> 的次数由 model 决定——可以一次都不调 (退化到纯 CoT), 也可以调五六次。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 320" width="100%" style="max-width:720px">
+    <!-- model band -->
+    <rect x="20" y="20" width="680" height="40" rx="6" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="30" y="44" font-size="11" fill="#2f6feb" font-weight="600">Policy LLM (π<sub>θ</sub>)</text>
+    <text x="180" y="44" font-size="11" fill="#3a3b40">writes:  t / c / o   (loss 参与)</text>
+
+    <!-- sandbox band -->
+    <rect x="20" y="70" width="680" height="40" rx="6" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="30" y="94" font-size="11" fill="#cc4a1b" font-weight="600">Code Sandbox (env)</text>
+    <text x="220" y="94" font-size="11" fill="#3a3b40">returns:  f   (loss MASKED, KV reused 后再 prefill)</text>
+
+    <!-- trajectory timeline -->
+    <text x="30" y="138" font-size="12" font-weight="600" fill="#5b5e66">trajectory tape →</text>
+
+    <!-- tokens -->
+    <g font-size="10.5">
+      <rect x="20"  y="155" width="80"  height="38" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="60"  y="172" text-anchor="middle" fill="#2f6feb" font-weight="600">t₁</text>
+      <text x="60"  y="186" text-anchor="middle" font-size="9">"先看 1000 mod 7..."</text>
+
+      <rect x="105" y="155" width="100" height="38" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="155" y="172" text-anchor="middle" fill="#2f6feb" font-weight="600">&lt;code&gt; c₁ &lt;/code&gt;</text>
+      <text x="155" y="186" text-anchor="middle" font-size="9">print(1000%7); ...</text>
+
+      <rect x="210" y="155" width="100" height="38" rx="4" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="260" y="172" text-anchor="middle" fill="#cc4a1b" font-weight="600">&lt;interp&gt; f₁ &lt;/interp&gt;</text>
+      <text x="260" y="186" text-anchor="middle" font-size="9">"1000 mod 7 = 6"</text>
+
+      <rect x="315" y="155" width="80"  height="38" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="355" y="172" text-anchor="middle" fill="#2f6feb" font-weight="600">t₂</text>
+      <text x="355" y="186" text-anchor="middle" font-size="9">"现在构造方程..."</text>
+
+      <rect x="400" y="155" width="100" height="38" rx="4" fill="#e3f2fd" stroke="#2f6feb"/>
+      <text x="450" y="172" text-anchor="middle" fill="#2f6feb" font-weight="600">&lt;code&gt; c₂ &lt;/code&gt;</text>
+      <text x="450" y="186" text-anchor="middle" font-size="9">for a in range...</text>
+
+      <rect x="505" y="155" width="100" height="38" rx="4" fill="#fff3cd" stroke="#cc4a1b"/>
+      <text x="555" y="172" text-anchor="middle" fill="#cc4a1b" font-weight="600">&lt;interp&gt; f₂ &lt;/interp&gt;</text>
+      <text x="555" y="186" text-anchor="middle" font-size="9">N=5694, Q+R=699</text>
+
+      <rect x="610" y="155" width="80"  height="38" rx="4" fill="#f8d7da" stroke="#a8353e"/>
+      <text x="650" y="172" text-anchor="middle" fill="#a8353e" font-weight="600">o</text>
+      <text x="650" y="186" text-anchor="middle" font-size="9">\boxed{699}</text>
+    </g>
+
+    <!-- loss mask annotation -->
+    <line x1="210" y1="200" x2="210" y2="220" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <line x1="310" y1="200" x2="310" y2="220" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <line x1="505" y1="200" x2="505" y2="220" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <line x1="605" y1="200" x2="605" y2="220" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <rect x="210" y="218" width="100" height="22" rx="3" fill="#f8d7da" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <text x="260" y="233" text-anchor="middle" font-size="10" fill="#a8353e">mask out (no grad)</text>
+    <rect x="505" y="218" width="100" height="22" rx="3" fill="#f8d7da" stroke="#a8353e" stroke-dasharray="3,2"/>
+    <text x="555" y="233" text-anchor="middle" font-size="10" fill="#a8353e">mask out (no grad)</text>
+
+    <!-- reward at end -->
+    <path d="M 650 197 Q 650 260 360 282" stroke="#1f7a4a" fill="none" stroke-width="1.5" marker-end="url(#mArr2)"/>
+    <rect x="240" y="270" width="240" height="36" rx="8" fill="#dff5e6" stroke="#1f7a4a"/>
+    <text x="360" y="294" text-anchor="middle" font-size="12" fill="#1f7a4a" font-weight="600">outcome reward r = +1 (verifier 判 699 = 699)</text>
+
+    <defs>
+      <marker id="mArr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#1f7a4a"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>一条 ReTool rollout 的展开。蓝色段是 policy 自己写的 token, <strong>都进 loss</strong>; 黄色段是 sandbox 塞回的 interpreter feedback, <strong>不进 loss</strong> (Interpreter Feedback Mask)。最后一格 <code>\boxed{}</code> 由 rule-based verifier 给 ±1 reward, 没有 step reward。</figcaption>
+</div>
+
+<p><strong>反向论证 (如果不 mask interpreter 段会怎样?)</strong> 假设把 <em>f<sub>i</sub></em> 一起算 loss——这相当于在告诉模型 "你应该能输出 <code>1000 mod 7 = 6</code> 这个 stdout"。但这个 stdout 的概率分布完全由 Python 决定, 跟 model 的 reasoning 无关。Loss 会把 model 的输出分布<em>拉向 Python 输出风格</em>, 破坏自然语言段的 coherence。论文一句话称之为 "blocks external tokens from interfering with loss calculations, ensuring training stability"。</p>
+
+<h3 id="sec3b">3.2 Cold-start SFT pipeline: 从 D<sub>init</sub> 到 D<sub>CI</sub></h3>
+
+<p>这一步是<em>最容易被忽略但工程上最关键</em>的一步——直接做 RL 模型连 <code>&lt;code&gt;</code> 都不会写。Pipeline 三步:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <!-- step boxes -->
+    <rect x="20"  y="30" width="200" height="100" rx="10" fill="#fff" stroke="#2f6feb"/>
+    <text x="120" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">① 收集 + 过滤</text>
+    <text x="120" y="74" text-anchor="middle" font-size="11">OpenThoughts 等开源</text>
+    <text x="120" y="90" text-anchor="middle" font-size="11">long-CoT 数据</text>
+    <text x="120" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">DeepSeek-R1 + 人工双 verify</text>
+    <text x="120" y="124" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ D<sub>init</sub> (text-only)</text>
+
+    <text x="235" y="84" font-size="16" fill="#5b5e66">→</text>
+
+    <rect x="255" y="30" width="200" height="100" rx="10" fill="#fff" stroke="#cc4a1b"/>
+    <text x="355" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">② 自动重写</text>
+    <text x="355" y="74" text-anchor="middle" font-size="11">用 Figure 8 prompt</text>
+    <text x="355" y="90" text-anchor="middle" font-size="11">让 LLM 把"手算段"</text>
+    <text x="355" y="108" text-anchor="middle" font-size="11">替换为 &lt;code&gt;+&lt;interp&gt;</text>
+    <text x="355" y="124" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="600">→ D<sub>CI</sub> (草稿)</text>
+
+    <text x="470" y="84" font-size="16" fill="#5b5e66">→</text>
+
+    <rect x="490" y="30" width="210" height="100" rx="10" fill="#fff" stroke="#1f7a4a"/>
+    <text x="595" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="#1f7a4a">③ 双阶段 verify</text>
+    <text x="595" y="74" text-anchor="middle" font-size="11">(a) format check 语法</text>
+    <text x="595" y="90" text-anchor="middle" font-size="11">(b) answer check 数值</text>
+    <text x="595" y="108" text-anchor="middle" font-size="10" fill="#5b5e66">不匹配的扔掉</text>
+    <text x="595" y="124" text-anchor="middle" font-size="11" fill="#1f7a4a" font-weight="600">→ D<sub>CI</sub> (净化)</text>
+
+    <!-- SFT -->
+    <rect x="200" y="170" width="320" height="80" rx="10" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="360" y="195" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Cold-start SFT on D<sub>CI</sub></text>
+    <text x="360" y="215" text-anchor="middle" font-size="11">Qwen2.5-32B-Instruct, 2 epochs</text>
+    <text x="360" y="231" text-anchor="middle" font-size="11">→ 学会 &lt;code&gt; 语法 / 调用 timing 的 prior</text>
+    <text x="360" y="247" text-anchor="middle" font-size="11" fill="#cc4a1b">AIME2024 = 40.9% (vs base 26.7%, vs text-RL 40.0%)</text>
+
+    <path d="M 595 130 Q 595 155 460 168" stroke="#5b5e66" fill="none" marker-end="url(#mArr3)"/>
+
+    <defs>
+      <marker id="mArr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#5b5e66"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>D<sub>CI</sub> 构造 pipeline。注意三件事: ① 输入是<em>已有的 long-CoT 数据</em>, 不是从零生成; ② "替换手算段" 由一个 LLM (论文未点名, 但用 Figure 8 的 prompt) 自动完成; ③ 双 verify 必须包括 <em>answer 数值 match</em>——避免 rewriter 把答案改错。</figcaption>
+</div>
+
+<h4>Worked example: D<sub>CI</sub> 里一条样本长什么样</h4>
+
+<p>假设 D<sub>init</sub> 里原始 long-CoT 包含 "1000 mod 7 = 6, 100 mod 7 = 2, 10 mod 7 = 3, 1 mod 7 = 1, 所以方程变为 6+2B+3C+D≡0 (mod 7)" 这一段——这是典型的"模型 in-text 心算"段。Rewriter 拿 Figure 8 prompt 后, 把它改写成:</p>
+
+<pre><code>... 先计算 1000, 100, 10, 1 各自的 mod 7:
+&lt;code&gt;
+```python
+mod_1000 = 1000 % 7
+mod_100  = 100 % 7
+mod_10   = 10 % 7
+mod_1    = 1 % 7
+print(f"1000 mod 7 = {mod_1000}")
+print(f"100  mod 7 = {mod_100}")
+print(f"10   mod 7 = {mod_10}")
+print(f"1    mod 7 = {mod_1}")
+```
+&lt;/code&gt;
+&lt;interpreter&gt;
+1000 mod 7 = 6
+100  mod 7 = 2
+10   mod 7 = 3
+1    mod 7 = 1
+&lt;/interpreter&gt;
+
+所以方程变为 6 + 2B + 3C + D ≡ 0 (mod 7) ...</code></pre>
+
+<p>关键 design choice (论文 Figure 8 第 6 条): "Execution results should match the model's output exactly, with no extra or missing tokens"——意思是合成数据里的 <code>&lt;interpreter&gt;</code> 段被要求和真实 Python 输出 byte-by-byte 一致。这是为了让 cold-start 模型在<em>真实 RL rollout</em> (届时 interpreter 段来自真 sandbox) 时不会经历 distribution shift。</p>
+
+<p><strong>Cold-start 单独的效果</strong>: 只做 SFT (不做 RL) 的 ReTool 在 AIME2024 上 = 40.9%, 已经追平 text-only RL 1080 步训练的 40.0%。这说明 D<sub>CI</sub> 本身就装得下大部分"调工具该怎么调"的先验; RL 阶段做的事是<em>从这个 prior 里 selection</em>——挑出"哪种调用方式真的更可能答对"的子分布。</p>
+
+<h3 id="sec3c">3.3 RL stage: PPO + interpreter mask + KV reuse + async sandbox</h3>
+
+<p>RL 阶段在 SFT 模型上继续, 用 PPO + outcome reward。核心改动有四:</p>
+
+<table>
+  <tr><th>组件</th><th>具体做法</th><th>为什么必要</th></tr>
+  <tr><td>Rollout loop</td><td>检测到 <code>&lt;/code&gt;</code> 即暂停生成, 把 code 发去 sandbox, 把 stdout/stderr 包成 <code>&lt;interpreter&gt;</code> 拼回 context, 继续 generate</td><td>让 rollout 时模型看到的轨迹与最终 inference 完全一致 (no train-test mismatch)</td></tr>
+  <tr><td>Interpreter Feedback Mask</td><td><code>&lt;interpreter&gt;...&lt;/interpreter&gt;</code> 段 loss-mask = 0</td><td>不让外部 token 干扰 policy 梯度</td></tr>
+  <tr><td>KV-cache Reuse</td><td>每次 <code>&lt;/code&gt;</code> 触发后, code 之前的 KV cache 全部冻结, 只 incremental prefill interpreter feedback 部分</td><td>32B + 16k seq 多轮 rollout 否则 OOM</td></tr>
+  <tr><td>Async Sandbox</td><td>pod pool 异步拉任务, 慢 thread 不阻塞快 thread</td><td>RL throughput 不被 Python 执行时间拖累</td></tr>
+</table>
+
+<div class="fig">
+  <svg viewBox="0 0 720 360" width="100%" style="max-width:720px">
+    <!-- header -->
+    <text x="360" y="22" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2024">Loss / advantage 在 trajectory 上的分布 (示意)</text>
+
+    <!-- token strip -->
+    <g font-size="9">
+      <!-- thought 1 (24 tokens, blue) -->
+      <rect x="20"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="26"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="32"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="38"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="44"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="50"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="56"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="62"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="68"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="74"  y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/>
+      <!-- code 1 -->
+      <rect x="86" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="92" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="98" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="104" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="110" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="116" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="122" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="128" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/>
+      <!-- interp 1 (mask, yellow with X) -->
+      <rect x="142" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="148" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="154" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="160" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="166" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="172" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/>
+      <!-- thought 2 -->
+      <rect x="184" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="190" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="196" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="202" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="208" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="214" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="220" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="226" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="232" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="238" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/>
+      <!-- code 2 -->
+      <rect x="250" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="256" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="262" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="268" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="274" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="280" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="286" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="292" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="298" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="304" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/>
+      <!-- interp 2 (mask) -->
+      <rect x="316" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="322" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="328" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="334" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/><rect x="340" y="50" width="6" height="24" fill="#cc4a1b" opacity=".25"/>
+      <!-- thought 3 + answer -->
+      <rect x="354" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="360" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="366" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="372" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="378" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/><rect x="384" y="50" width="6" height="24" fill="#2f6feb" opacity=".7"/>
+      <rect x="396" y="50" width="14" height="24" fill="#a8353e" opacity=".7"/>
+    </g>
+
+    <!-- labels -->
+    <text x="50" y="92" font-size="10" fill="#2f6feb">t₁</text>
+    <text x="105" y="92" font-size="10" fill="#2f6feb">c₁</text>
+    <text x="155" y="92" font-size="10" fill="#cc4a1b">f₁ (masked)</text>
+    <text x="210" y="92" font-size="10" fill="#2f6feb">t₂</text>
+    <text x="275" y="92" font-size="10" fill="#2f6feb">c₂</text>
+    <text x="328" y="92" font-size="10" fill="#cc4a1b">f₂ (masked)</text>
+    <text x="370" y="92" font-size="10" fill="#2f6feb">t₃</text>
+    <text x="400" y="92" font-size="10" fill="#a8353e">o</text>
+
+    <!-- legend -->
+    <rect x="450" y="50" width="14" height="14" fill="#2f6feb" opacity=".7"/>
+    <text x="470" y="62" font-size="11" fill="#1f2024">model token (loss ON, Â<sub>t</sub> 来自 PPO)</text>
+    <rect x="450" y="70" width="14" height="14" fill="#cc4a1b" opacity=".25"/>
+    <text x="470" y="82" font-size="11" fill="#1f2024">interpreter token (loss OFF)</text>
+    <rect x="450" y="90" width="14" height="14" fill="#a8353e" opacity=".7"/>
+    <text x="470" y="102" font-size="11" fill="#1f2024">\boxed{} → outcome reward</text>
+
+    <!-- KV cache freeze -->
+    <text x="30" y="135" font-size="11" font-weight="600" fill="#5b5e66">KV cache reuse 示意:</text>
+    <rect x="20"  y="145" width="120" height="22" rx="3" fill="#dff5e6" stroke="#1f7a4a"/>
+    <text x="80" y="160" text-anchor="middle" font-size="10" fill="#1f7a4a">prefill t₁+c₁</text>
+    <text x="146" y="160" font-size="14" fill="#5b5e66">→</text>
+    <rect x="165" y="145" width="60" height="22" rx="3" fill="#fff" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+    <text x="195" y="160" text-anchor="middle" font-size="10" fill="#cc4a1b">pause</text>
+    <text x="230" y="160" font-size="14" fill="#5b5e66">→</text>
+    <rect x="245" y="145" width="100" height="22" rx="3" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="295" y="160" text-anchor="middle" font-size="10" fill="#cc4a1b">sandbox runs c₁</text>
+    <text x="350" y="160" font-size="14" fill="#5b5e66">→</text>
+    <rect x="365" y="145" width="120" height="22" rx="3" fill="#dff5e6" stroke="#1f7a4a"/>
+    <text x="425" y="160" text-anchor="middle" font-size="10" fill="#1f7a4a">incremental prefill f₁</text>
+    <text x="490" y="160" font-size="14" fill="#5b5e66">→</text>
+    <rect x="505" y="145" width="120" height="22" rx="3" fill="#dff5e6" stroke="#1f7a4a"/>
+    <text x="565" y="160" text-anchor="middle" font-size="10" fill="#1f7a4a">resume gen t₂...</text>
+
+    <text x="20" y="190" font-size="11" fill="#5b5e66">关键: <em>t₁+c₁ 的 KV</em> 不重算, 直接复用——这正是 32B 多轮 rollout 的工程命门。</text>
+
+    <!-- async sandbox pool -->
+    <text x="30" y="225" font-size="11" font-weight="600" fill="#5b5e66">Async sandbox pool (rollout 并行):</text>
+
+    <rect x="20"  y="240" width="100" height="40" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="70" y="258" text-anchor="middle" font-size="10" fill="#2f6feb">rollout #1</text>
+    <text x="70" y="272" text-anchor="middle" font-size="10" fill="#5b5e66">pause @ c₁</text>
+
+    <rect x="130" y="240" width="100" height="40" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="180" y="258" text-anchor="middle" font-size="10" fill="#2f6feb">rollout #2</text>
+    <text x="180" y="272" text-anchor="middle" font-size="10" fill="#5b5e66">pause @ c₃</text>
+
+    <rect x="240" y="240" width="100" height="40" rx="6" fill="#fff" stroke="#2f6feb"/>
+    <text x="290" y="258" text-anchor="middle" font-size="10" fill="#2f6feb">rollout #N</text>
+    <text x="290" y="272" text-anchor="middle" font-size="10" fill="#5b5e66">pause @ c₂</text>
+
+    <line x1="120" y1="300" x2="660" y2="300" stroke="#888"/>
+    <line x1="70"  y1="280" x2="70"  y2="300" stroke="#888"/>
+    <line x1="180" y1="280" x2="180" y2="300" stroke="#888"/>
+    <line x1="290" y1="280" x2="290" y2="300" stroke="#888"/>
+
+    <rect x="380" y="305" width="70" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="415" y="324" text-anchor="middle" font-size="10" fill="#cc4a1b">pod 1</text>
+    <rect x="460" y="305" width="70" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="495" y="324" text-anchor="middle" font-size="10" fill="#cc4a1b">pod 2</text>
+    <rect x="540" y="305" width="70" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="575" y="324" text-anchor="middle" font-size="10" fill="#cc4a1b">pod 3</text>
+    <rect x="620" y="305" width="70" height="30" rx="5" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="655" y="324" text-anchor="middle" font-size="10" fill="#cc4a1b">pod K</text>
+    <text x="360" y="324" font-size="10" fill="#5b5e66">pods pull task →</text>
+  </svg>
+  <figcaption>三件 RL infra 细节: (上) 每个 token 的 loss 状态——蓝色全计 loss + advantage, 黄色 mask 掉, 红色 o 是 reward 落点; (中) KV cache 复用使每次 <code>&lt;/code&gt;</code> trigger 只增量 prefill, 不重算 history; (下) 多个 rollout 异步把 code 扔给共享 pod pool, 慢任务不阻塞快任务。</figcaption>
+</div>
+
+<h4>训练超参 (论文 §2.3.2 直接抄)</h4>
+
+<ul>
+  <li>Framework: <strong>VeRL</strong>; Optimizer: AdamW, lr = 1e-6</li>
+  <li>Cold-start: 2 epochs on D<sub>CI</sub></li>
+  <li>Max seq length: 16,384 tokens (含 interpreter 段)</li>
+  <li>Mini-batch: 512; <strong>KL coef = 0.0</strong> (没有 reference model 锚定)</li>
+  <li>Backbone: Qwen2.5-32B-Instruct (主实验) / DeepSeek-R1-Distill-Qwen-32B (强化版)</li>
+</ul>
+
+<p><strong>反向论证 (KL=0 为什么不爆?)</strong> 通常 RLHF/RLVR 训练里 KL coef 不为零是为防 policy 远离 ref model 后 reward hack。ReTool 敢设 0, 我猜的原因有两条: ① outcome reward 是 binary, hack 空间小; ② <code>&lt;code&gt;</code>/<code>&lt;interpreter&gt;</code> 这个 deterministic 通道把"正确答案"锁死, model 无法靠改风格骗到 reward。但这也意味着<em>不能</em>直接拿 ReTool 的 reward+KL setup 套到 reward 不稳的任务上。</p>
+
+<h3 id="sec3d">3.4 Worked example: 一道 AIME 题完整 rollout</h3>
+
+<p>用论文 Figure 4 的真实 AIME 题 (硬币贪心):</p>
+
+<blockquote>From an unlimited supply of 1-cent, 10-cent, and 25-cent coins, ... Find the number of values of <em>N</em> between 1 and 1000 inclusive for which the greedy algorithm succeeds. (答案: 610)</blockquote>
+
+<p>训练好的 ReTool 模型实际产生的 rollout (节选, 真实 token 取自论文):</p>
+
+<pre><code>Alright, let's tackle this problem step by step using code to ensure accuracy.
+The goal is to determine for each value of N from 1 to 1000 whether the
+greedy algorithm produces the minimum number of coins. If it does, we count
+that N. ...
+
+&lt;code&gt;
+```python
+def test_specific_N(N_values):
+    for N in N_values:
+        greedy_result = greedy(N)
+        ...
+test_results = test_specific_N(N_values_to_test)
+print(test_results)
+```
+&lt;/code&gt;
+&lt;interpreter&gt;
+Traceback (most recent call last):
+  File "/tmp/tmpbr3uj7zz/tmpdmj39k6o.py", line 11, in &lt;module&gt;
+    test_results = test_specific_N(N_values_to_test)
+  File "/tmp/tmpbr3uj7zz/tmpdmj39k6o.py", line 5, in test_specific_N
+    greedy_result = greedy(N)
+NameError: name 'greedy' is not defined
+&lt;/interpreter&gt;
+
+Oops, the functions need to be defined in the same scope. Let's correct that:
+
+&lt;code&gt;
+```python
+def greedy(N):
+    denominations = [25, 10, 1]
+    ...
+def test_specific_N(N_values):
+    for N in N_values:
+        greedy_result = greedy(N)
+        ...
+test_results = test_specific_N(N_values_to_test)
+print(test_results)
+```
+&lt;/code&gt;
+&lt;interpreter&gt;
+{42: (9, 6), 25: (1, 1), 10: (1, 1), 1: (1, 1), 1000: (40, 40)}
+&lt;/interpreter&gt;
+...
+&lt;answer&gt; \boxed{610} &lt;/answer&gt;</code></pre>
+
+<p>把这条 rollout 拆开看 (蓝=model token, 黄=interpreter token):</p>
+
+<table>
+  <tr><th>Step</th><th>段</th><th>谁产生</th><th>进 loss?</th><th>关键决策</th></tr>
+  <tr><td>1</td><td>"Alright, ...using code to ensure accuracy"</td><td>policy</td><td><span class="ok">✓</span></td><td>决定调工具</td></tr>
+  <tr><td>2</td><td>第一段 Python (含 bug)</td><td>policy</td><td><span class="ok">✓</span></td><td>写代码</td></tr>
+  <tr><td>3</td><td>NameError traceback</td><td>sandbox</td><td><span class="no">✗ (masked)</span></td><td>—</td></tr>
+  <tr><td>4</td><td>"Oops, the functions need to be defined ..."</td><td>policy</td><td><span class="ok">✓</span></td><td><strong>self-correction</strong>: 不重新解释问题, 直接修代码</td></tr>
+  <tr><td>5</td><td>修复后的 Python</td><td>policy</td><td><span class="ok">✓</span></td><td>—</td></tr>
+  <tr><td>6</td><td>正确 dict 输出</td><td>sandbox</td><td><span class="no">✗ (masked)</span></td><td>—</td></tr>
+  <tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+  <tr><td>N</td><td>\boxed{610}</td><td>policy</td><td><span class="ok">✓</span></td><td>verifier 给 r = +1</td></tr>
+</table>
+
+<p>整条 trajectory 的 advantage 怎么分配: PPO 用 GAE 把 terminal reward +1 折回到每一个 model-token 上 (黄段 mask 不参与); 因为 KL=0 且 outcome reward 是 sparse +1/-1, 所有 model token 的 advantage 大致同号。这意味着<em>"Oops, let's correct"那一句</em>跟"Alright, let's tackle"那一句拿到几乎相同的 positive advantage——所以下次遇到 NameError 类似情况, 模型生成 "Oops" 风格 self-correction 的概率会上升。这就是 emergent self-correction 的训练机理。</p>
+
+<p><strong>反向论证 (为什么不需要 process reward?)</strong> 如果加 "code 跑通 +0.5, 跑不通 -0.5" 的 process reward——第一次 NameError 那条<em>整体答对</em>的轨迹反而会被 process 部分扣分。模型学到的 lesson 可能变成"宁可不调工具也别写出 bug code", 直接抹掉 self-correction 行为。所以论文坚持 outcome-only, 留出 trial-and-error 的空间。</p>
+
+<hr>
+
+<h2 id="sec7">4 · 实验关键结果</h2>
+
+<h3>4.1 主表 (AIME 2024 / 2025, pass@1 = avg@32)</h3>
+
+<table>
+  <tr><th>模型</th><th>AIME 2024</th><th>AIME 2025</th><th>说明</th></tr>
+  <tr><td>Qwen2.5-Math-72B-Instruct</td><td>30.0</td><td>—</td><td>纯 CoT, 大 backbone</td></tr>
+  <tr><td>Qwen2.5-Math-72B-Instruct-<em>TIR</em></td><td>40.0</td><td>—</td><td>tool-integrated SFT, 72B</td></tr>
+  <tr><td>OpenAI o1-preview</td><td>44.6</td><td>37.9</td><td>闭源 long-CoT</td></tr>
+  <tr><td>DeepSeek-R1-Zero-Qwen-32B</td><td>47.0</td><td>—</td><td>long-CoT RL, 同 scale</td></tr>
+  <tr><td>QwQ-32B-Preview</td><td>50.0</td><td>33.5</td><td>long-CoT, 同 scale</td></tr>
+  <tr><td>s1-32B</td><td>56.7</td><td>—</td><td>test-time scaling</td></tr>
+  <tr><td colspan="4" style="background:#fff7e0"><em>CI-powered RL</em></td></tr>
+  <tr><td><strong>ReTool (Qwen2.5-32B-Instruct)</strong></td><td><strong>67.0</strong></td><td><strong>49.3</strong></td><td>400 steps</td></tr>
+  <tr><td><strong>ReTool (DeepSeek-R1-Distill-Qwen-32B)</strong></td><td><strong>72.5</strong></td><td><strong>54.3</strong></td><td>更强 backbone</td></tr>
+  <tr><td colspan="4" style="background:#fff7e0"><em>Ablations (Qwen2.5-32B-Instruct)</em></td></tr>
+  <tr><td>w/o Training (base)</td><td>26.7</td><td>—</td><td>—</td></tr>
+  <tr><td>w/o CI (Text-based RL)</td><td>40.0</td><td>36.7</td><td>1080 steps</td></tr>
+  <tr><td>w/o RL (only Cold-start, infer with CI)</td><td>40.9</td><td>34.5</td><td>SFT 单独已追平 text-RL</td></tr>
+</table>
+
+<p>三个最 load-bearing 的读法:</p>
+
+<ol>
+  <li><strong>67.0 vs 40.0 (同 backbone)。</strong>同样 Qwen2.5-32B-Instruct + 同样 outcome RL, 加 CI 比不加 CI 在 AIME2024 上多 27 个绝对百分点——这是 tool 的边际贡献, 而不是 backbone / data 的功劳。</li>
+  <li><strong>40.9 (SFT only) vs 67.0 (SFT+RL)。</strong>SFT 把"会用工具"装好后, RL 再加 26 个百分点——这是<em>RL outcome reward</em>从 SFT prior 里"选出更优 tool-use pattern"的功劳。两步缺一不可。</li>
+  <li><strong>72.5 (R1-Distill backbone)。</strong>backbone 越强 ReTool 越强, 说明这套框架不是钉死在 Qwen 上, 而是一种 generic 后训练范式。</li>
+</ol>
+
+<h3>4.2 训练动力学 (Figure 3)</h3>
+
+<p>论文跑 400 steps 在 6 个指标上画曲线, 每个都讲一个有意思的故事:</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:720px">
+    <!-- 3 subplots in a row -->
+    <g>
+      <text x="120" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="#1f2024">(a) Response length</text>
+      <line x1="40" y1="160" x2="200" y2="160" stroke="#888"/>
+      <line x1="40" y1="40"  x2="40"  y2="160" stroke="#888"/>
+      <!-- curve: starts ~10000 → dips to ~5500 around step 120 → climbs back to ~6000 -->
+      <path d="M 40 50 Q 90 130, 110 140 Q 140 155, 160 145 Q 180 142, 200 140" stroke="#2f6feb" fill="none" stroke-width="2"/>
+      <text x="42" y="50"  font-size="9" fill="#5b5e66">10k</text>
+      <text x="42" y="160" font-size="9" fill="#5b5e66">2k</text>
+      <text x="40" y="175" font-size="9" fill="#5b5e66">0</text>
+      <text x="200" y="175" font-size="9" fill="#5b5e66">400 steps</text>
+      <text x="120" y="200" text-anchor="middle" font-size="10" fill="#5b5e66">先降 (替换冗长心算) 后稳</text>
+      <text x="120" y="215" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="600">最终 −40% (10k → 6k)</text>
+    </g>
+
+    <g transform="translate(220, 0)">
+      <text x="120" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="#1f2024">(b) Code ratio</text>
+      <line x1="40" y1="160" x2="200" y2="160" stroke="#888"/>
+      <line x1="40" y1="40"  x2="40"  y2="160" stroke="#888"/>
+      <!-- curve: starts 20%, climbs to 98% -->
+      <path d="M 40 130 Q 80 60, 130 48 Q 170 43, 200 42" stroke="#cc4a1b" fill="none" stroke-width="2"/>
+      <text x="42" y="50"  font-size="9" fill="#5b5e66">100</text>
+      <text x="42" y="160" font-size="9" fill="#5b5e66">20</text>
+      <text x="120" y="200" text-anchor="middle" font-size="10" fill="#5b5e66">含 code 的回答占比</text>
+      <text x="120" y="215" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="600">飙到 98%, 几乎每题都调</text>
+    </g>
+
+    <g transform="translate(440, 0)">
+      <text x="120" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="#1f2024">(c) Code lines</text>
+      <line x1="40" y1="160" x2="200" y2="160" stroke="#888"/>
+      <line x1="40" y1="40"  x2="40"  y2="160" stroke="#888"/>
+      <!-- starts ~10, climbs to ~50 -->
+      <path d="M 40 145 Q 100 100, 150 70 Q 180 55, 200 50" stroke="#1f7a4a" fill="none" stroke-width="2"/>
+      <text x="42" y="50"  font-size="9" fill="#5b5e66">50</text>
+      <text x="42" y="160" font-size="9" fill="#5b5e66">10</text>
+      <text x="120" y="200" text-anchor="middle" font-size="10" fill="#5b5e66">平均每段 code 的行数</text>
+      <text x="120" y="215" text-anchor="middle" font-size="10" fill="#1f7a4a" font-weight="600">~5× 增长 (代码更复杂)</text>
+    </g>
+
+    <g transform="translate(0, 230)">
+      <text x="360" y="20" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">(f) Code invocation timing: 0.62 → 0.52 (越来越早调 code)</text>
+      <text x="360" y="40" text-anchor="middle" font-size="10" fill="#5b5e66">即 code 段 start 在 response 中的相对位置——训得越久, model 越倾向<em>先调工具再聊天</em></text>
+    </g>
+  </svg>
+  <figcaption>Figure 3 的核心三张子图重绘。读法: response length 先降 (替换冗长心算) 后稳 (代码本身的开销); code ratio 上升到 98% (几乎每题必调); code lines ~5× 上升 (代码也变复杂)。Figure 3(f) 给出一个更微妙的发现: model 学到的不是"等推不动了再调", 而是"<em>越早调越好</em>"。</figcaption>
+</div>
+
+<h3>4.3 涌现行为</h3>
+
+<ul>
+  <li><strong>Code self-correction ("Aha moment")。</strong>见 §3.4 那条 NameError → "Oops, let's correct" → fix 的轨迹。注意<em>训练数据 D<sub>CI</sub> 里几乎没有 self-correction 例子</em>——这是 RL 自己长出来的。</li>
+  <li><strong>Code purpose 多样化。</strong>论文用 Doubao-1.5-pro 给 code 段分类, 训前主要是"calculation/verification"两大类, 训后出现了 enumeration / brute-force search / symbolic / hypothesis testing 等多种 purpose——adaptive tool selection 的证据。</li>
+  <li><strong>CI-powered vs text-only 同题对比 (Figure 6)。</strong>四位数 mod 7 题, text-only RL 模型推出 N=5624 (错), CI-powered 用 Python 暴力 enumerate 出 N=5694 (对)。差别在于 text-only 模型每一步模算术都有 small error probability, 一步错全错。</li>
+  <li><strong>Code pass rate 的分裂。</strong>对<em>答对</em>的轨迹, 最后一段 code 的 pass rate 始终 ~100%; 对<em>答错</em>的轨迹, 这个 pass rate 在训练中<em>下降</em>——意思是 model 在更复杂的题上更容易写错代码, 不是 code 能力倒退, 而是 model 在 reach for harder problems。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">5 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>工作</th><th>类型</th><th>关键差异</th></tr>
+  <tr><td><strong>DeepSeek-R1-Zero / QwQ / s1</strong></td><td>long-CoT RL, no tool</td><td>同 backbone 同算力, ReTool 32B 67.0 / 49.3 vs 47.0 / 33.5。证明 tool 是 token efficiency 的关键</td></tr>
+  <tr><td><strong>Search-R1</strong> (<a href="https://arxiv.org/abs/2503.09516" target="_blank" rel="noopener">arXiv:2503.09516</a>)</td><td>RL+tool, 同 framework</td><td>同一思想的<em>搜索域</em>对偶: tool = 搜索引擎, observation = 搜索结果片段。ReTool 是<em>代码域</em>实例。架构基本同构 (rollout pause/resume + interpreter mask)</td></tr>
+  <tr><td><strong>ToolFormer / MathCoder</strong></td><td>SFT-only tool use</td><td>只学固定模式, 不会自适应"该不该调"; ReTool 的 cold-start 部分类似这条线, RL 是关键加法</td></tr>
+  <tr><td><strong>PoT / PAL</strong> (<a href="https://arxiv.org/abs/2211.12588" target="_blank" rel="noopener">arXiv:2211.12588</a> / <a href="https://arxiv.org/abs/2211.10435" target="_blank" rel="noopener">arXiv:2211.10435</a>)</td><td>prompting-only</td><td>"把整道题翻译成 Python"——失去自然语言推理的灵活, 也不会动态决定调用时机</td></tr>
+  <tr><td><strong>Qwen2.5-Math-72B-TIR</strong></td><td>SFT tool-integrated</td><td>AIME 40.0%——是同思路 SFT-only 的天花板, ReTool 32B 多 27 个点说明 RL 是收益放大器</td></tr>
+  <tr><td><strong>ToRL</strong> (<a href="https://arxiv.org/abs/2503.23383" target="_blank" rel="noopener">arXiv:2503.23383</a>)</td><td>concurrent: RL+tool 小模型</td><td>1.5B/7B Qwen-Math, 性能 suboptimal——ReTool 把这条线 scale 到 32B 并配齐 infra</td></tr>
+  <tr><td><strong>OpenAI o1 + tools</strong></td><td>闭源</td><td>o1-preview 在 AIME 2024 = 44.6%; ReTool-32B 67.0 / R1-Distill-Tool 72.5 都显著高——open-source 32B 在<em>带 tool</em>这条赛道上 cross 了 o1-preview</td></tr>
+  <tr><td><strong>MathCoder / MAmmoTH</strong></td><td>code-aug SFT</td><td>更早期的 code-augmented math 数据 + SFT, ReTool 的 D<sub>CI</sub> pipeline 是其精神后继</td></tr>
+  <tr><td>sibling 05 RethinkingAgenticRL</td><td>position paper</td><td>把 ReTool 列为 "Agentic POMDP" 的实例——本文是<em>具体训出来的 agent</em>, RethinkingAgenticRL 是<em>给它命名的 framework</em></td></tr>
+</table>
+
+<div class="nb">
+<strong>读法建议:</strong>把 ReTool 和 Search-R1 放在一起读最划算——前者是 code interpreter, 后者是 search engine, 两条线在同一 framework 下用同一 PPO + outcome reward + interpreter mask 把"tool decision"丢回 RL。两份 paper 几乎是<em>同一篇文章在不同 tool 上的两个实例</em>, 印证了这条技术路线的<em>通用性</em>。
+</div>
+
+<hr>
+
+<h2 id="sec9">6 · 局限 / 个人 take / 待验证问题</h2>
+
+<h3>论文的局限</h3>
+<ul>
+  <li><strong>只跑 AIME 一族 math 题。</strong>没测 GPQA / MMLU-Pro / 编程题 / 形式化证明。ReTool 的"调 Python 解决算术"在 AIME 上是 perfect fit, 换到推理而非计算主导的 task 上是否还成立, 未知。</li>
+  <li><strong>Cold-start data 构造的细节不透明。</strong>D<sub>CI</sub> 重写器是哪个 LLM, 用了多大规模, 多少条样本被淘汰, 全没披露。这是<em>能不能复现</em>的硬卡点。</li>
+  <li><strong>Code 仅限 Python。</strong>没讨论多语言/多工具 (SymPy / Wolfram / SAT solver / 数值库) 的混合调用——而真实 AIME 题里某些更适合 SymPy 解析解。</li>
+  <li><strong>Sandbox 安全 + 资源限制没讲清楚。</strong>对抗性 prompt 可能让模型写 <code>os.system("rm -rf /")</code>——pod pool 怎么 isolate, 是否有 timeout/memory cap, 论文几乎没提。</li>
+  <li><strong>KL=0 + outcome-only 的 stability claim 没在更长训练 / 更难任务上验证。</strong>400 步是不是恰好踩在崩之前的甜点上, 不知道。</li>
+</ul>
+
+<h3>我的疑问 (待验证)</h3>
+<ol>
+  <li>D<sub>CI</sub> 的 rewriter 如果用比 base model 更强的模型 (例如 R1) 蒸馏, vs 用 base model 自己蒸馏, 哪个 cold-start 效果更好? 论文回避了这个 ablation。</li>
+  <li>ReTool 的<em>token efficiency 收益</em>(response length −40%) 在 inference cost 上有多大节省? 因为 sandbox 调用本身有 RTT 开销, 单看 token 数不公平。</li>
+  <li>如果把 PPO 换成 GRPO/DAPO/GSPO, ReTool 框架是否兼容? interpreter mask 在 group-normalized advantage 上的语义是不是改变?</li>
+  <li>对<em>错题</em>的 last-code-pass-rate 下降——是 model 在做更难的题 vs 是 model 学到"反正答错了不如赌一把没语法错"? 论文给出前者解读, 但没排除后者。</li>
+  <li>ReTool 训出来的模型对"<em>该不该调工具</em>" 的判断, 在<em>不需要</em>工具的题 (例如简单算术、文字推理) 上是否会过度调用? Code ratio 98% 看起来可疑——如果训练集全是难题, 那 evaluation 是否会 over-tool simple problems?</li>
+  <li>同样 SFT data + 同样 RL setup, 把 Python 换成<em>定理证明器</em> (Lean) 会怎样? 这是 Search-R1 → ReTool 的下一个自然 sibling。</li>
+</ol>
+
+<h3>个人 take</h3>
+<p>ReTool 的真正贡献不在 67.0 这个数字, 而在于<strong>给"RL + 异构 tool"这条技术路线找到了一份能 work 的菜谱</strong>: cold-start SFT 装格式 → outcome RL 选 pattern → interpreter mask 防梯度污染 → KV reuse 撑住多轮 → async sandbox 撑住 throughput。这五件事任何一个没做对, 整个流水线都会崩。它和 Search-R1 一起把 "training-time tool use" 从一个 idea 推成一个<em>可复用的 recipe</em>。下一步合理的事是把这个 recipe 复用到 (a) 多工具混合 (Python + 搜索 + 知识库), (b) 非数学任务 (SWE / GUI / formal proof), (c) 更小的 backbone (7B 量级)——这三条都是低悬果。</p>
+
+<hr>
+
+<h3>记忆点</h3>
+<div class="kv">
+  <span class="pill">立场</span> 长 CoT RL 在数学题上是 token efficiency 死胡同, 把 Python 当 deterministic verifier-tool 是更好的解<br>
+  <span class="pill">配方</span> Cold-start SFT (D<sub>CI</sub>) → outcome PPO + interpreter mask + KV reuse + async sandbox<br>
+  <span class="pill">公式</span> J<sub>PPO</sub> 唯一改动: ratio 的 condition 里加 "; CI"; reward = ±1 only<br>
+  <span class="pill">关键数</span> AIME 2024: 67.0 vs 40.0 (text-RL); 400 steps vs 1080; response length −40%<br>
+  <span class="pill">涌现</span> code self-correction ("Oops, let me fix that") + adaptive tool selection<br>
+  <span class="pill">对偶</span> Search-R1 是搜索域的 ReTool; 同 framework 不同 tool<br>
+  <span class="pill">下一步</span> 多工具混合 / 非数学任务 / 小模型复制 — 三条低悬果
+</div>
+
+<hr>
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:50px">
+  精读笔记 v1 · 2026-05-11 · 配套论文 PDF: <code>/tmp/retool_2504.11536.pdf</code> · <a href="https://arxiv.org/abs/2504.11536" target="_blank" rel="noopener">arXiv:2504.11536</a>
+</p>
+
+</main>
+
+<script>
+  function setOp(id, op){ const el=document.getElementById(id); if(el) el.setAttribute('opacity', op); }
+</script>
+
+</body>
+</html>

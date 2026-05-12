@@ -442,10 +442,15 @@
 <ul>
   <li><strong>ReAct</strong> [110] — interleaved reasoning + acting 的开山,设定了 thought→tool→obs 这条 backbone;</li>
   <li><strong>FireAct</strong> [6] — 多任务多策略 fine-tuning, 数据多样性 > scale;</li>
-  <li><strong>ReTool</strong> [19] — 把 code execution 织进 long-form reasoning, RL 学"何时何地" invoke tool;</li>
+  <li><strong>ReTool</strong> [19] — 把 code execution 织进 long-form reasoning, RL 学"何时何地" invoke tool; <a href="11_ReTool_2504.11536.html">📖 单篇精读 →</a></li>
+  <li><strong>Search-R1</strong> — 把搜索引擎织进 reasoning,定义了 retrieved-token masking 这个 agentic RL 训练栅栏,跟 ReTool 是同期姊妹工作(同框架,不同工具); <a href="10_SearchR1_2503.09516.html">📖 单篇精读 →</a></li>
 </ul>
 
 <p>论文反复强调一点: tool 不是装饰品,它<strong>改变 state transition P(s<sub>t+1</sub>|s<sub>t</sub>, a<sub>t</sub>)</strong>。这意味着 tool 选错不止当下错,还会让后续 observation 整个偏。POMDP 框架本身天然能 model 这件事,bandit 框架做不到。</p>
+
+<div class="kv" style="background:#fff8e8;border-left:3px solid #d2a32a;margin:14px 0">
+  <strong>奠基双胞胎:Search-R1 (2025-03) & ReTool (2025-04)</strong> — 这两篇定义了 agentic RL 训练 LLM tool-use 的<em>事实标准</em>:模型在 trajectory 里穿插 <code>&lt;think&gt;</code> / <code>&lt;search&gt;</code> 或 <code>&lt;code&gt;</code> tag,环境返回 <code>&lt;information&gt;</code> 或 <code>&lt;interpreter&gt;</code> 内容;RL 只对<em>模型自己生成的 token</em> 算梯度,<em>外部返回的 token 全 mask 掉</em>(retrieved-token masking)。如果不 mask,gradient 会试图"通过 LLM 解释检索结果"反向更新策略,训练立刻崩。两篇分别用 search engine / Python interpreter 做工具,但同样的 outcome-only reward + masking 配方都 work,这本身就是这条 line 的关键发现 — 见两篇单独精读。
+</div>
 
 <hr>
 

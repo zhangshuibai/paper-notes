@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Search-R1 (2503.09516)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.08em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Search-R1: Training LLMs to Reason and Leverage Search Engines with Reinforcement Learning</h1>
+<div class="meta">
+  Bowen Jin, Hansi Zeng, Zhenrui Yue, Jinsung Yoon, Sercan Ö. Arık, Dong Wang, Hamed Zamani, Jiawei Han (UIUC · UMass Amherst · Google Cloud AI) · 2025-03 · <a href="https://arxiv.org/abs/2503.09516" target="_blank" rel="noopener">arXiv:2503.09516</a> · COLM 2025 · <a href="https://github.com/PeterGriffinJin/Search-R1" target="_blank" rel="noopener">github.com/PeterGriffinJin/Search-R1</a><br>
+  关键词: RL · search engine · retrieval-augmented reasoning · retrieved-token masking · PPO/GRPO · multi-turn rollout · outcome reward
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把搜索引擎当作 environment 的一部分,让 LLM 在 <code>&lt;think&gt;</code>/<code>&lt;search&gt;</code>/<code>&lt;information&gt;</code>/<code>&lt;answer&gt;</code> 这套结构里<em>自主地</em>选择什么时候、查什么、查几次,只用 exact-match outcome reward 训 PPO/GRPO,但<strong>对检索回来的 token 做 loss masking</strong> ——这一个细节是稳定训练的核心。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">+24%</div><div class="l">Qwen2.5-7B 平均相对提升 vs RAG</div></div>
+    <div class="stat"><div class="n">0.431 → 0.343</div><div class="l">去掉 retrieved-token mask 后 7B Avg EM 跌 9pt</div></div>
+    <div class="stat"><div class="n">7 datasets · 1 reward</div><div class="l">仅 EM,没有 process reward / format reward</div></div>
+  </div>
+  <p><strong>立场:</strong>Search-R1 是 DeepSeek-R1-Zero 的"加搜索"自然延伸——证明<em>纯 outcome reward + RL</em> 足以让 LLM 学会 multi-turn search 这一类需要外部世界交互的能力,前提是别把 environment 返回的 token 也当成自己的输出去做梯度。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 RAG / SFT-Tool-Use 都不够</a></li>
+    <li><a href="#sec2">背景速查 (PPO / GRPO / RAG / multi-hop QA 术语表)</a></li>
+    <li><a href="#sec3">方法详解 (训练范式 / retrieved-token mask / reward / template)</a></li>
+    <li><a href="#sec4">公式:带 mask 的 PPO / GRPO 目标</a></li>
+    <li><a href="#sec5">实验关键结果</a></li>
+    <li><a href="#sec6">与同类工作对比</a></li>
+    <li><a href="#sec7">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 RAG / SFT-Tool-Use 都不够</h2>
+
+<h3>1.1 历史脉络:LLM + 外部知识三个时代</h3>
+
+<p>2020 - 2024 年间,把外部知识喂给 LLM 一共出现过三套主流范式。每一套都解决了上一套的某个痛点,但都留了一个新坑给下一套。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 250" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#888"/>
+      </marker>
+    </defs>
+    <!-- timeline -->
+    <line x1="40" y1="200" x2="700" y2="200" stroke="#888" stroke-width="1.5"/>
+    <text x="50" y="225" font-size="11" fill="#5b5e66">2020 · RAG</text>
+    <text x="240" y="225" font-size="11" fill="#5b5e66">2022 · IRCoT/ReAct</text>
+    <text x="430" y="225" font-size="11" fill="#5b5e66">2023 · Toolformer SFT</text>
+    <text x="600" y="225" font-size="11" fill="#5b5e66">2025 · Search-R1</text>
+    <g stroke="#888"><line x1="80" y1="196" x2="80" y2="204"/><line x1="280" y1="196" x2="280" y2="204"/><line x1="470" y1="196" x2="470" y2="204"/><line x1="640" y1="196" x2="640" y2="204"/></g>
+
+    <!-- era 1: RAG -->
+    <rect x="20" y="80" width="170" height="60" rx="8" fill="#e3f2fd" stroke="#2f6feb"/>
+    <text x="105" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#2f6feb">RAG 单轮检索</text>
+    <text x="105" y="118" text-anchor="middle" font-size="10" fill="#3a3b40">query → top-k → 拼 prompt</text>
+    <text x="105" y="132" text-anchor="middle" font-size="10" fill="#a8353e">× 多跳跳不动</text>
+
+    <!-- era 2: prompted multi-turn -->
+    <rect x="200" y="80" width="170" height="60" rx="8" fill="#fff3cd" stroke="#cc4a1b"/>
+    <text x="285" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">Prompted multi-turn</text>
+    <text x="285" y="118" text-anchor="middle" font-size="10" fill="#3a3b40">IRCoT / ReAct: 不训只 prompt</text>
+    <text x="285" y="132" text-anchor="middle" font-size="10" fill="#a8353e">× 没学会查得好</text>
+
+    <!-- era 3: SFT tool -->
+    <rect x="380" y="80" width="170" height="60" rx="8" fill="#f0e0f5" stroke="#7a3aa3"/>
+    <text x="465" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#7a3aa3">SFT 工具使用</text>
+    <text x="465" y="118" text-anchor="middle" font-size="10" fill="#3a3b40">Toolformer: 标 trajectory + SFT</text>
+    <text x="465" y="132" text-anchor="middle" font-size="10" fill="#a8353e">× 数据贵 + 不可微</text>
+
+    <!-- era 4: RL -->
+    <rect x="560" y="80" width="150" height="60" rx="8" fill="#e0f5e8" stroke="#1f7a4a"/>
+    <text x="635" y="100" text-anchor="middle" font-size="12" font-weight="600" fill="#1f7a4a">Search-R1 (RL)</text>
+    <text x="635" y="118" text-anchor="middle" font-size="10" fill="#3a3b40">outcome reward + RL</text>
+    <text x="635" y="132" text-anchor="middle" font-size="10" fill="#1f7a4a">✓ 自主学会用</text>
+
+    <line x1="190" y1="110" x2="200" y2="110" stroke="#888" marker-end="url(#ar1)"/>
+    <line x1="370" y1="110" x2="380" y2="110" stroke="#888" marker-end="url(#ar1)"/>
+    <line x1="550" y1="110" x2="560" y2="110" stroke="#888" marker-end="url(#ar1)"/>
+
+    <text x="370" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2024">三次失败的尝试,把"让 LLM 学会调搜索"逼到了 RL 上</text>
+  </svg>
+  <figcaption>RAG 把"取什么"写死了;IRCoT/ReAct 让 LLM 自己写 query 但<em>不训</em>,所以泛化不到训练数据没覆盖的领域;Toolformer 用 SFT 训,但需要大规模高质量 trajectory 标注且 search 不可微,scale up 困难。Search-R1 用 RL 把这三件事一次性绕开。</figcaption>
+</div>
+
+<h3>1.2 别的方案为什么不够</h3>
+
+<p>Paper Section 2 把这件事讲得偏温和,这里展开一下每个 baseline 实际<em>卡在哪里</em>:</p>
+
+<table>
+  <tr><th>方案</th><th>核心机制</th><th>致命短板</th></tr>
+  <tr><td>RAG (Lewis 2020)</td><td>固定 1 轮 retrieve,把 top-k 拼进 prompt</td><td><span class="no">多跳 QA 第二跳的 query 需要看到第一跳的答案才能写——单轮 RAG 没机会</span></td></tr>
+  <tr><td>IRCoT (Trivedi 2022)</td><td>Prompted iterative retrieval</td><td><span class="no">什么时候停、写什么 query 都靠 in-context demonstration,小模型/陌生 domain 立刻崩</span></td></tr>
+  <tr><td>ReAct (Yao 2023)</td><td>Prompt 让 LLM 输出 Thought/Action/Observation</td><td><span class="no">同上,frozen LLM,不优化交互能力</span></td></tr>
+  <tr><td>Toolformer (Schick 2023)</td><td>自蒸馏 trajectory + SFT</td><td><span class="no">标注成本高;search 是离散非可微操作,SFT 等价于 imitation,不能修自己犯的错</span></td></tr>
+  <tr><td>Self-RAG (Asai 2024)</td><td>SFT + reflection tokens</td><td><span class="no">仍是 SFT 框架,且 reflection 信号需要 GPT-4 教师</span></td></tr>
+  <tr><td>Search-o1 (Li 2025)</td><td>把推理模型 (o1-style) 套 prompt 调 search</td><td><span class="no">不训,小模型上反而比 RAG 还差(见 Table 2 0.206 vs 0.304)</span></td></tr>
+  <tr><td>R1-zero (Guo 2025)</td><td>纯参数化推理 + outcome RL</td><td><span class="no">不能访问外部知识,过期信息 / 长尾事实直接幻觉</span></td></tr>
+</table>
+
+<p>注意一个微妙之处: <span class="term">Toolformer 这条线之所以走不下去,核心不是"工具难学",而是 search 这一步在 forward 里是 <em>非可微</em> 的</span> ——你没法让 search 操作对 loss 求梯度,所以 SFT 等于先用 teacher 标轨迹再 imitate,模型永远学不到"我这条 query 写错了→retrieve 拿回垃圾→应该改写 query"这种<em>纠错回路</em>。RL 在这里的优势不是"更强",而是"它<strong>原生就不需要</strong> retrieve 步骤可微"——只需要最后能给 trajectory 打分。</p>
+
+<h3>1.3 为什么这事不平凡</h3>
+
+<p>把 RL 接到 search 上听起来直白:就把 search 当工具调用嘛。但作者点出了三个非平凡的工程/理论难题:</p>
+
+<ol>
+  <li><strong>RL framework & stability:</strong> 在 rollout sequence 里,LLM 自己生成的 token 和 search engine 返回的 token <em>混在同一条序列</em>。PPO/GRPO 默认对整条 sequence 算 token-level loss——但 retrieved tokens <em>不是策略生成的</em>,对它们算 policy gradient 等于"奖励模型记住这段网页文本",训练会失稳。</li>
+  <li><strong>Multi-turn interleaved reasoning:</strong> 不像数学题那种 single-shot CoT, search 任务的 trajectory 长度<em>不固定</em>,一次还是五次取决于问题难度。RL 训练要能 handle 变长 rollout、要能让 model 自己决定 stop。</li>
+  <li><strong>Reward design:</strong> 给 process reward (中间每一步好不好) 听起来合理,但需要 reward model,而 reward model 在大规模 RL 里出名地脆弱 (reward hacking)。能不能<em>只用最终答案对不对</em> 这一个 0/1 信号训出多步 search?——R1 在数学上证明可以,作者要把这个结论搬到 search 上。</li>
+</ol>
+
+<div class="nb">关键洞察: 这三个问题之中, <strong>retrieved-token masking</strong> 是 #1 的具体解。后面会看到,去掉这一个 mask, 7B 在 7 数据集平均从 0.431 跌到 0.343 —— 接近 RAG baseline 的水平 (0.304),整套 RL 几乎白训。</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+  <tr><th>术语</th><th>含义</th></tr>
+  <tr><td><span class="term">PPO</span></td><td>Proximal Policy Optimization. Actor-critic, 用 clipped ratio 限制策略更新幅度,需要一个独立的 value head/critic 估 advantage (GAE)。</td></tr>
+  <tr><td><span class="term">GRPO</span></td><td>Group Relative PO (DeepSeek). 抛掉 critic, 一个 prompt 采 G 条 rollout, 用<em>组内平均 reward</em> 当 baseline 算 advantage。收敛快,但训练后期可能 reward collapse。</td></tr>
+  <tr><td><span class="term">RAG</span></td><td>Retrieval-Augmented Generation. query → retriever (E5/DPR) → top-k passages → concat 进 prompt → LLM 生成。</td></tr>
+  <tr><td><span class="term">multi-hop QA</span></td><td>答案需要 2 个以上事实串起来。例: "Curious 香水的代言人出生在哪个城市?" 需要先查代言人 = Britney Spears, 再查 Britney 出生地。HotpotQA / 2WikiMultiHopQA / Musique / Bamboogle 都是这类。</td></tr>
+  <tr><td><span class="term">exact match (EM)</span></td><td>预测字符串 normalize 后是否等于 gold answer。Search-R1 唯一的 reward。</td></tr>
+  <tr><td><span class="term">retrieved-token mask</span></td><td>本文核心。在 <code>&lt;information&gt;...&lt;/information&gt;</code> 里的 token 全部不参与 policy gradient 和 KL 计算。</td></tr>
+  <tr><td><span class="term">rollout</span></td><td>从当前 policy 采一条 trajectory 的过程。本文 rollout 里 LLM 会主动调用 search engine, 所以 environment 真的参与 trajectory 的形成。</td></tr>
+  <tr><td><span class="term">E5 retriever</span></td><td>Microsoft 的 dense embedding retriever, 本文检索器选择。Knowledge corpus 是 2018 Wikipedia dump。</td></tr>
+</table>
+
+<details>
+  <summary>速复习 · PPO 目标 (single-step, 无 search 版)</summary>
+  <div class="formula"><em>J</em><sub>PPO</sub>(θ) = 𝔼[ min( <em>r<sub>t</sub></em>(θ) <em>A<sub>t</sub></em>, clip(<em>r<sub>t</sub></em>(θ), 1−ϵ, 1+ϵ) <em>A<sub>t</sub></em> ) ]</div>
+  <p style="font-size:.92em">其中 <em>r<sub>t</sub></em>(θ) = π<sub>θ</sub>(<em>y<sub>t</sub></em>|·) / π<sub>old</sub>(<em>y<sub>t</sub></em>|·)。Search-R1 在这个 sum 前面挂一个 indicator <em>I</em>(<em>y<sub>t</sub></em>)=1 仅当 <em>y<sub>t</sub></em> 是 LLM 自己生成的 token (而不是 retrieved 的)。</p>
+</details>
+
+<details>
+  <summary>速复习 · GRPO 与 PPO 差在哪</summary>
+  <p style="font-size:.92em">GRPO 把 critic 砍了,改用 group-relative baseline: 对同一 prompt 采 G 条 rollout, advantage <em>Â<sub>i,t</sub></em> = (<em>R<sub>i</sub></em> − mean(R)) / std(R)。少一个网络,显存省一半,但因为 advantage 全局共享,稍稳定性差。GRPO 还把 KL 从 reward 移到 loss 里直接加。</p>
+</details>
+
+<hr>
+
+<h2 id="sec3">3 · 方法详解</h2>
+
+<h3 id="sec31">3.1 训练范式: rollout 时让 environment 参与 trajectory generation</h3>
+
+<p>普通 RLHF/R1 的 rollout 很简单——LLM 自己一路 sample 到 <code>&lt;eos&gt;</code>,environment 不出现。Search-R1 不一样: rollout 是一个<strong>真正的 agent-environment 循环</strong>,LLM 生成到 <code>&lt;/search&gt;</code> 就被打断,parse 出 query 去打 retriever,把返回 doc 塞进 <code>&lt;information&gt;...&lt;/information&gt;</code> 再交回 LLM 续写。</p>
+
+<div class="fig">
+  <svg viewBox="0 0 720 280" width="100%" style="max-width:700px">
+    <defs>
+      <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#2f6feb"/>
+      </marker>
+      <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#cc4a1b"/>
+      </marker>
+    </defs>
+
+    <!-- LLM box -->
+    <rect x="40" y="100" width="140" height="80" rx="10" fill="#e3f2fd" stroke="#2f6feb" stroke-width="1.5"/>
+    <text x="110" y="130" text-anchor="middle" font-size="14" font-weight="600" fill="#2f6feb">Policy LLM</text>
+    <text x="110" y="150" text-anchor="middle" font-size="11" fill="#3a3b40">π<tspan baseline-shift="sub">θ</tspan></text>
+    <text x="110" y="166" text-anchor="middle" font-size="10" fill="#5b5e66">生成 token</text>
+
+    <!-- env / retriever -->
+    <rect x="540" y="100" width="140" height="80" rx="10" fill="#fff3cd" stroke="#cc4a1b" stroke-width="1.5"/>
+    <text x="610" y="130" text-anchor="middle" font-size="14" font-weight="600" fill="#cc4a1b">Search Engine ℛ</text>
+    <text x="610" y="150" text-anchor="middle" font-size="11" fill="#3a3b40">E5 + Wiki 2018</text>
+    <text x="610" y="166" text-anchor="middle" font-size="10" fill="#5b5e66">top-3 passages</text>
+
+    <!-- arrows -->
+    <path d="M 180 130 L 540 130" stroke="#2f6feb" stroke-width="1.5" marker-end="url(#ar2)"/>
+    <text x="360" y="120" text-anchor="middle" font-size="11" fill="#2f6feb">遇到 &lt;/search&gt; 触发: parse query</text>
+
+    <path d="M 540 160 L 180 160" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#ar3)"/>
+    <text x="360" y="178" text-anchor="middle" font-size="11" fill="#cc4a1b">返回 doc → 包进 &lt;information&gt;</text>
+
+    <!-- bottom: trajectory bar -->
+    <text x="40" y="225" font-size="12" fill="#1f2024" font-weight="600">Rollout trajectory:</text>
+    <g font-size="10" text-anchor="middle">
+      <rect x="40" y="235" width="80" height="22" fill="#e3f2fd" stroke="#2f6feb"/><text x="80" y="250">&lt;think&gt;...</text>
+      <rect x="120" y="235" width="80" height="22" fill="#e3f2fd" stroke="#2f6feb"/><text x="160" y="250">&lt;search&gt;Q1&lt;/&gt;</text>
+      <rect x="200" y="235" width="100" height="22" fill="#fff3cd" stroke="#cc4a1b"/><text x="250" y="250">&lt;info&gt;doc&lt;/info&gt;</text>
+      <rect x="300" y="235" width="80" height="22" fill="#e3f2fd" stroke="#2f6feb"/><text x="340" y="250">&lt;think&gt;...</text>
+      <rect x="380" y="235" width="80" height="22" fill="#e3f2fd" stroke="#2f6feb"/><text x="420" y="250">&lt;search&gt;Q2&lt;/&gt;</text>
+      <rect x="460" y="235" width="100" height="22" fill="#fff3cd" stroke="#cc4a1b"/><text x="510" y="250">&lt;info&gt;doc&lt;/info&gt;</text>
+      <rect x="560" y="235" width="120" height="22" fill="#e3f2fd" stroke="#2f6feb"/><text x="620" y="250">&lt;answer&gt;...&lt;/&gt;</text>
+    </g>
+    <text x="40" y="275" font-size="10.5" fill="#5b5e66">蓝 = LLM 生成 (参与 loss); 黄 = environment 返回 (mask 掉,不参与 loss)</text>
+
+    <text x="360" y="55" text-anchor="middle" font-size="14" font-weight="600" fill="#1f2024">Agent-Environment Interleaved Rollout</text>
+    <text x="360" y="75" text-anchor="middle" font-size="11" fill="#5b5e66">直到 &lt;answer&gt; 或达到 action budget B</text>
+  </svg>
+  <figcaption>关键点: rollout sequence <em>y</em> = π<sub>θ</sub>(·|x) ⊕ ℛ —— 一条交错序列。这个 ⊕ 是 paper 用的符号,意思是"interleaved retrieve-and-reason"。算法上对应 Algorithm 1: 内层循环逐 token decode,直到吐出 <code>&lt;/search&gt;</code> 或 <code>&lt;/answer&gt;</code> 才暂停。</figcaption>
+</div>
+
+<h4>Worked example: 看一条 rollout 实际长什么样</h4>
+
+<p>Paper Appendix 给的 Case Study 11 用的题: <em>"Curious 是哪位歌手代言的女性香水?这位歌手出生在哪个城市州?"</em> Ground truth: McComb, Mississippi。R1 (无 search) 答错: "Houston"——因为它幻觉成了 Beyoncé。Search-R1 的 rollout 实测如下 (略缩):</p>
+
+<pre style="font-size:.85em">[user] Curious is a women's fragrance by a singer born in what city and state?
+
+[LLM 自生成]
+&lt;think&gt; I need to find out which city and state a singer, by whom the women's fragrance
+"Curious" was created, was born in. &lt;/think&gt;
+&lt;search&gt; Curious fragrance information &lt;/search&gt;
+                                  ↑ 解析到这里就被打断
+
+[Environment 注入,不参与 loss]
+&lt;information&gt; Doc 1 (Title: "Curious (fragrance)") ... Curious is a women's fragrance
+by Britney Spears for Elizabeth Arden ... &lt;/information&gt;
+
+[LLM 自生成]
+&lt;think&gt; I need to find out which city and state Britney Spears, the singer behind
+"Curious" fragrance, was born in. &lt;/think&gt;
+&lt;search&gt; Britney Spears birthplace &lt;/search&gt;
+
+[Environment]
+&lt;information&gt; ... Spears was born in McComb, Mississippi, the second child of ... &lt;/information&gt;
+
+[LLM 自生成]
+&lt;think&gt; Since Britney Spears was born in McComb, Mississippi, I need ... &lt;/think&gt;
+&lt;search&gt; McComb, Mississippi location &lt;/search&gt;
+&lt;information&gt; ... McComb is a city in Pike County, Mississippi ... &lt;/information&gt;
+&lt;think&gt; I have found ... &lt;/think&gt;
+&lt;answer&gt; McComb, Mississippi &lt;/answer&gt;        ← EM(pred, gold) = 1, reward = 1</pre>
+
+<p>注意第三次 search 是"过度小心"——模型已经有 McComb 了还要确认一下,这本身是<em>训练里学出来的 self-verification 行为</em>,paper 在 case-study 里专门讨论这件事。</p>
+
+<h3 id="sec32">3.2 Retrieved-token masking (本文最关键的方法细节)</h3>
+
+<p>这是 Search-R1 的命门。先问<em>"为什么不做 mask 会出事?"</em></p>
+
+<p>PPO/GRPO 默认对整条 rollout sequence 上每个 token 都算 ratio <em>π<sub>θ</sub>(y<sub>t</sub>|y<sub>&lt;t</sub>)/π<sub>old</sub>(y<sub>t</sub>|y<sub>&lt;t</sub>)</em> 然后乘 advantage。如果 <em>y<sub>t</sub></em> 是检索到的 doc 里的 token (它压根不是 policy 采出来的, 而是 environment 写进去的), 那么这一项的语义就崩了:</p>
+<ul>
+  <li>policy "想说"什么完全不影响 <em>y<sub>t</sub></em> 的出现——但 PPO 仍然给它分配一个 (positive or negative) advantage</li>
+  <li>对正样本: 模型被推着提高 retrieved 段落里那段 wikipedia 文本的 likelihood ——等于在拟合 retrieved corpus 而非学习交互能力</li>
+  <li>对负样本: 模型被推着压低这段文本的 likelihood,可能学出"以后就别相信 retrieve 回来的东西"的反向偏好</li>
+  <li>两种都让 reward 信号通过<em>无关变量</em>(retrieved text 内容)漏出去,梯度 noise 飙升,训练失稳</li>
+</ul>
+
+<div class="fig">
+  <svg viewBox="0 0 720 240" width="100%" style="max-width:700px">
+    <!-- token sequence visualization -->
+    <text x="360" y="25" text-anchor="middle" font-size="14" font-weight="600">Token-level loss contribution</text>
+
+    <!-- legend -->
+    <rect x="40" y="40" width="14" height="14" fill="#cfe5fc" stroke="#2f6feb"/><text x="60" y="52" font-size="11" fill="#3a3b40">model-generated (I=1, 参与 loss)</text>
+    <rect x="290" y="40" width="14" height="14" fill="#f5d8a8" stroke="#cc4a1b"/><text x="310" y="52" font-size="11" fill="#3a3b40">retrieved (I=0, masked,不参与 loss)</text>
+
+    <!-- y axis label -->
+    <text x="20" y="135" font-size="11" fill="#5b5e66" transform="rotate(-90 20 135)">advantage × ratio</text>
+
+    <!-- bars showing contribution -->
+    <g>
+      <!-- bar 1: think -->
+      <rect x="60" y="100" width="35" height="80" fill="#cfe5fc" stroke="#2f6feb"/>
+      <text x="77" y="195" text-anchor="middle" font-size="10" fill="#2f6feb">&lt;think&gt;</text>
+      <!-- bar 2: search query -->
+      <rect x="100" y="80" width="35" height="100" fill="#cfe5fc" stroke="#2f6feb"/>
+      <text x="117" y="195" text-anchor="middle" font-size="10" fill="#2f6feb">&lt;search&gt;Q</text>
+      <!-- bar 3: information (MASKED, should be zero) -->
+      <rect x="140" y="178" width="140" height="3" fill="#f5d8a8" stroke="#cc4a1b"/>
+      <text x="210" y="195" text-anchor="middle" font-size="10" fill="#cc4a1b">&lt;information&gt; doc...</text>
+      <text x="210" y="170" text-anchor="middle" font-size="10" fill="#cc4a1b">→ 0 (masked)</text>
+
+      <!-- bar 4: think -->
+      <rect x="285" y="110" width="35" height="70" fill="#cfe5fc" stroke="#2f6feb"/>
+      <text x="302" y="195" text-anchor="middle" font-size="10" fill="#2f6feb">&lt;think&gt;</text>
+      <!-- bar 5: search Q2 -->
+      <rect x="325" y="90" width="35" height="90" fill="#cfe5fc" stroke="#2f6feb"/>
+      <text x="342" y="195" text-anchor="middle" font-size="10" fill="#2f6feb">&lt;search&gt;Q</text>
+      <!-- bar 6: information masked -->
+      <rect x="365" y="178" width="140" height="3" fill="#f5d8a8" stroke="#cc4a1b"/>
+      <text x="435" y="195" text-anchor="middle" font-size="10" fill="#cc4a1b">&lt;information&gt; doc...</text>
+      <text x="435" y="170" text-anchor="middle" font-size="10" fill="#cc4a1b">→ 0 (masked)</text>
+
+      <!-- bar 7: think -->
+      <rect x="510" y="115" width="35" height="65" fill="#cfe5fc" stroke="#2f6feb"/>
+      <text x="527" y="195" text-anchor="middle" font-size="10" fill="#2f6feb">&lt;think&gt;</text>
+      <!-- bar 8: answer -->
+      <rect x="550" y="60" width="60" height="120" fill="#cfe5fc" stroke="#2f6feb"/>
+      <text x="580" y="195" text-anchor="middle" font-size="10" fill="#2f6feb">&lt;answer&gt;</text>
+    </g>
+
+    <!-- baseline 0 -->
+    <line x1="50" y1="180" x2="620" y2="180" stroke="#888" stroke-dasharray="2,2"/>
+
+    <text x="360" y="220" text-anchor="middle" font-size="11" fill="#5b5e66" font-style="italic">
+      Indicator I(y<tspan baseline-shift="sub">t</tspan>) ∈ {0, 1}: 是 LLM 自己生的 token → 1, 是检索回来的 → 0
+    </text>
+  </svg>
+  <figcaption>Loss masking 的可视化: 检索段 (黄) 的每个 token 在 PPO objective 的求和里被强制乘 0。这同时也用在 KL 惩罚项上 —— KL(π<sub>θ</sub>‖π<sub>ref</sub>) 也只在 model-generated tokens 上算。这一笔很重要: 否则 KL 会强行把模型在 retrieved span 上的分布拉回 reference policy, 而 reference policy 完全没见过 retrieve 注入这件事, 等于强行注入噪声。</figcaption>
+</div>
+
+<h4>Worked example: 数值化看看 mask 的影响</h4>
+
+<p>设 rollout 长度 |y| = 1000 tokens,其中 LLM 自生成 350,检索注入 650 (3 个 passages × 200+ tokens 很常见)。假设 advantage <em>A</em>=+1 (答对了)。</p>
+
+<table>
+  <tr><th></th><th>w/o mask</th><th>w/ mask</th></tr>
+  <tr><td>对 LLM tokens 算 gradient</td><td>350 项</td><td>350 项</td></tr>
+  <tr><td>对 retrieved tokens 算 gradient</td><td><span class="no">650 项 (无意义信号)</span></td><td>0 项</td></tr>
+  <tr><td>归一化分母 (token 数)</td><td>1000</td><td>350</td></tr>
+  <tr><td>有效"信号比"</td><td>35%</td><td>100%</td></tr>
+</table>
+
+<p>定量上,paper Table 4 直接给了消融: <strong>Qwen2.5-7B-base + PPO, 平均 EM 从 <span class="no">0.343</span> (无 mask) 提升到 <span class="ok">0.431</span> (有 mask), 相对提升 26%</strong>。每个数据集都涨,multi-hop 涨得更多 (HotpotQA: 0.325 → 0.433, Bamboogle: 0.304 → 0.432)。</p>
+
+<h3 id="sec33">3.3 Reward design: outcome-only, 仅 EM</h3>
+
+<p>整个 reward 就一行: <em>r</em>(x, y) = EM(<em>a</em><sub>pred</sub>, <em>a</em><sub>gold</sub>) ∈ {0, 1}。</p>
+
+<p>没有:</p>
+<ul>
+  <li><strong>没有 process reward</strong> ——不奖励"你 search 得好"、"你 think 得对"</li>
+  <li><strong>没有 format reward</strong> ——不强制要求出现 <code>&lt;think&gt;</code> tag (因为模型很快自然学会了,不需要额外奖励)</li>
+  <li><strong>没有 neural reward model</strong> ——避免 reward hacking,跟 DeepSeek-R1-Zero 一致</li>
+</ul>
+
+<p>"为什么这样设计 / 反向论证": 如果引入 process reward (比如奖励每次 search 都成功 retrieve 相关 doc),会有两个 failure mode:</p>
+<ol>
+  <li>模型为了刷 process reward 学会<em>多 search 但 search 没用</em> ——增加无谓 retrieve 次数</li>
+  <li>需要训练一个 retrieve-quality reward model,而这个 model 本身可能不准, hack 起来比 outcome reward 还容易</li>
+</ol>
+
+<p>实测 Figure 2(d) 显示模型在<em>没人教</em>的情况下也会逐步学到"多 search 几次", valid search count 从 ~1.4 涨到 ~2.0 —— 因为多 search 真的能提高最终 EM,outcome reward 自己就把这件事 incentivize 了。</p>
+
+<h3 id="sec34">3.4 Training Template</h3>
+
+<p>训练用的 system prompt 几乎是空的:</p>
+
+<blockquote>Answer the given question. You must conduct reasoning inside <code>&lt;think&gt;</code> and <code>&lt;/think&gt;</code> first every time you get new information. After reasoning, if you find you lack some knowledge, you can call a search engine by <code>&lt;search&gt; query &lt;/search&gt;</code>, and it will return the top searched results between <code>&lt;information&gt;</code> and <code>&lt;/information&gt;</code>. You can search as many times as you want. If you find no further external knowledge needed, you can directly provide the answer inside <code>&lt;answer&gt;</code> and <code>&lt;/answer&gt;</code> without detailed illustrations. ... Question: {question}.</blockquote>
+
+<p>注意作者刻意<em>不</em>规定:</p>
+<ul>
+  <li>必须 search 几次</li>
+  <li>必须先 think 再 search 还是反过来</li>
+  <li>什么时候该用 reflection / self-verification</li>
+</ul>
+
+<p>"We deliberately limit our constraints to this structural format, avoiding any content-specific biases"——让 RL 的 learning dynamics 保持<em>可观测、未污染</em>。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 公式: 带 mask 的 PPO / GRPO 目标</h2>
+
+<h3>4.1 总目标 (Eq. 1)</h3>
+
+<div class="formula">max<sub>θ</sub> 𝔼<sub><em>x</em>∼𝒟, <em>y</em>∼π<sub>θ</sub>(·|<em>x</em>; ℛ)</sub> [ <em>r<sub>φ</sub></em>(<em>x</em>, <em>y</em>) ] − β·𝔻<sub>KL</sub>[ π<sub>θ</sub>(<em>y</em>|<em>x</em>; ℛ) ‖ π<sub>ref</sub>(<em>y</em>|<em>x</em>; ℛ) ]</div>
+
+<p>记号: <em>y</em> = π<sub>θ</sub>(·|x) ⊕ ℛ —— 交错 rollout sequence。条件 "; ℛ" 表示这条 sequence 是<em>带</em>检索器一起生成的。这件事最大的语义差异: 同一个 prompt <em>x</em> 在不同 random seed 下会得到结构完全不同的 <em>y</em> (search 几次、查什么都可能变),而 RAG 范式下 <em>y</em> 是 deterministic 的 retrieve+generate。</p>
+
+<h3>4.2 PPO with Search Engine + masking (Eq. 2)</h3>
+
+<div class="formula" style="text-align:left;font-size:1em">
+<em>J</em><sub>PPO</sub>(θ) = 𝔼<sub><em>x</em>∼𝒟, <em>y</em>∼π<sub>old</sub>(·|<em>x</em>; ℛ)</sub> [ <br>
+&emsp; <span style="color:#cc4a1b">1 / Σ<sub>t=1..|y|</sub> <em>I</em>(<em>y<sub>t</sub></em>)</span> · Σ<sub>t : <em>I</em>(<em>y<sub>t</sub></em>)=1</sub> <br>
+&emsp;&emsp; min( <em>ρ<sub>t</sub></em>(θ) <em>A<sub>t</sub></em>, &nbsp; clip(<em>ρ<sub>t</sub></em>(θ), 1−ϵ, 1+ϵ) <em>A<sub>t</sub></em> ) <br>
+]
+</div>
+
+<p>其中 <em>ρ<sub>t</sub></em>(θ) = π<sub>θ</sub>(<em>y<sub>t</sub></em> | <em>x</em>, <em>y<sub>&lt;t</sub></em>; ℛ) / π<sub>old</sub>(<em>y<sub>t</sub></em> | <em>x</em>, <em>y<sub>&lt;t</sub></em>; ℛ), 是 importance ratio。 <em>A<sub>t</sub></em> 用 GAE 估。</p>
+
+<p>逐项拆解:</p>
+<ol>
+  <li><strong>外层期望</strong>: 从 <em>old policy</em> 采 trajectory (PPO 的 off-policy 写法)。注意采的时候 ℛ 真实参与——所以 rollout 必须 online 跑搜索,不能预先离线生成。</li>
+  <li><strong>红色归一化分母 1/Σ <em>I</em>(<em>y<sub>t</sub></em>)</strong>: 只对 LLM tokens 数目归一,不算 retrieved tokens 进分母。Paper 把这件事写在公式里 ——很多实现里会忘掉这一步导致 effective loss 被 retrieved 长度稀释。</li>
+  <li><strong>indicator <em>I</em>(<em>y<sub>t</sub></em>)</strong>: 这个 mask 在 forward 里就已经知道——你 parse rollout sequence 时,<code>&lt;information&gt;...&lt;/information&gt;</code> 的 span 是 environment 写进去的,直接打 mask=0。</li>
+  <li><strong>clip ratio</strong>: PPO 标配,ϵ 一般 0.2,限制单步更新幅度避免 policy 跳出 trust region。</li>
+</ol>
+
+<h3>4.3 GRPO with Search Engine + masking (Eq. 3)</h3>
+
+<div class="formula" style="text-align:left;font-size:.98em">
+<em>J</em><sub>GRPO</sub>(θ) = 𝔼<sub><em>x</em>, {<em>y<sub>i</sub></em>}<sub>i=1..G</sub> ∼ π<sub>old</sub></sub> [ <br>
+&emsp; (1/<em>G</em>) Σ<sub>i=1..G</sub> <span style="color:#cc4a1b">1 / Σ<sub>t</sub> <em>I</em>(<em>y<sub>i,t</sub></em>)</span> · Σ<sub>t : <em>I</em>=1</sub> min(<em>ρ<sub>i,t</sub></em> <em>Â<sub>i,t</sub></em>, clip(·) <em>Â<sub>i,t</sub></em>) <br>
+&emsp; − β · 𝔻<sub>KL</sub>[ π<sub>θ</sub> ‖ π<sub>ref</sub> ] <br>
+]
+</div>
+
+<p>差异点 vs PPO:</p>
+<ul>
+  <li>外层多了对 <em>G</em> 条同 prompt rollout 取平均 (group size <em>G</em> 一般取 5–8)</li>
+  <li><em>Â<sub>i,t</sub></em> = (<em>R<sub>i</sub></em> − mean<sub>j</sub>(<em>R<sub>j</sub></em>)) / std<sub>j</sub>(<em>R<sub>j</sub></em>) ——组内 z-score,无需 critic</li>
+  <li>KL 从 reward 里挪到 loss 末尾直接加 (PPO 的写法里 KL 通常 shaped 进 reward,GRPO 这样写更稳)</li>
+  <li><strong>关键:</strong> paper 明确写"retrieved token masking is also applied when calculating the KL divergence loss" —— KL 也只在 LLM tokens 上算</li>
+</ul>
+
+<h3>4.4 退化检验</h3>
+
+<p>当 <em>I</em>(<em>y<sub>t</sub></em>) ≡ 1 (没有 retrieved tokens), 且 trajectory 只有一步 (无 search),公式退化回标准 PPO/GRPO。所以 Search-R1 可以看作把标准 RL 的 sample 空间从 "single response" 扩展到 "interleaved response + retrieval",再加一个 token-level mask 把 environment 段切掉。这是个<em>很干净</em>的扩展。</p>
+
+<h3>4.5 物理直觉</h3>
+
+<p>把 mask 想成: <strong>RL 只对"我能控制的东西"算账</strong>。Search engine 返回什么不在 policy 的控制下,所以不能也不应该归功/归罪给它。这跟经典 RL 里 "stochastic environment transition 不能反传梯度" 是同一个直觉的离散版本。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 实验关键结果</h2>
+
+<h3>5.1 主表 (Table 2 of paper, Qwen2.5-7B-Base + PPO)</h3>
+
+<table>
+<tr><th>Method</th><th>NQ†</th><th>TriviaQA*</th><th>PopQA*</th><th>HotpotQA†</th><th>2Wiki*</th><th>Musique*</th><th>Bamb.*</th><th>Avg.</th></tr>
+<tr><td>Direct inference</td><td>.134</td><td>.408</td><td>.140</td><td>.183</td><td>.250</td><td>.031</td><td>.120</td><td>.181</td></tr>
+<tr><td>RAG</td><td>.349</td><td>.585</td><td>.392</td><td>.299</td><td>.235</td><td>.058</td><td>.208</td><td>.304</td></tr>
+<tr><td>Search-o1</td><td>.151</td><td>.443</td><td>.131</td><td>.187</td><td>.176</td><td>.058</td><td>.296</td><td>.206</td></tr>
+<tr><td>R1-base (无 search)</td><td>.297</td><td>.539</td><td>.202</td><td>.242</td><td>.273</td><td>.083</td><td>.296</td><td>.276</td></tr>
+<tr><td>Reject. sampling (SFT-trajectory)</td><td>.360</td><td>.592</td><td>.380</td><td>.331</td><td>.296</td><td>.123</td><td>.355</td><td>.348</td></tr>
+<tr><td><strong>Search-R1-base</strong></td><td><strong>.480</strong></td><td><strong>.638</strong></td><td><strong>.457</strong></td><td><strong>.433</strong></td><td><strong>.382</strong></td><td><strong>.196</strong></td><td><strong>.432</strong></td><td><strong>.431</strong></td></tr>
+</table>
+
+<p>† = in-domain (训练里见过 NQ + HotpotQA), * = out-of-domain。<strong>所有 7 个数据集都 SOTA</strong>。平均 EM 从 RAG 的 0.304 → 0.431, 相对提升 41.7% (paper 摘要写 24%, 但摘要里的 24% 是<em>对 RAG baseline 平均的 average relative improvement</em>, 算法不同; conclusion 段写的 41% 才是最大版本,两者都正确,只是分母选法不同)。</p>
+
+<h3>5.2 retrieved-token masking 消融 (Table 4, 最 load-bearing)</h3>
+
+<table>
+<tr><th>Method</th><th>NQ</th><th>TriviaQA</th><th>PopQA</th><th>HotpotQA</th><th>2Wiki</th><th>Musique</th><th>Bamb.</th><th>Avg.</th></tr>
+<tr><td>w/ mask</td><td>.480</td><td>.638</td><td>.457</td><td>.433</td><td>.382</td><td>.196</td><td>.432</td><td><strong>.431</strong></td></tr>
+<tr><td>w/o mask</td><td>.388</td><td>.567</td><td>.391</td><td>.325</td><td>.321</td><td>.108</td><td>.304</td><td><span class="no">.343</span></td></tr>
+</table>
+
+<p>掉 9 个点。每个数据集都掉。这是<em>整篇 paper 最重要的单一证据</em>: 去掉 mask, RL 几乎白训, 跟 rejection-sampling SFT 同档。</p>
+
+<h3>5.3 PPO vs GRPO (Section 5.1 + Table 3)</h3>
+
+<ul>
+  <li><strong>GRPO 收敛快</strong> (~100 steps), PPO 慢 (~200 steps), 因为 PPO 要先训 critic warm-up</li>
+  <li><strong>GRPO 训久了会 reward collapse</strong>, PPO 平稳。Paper Figure 2(a) 里 GRPO 在 ~400 步后突然掉</li>
+  <li>最终性能相当, 但 PPO 更<em>稳</em>。Paper 默认 PPO</li>
+</ul>
+
+<h3>5.4 训练动态 (Figure 2)</h3>
+
+<p>三件有意思的事:</p>
+<ul>
+  <li><strong>Response length 走 V 字</strong>: 前 100 步降 (砍 filler words), 后面升 (开始多次 search 导致检索注入变长)。同时 train reward 一路升。</li>
+  <li><strong>Valid search count 从 ~1.4 → ~2.0</strong>: 模型自己学会多查。不是被 process reward 推的,纯 outcome reward 就把这件事 incentivize 了。</li>
+  <li><strong>Base vs Instruct</strong>: instruct 起点高, base 收敛慢但最终追平。意味着如果你不在乎 wall time 只在乎 final perf, base + RL 就够了。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · 与同类工作对比</h2>
+
+<table>
+  <tr><th>方法</th><th>训练?</th><th>多轮 search?</th><th>核心信号</th><th>vs Search-R1 缺什么</th></tr>
+  <tr><td>RAG (Lewis 2020)</td><td>×</td><td>单轮</td><td>—</td><td>不学 query 改写,多跳无能</td></tr>
+  <tr><td>IRCoT (Trivedi 2022)</td><td>× (prompt)</td><td>✓</td><td>—</td><td>不训,泛化差</td></tr>
+  <tr><td>ReAct (Yao 2023)</td><td>× (prompt)</td><td>✓</td><td>—</td><td>同上</td></tr>
+  <tr><td>Toolformer (Schick 2023)</td><td>SFT</td><td>多轮</td><td>imitation</td><td>需 trajectory 标注,不能纠错</td></tr>
+  <tr><td>Self-RAG (Asai 2024)</td><td>SFT</td><td>✓ (reflection)</td><td>GPT-4 teacher</td><td>SFT 框架,reward 不是 task outcome</td></tr>
+  <tr><td>LeRet (Hsu 2024)</td><td>RL</td><td>单轮 query 重写</td><td>retrieval recall</td><td>仅训 query 写法,不学 reasoning 结构</td></tr>
+  <tr><td>Search-o1 (Li 2025)</td><td>× (用 R1/o1 prompt)</td><td>✓</td><td>—</td><td>不训; 小模型反而拖累</td></tr>
+  <tr><td>R1-Zero (Guo 2025)</td><td>RL outcome</td><td>无 search</td><td>EM</td><td>无外部知识,纯 parametric</td></tr>
+  <tr><td>ReTool (concurrent 2025)</td><td>RL outcome</td><td>多轮 (code tool)</td><td>execution outcome</td><td>不同 tool 域(code),但思路同款</td></tr>
+  <tr><td><strong>Search-R1</strong></td><td><strong>RL outcome</strong></td><td><strong>✓ 多轮</strong></td><td><strong>EM + mask</strong></td><td>—</td></tr>
+</table>
+
+<p>简单读法: <strong>Search-R1 = R1-Zero + 外部 search + retrieved-token mask</strong>。它在 paradigm 层面没有发明新东西,但把"outcome RL 能学多步 tool use"这件事在 search 这个最重要的 tool 上做实了,是后来一整批 agentic-RL-for-search 工作的祖师爷。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+  <li><strong>Search 是<em>静态语料</em>的 retrieval, 不是真 web</strong>: paper 用 2018 Wikipedia dump + E5。真 web search (Bing/Google) 上 noise 大得多, retrieved doc 可能完全不相关 / 含广告。 mask 一定还在帮忙, 但模型在<em>挑 doc</em> 上的能力没被这套 setup 压力测试。</li>
+  <li><strong>Outcome reward = EM 太脆</strong>: 对开放问答 (生成式答案,非短答案) EM 几乎都是 0。Search-R1 的 reward 不能直接迁到 LFQA / report-writing 这种任务上, 需要更鲁棒的 verifier (LLM-as-judge 或 ground-truth answer set)。</li>
+  <li><strong>GRPO 的 reward collapse 没解释清楚</strong>: paper 只是观察到 GRPO 训久了崩,没分析 root cause。是 group baseline 的方差问题?还是 multi-turn rollout 让 advantage 估计偏?这是 follow-up 工作可以挖的点。</li>
+  <li><strong>Action budget B 是个未调超参</strong>: 内层 while loop 最大 B 次 search,paper 没明说 B 取多少。如果 B 太小,multi-hop 数据集吃亏;太大,训练 wall time 飙升。这是 productionize 时的关键调节阀。</li>
+  <li><strong>没和 process-reward baseline 公平对比</strong>: paper 论证"outcome reward 够了",但没真把一个 retrieve-quality reward model 接上做对照实验。我会想知道在 PopQA 这种高度依赖单次 retrieve 准确性的任务上, process reward 是不是确实没用。</li>
+  <li><strong>Retriever 选择影响有限,但没测最差情况</strong>: paper Appendix G 测了 top-k 数量,没系统测 retriever 强弱 (E5 vs BM25 vs Contriever)。如果换 BM25 这种弱 retriever, RL 还能不能学到东西? 学到的是 "改 query 弥补 retriever 弱"还是直接卡死?</li>
+</ul>
+
+<details>
+  <summary>待验证 follow-up 问题清单</summary>
+  <ol>
+    <li>把 retriever 从 E5 (dense) 换成 BM25 (sparse), Search-R1 的 RL 训练曲线和最终 EM 会怎么变? 是否 RL 反而<em>更</em>需要 (因为要靠改 query 弥补检索弱)?</li>
+    <li>retrieved-token mask 在 KL 项上的影响单独有多大? paper 只汇报 policy gradient 项 + KL 项一起 mask,没拆开消融</li>
+    <li>在 Bamboogle (4-hop 极端 multi-hop) 上,Search-R1 真的学到了"4 跳"还是只是"碰巧第 2 跳查到了答案"? 需要分析 valid search 分布</li>
+    <li>把 outcome reward EM 换成 LLM-as-judge,在 LFQA 上能否 work? reward hacking 风险有多大?</li>
+    <li>Search-R1 学到的 search behavior 是否可以 zero-shot transfer 到 code / calculator 这些 tool? 还是 search-specific?</li>
+    <li>GRPO reward collapse 的具体临界点 ——是 group size、KL coef、还是 rollout 长度 dependent?</li>
+  </ol>
+</details>
+
+<hr>
+
+<h2 id="memo">Memory points · 冷启动复盘</h2>
+
+<div class="kv"><span class="pill">立场</span> Search-R1 = R1-Zero 的 search 扩展。证明 <strong>outcome-only RL</strong> 足以让 LLM 学会 multi-turn search,但前提是把 retrieved tokens 从 loss / KL 里 mask 掉。</div>
+<div class="kv"><span class="pill">核心技巧</span> <strong>Retrieved-token masking</strong>: <em>I</em>(<em>y<sub>t</sub></em>) = 1 iff <em>y<sub>t</sub></em> 是 policy 生成的。无此 mask, 7B Avg EM 从 0.431 跌到 0.343。</div>
+<div class="kv"><span class="pill">trajectory 结构</span> <code>&lt;think&gt;</code> reasoning · <code>&lt;search&gt;query&lt;/search&gt;</code> 触发 retrieve · <code>&lt;information&gt;</code> environment 注入 · <code>&lt;answer&gt;</code> 终止并打 EM。</div>
+<div class="kv"><span class="pill">关键数字</span> Qwen2.5-7B-base + PPO: 7 datasets avg EM <strong>0.431</strong> (RAG: 0.304). 训练数据 = NQ + HotpotQA merge, retriever = E5, knowledge = 2018 Wiki.</div>
+<div class="kv"><span class="pill">PPO vs GRPO</span> GRPO 快但训久会 collapse; PPO 慢但稳。Paper 默认 PPO。</div>
+<div class="kv"><span class="pill">Reward</span> 仅 EM, <em>没有</em> format reward, <em>没有</em> process reward, <em>没有</em> neural reward model。</div>
+<div class="kv"><span class="pill">退化关系</span> 当 <em>I</em>≡1 且 trajectory 单步,公式退化回标准 PPO/GRPO。这是个干净扩展。</div>
+<div class="kv"><span class="pill">局限</span> 静态 Wiki 不是真 web; EM 不能用于 LFQA; B (max search 次数) 未调; GRPO collapse 未解释; retriever 强度未压力测试。</div>
+
+</main>
+</body>
+</html>

@@ -82,6 +82,8 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 07 | [AgentRL](https://zhangshuibai.github.io/paper-notes/agents/notes/07_AgentRL_2510.04206.html) | 全异步管道 / cross-policy sampling / 跨任务标准化 | 52 KB |
 | 08 | [CoEvolve](https://zhangshuibai.github.io/paper-notes/agents/notes/08_CoEvolve_2604.15840.html) | agent ↔ data mutual evolution / GRPO + 信号驱动数据进化 | 44 KB |
 | 09 | [HeavySkill](https://zhangshuibai.github.io/paper-notes/agents/notes/09_HeavySkill_2605.02396.html) | Agent Swarm 内化为单模型 inner skill / parallel + summarize | 52 KB |
+| 10 | [Search-R1](https://zhangshuibai.github.io/paper-notes/agents/notes/10_SearchR1_2503.09516.html) | search-augmented RL / retrieved-token masking / +41% over RAG | 46 KB |
+| 11 | [ReTool](https://zhangshuibai.github.io/paper-notes/agents/notes/11_ReTool_2504.11536.html) | code-integrated RL / cold-start SFT + outcome RL / AIME 67% (vs text-RL 40%) | 60 KB |
 
 ## 论文清单 (按时间)
 
@@ -147,6 +149,8 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | Agent-World | — | 2026-04 | [2604.18292](https://arxiv.org/abs/2604.18292) |
 | DR-Venus | inclusionAI | 2026-04 | [2604.19859](https://arxiv.org/abs/2604.19859) |
 | MemPalace 审视 | — | 2026-04 | [2604.21284](https://arxiv.org/abs/2604.21284) |
+| Search-R1 | UIUC + Meta | 2025-03 | [2503.09516](https://arxiv.org/abs/2503.09516) |
+| ReTool | ByteDance Seed | 2025-04 | [2504.11536](https://arxiv.org/abs/2504.11536) |
 
 ## 设计原则
 
