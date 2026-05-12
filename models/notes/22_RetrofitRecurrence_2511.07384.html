@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Retrofitting Recurrence (2511.07384)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Teaching Pretrained LMs to Think Deeper with Retrofitted Recurrence</h1>
+<div class="meta">
+  McLeish, Li, Kirchenbauer, …, Geiping, Goldstein, Goldblum · UMD / NYU / LLNL / UNC / ELLIS Tübingen / Columbia · 2025-11 · <a href="https://arxiv.org/abs/2511.07384" target="_blank" rel="noopener">arXiv:2511.07384</a><br>
+  关键词: depth-recurrence · latent reasoning · model surgery · curriculum · test-time compute · Muon
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>不要再从零训练 depth-recurrent transformer(Geiping 等花了 800B tokens),直接<em>把已有的</em> TinyLlama / OLMo-2 / Llama-3.2 切开,挑早期层做 prelude、晚期层做 recurrent block + coda,中间层丢掉,再加 input injection 和小规模 continued pretraining,就能把一个 1B 固定深度模型改造成一个"用 32 次循环替代深度"的 latent reasoning 模型,GSM8K / MATH 在更少参数 + 同样 FLOPs 下击败原模型。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">~50B</div><div class="l">retrofit 训练 token 数(对比 800B from scratch)</div></div>
+    <div class="stat"><div class="n">72.7%</div><div class="l">recurrent 模型保留的参数比例 (TinyLlama, 6/22 层被丢)</div></div>
+    <div class="stat"><div class="n">+10% MMLU<br>+10% GSM8K</div><div class="l">vs. Huginn-0125 (3.5B from-scratch)</div></div>
+  </div>
+  <p><strong>立场:</strong>这是 <em>latent reasoning</em> 路线最实用的一篇 — 不要求重训,等于把"recurrent depth"做成了一个 post-training stage,跟扩 context length 同等地位。配方上有三个关键发现:<em>pretrained init 远胜 random</em>、<em>curriculum 调度循环次数</em>、<em>Muon 比 AdamW 更稳</em>;再加一个"healing 阶段"修复切层带来的 distribution shift。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:为什么 latent recurrence 重要,以及为什么从零训太贵</a></li>
+    <li><a href="#sec2">背景速查 (术语 / Huginn 架构回顾)</a></li>
+    <li><a href="#sec3">方法 1:Model Surgery —— 早 prelude / 晚 R+coda / 丢中间</a></li>
+    <li><a href="#sec4">方法 2:Recurrence Curriculum —— 慢慢加深</a></li>
+    <li><a href="#sec5">方法 3:Muon 优化器 + Healing 阶段</a></li>
+    <li><a href="#sec6">Worked Example: TinyLlama (4,8,4) 一次前向 / 一次反传</a></li>
+    <li><a href="#sec7">公式: si = R(e, s_{i−1}) 与 FLOPs 计算</a></li>
+    <li><a href="#sec8">实验关键结果 (GSM8K / MATH / 多任务)</a></li>
+    <li><a href="#sec9">与同类工作对比 (Huginn / Bae 2024 / Koishekenov / HRM)</a></li>
+    <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:为什么 latent recurrence 重要,以及为什么从零训太贵</h2>
+
+<h3>1.1 历史脉络:test-time compute scaling 的两条路</h3>
+<p>2024 下半年以来,大家公认要把"算力花在推理而不是参数"。这条路上有两个主流派系:</p>
+
+<ul>
+  <li><strong>Token-level scaling</strong>:让模型在 output space 写更长的 chain-of-thought / 多 candidate + best-of-N。代表是 OpenAI o1、DeepSeek-R1。优点是直接、可解释、能 RL;缺点是 <span class="term">每多想一步就吃一段 context、占 KV cache</span>,而且"想"必须以 token 为载体,带宽极低(每 token 只能携带 ~16 bits)。</li>
+  <li><strong>Depth-level / latent scaling</strong>:让模型在 hidden state 里"绕圈",同一段权重反复跑 r 次,把更多 FLOPs 花在<em>不增长序列</em>的潜在思考上。代表是 Universal Transformers、Schwarzschild 的 deep thinking、HRM,以及最关键的 Geiping et al. 2025 (Huginn-0125)。优点是 KV cache 不长、信息带宽是<em>整个 hidden state</em>(d_model × n_token bits 量级);缺点是训练贵 —— 一次 r=32 的前向相当于 32 倍深度的网络。</li>
+</ul>
+
+<p>Huginn-0125 证明了 latent recurrence <em>路线本身可行</em>:他们从零预训练一个 3.5B 的 depth-recurrent 模型,跑 800B tokens,在 ARC / MMLU / GSM8K 上确实能<em>越循环越准</em>。但这篇 paper 的核心追问是:</p>
+
+<blockquote>
+我们已经有了 Llama-3.2-1B、OLMo-2-1B、TinyLlama-1.1B 这些跑了 3T~9T tokens 的开源模型 —— <strong>能不能不要再从零训,直接把它们改造成 recurrent 的?</strong>
+</blockquote>
+
+<h3>1.2 别的方案为什么不够</h3>
+<p>这个问题其实之前有人做过,但每条路都有缺口:</p>
+
+<table>
+<thead><tr><th>已有方案</th><th>做法</th><th>缺口</th></tr></thead>
+<tbody>
+<tr><td><strong>Huginn (Geiping 2025)</strong></td><td>从零训 3.5B,800B tokens,平均 r=32</td><td>太贵;参数不能复用现有 base model</td></tr>
+<tr><td><strong>Bae 2024 (Relaxed Recursive)</strong></td><td>把 pretrained 模型循环 2~3 次,加 LoRA 修复</td><td>r 增大反而掉点,<em>没有 test-time scaling</em></td></tr>
+<tr><td><strong>Koishekenov 2025 (encode-think-decode)</strong></td><td>OLMo → P/R/C 结构,但保留全部层,固定 r</td><td>没 input injection;没用 curriculum;不报 FLOPs 难对比</td></tr>
+<tr><td><strong>Li 2025 (cyclic refinement)</strong></td><td>循环 GPT-2/OPT 模型</td><td>只在 multiple choice 上有微弱增益</td></tr>
+</tbody>
+</table>
+
+<p>所以本文的位置是:<strong>把 Huginn 的"会 scale 的 latent reasoning"嫁接到现有 pretrained 模型上,且证明嫁接成本远小于从零训</strong>。这件事不平凡,原因有三:</p>
+
+<h3>1.3 为什么这事不平凡</h3>
+<ol>
+  <li><strong>参数既加又减</strong>:从 pretrained 模型出发要做"加" — 新增 input-injection 的 linear adapter (2h → h),还要适配 Geiping 的随机噪声 s₀;同时要做"减" — 丢中间几层(否则 r=32 时 FLOPs 爆炸)。<em>怎么保证知识依然能 transfer 过来?</em> 这没先验保证。</li>
+  <li><strong>"循环这件事"原模型从没见过</strong>:pretrained transformer 的每一层是<em>独立功能单元</em>,从来没被要求把"自己的输出再喂自己一次"。Bae 2024 已经证明,如果不重新训练,直接循环会掉点。</li>
+  <li><strong>训练 r=32 的模型 forward 成本爆炸</strong>:每一步前向都要跑 32 次 recurrent block,如果一开始就用大 r,基本没法做 ablation。需要 <em>curriculum</em>:从小 r 起步,慢慢爬到大 r。但这又引入新风险 — 早期低 r 学到的 representation 可能跟后期高 r 不兼容。</li>
+</ol>
+
+<p>论文的贡献正好对这三个难点各开一刀:</p>
+<ul>
+  <li>对 (1) 做层选择消融,发现"早 prelude / 晚 R+coda / 丢中间"最优,并设计 healing 阶段修复 distribution shift。</li>
+  <li>对 (2) 用 input injection(每次循环把 prelude 的 e 再拼回去)+ Muon 优化器,保证训练稳定。</li>
+  <li>对 (3) 设计 Poisson-Lognormal mean 的 linear / 1-sqrt 调度,把训练 FLOPs 砍半,且 loss 反而更低。</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+  <!-- Left: pretrained -->
+  <text x="80" y="22" text-anchor="middle" font-size="13" fill="#1f2024">Pretrained TinyLlama (22层)</text>
+  <g font-size="11" fill="#5b5e66">
+    <rect x="40" y="30" width="80" height="14" fill="#e7eefb" stroke="#2f6feb"/>
+    <text x="80" y="40" text-anchor="middle">L0</text>
+    <rect x="40" y="44" width="80" height="14" fill="#e7eefb" stroke="#2f6feb"/>
+    <text x="80" y="54" text-anchor="middle">L1</text>
+    <rect x="40" y="58" width="80" height="14" fill="#e7eefb" stroke="#2f6feb"/>
+    <text x="80" y="68" text-anchor="middle">L2 L3 (prelude)</text>
+    <rect x="40" y="72" width="80" height="24" fill="#fdecdc" stroke="#cc4a1b" stroke-dasharray="4 3"/>
+    <text x="80" y="87" text-anchor="middle">L4–L9 丢弃</text>
+    <rect x="40" y="96" width="80" height="48" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="80" y="123" text-anchor="middle">L10–L17 (R)</text>
+    <rect x="40" y="144" width="80" height="24" fill="#fff2cc" stroke="#d2a32a"/>
+    <text x="80" y="159" text-anchor="middle">L18–L21 (coda)</text>
+  </g>
+
+  <line x1="135" y1="100" x2="195" y2="100" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="165" y="92" text-anchor="middle" font-size="11" fill="#2f6feb">surgery</text>
+
+  <!-- Right: recurrent -->
+  <g font-size="11" fill="#1f2024">
+    <text x="380" y="22" text-anchor="middle" font-size="13">Recurrent (4,8,4) model</text>
+    <!-- Prelude -->
+    <rect x="340" y="40" width="80" height="40" fill="#e7eefb" stroke="#2f6feb"/>
+    <text x="380" y="64" text-anchor="middle">P (4 层)</text>
+    <text x="320" y="64" text-anchor="end" fill="#5b5e66">x →</text>
+    <text x="430" y="58" font-size="10" fill="#5b5e66">e</text>
+
+    <!-- recurrent block with loop -->
+    <rect x="340" y="100" width="80" height="60" fill="#dff3e6" stroke="#1f7a4a" stroke-width="2"/>
+    <text x="380" y="125" text-anchor="middle">R (8 层)</text>
+    <text x="380" y="143" text-anchor="middle" font-size="11" fill="#5b5e66">+ adapter [e, s_{i-1}]</text>
+    <!-- loop arrow -->
+    <path d="M340 130 Q 290 130 290 100 Q 290 70 320 70 L 335 70" fill="none" stroke="#cc4a1b" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="270" y="103" text-anchor="middle" font-size="11" fill="#cc4a1b">× r</text>
+
+    <!-- noise -->
+    <text x="500" y="125" font-size="11" fill="#5b5e66">s₀ ~ 𝒩(0, σ²)</text>
+    <path d="M495 122 L 425 122" stroke="#5b5e66" stroke-dasharray="3 2" fill="none" marker-end="url(#arr)"/>
+
+    <!-- Coda -->
+    <rect x="340" y="180" width="80" height="40" fill="#fff2cc" stroke="#d2a32a"/>
+    <text x="380" y="204" text-anchor="middle">C (4 层)</text>
+    <text x="430" y="204" font-size="10" fill="#5b5e66">→ p</text>
+  </g>
+</svg>
+<figcaption>图 1:模型外科手术。从 22 层 TinyLlama 取早 4 层做 prelude (P),取晚 8 层做 recurrent block (R),取最后 4 层做 coda (C),中间 6 层(L4–L9)丢弃。每次循环 R 都把 prelude 输出 e 拼回当前隐藏态 s_{i-1},经 linear adapter 压回宽度 h。s₀ 来自高斯噪声。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+<thead><tr><th>术语</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td><strong>depth-recurrent transformer</strong></td><td>同一组 transformer 层反复跑 r 次,r 可以训练时 sample、推理时调</td></tr>
+<tr><td><strong>P / R / C</strong></td><td>Prelude (含 embedding) / Recurrent block / Coda (含 unembedding) 的三段式 — 来自 Geiping 2025</td></tr>
+<tr><td><strong>input injection</strong></td><td>每次循环 R 时,把 prelude 的输出 e 与上一次循环输出 s_{i-1} concat 后过 adapter,避免遗忘原输入</td></tr>
+<tr><td><strong>truncated BP through time</strong></td><td>只对最后 8 次循环回传梯度,前面的循环只作 forward 不存激活 — 大幅省内存</td></tr>
+<tr><td><strong>Poisson-Lognormal r</strong></td><td>训练每一步从 Poisson-Lognormal 分布采一个 r,均值控制平均深度,长尾偶尔给到 r=100+</td></tr>
+<tr><td><strong>Muon</strong></td><td>2024 新优化器,对 2D 权重做 Newton-Schulz 正交化,在 narrow / 深网络上比 AdamW 更稳</td></tr>
+<tr><td><strong>scalable init (Takase 2023)</strong></td><td>跟 model shape 解耦的初始化,允许 prelude/coda 维度不一致也稳</td></tr>
+<tr><td><strong>healing period</strong></td><td>切层之后先用普通 web 数据(FineWeb-Edu)训一段,让模型恢复基础语言能力,再切到 SFT / math 数据</td></tr>
+</tbody>
+</table>
+
+<h4>回顾:Huginn 的训练分布(便于和本文对比)</h4>
+<p>Geiping 2025 用 Poisson-Lognormal,mean=32,truncated BP through time = 8。每一步训练采一个 r,前向 r 次 R,只对后 8 次回传。本文继承所有这些设置,但加上 <em>r 的均值随训练 step 增大</em>(curriculum)和 <em>r 一开始就放在小值</em>(warm-up 阶段)。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 方法 1:Model Surgery —— 怎么挑层最划算</h2>
+
+<h3>3.1 三段切法 (P, R, C) 的层选择</h3>
+<p>给定一个 22 层的 TinyLlama,要切成 (4, 8, 4) 的 P/R/C — 总共 16 层,丢 6 层。哪 6 层?论文的消融(Figure 12/13)给出了一个反直觉的答案:</p>
+
+<blockquote>
+<strong>挑两端,丢中间。</strong> 也就是 prelude 取 L0–L3,coda 取 L18–L21,recurrent 取 L10–L17,把 L4–L9 全扔掉。</blockquote>
+
+<p>为什么不挑"看起来均匀分布的层"?论文给的解释偏经验:</p>
+<ul>
+  <li><strong>早期层是 token-level feature</strong>:做 detokenization 和粗糙语法,这部分必须留 — 因为 prelude 直接吃 raw token,且每次循环都要把 e 注回来,prelude 的工作不可被循环替代。</li>
+  <li><strong>晚期层是 task-level abstraction</strong>:做 vocabulary projection 前的 high-level 推理,这部分作为循环单元 R + 输出头 C 是最自然的。</li>
+  <li><strong>中间层最冗余</strong>:已有 ShortGPT (Men 2024) 的发现:transformer 中间层的输入输出相似度极高,本身就是"残差小的 noop",删掉对原模型损失最小;循环也最容易让 R "学会" 补这部分。</li>
+</ul>
+
+<p>论文对比了 ShortGPT 的"按层相似度自动选"方法,发现 <em>固定挑中间</em> 比 ShortGPT 还略好(Figure 13)。猜测原因:ShortGPT 是在评估 next-token loss 上挑层,而循环训练要的是"能在 R 内部产生迭代式 progress 的层",这两个目标不完全一致。</p>
+
+<h3>3.2 Input injection 是必需品</h3>
+<p>没有 input injection 时,R 的输入只有 s_{i-1} —— 模型循环几十次后早就忘了原 token 长什么样。论文沿用 Geiping 的做法:</p>
+
+<div class="formula">
+s<em>ᵢ</em> = R( concat[ <em>e</em>, s<em>ᵢ₋₁</em> ] · W<em>adapter</em> ),&nbsp;&nbsp; W<em>adapter</em> : ℝ<sup>2h</sup> → ℝ<sup>h</sup>
+</div>
+
+<p>这个 adapter 是 <strong>新增的</strong>(原模型没有),所以 retrofit 需要给它一个 sensible 初始化。本文用 Takase 2023 的 scalable init,大致是 (1/√2) · I_h 拼 (1/√2) · I_h 的方块,这样初始时 adapter 输出 ≈ (e + s_{i-1}) / √2,等价于加法 residual,不破坏 R 在 pretrained 模型里学到的功能。</p>
+
+<h3>3.3 反向论证:如果不丢中间层会怎样?</h3>
+<p>论文做了 (7, 8, 7) 的 TinyLlama 模型 (Figure 15) — 留下所有层,只是把中间 8 层拿来循环。结果是:<em>per-FLOP 效率显著下降</em>。原因很简单 — 22 层都用,但循环 32 次,等于做了 22 + 31×8 = 270 层深的 forward,绝大多数 FLOPs 花在 7+7=14 层的非循环部分,但这些部分本身已经训得很好,几乎没新信息可学。所以"挑层是为了让 FLOPs 都花在 R 上"。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 方法 2:Recurrence Curriculum</h2>
+
+<h3>4.1 直接训 r=32 的问题</h3>
+<p>Geiping 2025 全程用 mean=32。本文复现这个设置作为 baseline,但发现:</p>
+<ul>
+  <li>每一步 forward 跑 32 次 R,training step 比同 FLOPs 的非循环模型慢得多。</li>
+  <li>训练初期模型还没学会"用循环",过深的 forward chain 反而把梯度搅成噪声。</li>
+</ul>
+
+<h3>4.2 Curriculum:让 mean(r) 从小到大</h3>
+<p>论文设计两种 curriculum:</p>
+<ul>
+  <li><strong>Linear</strong>:从 mean=2 线性升到 mean=32,占总训练的前 75%,然后保持 32。</li>
+  <li><strong>1-sqrt</strong>:更激进 — mean(t) = 32 · (1 - √(1 - t/T_warmup)),即一开始非常陡地涨,后半段慢慢逼近 32。</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+  <line x1="50" y1="170" x2="550" y2="170" stroke="#5b5e66" stroke-width="1"/>
+  <line x1="50" y1="170" x2="50" y2="20" stroke="#5b5e66" stroke-width="1"/>
+  <text x="300" y="195" text-anchor="middle" font-size="12" fill="#5b5e66">training step</text>
+  <text x="25" y="100" text-anchor="middle" font-size="12" fill="#5b5e66" transform="rotate(-90 25 100)">mean r</text>
+  <text x="45" y="35" text-anchor="end" font-size="11" fill="#5b5e66">32</text>
+  <text x="45" y="170" text-anchor="end" font-size="11" fill="#5b5e66">2</text>
+
+  <!-- constant mean=32 -->
+  <line x1="50" y1="35" x2="550" y2="35" stroke="#a8353e" stroke-width="2" stroke-dasharray="6 3"/>
+  <text x="555" y="40" font-size="11" fill="#a8353e">constant 32 (baseline)</text>
+
+  <!-- linear curriculum -->
+  <line x1="50" y1="170" x2="425" y2="35" stroke="#2f6feb" stroke-width="2"/>
+  <line x1="425" y1="35" x2="550" y2="35" stroke="#2f6feb" stroke-width="2"/>
+  <text x="200" y="105" font-size="11" fill="#2f6feb">linear</text>
+
+  <!-- 1-sqrt curriculum -->
+  <path d="M50 170 Q 150 50 425 35 L 550 35" fill="none" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="200" y="55" font-size="11" fill="#1f7a4a">1-sqrt(更激进)</text>
+
+  <line x1="425" y1="170" x2="425" y2="35" stroke="#5b5e66" stroke-width="1" stroke-dasharray="2 3"/>
+  <text x="425" y="185" text-anchor="middle" font-size="11" fill="#5b5e66">75% T</text>
+</svg>
+<figcaption>图 2:Recurrence curriculum 示意。蓝色 linear 在前 75% 步线性升到 mean=32,绿色 1-sqrt 一开始更陡再趋稳,红色虚线是 Huginn 的 constant=32 baseline。</figcaption>
+</div>
+
+<h3>4.3 Curriculum 的效果(Figure 3)</h3>
+<p>关键观察来自 Figure 3 的<strong>两张图</strong>:</p>
+<ul>
+  <li>左图(loss vs <em>step</em>):curriculum 跟 constant=32 几乎重合,说明 curriculum <em>不损失</em> 每 step 的学习能力。</li>
+  <li>右图(loss vs <em>FLOPs</em>):curriculum 显著更低,因为前期 r 小,每 step FLOPs 少。换算下来 <strong>同 FLOPs 下 loss 低 ~0.05,等价于 ~1.3× 训练加速</strong>。</li>
+</ul>
+
+<div class="nb">
+直觉:这跟<em>渐进式 batch size</em>、<em>渐进式序列长度</em>是同源思想 — 模型早期还学不到 r=32 才能用上的"深度推理",此时把这部分 forward FLOPs 节省下来,等模型 representation 长好了再投入更深的循环,效率更高。
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · 方法 3:Muon + Healing 阶段</h2>
+
+<h3>5.1 Muon 比 AdamW 更稳(Figure 4)</h3>
+<p>recurrent 模型对优化器极其敏感 — 同一组权重反复跑 r 次,梯度通过 BP-through-time 累计,放大了任何不稳定因素。论文实测:</p>
+
+<table>
+<thead><tr><th>optimizer</th><th>LR</th><th>训练 loss 行为</th></tr></thead>
+<tbody>
+<tr><td>AdamW(标准)</td><td>5e-5</td><td>多次 loss spike,后期 NaN</td></tr>
+<tr><td>AdamW*(Geiping 2025 用的变体,去 ε / update clipping)</td><td>—</td><td>比标准 AdamW 稳但仍偶有 spike</td></tr>
+<tr><td><strong>Muon</strong></td><td>1e-3(注意比 AdamW 大 20×)</td><td>完全平稳,最终 loss 最低</td></tr>
+</tbody>
+</table>
+
+<p>对非循环 TinyLlama,Muon 和 AdamW 差别很小;<strong>是"循环"放大了优化器的差距</strong>。这是一个有意思的实证 — 之前 Muon 只在 narrow 模型上验证过优势,本文等于发现 recurrent 也是 Muon 的优势场景。</p>
+
+<h3>5.2 Healing:切层后先恢复一段</h3>
+<p>切掉 6 层后,模型在普通文本上的 perplexity 会跳一下。如果立刻用 high-quality math + SFT 数据训,模型会同时面对两个 distribution shift(架构变化 + 数据领域变化),容易把基础语言能力给"忘了"。</p>
+
+<p>论文设计 <strong>two-phase training</strong>:</p>
+<ul>
+  <li><strong>Phase 1 (healing)</strong>:26B tokens 的 FineWeb-Edu(普通教科书风格 web 数据)。让模型先在"原始分布"上把缺的层补回来。</li>
+  <li><strong>Phase 2 (specialize)</strong>:再用 26B tokens 的 (1/3 FineWeb-Edu + 1/3 Nemotron-General + 1/3 Nemotron-Math) 做后训练。</li>
+</ul>
+
+<p>消融(Figure 8):非循环模型用不用 healing 几乎无差(它没切层,本来就没"伤"要愈合);循环模型用 healing 在 Arc-C 上 +5%。</p>
+
+<hr>
+
+<h2 id="sec6">6 · Worked Example: TinyLlama (4,8,4) 一次前向</h2>
+
+<p>设输入 token x = "<code>What is 17+25?</code>" — 5 个 token,h = 2048。我们追踪一个 r=8 的前向。</p>
+
+<table>
+<thead><tr><th>步骤</th><th>形状</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>x: token ids</td><td>(5,)</td><td>5 个 BPE id</td></tr>
+<tr><td>e = P(x): 过 L0–L3</td><td>(5, 2048)</td><td>prelude 输出, 含 token-level feature</td></tr>
+<tr><td>s₀ ~ 𝒩(0, σ²)</td><td>(5, 2048)</td><td>每次 forward 重采样的噪声</td></tr>
+<tr><td>i=1: concat[e, s₀] · W_a</td><td>(5, 2048)</td><td>2h → h 的 linear adapter</td></tr>
+<tr><td>i=1: 过 R(L10–L17)</td><td>s₁ (5, 2048)</td><td>第一次"思考"</td></tr>
+<tr><td>… i=2,…,8</td><td>s₂, …, s₈</td><td>每次都把 e 拼回当前 s_{i-1}</td></tr>
+<tr><td>p = C(s₈): 过 L18–L21</td><td>(5, V=32000)</td><td>得到每个位置的下个 token 分布</td></tr>
+</tbody>
+</table>
+
+<h4>训练时的反传(truncated BP)</h4>
+<p>设 mean training r = 16,Poisson-Lognormal 这步采到 r = 12。前向跑 12 次 R,但 <strong>只对 i=5..12 这 8 次回传梯度</strong> — i=1..4 的前向当 "stop_grad" 算,不存激活。这把内存压住了:</p>
+<ul>
+  <li>不 truncate:激活内存 ∝ 12 × 8 层 × seq × h ≈ 96 个 transformer 层的激活。</li>
+  <li>truncate=8:激活内存 ∝ 8 × 8 = 64 层 — 跟一个 64 层非循环模型差不多。</li>
+</ul>
+
+<h4>推理时</h4>
+<p>没有 BP,r 可以拉到 32, 64, 128。论文实测 r 从 1 → 32,GSM8K acc 从 26% → 52%,等价于一个"用算力换准确率"的旋钮。</p>
+
+<details>
+<summary>反向论证:如果不做 input injection 会怎样?</summary>
+<p>没有 e 的注入,R 只能从 s_{i-1} 拿信息。s₀ 是高斯噪声,r=1 时 s₁ 只含一点 token 信息 (来自 W_a 的耦合,但若 W_a 退化为 identity,s₁ = R(s₀) = R(noise)),整个轨迹会发散。论文验证了 input injection 是性能必需。也可以反过来理解:<em>e 充当一个固定的"题目陈述",每次循环模型都重新看一遍题目,再基于当前思路 s_{i-1} 更新</em> — 这跟人解数学题时反复读题再继续是同构的。</p>
+</details>
+
+<hr>
+
+<h2 id="sec7">7 · 公式: FLOPs 计算</h2>
+
+<h3>7.1 模型核心方程(Geiping 2025 沿用)</h3>
+<div class="formula">
+<em>e</em> = P(<em>x</em>)<br>
+<em>s</em><em>₀</em> ~ 𝒩(0, σ²)<sup>n × h</sup><br>
+<em>sᵢ</em> = R(<em>e</em>, <em>sᵢ₋₁</em>),&nbsp;&nbsp; <em>i</em> ∈ {1, …, <em>r</em>}<br>
+<em>p</em> = C(<em>sᵣ</em>)
+</div>
+
+<h3>7.2 训练 FLOPs 估算</h3>
+<p>标准 Kaplan 估算 FLOPs = 6ND(forward 2ND,backward 4ND)。但 recurrent 模型只有<em>最后 k_BP=8</em> 次循环带梯度,其余只 forward 不 backward:</p>
+<div class="formula">
+FLOPs = 6 · <em>N₁</em> · <em>D</em> + 2 · <em>N₂</em> · <em>D</em>
+</div>
+
+<p>其中 <em>N₁</em> = 带梯度的有效参数数 = (P + 8 × R + C) 的参数计数,<em>N₂</em> = 仅 forward 的剩余参数数 = (mean_r − 8) × R 的参数。</p>
+
+<h3>7.3 数值敏感性</h3>
+<table>
+<thead><tr><th>train r (mean)</th><th>每 step FLOPs(相对值)</th><th>训练时间(相对)</th></tr></thead>
+<tbody>
+<tr><td>4</td><td>1.0</td><td>1.0</td></tr>
+<tr><td>8</td><td>1.4</td><td>1.5</td></tr>
+<tr><td>16</td><td>2.1</td><td>2.4</td></tr>
+<tr><td>32</td><td>3.4</td><td>4.0</td></tr>
+</tbody>
+</table>
+
+<p><strong>物理直觉:</strong>前 r-8 次循环是"白嫖知识、不学新东西"。它们消耗 FLOPs 但贡献为 <em>给后 8 次 BP 提供一个好起点</em> —— 类似 inference-time 多想几步,只是这几步发生在训练时。这就是为什么 curriculum 有效:训练早期模型还学不到"r=32 才暴露的现象",这部分 forward FLOPs 就是浪费,后期再投入。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 实验关键结果</h2>
+
+<h3>8.1 Pretrained init 远胜 random init (Figure 2)</h3>
+<p>同样训 120B FineWeb-Edu tokens,两个 (2,4,2) 模型:</p>
+
+<table>
+<thead><tr><th>初始化</th><th>final loss</th><th>HellaSwag (r=32)</th></tr></thead>
+<tbody>
+<tr><td>Llama-3.2-1B init</td><td><strong>低</strong></td><td>~50%</td></tr>
+<tr><td>random (Takase 2023)</td><td>高</td><td>~33% (接近 chance)</td></tr>
+</tbody>
+</table>
+
+<p>外推 log-linear 曲线,random init 大约要 <strong>950B tokens 才能追上 pretrained init</strong>。这是论文最重要的一个证据 — knowledge transfer 在这种"参数加加减减"的 surgery 下依然成立。</p>
+
+<h3>8.2 Recurrent 在 GSM8K / MATH 上击败 base (Figure 5, 6, 7)</h3>
+<table>
+<thead><tr><th>base</th><th>params</th><th>GSM8K (r=32)</th><th>MATH (r=32)</th></tr></thead>
+<tbody>
+<tr><td>TinyLlama-1.1B 原模型</td><td>1.1B</td><td>~45%</td><td>~14%</td></tr>
+<tr><td>TinyLlama → (4,8,4) recurrent</td><td>0.7B (-30%)</td><td><strong>52%</strong></td><td>~14.5%</td></tr>
+<tr><td>OLMo-2-1B 原模型</td><td>1.0B</td><td>~25%</td><td>~12%</td></tr>
+<tr><td>OLMo-2 → (4,6,4) recurrent</td><td>0.9B</td><td><strong>~32%</strong></td><td><strong>~22%</strong></td></tr>
+<tr><td>Llama-3.2-1B 原模型</td><td>1.2B</td><td>~35%</td><td>~10%</td></tr>
+<tr><td>Llama-3.2 → (4,6,4) recurrent</td><td>1.0B</td><td><strong>~50%</strong></td><td><strong>~20%</strong></td></tr>
+</tbody>
+</table>
+
+<p><strong>读法:</strong>三个家族都呈现 "参数少 30% 但 GSM8K +7% ~ +15%"。MATH 更难,gain 更明显。<em>base model 越强,recurrent 改造后 ceiling 越高</em>(Llama > OLMo > TinyLlama,论文称这是 "stronger base transfers more knowledge")。</p>
+
+<h3>8.3 推理时 r 是有效旋钮 (Figure 5/6 right)</h3>
+<p>训练 mean=16 的模型,推理时 r=1/2/4/8/16/32 的 GSM8K acc 单调递增。这是 latent reasoning 的核心承诺 — <strong>训练完一次,推理时按预算调精度</strong>。</p>
+
+<h3>8.4 比 Huginn-0125 强(Table 1)</h3>
+<p>本文最强的 (4,8,4) TinyLlama recurrent 模型(~0.7B 参数,52B tokens 训练)在 MMLU 上比 Huginn-0125 (3.5B 参数,800B tokens) 高 12 个点,GSM8K 高 10 个点。这是 retrofit 策略最直接的胜利证据。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与同类工作对比</h2>
+
+<table>
+<thead><tr><th></th><th>本文 (McLeish 2025)</th><th>Huginn (Geiping 2025)</th><th>Bae 2024 (Relaxed Recursive)</th><th>Koishekenov 2025</th></tr></thead>
+<tbody>
+<tr><td>起点</td><td>pretrained</td><td>from scratch</td><td>pretrained</td><td>pretrained (OLMo)</td></tr>
+<tr><td>训练 tokens</td><td>~50B</td><td>800B</td><td>~少量 finetune</td><td>~少量</td></tr>
+<tr><td>层选择</td><td>挑两端丢中间</td><td>—(scratch)</td><td>保留全部</td><td>保留全部</td></tr>
+<tr><td>Input injection</td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
+<tr><td>训练 r 分布</td><td>Poisson-LogN + curriculum</td><td>Poisson-LogN 固定 mean=32</td><td>固定 r=2,3</td><td>固定 r</td></tr>
+<tr><td>Test-time scaling</td><td><span class="ok">单调增,r=1→32 大幅涨</span></td><td><span class="ok">同上</span></td><td><span class="no">r 升反而掉点</span></td><td><span class="ok">少量增益</span></td></tr>
+<tr><td>开源权重</td><td><span class="ok">HF: tomg-group-umd</span></td><td><span class="ok">已开</span></td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+
+<p><strong>差异本质:</strong>Bae 2024 是"用循环近似原 forward,LoRA 修补差异" — 等价于压缩,没拿到 test-time scaling;本文是"用循环替代深度,layer drop 让 FLOPs 都花在 R 上" — 等价于把 base model 升级成 latent reasoner。两者都从 pretrained 出发,但目标完全不同。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+
+<ul>
+  <li><strong>规模仅到 1B / 50B tokens</strong>:论文自承没在 7B+ 验证。Mid-layer 是不是仍然最冗余、curriculum 的最优形状会不会变,都不清楚。</li>
+  <li><strong>仅在 math 上看到明确增益</strong>:这跟 latent reasoning 文献的共识一致 — depth 帮"算法式"任务最大。开放式 RLHF、长文本理解上是否同样?未知。</li>
+  <li><strong>没有 adaptive recurrence</strong>:r 在推理时由用户给。理想情况是模型自己根据题目难度决定 stop — 这条路在 Geiping 2025、Bae 2025(MoR)、Inner Thinking Transformer (Chen 2025) 都有探索,本文还没接上。</li>
+  <li><strong>训练 FLOPs 仍然偏高</strong>:同样 50B tokens 训练 (4,8,4) recurrent ≈ 训练一个 1.4B 非循环模型的 cost。Cost-benefit 真正成立的前提是 <em>推理端能反复利用这次训练换来的 r-scaling</em>,所以更适合长期 serve 的产品场景。</li>
+  <li><strong>healing 期长度还没系统化</strong>:论文用 26B 是经验值,跟 model surgery 的"剧烈程度"有没有可预测的关系?目前是个开放问题。</li>
+  <li><strong>Muon 在更大模型上是否仍稳</strong>:论文在 1B 用 LR=1e-3。Muon 在 70B 级别的稳定性是 2026 才会逐渐清楚的事情。</li>
+</ul>
+
+<h4>个人 take</h4>
+<p>这篇是 <em>latent reasoning</em> 通向"工程化"的关键节点:把它从一个昂贵的预训练实验,变成一个 <strong>固定深度模型的 post-training 阶段</strong> — 类似扩 context length。如果在 7B+ scale 上也能复现,latent reasoning 就有可能跟 chain-of-thought 同等重要 — 一个把算力花在 hidden,一个把算力花在 token,两者完全可叠加。</p>
+
+<p>同时它也指明了一个让我有点意外的事实:<strong>"挑两端丢中间"这件事的存在</strong>,跟过去几年关于"transformer 中间层冗余"(ShortGPT、LACO)的发现一致 — 也许 LLM 的算力分配本就极度不均,本文相当于把这一冗余<em>重新利用</em>起来:不光删掉它,而是用一个 R 块循环替代它的功能。</p>
+
+<h4>5 个待验证问题</h4>
+<ol>
+  <li>(4,8,4) → (8,16,8) 在 8B 模型上是否保持 per-FLOP 优势?</li>
+  <li>在 RLHF / GRPO 训练时,latent recurrence 能否替代 chain-of-thought tokens?(回答"我不确定"问题时 — 多 r 是否提供更好的 calibration?)</li>
+  <li>把 input injection 升级为 cross-attention(让 e 在 R 内部可被随时查询),还能涨多少?</li>
+  <li>是否能在 inference 时用 KV cache 加速 r-scaling — R 内部 attention 的 KV 在不同 r 间能不能共享?</li>
+  <li>"挑早期 + 晚期、丢中间"在 instruct-tuned 模型上仍最优吗?还是 instruct 模型的 task-level abstraction 已在中间层?</li>
+</ol>
+
+<hr>
+
+<h2>Memory points</h2>
+<div class="kv"><span class="pill">立场</span> latent recurrence 不必从零训 — pretrained 模型切两端 + 加 input injection + curriculum + Muon,50B tokens 就 retrofit 成功。</div>
+<div class="kv"><span class="pill">surgery</span> 早 L 做 P、晚 L 做 R+C、丢中间 L4–L9。中间层冗余度最高,丢掉对原模型损失最小,且最适合被循环替代。</div>
+<div class="kv"><span class="pill">curriculum</span> mean(r) 从 2 线性升到 32(占前 75% 步),per-step loss 不变但 per-FLOPs loss 降。1-sqrt 调度更激进。</div>
+<div class="kv"><span class="pill">optimizer</span> Muon 在 recurrent 训练上完胜 AdamW;在非循环模型上差距很小。Recurrent 放大了优化器差异。</div>
+<div class="kv"><span class="pill">healing</span> 切层后先用 FineWeb-Edu 训 26B tokens 恢复语言能力,再切到 math/SFT 数据。+5% Arc-C。</div>
+<div class="kv"><span class="pill">结果</span> 0.7B (4,8,4) TinyLlama recurrent 在 MMLU 比 3.5B Huginn-0125 高 12 点,GSM8K 高 10 点。</div>
+<div class="kv"><span class="pill">test-time 旋钮</span> 一次训练,推理 r ∈ {1, 2, 4, 8, 16, 32} 均可,acc 单调递增。</div>
+<div class="kv"><span class="pill">开源</span> HF: <a href="https://huggingface.co/collections/tomg-group-umd/retrofitting-recurrence" target="_blank">tomg-group-umd/retrofitting-recurrence</a>;Code: <a href="https://github.com/mcleish7/retrofitting-recurrence" target="_blank">github.com/mcleish7/retrofitting-recurrence</a>。</div>
+
+</main>
+</body>
+</html>

@@ -50,6 +50,7 @@
 | 19 | [📊 RL 框架横评 (AReaL/veRL/slime/NeMo-RL/OpenRLHF…)](https://zhangshuibai.github.io/paper-notes/models/notes/19_RL_Frameworks_Comparison.html) | 10 框架 / 12 维对比 / 决策树 / sync vs async | 53 KB |
 | 20 | [CoPD (Co-Evolving Policy Distillation)](https://zhangshuibai.github.io/paper-notes/models/notes/20_CoPD_2604.27083.html) | RLVR + OPD 同步 / mutual teacher / 钟形 η(O) | 50 KB |
 | 21 | [Prism (test-time scaling for dLLM)](https://zhangshuibai.github.io/paper-notes/models/notes/21_Prism_2602.01842.html) | 离散扩散 LLM 的 hierarchical search + self-verify | 50 KB |
+| 22 | [Retrofitting Recurrence](https://zhangshuibai.github.io/paper-notes/models/notes/22_RetrofitRecurrence_2511.07384.html) | 把 pretrained TinyLlama/OLMo/Llama 切成 depth-recurrent / curriculum + Muon | 50 KB |
 
 ### MTP 系列阅读建议
 
@@ -136,6 +137,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | AReaL | 清华 + 蚂蚁 | 2025-05 | [2505.24298](https://arxiv.org/abs/2505.24298) |
 | LlamaRL | Meta | 2025-05 | [2505.24034](https://arxiv.org/abs/2505.24034) |
 | Laminar | — | 2025-10 | [2510.12633](https://arxiv.org/abs/2510.12633) |
+| Retrofitting Recurrence | UMD / NYU / LLNL et al. | 2025-11 | [2511.07384](https://arxiv.org/abs/2511.07384) |
 
 ### Agent 训练 / 环境 / 内存
 
