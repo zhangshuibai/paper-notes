@@ -94,6 +94,7 @@
     <li><a href="#m2">背景速查 — PRM / ORM / GRPO / curriculum</a></li>
     <li><a href="#m3">方法详解</a>
       <ol>
+        <li><a href="#m30">🔑 工作流: vanilla RL vs RLAnything (含 OSWorld Excel 完整 example)</a></li>
         <li><a href="#m31">三件套闭环图</a></li>
         <li><a href="#m32">Integration Feedback (policy)</a></li>
         <li><a href="#m33">Consistency Feedback (reward model)</a></li>
@@ -161,6 +162,125 @@
 </table>
 
 <h2 id="m3">§3 方法详解</h2>
+
+<h3 id="m30">3.0 工作流: vanilla RL vs RLAnything 一图说清</h3>
+
+<p>RLAnything 的描述容易迷糊,因为"三件套同时优化"听起来很玄。实际工作流是一个固定的 5 步循环 — 比 vanilla GRPO 多两步、改一步。先并排对比 per-iteration 操作:</p>
+
+<table>
+<thead><tr><th>步骤</th><th>Vanilla RLVR / GRPO</th><th>RLAnything (每个 iteration k)</th></tr></thead>
+<tbody>
+<tr><td>① 采样 task</td><td>q ∼ Q (Q 静态)</td><td>q ∼ Q (Q <strong>会被改写</strong>)</td></tr>
+<tr><td>② Rollout</td><td>policy 跑 8 条 trajectory τ</td><td>同上,但记录每一步 τᵢ</td></tr>
+<tr><td>③ 拿 reward</td><td>只有 outcome O<sub>τ</sub> ∈ {−1,+1}</td><td>O<sub>τ</sub> + 每步 ask reward-model m=3 次拿 S<sub>τᵢ,j</sub> ∈ {−1,+1};合成 R<sub>τᵢ</sub> = O<sub>τ</sub> + (1/3)Σ S<sub>τᵢ,j</sub></td></tr>
+<tr><td>④ 更新 policy</td><td>GRPO on R = O<sub>τ</sub></td><td>GRPO on R<sub>τᵢ</sub>(step-level, 信号密集 30×)</td></tr>
+<tr><td>⑤ <em>新增</em>: 更新 reward model</td><td>—(reward 是 fixed verifier)</td><td>把 policy 的 trajectory 当 reward-model 的训练数据,supervision = R<sub>τᵢ</sub>·S<sub>τᵢ,j</sub>(consistency loss)</td></tr>
+<tr><td>⑥ <em>新增</em>: 更新 task</td><td>—(Q 不变)</td><td>看 q 的 rollout accuracy:>0.8 → 让另一个 LLM 改难;<0.2 → 改易;改写时把 reward-model 的失败诊断作为提示</td></tr>
+</tbody>
+</table>
+
+<p>看清这 5 步后,核心差别就两件事 — 都是把 vanilla RL 里"事先定死"的东西改成<strong>在线训练 / 在线生成</strong>:</p>
+<ol>
+  <li><strong>reward 从 fixed verifier 变成 trained model</strong>:vanilla RL 的 reward 是写死的 (比如 "答案对就 +1");RLAnything 的 reward model 是一个 LLM,在跟 policy 一起 RL 训练,每步都打分。</li>
+  <li><strong>task 从 fixed set 变成 mutable set</strong>:vanilla RL 的 Q 是 dataset,从头到尾不变;RLAnything 的 Q 是一个 mutable pool,每 iteration 都根据 policy 表现做"题目改写"。</li>
+</ol>
+
+<h3 id="m301">3.0.1 用 OSWorld 一个 Excel 任务跑一遍(论文 Figure 3 左上)</h3>
+
+<p>这是论文给的具体例子。任务 q: "Calculate each employee's age" — Excel 工作表里有员工出生年(C 列),要在 D 列填年龄。Policy = Qwen3-VL-8B-Thinking,既是 actor 也是 reward model 自己。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 410" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrW" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+
+  <!-- Iteration k=1 -->
+  <text x="20" y="22" font-size="13" font-weight="600" fill="#1f2024">Iteration k=1 — task q: "Calculate each employee's age"</text>
+
+  <!-- Rollout block -->
+  <rect x="20" y="34" width="320" height="100" fill="#e8f0ff" stroke="#2f6feb"/>
+  <text x="30" y="50" font-size="11" font-weight="600">① Rollout (8 trajectories)</text>
+  <g font-size="10.5" fill="#1f2024">
+    <text x="30" y="68">τ⁽¹⁾ step₁: "Click fx in formula bar"</text>
+    <text x="30" y="83">τ⁽¹⁾ step₂: "Choose DATE function"</text>
+    <text x="30" y="98">τ⁽¹⁾ step₃: "Press Backspace 13× ... type =2023-C2"</text>
+    <text x="30" y="113" fill="#a8353e">final answer: 1990-01-01 (date type)</text>
+    <text x="30" y="128" fill="#a8353e">→ O<sub>τ⁽¹⁾</sub> = −1 (失败 ×8)</text>
+  </g>
+
+  <!-- Step-wise eval -->
+  <rect x="360" y="34" width="340" height="100" fill="#e6f5ec" stroke="#1f7a4a"/>
+  <text x="370" y="50" font-size="11" font-weight="600">② Reward model 给每步评 m=3 次</text>
+  <g font-size="10.5" fill="#1f2024">
+    <text x="370" y="68">step₁ → S₁,₁=+1, S₁,₂=+1, S₁,₃=−1  → mean = +0.33</text>
+    <text x="370" y="83">step₂ → S₂,₁=−1, S₂,₂=−1, S₂,₃=+1  → mean = −0.33</text>
+    <text x="370" y="98">step₃ → S₃,₁=−1, S₃,₂=−1, S₃,₃=−1  → mean = −1.0</text>
+    <text x="370" y="113">R<sub>τ,3</sub> = O<sub>τ</sub> + mean S = −1 + (−1.0) = <strong>−2.0</strong></text>
+    <text x="370" y="128" fill="#5b5e66">R<sub>τ,1</sub> = −0.67,&nbsp; R<sub>τ,2</sub> = −1.33</text>
+  </g>
+
+  <!-- Policy update -->
+  <rect x="20" y="148" width="320" height="80" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="30" y="164" font-size="11" font-weight="600">③ Policy update (GRPO)</text>
+  <g font-size="10.5" fill="#1f2024">
+    <text x="30" y="182">A<sub>τᵢ</sub> = standardize(R<sub>τᵢ</sub>) across 8 traj, 同 i</text>
+    <text x="30" y="197">→ step₃ 拿到最强的 negative advantage(−2.0)</text>
+    <text x="30" y="212">→ policy 学到 "不要在 formula bar 写 =2023-C2"</text>
+  </g>
+
+  <!-- RM update -->
+  <rect x="360" y="148" width="340" height="80" fill="#fff7e0" stroke="#cc4a1b"/>
+  <text x="370" y="164" font-size="11" font-weight="600">④ Reward model update (consistency)</text>
+  <g font-size="10.5" fill="#1f2024">
+    <text x="370" y="182">第 j=1 次评 step₃: S=−1, R<sub>τ,3</sub>=−2.0</text>
+    <text x="370" y="197">→ supervision R·S = (−2.0)(−1) = +2.0 → 鼓励再说 −1</text>
+    <text x="370" y="212">step₁,j=3 评 −1, R<sub>τ,1</sub>=−0.67 → R·S=+0.67 → 弱鼓励</text>
+  </g>
+
+  <!-- Env adapt -->
+  <rect x="20" y="242" width="680" height="100" fill="#fdecdc" stroke="#cc4a1b"/>
+  <text x="30" y="258" font-size="11" font-weight="600" fill="#cc4a1b">⑤+⑥ Environment task adaptation (论文 Figure 3 原例)</text>
+  <g font-size="10.5" fill="#1f2024">
+    <text x="30" y="276">rollout accuracy(q) = 0/8 = 0.0 &lt; α<sub>low</sub>=0.2 → 触发"改易"</text>
+    <text x="30" y="293">Critic feedback summary (LLM 读 reward-model reasoning): "1) Clicked AutoSum button(Σ) instead of Function Wizard(fx);</text>
+    <text x="30" y="308">2) Produced a date value instead of numeric age"</text>
+    <text x="30" y="328" fill="#1f7a4a">→ 新 task q′: "Calculate each employee's age. <em>Hint: Use Function Wizard (fx) to choose a date function for age, not</em></text>
+    <text x="30" y="343" fill="#1f7a4a"><em>AutoSum, and make sure the result is number, not a date.</em>"  &nbsp;&nbsp; → 新 accuracy 0.25 &gt; 0.0 ✓ 接受替换</text>
+  </g>
+
+  <!-- Iteration k=2 -->
+  <text x="20" y="372" font-size="13" font-weight="600" fill="#1f2024">Iteration k=2 — q ← q′ (带 hint),policy/reward 继续 RL 训 ... 直至 accuracy ≥ 0.8 再触发改难</text>
+  <text x="20" y="395" font-size="10.5" fill="#5b5e66" font-style="italic">注: 题目改写不算作弊 — q′ 保留原 task 语义,只是把"reward model 已经识别到的 policy 弱点"显式写入提示,等价于课程学习的下一关。</text>
+</svg>
+<figcaption>一个 iteration 的具体数字流转,用 OSWorld 的 Excel 年龄计算任务(论文 Figure 3 左上原例 + 我补的中间计算)。注意三个回路在同一个 iteration 里全部跑:policy 拿 step-level R 做 GRPO 更新;reward model 用 R·S 当 consistency 信号自己 RL 训;task 根据 accuracy 触发 LLM 改写。这就是"三件套闭环"的具体含义。</figcaption>
+</div>
+
+<h3 id="m302">3.0.2 跟 vanilla RL 的差别有多大?</h3>
+
+<p>用上面 Excel 任务做对比:</p>
+
+<table>
+<thead><tr><th>对比维度</th><th>Vanilla GRPO (e.g. veRL / AReaL)</th><th>RLAnything</th></tr></thead>
+<tbody>
+<tr><td><strong>每步看到的 reward</strong></td><td>整条 trajectory 共享一个数: O<sub>τ</sub>=−1。step₁/step₂/step₃ 拿到的 advantage 一样,gradient 平均分摊到 30 步上</td><td>step₁ A=−0.67, step₂ A=−1.33, step₃ A=−2.0。<strong>错得最离谱的那一步拿到最强信号</strong></td></tr>
+<tr><td><strong>credit assignment</strong></td><td>稀疏 — 30 步 trajectory 只有 1 个 reward 信号</td><td>密集 — 30 步 trajectory 拿到 30 个 reward 信号</td></tr>
+<tr><td><strong>失败后下一轮看到的 q</strong></td><td>同一个 "Calculate ages",再失败再失败</td><td>q′ 带提示 "use Function Wizard not AutoSum",课程难度自动降</td></tr>
+<tr><td><strong>reward 准确性</strong></td><td>由 task 设计者写死的 verifier(可能 brittle)</td><td>reward model 随 policy 一起 RL 训,policy 学到新错法,reward model 同步学到新检测法</td></tr>
+<tr><td><strong>训练所需人工</strong></td><td>需要标注 outcome verifier + 写题</td><td>只要 outcome verifier (二元成败) + 一个 seed task 集合</td></tr>
+</tbody>
+</table>
+
+<div class="nb">
+最反直觉的一点: <strong>reward model 是同一个 LLM,既当 actor 又当 critic</strong>(论文 OSWorld 实验用 Qwen3-VL-8B-Thinking 二合一)。这听起来像"自评作弊",但 R·S 的 supervision 形式保证了 anchor:R<sub>τᵢ</sub> 里有一项是 O<sub>τ</sub>(verifiable outcome),只要 outcome 不可篡改,reward model 的"评 step"能力就被锚在真实成败上。这是论文 Theorem 1 的核心 — 只要 m 足够大、p<sub>+</sub>+p<sub>−</sub>>1,reward precision 渐近趋于 1。
+</div>
+
+<details>
+<summary>反向论证: 如果只做 vanilla RL,这个 Excel 任务会怎样?</summary>
+<p>Qwen3-VL-8B-Thinking 在 8 条 rollout 上 0/8 通过,只拿到 8 个 O=−1 信号。GRPO 把整条 30 步 trajectory 的 advantage 都设为 −1 的标准化,policy 不知道"问题出在哪一步"。下一 iteration 还是同一个 task,policy 继续犯同样的错(因为它学到的是"整个 trajectory 都不好",但不知道<em>哪里</em>不好)。论文 Table 1 显示 OSWorld 上 vanilla GRPO 从 22.9% 涨到 27.2% (+4.3%),而 RLAnything 涨到 32.0% (+9.1%) — 差距主要来自 step-level credit assignment + task curriculum 这两件事。</p>
+</details>
 
 <h3 id="m31">3.1 三件套闭环</h3>
 <p>整篇论文的精华是 Algorithm 1。每个 k-th iteration 包含四步:① policy rollout;② 用 reward model 给每个 step 做 m 次评估;③ 用 R<sub>τᵢ</sub> 更新 policy,同时用 R<sub>τᵢ</sub>·S<sub>τᵢ,j</sub> 更新 reward model;④ 根据 rollout accuracy 触发 task 改写。</p>
