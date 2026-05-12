@@ -85,6 +85,8 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 10 | [Search-R1](https://zhangshuibai.github.io/paper-notes/agents/notes/10_SearchR1_2503.09516.html) | search-augmented RL / retrieved-token masking / +41% over RAG | 46 KB |
 | 11 | [ReTool](https://zhangshuibai.github.io/paper-notes/agents/notes/11_ReTool_2504.11536.html) | code-integrated RL / cold-start SFT + outcome RL / AIME 67% (vs text-RL 40%) | 60 KB |
 | 12 | [LLM Memory 演化合集 (MemoryBank → Mem0 → MEM1 → Memory-R1)](https://zhangshuibai.github.io/paper-notes/agents/notes/12_Memory_evolution.html) | 四篇串读 / heuristic→CRUD→RL 演化 / external vs internal 路线对比 | 70 KB |
+| 13 | [RLAnything](https://zhangshuibai.github.io/paper-notes/agents/notes/13_RLAnything_2602.02488.html) | closed-loop RL: env + policy + reward 联合优化 / +9.1% OSWorld / ICML 2026 | 38 KB |
+| 14 | [ClawGUI](https://zhangshuibai.github.io/paper-notes/agents/notes/14_ClawGUI_2604.11784.html) | GUI agent 全栈框架 / RL + Eval + Deploy 三件套 / MobileWorld 17.1% | 50 KB |
 
 ## 论文清单 (按时间)
 
@@ -156,6 +158,8 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | Mem0 | mem0.ai | 2025-04 | [2504.19413](https://arxiv.org/abs/2504.19413) |
 | MEM1 | MIT + NUS + SMART | 2025-06 | [2506.15841](https://arxiv.org/abs/2506.15841) |
 | Memory-R1 | LMU Munich + TUM | 2025-08 | [2508.19828](https://arxiv.org/abs/2508.19828) |
+| RLAnything | Gen-Verse | 2026-02 | [2602.02488](https://arxiv.org/abs/2602.02488) |
+| ClawGUI | — | 2026-04 | [2604.11784](https://arxiv.org/abs/2604.11784) |
 
 ## 设计原则
 

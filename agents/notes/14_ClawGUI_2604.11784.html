@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · ClawGUI: A Unified Framework for Training, Evaluating, and Deploying GUI Agents</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>ClawGUI: A Unified Framework for Training, Evaluating, and Deploying GUI Agents</h1>
+<div class="meta">
+  Fei Tang, Zhiqiong Lu, Boxuan Zhang, Weiming Lu, Jun Xiao, Yueting Zhuang, Yongliang Shen · Zhejiang University · 2026-04-13<br>
+  <a href="https://arxiv.org/abs/2604.11784" target="_blank">arXiv:2604.11784</a> · <a href="https://github.com/zju-real/ClawGUI" target="_blank">GitHub</a> · 关键词: GUI agent · online RL · GiGPO · PRM · real-device training · MobileWorld · full-stack infrastructure
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> GUI agent 领域的真正瓶颈不是模型,而是<strong>把训练 / 评测 / 部署捏成一条流水线</strong>这件基础设施事;ClawGUI 是第一个把这三件事一起开源的 full-stack harness — RL trainer 同时支持 Docker 并行 emulator 和真实物理设备,Eval 在 6 个 benchmark 上对 11+ 模型实现 95.8% reproduction,Agent 通过 12+ 聊天平台部署到 Android/HarmonyOS/iOS 并采用 hybrid CLI-GUI 路由策略。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">17.1%</div><div class="l">ClawGUI-2B 在 MobileWorld GUI-Only 上 SR (比同尺寸 MAI-UI-2B 高 6.0 个绝对点)</div></div>
+    <div class="stat"><div class="n">95.8%</div><div class="l">ClawGUI-Eval 在 6 个 benchmark / 11+ 模型上的 reproduction rate (46/48 cells)</div></div>
+    <div class="stat"><div class="n">+2.6%</div><div class="l">GiGPO 替换 GRPO 带来的 SR 提升 (14.5% → 17.1%,relative +17.9%)</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是一篇典型的 infrastructure paper,而非算法 paper — 真正的贡献是把过去散落在 AgentGym-RL (只 train) / OSWorld、AndroidWorld (只 eval) / Anthropic Computer Use (闭源产品) 之间的 gap 填掉,让"用同一份 code 训出来 → 用同一份 code 测出来 → 推到用户手机上"成为可能。ClawGUI-2B 的 17.1% 数字只是 framework 自我验证的副产物,真正的产品是这条流水线本身。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">动机:GUI agent 领域的碎片化危机</a></li>
+    <li><a href="#sec2">背景速查</a></li>
+    <li><a href="#sec3">方法 · ClawGUI-RL: 并行环境 + 真实设备 + GiGPO + PRM</a></li>
+    <li><a href="#sec4">方法 · ClawGUI-Eval: 6 个 benchmark 的 Infer→Judge→Metric</a></li>
+    <li><a href="#sec5">方法 · ClawGUI-Agent: hybrid CLI-GUI + 持久化记忆</a></li>
+    <li><a href="#sec6">完整任务跟踪 · 给 John 发 WhatsApp</a></li>
+    <li><a href="#sec7">实验关键结果</a></li>
+    <li><a href="#sec8">与同类工作对比</a></li>
+    <li><a href="#sec9">局限 / 个人 take / 待验证</a></li>
+    <li><a href="#sec10">记忆点</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 动机:GUI agent 领域的碎片化危机</h2>
+
+<h3>1.1 历史脉络</h3>
+
+<p>过去两年 GUI agent 这一线进展极快,但<strong>每一步都只解决了 stack 上的一个孤立环节</strong>:</p>
+
+<ul>
+  <li><strong>2023–24 grounding 起步:</strong> SeeClick、UI-TARS、Aguvis、UGround 等证明 vision-language model 能直接定位 UI 元素,坐标准确率随 data/scale 涨。</li>
+  <li><strong>2024–25 navigation:</strong> 模型从单步 grounding 升级到 multi-step navigation;agent 开始能"打开微信 → 点联系人 → 发消息"。</li>
+  <li><strong>2025 online RL 爆发:</strong> MobileGUI-RL、ComputerRL、MAI-UI、UI-Venus-1.5、UI-TARS-2 都证明 sandbox 里跑 online RL 比 pure SFT 涨点显著。</li>
+  <li><strong>2025–26 部署期初:</strong> Anthropic Computer Use、OpenClaw、Hermes Agent 把 agent 推向真实终端用户,但形态是 CLI-based harness 居多。</li>
+</ul>
+
+<p>每一段的论文都把自己环节做到了 SOTA,但<strong>没有一篇负责让上一环和下一环对得上</strong>。结果是:</p>
+
+<ul>
+  <li>训练 paper (UI-TARS-2 / UI-Venus-1.5) 报 RL 结果时<em>不发训练 infra</em>,你想复现要自己写 emulator pool、rollout manager、reward server。</li>
+  <li>评测 paper (ScreenSpot-Pro / OSWorld / AndroidWorld) 提供 dataset 和 script,但<em>不发 inference 输出</em> — 想 re-judge 必须重跑昂贵 inference。</li>
+  <li>部署系统 (Anthropic Computer Use, Claude.ai 桌面版) 闭源,研究者完全看不到 production loop 长什么样。</li>
+</ul>
+
+<p>论文用一句话概括这种困境:"none of these works open-source their training infrastructure, and all are validated solely in virtual sandboxes" — 也就是说目前所有 RL 训练的 GUI agent <strong>都没在真实手机上验证过</strong>。</p>
+
+<h3>1.2 别的方案为什么不够 — 三个 gap × 三类对手</h3>
+
+<p>把现存所有 GUI agent 相关工作按"覆盖了哪一段 stack"对齐到下表,空缺即 ClawGUI 要补的位置:</p>
+
+<table>
+<thead><tr><th>类别</th><th>代表</th><th>训练 infra</th><th>评测</th><th>真实部署</th><th>关键短板</th></tr></thead>
+<tbody>
+<tr>
+  <td>纯 RL 训练 framework</td>
+  <td>AgentGym-RL · verl-agent</td>
+  <td><span class="ok">✓</span></td>
+  <td><span class="no">×</span></td>
+  <td><span class="no">×</span></td>
+  <td>开源了 trainer 但只覆盖 web/text 任务,GUI 这块没现成 emulator pool 和 real-device backend</td>
+</tr>
+<tr>
+  <td>GUI 模型 paper (含 RL 训练)</td>
+  <td>UI-TARS-2 · UI-Venus-1.5 · MAI-UI · MobileGUI-RL · ComputerRL</td>
+  <td><span class="no">× (报数字但 infra 不开源)</span></td>
+  <td>部分</td>
+  <td><span class="no">×</span></td>
+  <td>code 即使发也只 bind 在自家 sandbox,real-device 训练完全没碰</td>
+</tr>
+<tr>
+  <td>GUI Benchmark 工具</td>
+  <td>OSWorld · AndroidWorld · MobileWorld · ScreenSpot-Pro</td>
+  <td><span class="no">×</span></td>
+  <td><span class="ok">✓</span></td>
+  <td><span class="no">×</span></td>
+  <td>只覆盖 eval,且没统一 prompt/分辨率/采样温度,跨 paper 数字漂移好几个点</td>
+</tr>
+<tr>
+  <td>CLI agent harness</td>
+  <td>Anthropic Computer Use · OpenClaw · Claude Code · Hermes Agent</td>
+  <td><span class="no">×</span></td>
+  <td><span class="no">×</span></td>
+  <td><span class="ok">✓</span></td>
+  <td>能部署到用户手里,但只走 CLI/MCP — 没 GUI 路径,且大多闭源</td>
+</tr>
+<tr>
+  <td>研究原型部署</td>
+  <td>Agent S · MobileAgent</td>
+  <td><span class="no">×</span></td>
+  <td>有限</td>
+  <td>demo</td>
+  <td>停留在 notebook / 单 Android controller,跨 OS、持久化 personalization 都缺</td>
+</tr>
+<tr style="background:#eaf2ff">
+  <td><strong>ClawGUI</strong></td>
+  <td>本文</td>
+  <td><span class="ok">✓ 第一个开源 + real device</span></td>
+  <td><span class="ok">✓ 6 bench, 11+ 模型, 95.8% repro</span></td>
+  <td><span class="ok">✓ Android/HarmonyOS/iOS, 12+ chat 平台</span></td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+
+<p>三个具体 gap 论文写得很清楚 (按 §1 的小标题原文翻译):</p>
+
+<ol>
+  <li><strong>训练生态封闭。</strong> 所有 online-RL GUI agent paper (UI-TARS-2 / UI-Venus / MAI-UI / ComputerRL) <em>都不开源 infra</em>;开源的那部分又只能跑 emulator,real device 训练在 open literature 里"essentially unexplored"。</li>
+  <li><strong>评测严重错位。</strong> Prompt 顺序、坐标归一化、图片分辨率、sampling temperature 任何一个变都让结果飘几个点 — ScreenSpot-Pro 上一个 2% 提升可能是真进展,可能只是换了 prompt。社区<em>没有共享 baseline</em>。</li>
+  <li><strong>部署回路断裂。</strong> Train 出来的 model 几乎不会出现在真实用户的手机上。现有部署线上要么是 CLI-only (覆盖窄),要么是封闭产品 (黑盒)。</li>
+</ol>
+
+<h3>1.3 为什么这事不平凡</h3>
+
+<p>表面看 ClawGUI 只是"把三个轮子装到一起",听起来工程为主。但具体到 GUI 这个 domain 上,把它们捏到一起的复杂度比想象大很多:</p>
+
+<ul>
+  <li><strong>Environment 稳定性是核心难点,不是 RL 算法。</strong> Android emulator 跑几小时后必然崩 (内存泄漏、ANR、容器 stale state),如果不写 spare server rotation + health check + crash recovery,RL trainer 走两个 epoch 就死。</li>
+  <li><strong>真实设备没有 root,完全拿不到 system-level signal。</strong> 在 emulator 里你可以读 SQLite database 判断"消息是否发送成功",真机做不到 — 必须依赖 MLLM-as-judge 看屏幕。但 MLLM judge 不稳,需要和 system judge 一起加权才能给出可靠 reward。</li>
+  <li><strong>Reward 稀疏 + multi-step credit assignment.</strong> GUI 任务平均 10–30 步,一个 misclick 早期发生,episode-level GRPO 给所有步分配同样的 advantage,优化器无从分辨"哪一步坏了"。GiGPO 的 anchor-state grouping 是直接为这个 domain 设计的,但<em>把 GiGPO 装进 production trainer + emulator + real device 同时跑</em>,这才是 ClawGUI-RL 工程上的真正难点。</li>
+  <li><strong>Eval 复现率 95.8% 不是因为算法对齐,而是因为 pin 死了 prompt/resolution/temperature 等几十个开关并发布所有 inference 中间结果。</strong> 任何想 re-judge 别人结果的人,不需要重跑 inference (省 GPU),只需要重新跑 judge 阶段 — 这是 infrastructure 上的关键设计。</li>
+  <li><strong>Hybrid CLI-GUI 不是简单"二选一",而是 agent 在每一步动态决定走哪条。</strong> 这要求 model 既能输出 shell command 也能输出 GUI action,且要在 prompt 里同时暴露两种 capabilities。</li>
+</ul>
+
+<p><span class="term">非平凡之处</span>是:这五条难点彼此互锁 — 你要 real-device training 必须有 MLLM judge,要 MLLM judge 必须有 dense PRM 弥补 sparsity,要 dense PRM 必须有 step-level RL (GiGPO) 才能吃下信号,而要 RL 跑得稳又必须有 spare server rotation 兜底。任何一环缺失,整个 stack 就跑不通。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 背景速查</h2>
+
+<table>
+<thead><tr><th>术语</th><th>意思</th></tr></thead>
+<tbody>
+<tr><td><strong>GUI agent</strong></td><td>通过<em>视觉界面 (截屏 + tap/swipe/type)</em> 而非 API 操作软件的 agent;对比 CLI agent (走 shell/MCP)</td></tr>
+<tr><td><strong>VLM (Vision-Language Model)</strong></td><td>多模态模型 (Qwen3-VL / GUI-Owl / UI-TARS),输入截屏 + instruction,输出动作 token 序列</td></tr>
+<tr><td><strong>Grounding</strong></td><td>给定 instruction,在截屏上定位目标元素 (输出坐标或 bbox);ScreenSpot 系列测这件事</td></tr>
+<tr><td><strong>Navigation</strong></td><td>multi-step 任务执行 (打开 App → 点击 → 输入文本 → 发送);MobileWorld / AndroidControl 测这件事</td></tr>
+<tr><td><strong>GRPO</strong></td><td>Group Relative Policy Optimization,DeepSeek-Math 提出。同一 task 跑 N 个 rollout,把 reward 归一化作为 advantage,免去 value network</td></tr>
+<tr><td><strong>GiGPO</strong></td><td>Group-in-Group Policy Optimization (Feng et al. 2025b)。两级 hierarchy:macro 级保留 GRPO 的轨迹级 advantage,micro 级把"相同 intermediate state"的 step 聚为 sub-group 并算 discounted-return 的局部 advantage,获得 step-level credit</td></tr>
+<tr><td><strong>PRM</strong></td><td>Process Reward Model,给每一步打分而不是只给 episode end。ClawGUI 里用 Qwen3.5-72B 作为 judge,输入 (前截屏, 后截屏, 历史动作),输出 step 贡献分</td></tr>
+<tr><td><strong>MobileWorld</strong></td><td>Kong et al. 2025 提出的 mobile 交互 benchmark;GUI-Only split 含 117 个 task,要求纯视觉控制,无 API 访问</td></tr>
+<tr><td><strong>OSWorld / AndroidWorld / AndroidControl</strong></td><td>桌面 / 安卓的交互式 benchmark,Step-level 或 task-level 评分</td></tr>
+<tr><td><strong>ScreenSpot-Pro / V2</strong></td><td>静态 grounding benchmark,看 click 坐标是否落在正确元素 bbox 内</td></tr>
+<tr><td><strong>MLLM-as-judge</strong></td><td>用大模型看最终截屏 + instruction,判断 task 是否完成 — 真机训练里唯一可行的 outcome reward 来源</td></tr>
+<tr><td><strong>Spare server rotation</strong></td><td>Emulator pool 里维持一队空闲容器,主容器一崩,自动从 queue 拉一个健康的替换,不打断 rollout</td></tr>
+<tr><td><strong>Hybrid CLI-GUI</strong></td><td>同一 agent 同时拥有 shell 命令 + 屏幕点击两套 action space,运行时由 model 自主选择走哪条</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="sec3">3 · 方法 · ClawGUI-RL: 训练基础设施</h2>
+
+<p>ClawGUI-RL 由两层构成:上层是 <em>RL Infrastructure</em> (Environment Manager + RL Trainer + Reward Manager),下层是 <em>Real &amp; Virtual Environment</em>。两层之间是统一接口 — virtual emulator 和 real phone 在 trainer 眼里看起来完全一样。基于 <code>verl</code> + <code>verl-agent</code> 改造,支持 PPO / GRPO / GiGPO / GSPO / Reinforce++ 一族算法。</p>
+
+<h3>3.1 Environment Manager — 并行环境 + 真实设备</h3>
+
+<p><strong>Virtual environment.</strong> 借助 MobileWorld,在单机或多机上拉起<em>几十个 Docker-based Android emulator</em>。论文实验配置是 <strong>64 parallel virtual environments on 8×A6000 (48GB)</strong> — 也就是平均每张 A6000 上 8 个 Android 容器。每个容器走四阶段 lifecycle:</p>
+
+<ol>
+  <li><strong>Task Reset:</strong> Episode 开始,初始化设备状态 + 加载新任务</li>
+  <li><strong>Task Evaluation:</strong> System-level 读 DB / app state + MLLM-as-judge 看最终屏</li>
+  <li><strong>Spare Server Rotation:</strong> 主容器不健康 → 自动从空闲 queue 拉替换,resume 任务</li>
+  <li><strong>Teardown:</strong> 周期性 restart,防止 state 累积</li>
+</ol>
+
+<p><strong>Real device training.</strong> 同一接口对接物理 Android / cloud phone。两个独有的难点:</p>
+
+<ul>
+  <li><strong>Task source.</strong> 真机不能 procedurally generate task — 必须人工 author 一批 representative scenario,且要保证物理设备上可执行可验证。</li>
+  <li><strong>Task evaluation.</strong> 真机无 root,系统级 verification 不可行 — 完全依赖 MLLM-as-judge 看最终截屏。</li>
+</ul>
+
+<div class="fig">
+<svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+
+  <!-- RL Trainer box top -->
+  <rect x="240" y="20" width="240" height="50" fill="#e7eefb" stroke="#2f6feb"/>
+  <text x="360" y="42" text-anchor="middle" font-size="13" font-weight="600">RL Trainer (verl + GiGPO)</text>
+  <text x="360" y="60" text-anchor="middle" font-size="11" fill="#5b5e66">policy π_θ · 64 parallel rollouts · group size 8</text>
+
+  <!-- Env manager middle -->
+  <rect x="180" y="100" width="360" height="40" fill="#fdecdc" stroke="#cc4a1b"/>
+  <text x="360" y="124" text-anchor="middle" font-size="12" font-weight="600">Environment Manager (健康检查 / 故障转移 / 调度)</text>
+
+  <!-- 6 env boxes bottom row -->
+  <g font-size="10">
+    <rect x="40" y="180" width="80" height="50" fill="#fff" stroke="#888"/>
+    <text x="80" y="200" text-anchor="middle">Emu-1</text>
+    <text x="80" y="215" text-anchor="middle" fill="#5b5e66">healthy</text>
+
+    <rect x="135" y="180" width="80" height="50" fill="#fff" stroke="#888"/>
+    <text x="175" y="200" text-anchor="middle">Emu-2</text>
+    <text x="175" y="215" text-anchor="middle" fill="#5b5e66">healthy</text>
+
+    <rect x="230" y="180" width="80" height="50" fill="#ffe2e2" stroke="#a8353e" stroke-dasharray="3 2"/>
+    <text x="270" y="200" text-anchor="middle">Emu-3</text>
+    <text x="270" y="215" text-anchor="middle" fill="#a8353e">CRASHED</text>
+
+    <rect x="325" y="180" width="80" height="50" fill="#fff" stroke="#888"/>
+    <text x="365" y="200" text-anchor="middle">... Emu-64</text>
+
+    <rect x="425" y="180" width="80" height="50" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="465" y="200" text-anchor="middle">Spare-Q</text>
+    <text x="465" y="215" text-anchor="middle" fill="#1f7a4a">stand-by</text>
+
+    <rect x="535" y="180" width="140" height="50" fill="#fff7e0" stroke="#d2a32a"/>
+    <text x="605" y="200" text-anchor="middle">Real Phone</text>
+    <text x="605" y="215" text-anchor="middle" fill="#5b5e66">(ADB · cloud phone)</text>
+  </g>
+
+  <!-- arrow from env manager to envs -->
+  <line x1="280" y1="140" x2="80" y2="180" stroke="#5b5e66" stroke-width="1" marker-end="url(#arr1)"/>
+  <line x1="360" y1="140" x2="365" y2="180" stroke="#5b5e66" stroke-width="1" marker-end="url(#arr1)"/>
+  <line x1="440" y1="140" x2="605" y2="180" stroke="#5b5e66" stroke-width="1" marker-end="url(#arr1)"/>
+
+  <!-- rotation arrow from spare to crashed -->
+  <path d="M425 200 Q 360 245 310 220" stroke="#cc4a1b" stroke-width="1.6" fill="none" marker-end="url(#arrR)"/>
+  <text x="370" y="260" text-anchor="middle" font-size="11" fill="#cc4a1b">spare rotation</text>
+
+  <!-- Reward manager right -->
+  <rect x="540" y="260" width="160" height="80" fill="#fff" stroke="#888"/>
+  <text x="620" y="280" text-anchor="middle" font-size="12" font-weight="600">Reward Manager</text>
+  <text x="620" y="300" text-anchor="middle" font-size="11">R_outcome (binary)</text>
+  <text x="620" y="315" text-anchor="middle" font-size="11" fill="#5b5e66">+ R_step (PRM, Qwen3.5-72B)</text>
+  <text x="620" y="333" text-anchor="middle" font-size="10" fill="#cc4a1b">dense step-level signal</text>
+
+  <!-- env → reward -->
+  <line x1="540" y1="220" x2="540" y2="265" stroke="#5b5e66" stroke-width="1" marker-end="url(#arr1)"/>
+
+  <!-- reward → trainer back -->
+  <path d="M620 260 Q 620 80 480 70" stroke="#1f7a4a" stroke-width="1.4" fill="none" marker-end="url(#arr1)"/>
+  <text x="690" y="180" font-size="11" fill="#1f7a4a">R</text>
+
+  <!-- rollout trajectory left -->
+  <path d="M240 60 Q 100 100 80 175" stroke="#2f6feb" stroke-width="1.4" fill="none" marker-end="url(#arr1)"/>
+  <text x="100" y="115" font-size="11" fill="#2f6feb">action a_t</text>
+
+  <text x="360" y="350" text-anchor="middle" font-size="11" fill="#5b5e66">同一接口下 emulator pool 和 real device 互换</text>
+</svg>
+<figcaption>ClawGUI-RL 数据流。RL Trainer 同时驱动 64 个 Docker Android emulator + 真实手机;Environment Manager 监控容器健康,Emu-3 崩了就自动从 Spare Queue 拉一个替换,任务可恢复执行而不打断整个 rollout。Reward Manager 把 binary outcome reward 和 PRM 给的 step-level dense reward 合并后回传给 trainer。</figcaption>
+</div>
+
+<h3>3.2 Reward Design — Binary + Dense</h3>
+
+<p>论文采用<strong>两级 reward 叠加</strong>:</p>
+
+<div class="formula">
+<em>R</em> = <em>R</em><sub>outcome</sub> + <em>R</em><sub>step</sub> &nbsp;&nbsp;&nbsp; (式 1)
+</div>
+
+<ul>
+  <li><strong>R<sub>outcome</sub></strong>:episode 结束时 0/1,task 成功就给 1。简单但极稀疏 — 几十步只一个非零信号。</li>
+  <li><strong>R<sub>step</sub></strong>:PRM 在每步后接收 <code>(s<sub>t-1</sub>, s<sub>t</sub>, [a<sub>1</sub>...a<sub>t</sub>])</code>,输出"此步是否朝目标推进"的分数。论文用 Qwen3.5-72B 作 judge。</li>
+</ul>
+
+<p><strong>具体例:</strong> Task = "在微信里给妈妈发'晚饭别等我了'"。Trajectory 走 12 步,只有第 12 步发送后任务完成 → <em>R</em><sub>outcome</sub> = 1 出现在 step 12;但 step 3 (打开通讯录)、step 5 (点击妈妈头像) 也是关键正向步,GRPO 会把所有 12 步赋同一个 advantage。PRM 给 step 3 / 5 高分,给 step 7 (误点表情面板) 负分,GiGPO 借此对 step 7 单独打负 advantage,policy 学会避免这种 misclick。</p>
+
+<h3>3.3 RL Trainer — 为什么选 GiGPO 而非 GRPO</h3>
+
+<p>论文用一个非常清晰的反例论证 GRPO 不够用:同一 task 上,rollout A 4 步完成,rollout B 8 步完成。两者都成功,GRPO 给两条轨迹相同的 reward,优化器拿不到"哪条更高效"的信号。</p>
+
+<p><strong>GiGPO 的两级 advantage</strong>:</p>
+
+<ul>
+  <li><strong>Episode level (macro):</strong> 沿用 GRPO 的 group relative — 同一 task 的 N=8 个 rollout reward 归一化作为轨迹级 advantage,捕捉<em>这条轨迹整体好不好</em>。</li>
+  <li><strong>Step level (micro):</strong> 引入 <span class="term">anchor-state grouping</span> — 跨 rollout 把"碰到相同 intermediate state (例如都停在 WhatsApp 联系人页)"的 step 聚为 sub-group,在 sub-group 内用 discounted return normalize,得到<em>这一步在这个 state 下相对其他选择好不好</em>的 micro advantage。</li>
+</ul>
+
+<p>关键优点:不需要额外 value network,也不需要多跑 rollout — 用已有数据再聚一次类即可。论文报告 GiGPO 把 SR 从 14.5% 拉到 17.1%,绝对 +2.6%,相对 +17.9%。</p>
+
+<div class="nb">
+<strong>为什么这样设计 (反向论证):</strong> 如果只用 episode-level GRPO,3 步的 misclick 和 8 步的关键 tap 拿到一样的梯度,policy 学不到 step 粒度的偏好。如果只用 PRM 给 step 完全替代 episode reward,PRM 本身有噪声 → 累积偏差会让 trajectory 整体走偏。两级叠加保证 <em>global 由真实 outcome 锚定 + local 由 PRM 增稠</em>,信号既无偏又稠密。
+</div>
+
+<hr>
+
+<h2 id="sec4">4 · 方法 · ClawGUI-Eval: 标准化评测</h2>
+
+<h3>4.1 三段 pipeline 解耦</h3>
+
+<p>ClawGUI-Eval 的核心设计哲学是"把任何配置选择 pin 死,任何中间产物开源"。具体落地为三阶段解耦:</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+
+  <!-- stage 1: Infer -->
+  <rect x="30" y="60" width="170" height="80" fill="#e7eefb" stroke="#2f6feb"/>
+  <text x="115" y="85" text-anchor="middle" font-size="14" font-weight="600">① Infer</text>
+  <text x="115" y="105" text-anchor="middle" font-size="11">transformers · OpenAI API</text>
+  <text x="115" y="120" text-anchor="middle" font-size="11" fill="#5b5e66">multi-GPU shard ckpt</text>
+  <text x="115" y="135" text-anchor="middle" font-size="10" fill="#cc4a1b">输出: raw predictions (released)</text>
+
+  <line x1="200" y1="100" x2="258" y2="100" stroke="#5b5e66" stroke-width="1.4" marker-end="url(#arr2)"/>
+
+  <!-- stage 2: Judge -->
+  <rect x="260" y="60" width="170" height="80" fill="#fdecdc" stroke="#cc4a1b"/>
+  <text x="345" y="85" text-anchor="middle" font-size="14" font-weight="600">② Judge</text>
+  <text x="345" y="105" text-anchor="middle" font-size="11">point-in-box · polygon</text>
+  <text x="345" y="120" text-anchor="middle" font-size="11" fill="#5b5e66">refusal-aware · multi-action</text>
+  <text x="345" y="135" text-anchor="middle" font-size="10" fill="#cc4a1b">输出: per-sample correct/wrong</text>
+
+  <line x1="430" y1="100" x2="488" y2="100" stroke="#5b5e66" stroke-width="1.4" marker-end="url(#arr2)"/>
+
+  <!-- stage 3: Metric -->
+  <rect x="490" y="60" width="170" height="80" fill="#dff3e6" stroke="#1f7a4a"/>
+  <text x="575" y="85" text-anchor="middle" font-size="14" font-weight="600">③ Metric</text>
+  <text x="575" y="105" text-anchor="middle" font-size="11">accuracy · pass@1</text>
+  <text x="575" y="120" text-anchor="middle" font-size="11" fill="#5b5e66">breakdown by element</text>
+  <text x="575" y="135" text-anchor="middle" font-size="10" fill="#1f7a4a">输出: 最终 leaderboard</text>
+
+  <text x="345" y="30" text-anchor="middle" font-size="13" font-weight="600">关键: 任何单阶段可独立 rerun</text>
+  <text x="345" y="170" text-anchor="middle" font-size="11" fill="#5b5e66">想换 judge parser? 只跑 ②③,不重跑昂贵 ①</text>
+</svg>
+<figcaption>ClawGUI-Eval 三段 pipeline。预测输出公开发布 → 任何研究者想质疑某个 judge 实现,只需 download predictions + rerun stage ②③,免重 inference 的算力开销。</figcaption>
+</div>
+
+<p><strong>Coverage:</strong> 6 个 benchmark — ScreenSpot-Pro、ScreenSpot-V2、UI-Vision、MMBench-GUI、OSWorld-G、AndroidControl;11+ 模型 — Qwen3-VL/2.5-VL、UI-TARS、MAI-UI、GUI-G2、UI-Venus、GUI-Owl、StepGUI、Gemini、Seed 1.8。</p>
+
+<h3>4.2 "95.8% reproduction" 到底意味着什么</h3>
+
+<p>这是论文最容易被误读的数字。看 Table 3 后定义清楚:</p>
+
+<ul>
+  <li>分母 = <strong>48 cells</strong> (每个 model × benchmark 一格,只算有 official baseline 的格子)</li>
+  <li>分子 = <strong>46 cells</strong> 满足"<em>|repro − official| ≤ 2%</em> 或 <em>repro ≥ official</em>"</li>
+  <li>失败的 2 例都是 Qwen3-VL-2B 和 UI-TARS-1.5-7B 在 SS-Pro 上 — 论文指出这两个模型的官方 eval config 没公开,所以失败基本归因于"undisclosed prompt/resolution choices"。</li>
+</ul>
+
+<p><strong>注意:</strong> 这个数字<em>只针对 grounding benchmark</em> (SS-Pro / SS-V2 / UIV / MMB / OSW-G),并不包含 navigation / interactive 任务 (如 AndroidControl、MobileWorld)。也就是说"95.8% reproduction"覆盖的是<strong>静态视觉 grounding 这件事</strong>,而 ClawGUI-2B 自己拼的 MobileWorld 17.1% 不在 reproduction 统计内。</p>
+
+<h3>4.3 闭源模型的 Zoom 策略</h3>
+
+<p>对 Gemini 3.0 Pro / Seed 1.8 这种 API-only 闭源模型,标准 inference 不可行 (无法控分辨率)。论文采用 <span class="term">Zoom paradigm</span> — 一种两阶段 crop-then-ground 策略:Gemini 用 25% crop tiles,Seed 用 50% crop tiles。结果在 SS-Pro 上 Gemini 3.0 Pro 拿到 75.08 (官方 72.70),Seed 1.8 拿到 72.80 (官方 73.10),均 ≤2% 误差,reproduction 100%。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 方法 · ClawGUI-Agent: 部署栈</h2>
+
+<h3>5.1 Hybrid CLI-GUI 控制</h3>
+
+<p>论文最有意思的设计点:同一 agent 既能输出 shell command 也能输出 GUI 动作,<em>每一步由 model 自主选择</em>走哪条。设计哲学:</p>
+
+<ul>
+  <li><strong>CLI 优势:</strong> 一条结构化命令完成多步 UI 操作 (例如 <code>adb shell am start -a android.intent.action.SENDTO -d "sms:..."</code>),速度快、精确。</li>
+  <li><strong>CLI 劣势:</strong> 不是所有 App 暴露 programmatic interface;对用户不可见 (无法 supervise);丢失视觉 grounding 的 interpretability。</li>
+  <li><strong>GUI 优势:</strong> 覆盖任意 App;每步可视化、可干预。</li>
+  <li><strong>GUI 劣势:</strong> 一条 CLI 能完的事,GUI 可能要 5–10 步连续点击。</li>
+</ul>
+
+<p>论文的明确立场是 "neither paradigm alone is sufficient" — agent 必须能在两种 action space 间动态路由。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+
+  <!-- user instruction -->
+  <rect x="260" y="15" width="200" height="40" fill="#fff" stroke="#888"/>
+  <text x="360" y="40" text-anchor="middle" font-size="12">用户: "给 John 发 WhatsApp '明天见'"</text>
+
+  <line x1="360" y1="55" x2="360" y2="80" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+  <!-- agent loop -->
+  <rect x="200" y="80" width="320" height="60" fill="#e7eefb" stroke="#2f6feb"/>
+  <text x="360" y="105" text-anchor="middle" font-size="13" font-weight="600">Agent (perceive → reason → act)</text>
+  <text x="360" y="125" text-anchor="middle" font-size="11" fill="#5b5e66">观察当前截屏 · 检索 personalized memory ("John" → +86 138...)</text>
+
+  <!-- decision -->
+  <path d="M360 140 L 320 175 L 360 210 L 400 175 Z" fill="#fff7e0" stroke="#d2a32a"/>
+  <text x="360" y="180" text-anchor="middle" font-size="12" font-weight="600">能 CLI 吗?</text>
+
+  <!-- branches -->
+  <line x1="320" y1="175" x2="160" y2="220" stroke="#5b5e66" marker-end="url(#arr3)"/>
+  <line x1="400" y1="175" x2="560" y2="220" stroke="#5b5e66" marker-end="url(#arr3)"/>
+
+  <text x="240" y="200" font-size="11" fill="#1f7a4a">YES → 用 CLI</text>
+  <text x="480" y="200" font-size="11" fill="#cc4a1b">NO → 退回 GUI</text>
+
+  <!-- CLI box -->
+  <rect x="30" y="220" width="260" height="50" fill="#dff3e6" stroke="#1f7a4a"/>
+  <text x="160" y="240" text-anchor="middle" font-size="11" font-weight="600">CLI / MCP call</text>
+  <text x="160" y="258" text-anchor="middle" font-size="10" fill="#5b5e66">adb shell am start ... (一步搞定)</text>
+
+  <!-- GUI box -->
+  <rect x="430" y="220" width="260" height="50" fill="#fdecdc" stroke="#cc4a1b"/>
+  <text x="560" y="240" text-anchor="middle" font-size="11" font-weight="600">GUI sequence</text>
+  <text x="560" y="258" text-anchor="middle" font-size="10" fill="#5b5e66">TAP(WhatsApp) → TAP(John) → TYPE → TAP(Send)</text>
+</svg>
+<figcaption>Hybrid CLI-GUI 决策流。Agent 每个 turn 都先尝试 CLI (若 App 暴露 API/intent);否则回落到 GUI tap/swipe/type。这条路由策略本身是 prompt-driven,论文没给细节说是否将来会用 RL 学,但 §5 Discussion 暗示 "learns the routing policy itself from interaction data" 是未来方向。</figcaption>
+</div>
+
+<h3>5.2 Personalized Memory</h3>
+
+<p>Agent 在执行任务过程中自动抽取结构化事实:contact name & relationship、frequently used App、user habit/preference,以 vector embedding 存进持久库。后续任务在 system context 注入 top-<em>k</em> 最相似 memory。重复 memory 会被 merge 而非累积,保持库 lean。这块论文写得很简,本质上是 RAG-style external memory + dedup,设计上接近 MemoryBank/Mem0 的工程化版本。</p>
+
+<h3>5.3 Remote 和 Local 部署</h3>
+
+<ul>
+  <li><strong>Remote mode:</strong> 用户从一台设备 (电脑 / 另一手机) 通过 Feishu / DingTalk / Telegram / Discord / Slack / QQ 等 12+ chat 平台发指令,server 中转到目标手机。</li>
+  <li><strong>Local mode:</strong> 指令直接从手机本地 chat App 发出,agent 接管同一设备 — 无需 cloud relay。</li>
+</ul>
+
+<h3>5.4 ClawGUI-Eval 作为 Skill</h3>
+
+<p>有意思的小设计:用户可直接发自然语言 "benchmark Qwen3-VL on ScreenSpot-Pro",agent 自动完成环境验证 → 多 GPU 并行 inference → judging → metric → 返回结构化报告。把 eval pipeline 包成 agent tool 是产品化思路,普通用户也能跑 benchmark。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 完整任务跟踪 · 给 John 发 WhatsApp '明天见'</h2>
+
+<p>把上面三个模块串起来跟踪一个具体任务在 ClawGUI 体系下的完整生命周期:</p>
+
+<table>
+<thead><tr><th>阶段</th><th>动作</th><th>系统状态</th></tr></thead>
+<tbody>
+<tr><td>0. 用户输入</td><td>Telegram bot: "Send WhatsApp to John saying 'see you tomorrow'"</td><td>ClawGUI-Agent server 接收 message,触发 PhoneAgent</td></tr>
+<tr><td>1. Memory 检索</td><td>Embedding 查 personalized memory store</td><td>命中: "John = +86 138 0013 8000 (close friend, contact)";"WhatsApp 经常用,通常用英文沟通"</td></tr>
+<tr><td>2. 第一次决策</td><td>Agent 评估能否走 CLI</td><td>WhatsApp 不暴露公开 send-message intent → 走 GUI</td></tr>
+<tr><td>3. Perceive</td><td>ADB 截屏,VLM 解析</td><td>看到主屏,定位到 WhatsApp icon (经 ClawGUI-RL 训练后 grounding 准)</td></tr>
+<tr><td>4. Act t=1</td><td><code>TAP(x=512, y=1340)</code></td><td>打开 WhatsApp 主界面</td></tr>
+<tr><td>5. Act t=2</td><td><code>TAP("Chats" tab)</code></td><td>跳到 chats 列表</td></tr>
+<tr><td>6. Act t=3</td><td><code>TAP("John")</code> (memory 提供消歧)</td><td>进入与 John 的对话窗口</td></tr>
+<tr><td>7. Act t=4</td><td><code>TAP(input box)</code></td><td>键盘弹出</td></tr>
+<tr><td>8. Act t=5</td><td><code>TYPE("see you tomorrow")</code></td><td>文字已输入</td></tr>
+<tr><td>9. Act t=6</td><td><code>TAP(Send button)</code></td><td>消息已发送</td></tr>
+<tr><td>10. Verification</td><td>MLLM judge 看最终截屏</td><td>判定: 消息显示在对话流中 → R<sub>outcome</sub> = 1 (training 时);部署时返回成功 status 给 Telegram bot</td></tr>
+<tr><td>11. Memory update</td><td>抽取新 fact</td><td>"用户在晚上发消息频次高" 等 preference 入库</td></tr>
+</tbody>
+</table>
+
+<p><strong>训练时</strong> (ClawGUI-RL 视角): 这条 6-step trajectory 会被 PRM 给每步打分 — step 3 (打开 John 对话) 因为减少了 plus 一层菜单导航而获得正分;step 4 (点输入框) 分数中性;step 6 (发送) 因接近 success 获得高分。GiGPO 在跨 N=8 个 rollout 内,把"也都进入了 John 对话窗口"的 step 3 聚为 sub-group,在 sub-group 内比较"接下来 5 步走什么 path 最高效"。</p>
+
+<p><strong>反向论证:</strong> 如果是<em>给老板发邮件</em>,Agent 第一步决策可能选 CLI — 因为 Android 有公开的 <code>android.intent.action.SENDTO</code> mailto URL,一条 <code>adb shell am start</code> 加 send 即可完成,无需 GUI 序列。Hybrid 路由的价值正在这种 case 体现。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 实验关键结果</h2>
+
+<h3>7.1 MobileWorld GUI-Only (Table 1) — 主结果</h3>
+
+<table>
+<thead><tr><th>模型</th><th>类别</th><th>SR (%)</th><th>读法</th></tr></thead>
+<tbody>
+<tr><td>Gemini-3-Pro + UI-Ins-7B</td><td>Agentic Framework (闭源)</td><td>55.6</td><td>另一个 regime,frontier model + grounding 助手,不直接可比</td></tr>
+<tr><td>GPT-5 + UI-Ins-7B</td><td>Agentic Framework</td><td>54.0</td><td>同上</td></tr>
+<tr><td>Doubao-1.5-UI-TARS</td><td>End-to-End</td><td>26.3</td><td>当前 e2e 开源 SOTA</td></tr>
+<tr><td>MAI-UI-8B</td><td>End-to-End</td><td>19.7</td><td>8B 同家族,作为 scale 上限对照</td></tr>
+<tr style="background:#dff3e6"><td><strong>ClawGUI-2B</strong></td><td><strong>End-to-End</strong></td><td><strong>17.1</strong></td><td><strong>本文,基于 MAI-UI-2B 重训</strong></td></tr>
+<tr><td>UI-Venus-72B</td><td>End-to-End</td><td>16.4</td><td>72B 的 untrained model 还输给 2B trained,基础设施的价值</td></tr>
+<tr><td>Qwen3-VL-235B-A22B</td><td>End-to-End</td><td>12.8</td><td>巨大的 MoE 也只 12.8%</td></tr>
+<tr><td>Qwen3-VL-32B</td><td>End-to-End</td><td>11.9</td><td>—</td></tr>
+<tr><td>MAI-UI-2B</td><td>End-to-End</td><td>11.1</td><td>同 base,未走 ClawGUI-RL,差 6.0 个绝对点</td></tr>
+</tbody>
+</table>
+
+<p>三个 takeaway:</p>
+<ol>
+  <li><strong>Infra 驱动 policy 质量。</strong> 同 base weights 下,过一遍 ClawGUI-RL 涨 6.0 个绝对点 — 增益<em>完全</em>来自 environment management + reward 设计。</li>
+  <li><strong>Small trained > Large untrained.</strong> 2B trained 打败 32B / 72B / 235B 的 untrained,RL infra 价值 > model scale。</li>
+  <li><strong>Agentic frameworks 是 separate regime。</strong> Gemini-3-Pro + grounding 助手在 55.6% — 这是闭源 + planner 的体系,不和 e2e trained 直接比。</li>
+</ol>
+
+<h3>7.2 GiGPO vs GRPO Ablation (Table 2)</h3>
+
+<table>
+<thead><tr><th>方法</th><th>Reward Type</th><th>SR (%)</th></tr></thead>
+<tbody>
+<tr><td>GRPO</td><td>Binary (episode-level only)</td><td>14.5</td></tr>
+<tr style="background:#dff3e6"><td>GiGPO</td><td>Dense (episode- + step-level)</td><td>17.1</td></tr>
+</tbody>
+</table>
+
+<p>+2.6% 绝对,+17.9% 相对。这是论文最干净的 ablation,验证 dense step-level credit 在 long-horizon GUI 任务上是必要的。</p>
+
+<h3>7.3 ClawGUI-Eval Reproduction (Table 3 节选)</h3>
+
+<p>选几个有代表性的格子:</p>
+
+<table>
+<thead><tr><th>模型</th><th>SS-Pro Official</th><th>SS-Pro Ours</th><th>判定</th></tr></thead>
+<tbody>
+<tr><td>GUI-Owl 1.5-8B</td><td>71.10</td><td>70.08</td><td><span class="ok">✓ (|Δ|=1.02)</span></td></tr>
+<tr><td>UI-Venus 1.5-8B</td><td>68.40</td><td>67.68</td><td><span class="ok">✓ (|Δ|=0.72)</span></td></tr>
+<tr><td>MAI-UI-8B</td><td>65.80</td><td>64.07</td><td><span class="ok">✓ (|Δ|=1.73)</span></td></tr>
+<tr><td>Qwen3-VL-2B</td><td>48.50</td><td>43.90</td><td><span class="no">× (|Δ|=4.60)</span></td></tr>
+<tr><td>UI-TARS 1.5-7B</td><td>49.60</td><td>42.06</td><td><span class="no">× (|Δ|=7.54)</span></td></tr>
+<tr><td>Gemini 3.0 Pro (Zoom)</td><td>72.70</td><td>75.08</td><td><span class="ok">✓ (超过)</span></td></tr>
+</tbody>
+</table>
+
+<p>两个失败 case 都集中在"官方未公开 eval config"的模型上 — 这恰好印证作者主张:差异不是算法问题,是 infrastructure 问题。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 与同类工作对比</h2>
+
+<table>
+<thead><tr><th>系统</th><th>定位</th><th>train</th><th>eval</th><th>deploy</th><th>开源</th><th>real device</th></tr></thead>
+<tbody>
+<tr><td>AgentGym-RL (<a href="https://arxiv.org/abs/2509.08755" target="_blank">2509.08755</a>)</td><td>通用 agent RL trainer</td><td><span class="ok">✓</span></td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>✓</td><td>无 GUI 专项</td></tr>
+<tr><td>verl / verl-agent</td><td>RL backend 库</td><td><span class="ok">✓</span></td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>✓</td><td>无</td></tr>
+<tr><td>OSWorld / AndroidWorld</td><td>交互式 benchmark</td><td><span class="no">×</span></td><td><span class="ok">✓</span></td><td><span class="no">×</span></td><td>✓</td><td>—</td></tr>
+<tr><td>ScreenSpot-Pro / MMBench-GUI</td><td>静态 grounding benchmark</td><td><span class="no">×</span></td><td><span class="ok">✓</span></td><td><span class="no">×</span></td><td>✓</td><td>—</td></tr>
+<tr><td>UI-TARS-2 / UI-Venus-1.5</td><td>RL-trained GUI 模型</td><td>报数字</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>weights</td><td><span class="no">×</span></td></tr>
+<tr><td>MAI-UI / MobileGUI-RL</td><td>RL-trained GUI 模型</td><td>报数字</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>weights</td><td><span class="no">×</span></td></tr>
+<tr><td>Anthropic Computer Use / Claude.ai</td><td>商业部署产品</td><td><span class="no">× (闭)</span></td><td><span class="no">× (闭)</span></td><td><span class="ok">✓</span></td><td>闭源</td><td>不公开</td></tr>
+<tr><td>OpenClaw / Hermes Agent</td><td>CLI agent harness</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td><span class="ok">✓ (CLI only)</span></td><td>✓</td><td><span class="no">×</span></td></tr>
+<tr><td>Agent S / MobileAgent</td><td>研究 demo 部署</td><td><span class="no">×</span></td><td>limited</td><td>demo</td><td>✓</td><td><span class="no">×</span></td></tr>
+<tr style="background:#eaf2ff"><td><strong>ClawGUI</strong></td><td><strong>full-stack</strong></td><td><strong><span class="ok">✓ + real device</span></strong></td><td><strong><span class="ok">✓ 95.8%</span></strong></td><td><strong><span class="ok">✓ Android/HarmonyOS/iOS</span></strong></td><td><strong>✓</strong></td><td><strong><span class="ok">✓</span></strong></td></tr>
+</tbody>
+</table>
+
+<p>从这张表能清楚看到 — 在它之前,<em>三列同时打勾</em>的开源系统就是没有过。这是 ClawGUI 的核心 contribution。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 局限 / 个人 take / 待验证</h2>
+
+<h3>9.1 局限和注意点</h3>
+
+<ul>
+  <li><strong>+6.0% 是 framework 的功劳还是 recipe 的功劳?</strong> 这是最重要的疑问。MAI-UI-2B (baseline) → ClawGUI-2B (本文) 走的不只是同一份 RL infra,还有不同的 data、PRM judger、reward 设计组合。论文没分离"infra 自身贡献"和"具体训练 recipe (Qwen3.5-72B PRM + GiGPO + 64-env scale) 贡献"。Table 2 那 +2.6% 是 GiGPO vs GRPO 的纯算法 ablation,但还有其他变量没做 ablation。</li>
+  <li><strong>"95.8% reproduction" 只覆盖 grounding,navigation 没统计。</strong> 6 个 benchmark 里 5 个是 grounding (SS-Pro / SS-V2 / UIV / MMB / OSW-G),AndroidControl 这个 navigation 的 reproduction 数字没单独报。MobileWorld 也不在统计内。</li>
+  <li><strong>Hybrid CLI-GUI 的路由策略是怎么学的?</strong> 论文说"learns the routing policy itself from interaction data"是未来方向,意味着<em>当前版本</em>的路由还是 prompt-driven 或规则化。这部分细节论文交代得比较粗,需要看 GitHub 实际实现。</li>
+  <li><strong>Real device training 的 scale 没说清。</strong> 论文反复强调"first open-source with real device support",但训练 ClawGUI-2B 实际用的是 64 parallel virtual environments,真机训练具体跑了多少 task / step / 性能多少没单独 ablate。论文似乎主要是"basic infra works on real device",而不是"用 real device 拿到比 virtual 更好的 policy"。</li>
+  <li><strong>PRM 用 Qwen3.5-72B 是巨大开销。</strong> 训练一个 2B agent 时,judge 用 72B model — 这意味 PRM 推理 cost 远大于 policy 训练 cost。在更大规模 training 时 PRM 是否能换成更小的专用 judger 是个工程问题。</li>
+  <li><strong>Personalized memory 是工程化 RAG,不是论文级贡献。</strong> 这块论文写得简,基本对齐 Mem0 的工程实践,没新方法。</li>
+</ul>
+
+<h3>9.2 个人 take</h3>
+
+<p>这是一篇<em>典型的 infrastructure paper</em>。它的价值不在于发明了新算法 (GiGPO 是引用 Feng et al. 2025b 的现成算法,PRM 是 prevalent),而在于<strong>把领域里至少 3 条孤立 line 的工作拧成一条流水线并开源</strong>。这种 paper 的影响力短期看不出来,长期看是否成为 community standard 取决于:</p>
+
+<ol>
+  <li>会不会有第二批 paper 真的用 ClawGUI-RL 训 model (而不是各家重新写自己的 trainer)?</li>
+  <li>ClawGUI-Eval 会不会成为 GUI agent paper 的<em>事实评测 baseline</em>?例如以后 paper 在 SS-Pro 上报数字必须附上"由 ClawGUI-Eval 评测"作为可比性 anchor。</li>
+  <li>Hybrid CLI-GUI 这条路由是否会被后续 RL 训出来 — 这才是真正"new science",当前版本只是 prompt-driven。</li>
+</ol>
+
+<p>给类比的话,ClawGUI 之于 GUI agent ≈ vLLM 之于 LLM serving — 单看不出 algorithmic 突破,但如果它真的成为默认 stack,那整个研究范式都会受益。</p>
+
+<h3>9.3 待验证问题清单</h3>
+
+<ol>
+  <li>把同样 GiGPO + Qwen3.5-72B PRM 接到别人的 trainer (verl 原版) 上,能不能复现 17.1%?如果能 → infra 价值有限,真正是 recipe;如果不能 → infra 价值大,论文成立。</li>
+  <li>Real-device-only training vs virtual-only training,在 holdout real device tasks 上的 generalization gap 多大?这是论文标榜 real device support 的核心 motivation,但没正面 ablate。</li>
+  <li>PRM (Qwen3.5-72B) 替换成 7B / 2B model,SR 会掉多少?PRM 是不是 free lunch,还是要在 judge 质量上付出 huge cost?</li>
+  <li>ClawGUI-Eval 的 95.8% 是否会随着 community 提交新模型而漂移?有没有 leaderboard CI/CD 机制?</li>
+  <li>Hybrid 路由当前是怎么实现的?Prompt 给两个 action space,model 自由选?有没有 reward shaping 偏向 CLI?</li>
+  <li>12+ chat 平台 + 3 OS 部署,真实用户量级有多大?有没有 production usage statistics 验证 personalized memory 的实际收益?</li>
+</ol>
+
+<hr>
+
+<h2 id="sec10">10 · 记忆点 (cold recall)</h2>
+
+<div class="kv"><span class="pill">立场</span> <strong>Full-stack open-source GUI agent harness</strong>:第一个把"RL 训练 + 标准化评测 + 真实设备部署"开源捏在一起,且 RL trainer 支持<em>真实手机</em>训练。</div>
+
+<div class="kv"><span class="pill">关键数字</span> <strong>ClawGUI-2B 在 MobileWorld GUI-Only 17.1%</strong>,比同尺寸 MAI-UI-2B baseline +6.0 绝对点,超过 UI-Venus-72B (16.4%) 和 Qwen3-VL-235B (12.8%)。</div>
+
+<div class="kv"><span class="pill">算法核心</span> <strong>GiGPO + PRM 双层 reward</strong>: macro 沿用 GRPO 的轨迹级 group relative,micro 用 anchor-state grouping 对相同 intermediate state 的 step 聚类算局部 advantage;PRM (Qwen3.5-72B) 给每步打分弥补 outcome 的稀疏。Ablation: GiGPO 比 GRPO +2.6%。</div>
+
+<div class="kv"><span class="pill">Eval</span> <strong>95.8% reproduction = 46/48 cells</strong> (5 个 grounding benchmark × 11+ 模型) 误差 ≤2% 或超过 official。失败 2 例都因官方未公开 eval config。闭源模型走 Zoom paradigm (crop-then-ground)。</div>
+
+<div class="kv"><span class="pill">Infra</span> <strong>64 parallel Docker Android emulator on 8×A6000</strong>;Environment Manager 实现 spare server rotation + health check + crash recovery;同一接口支持真机/ADB/cloud phone。Trainer 基于 verl + verl-agent。</div>
+
+<div class="kv"><span class="pill">Deploy</span> <strong>Hybrid CLI-GUI 决策</strong>: 能 CLI 就 CLI (快),否则 GUI fallback (覆盖广)。<strong>12+ chat platform</strong> (Feishu/DingTalk/Telegram/Slack/...) 接入 Android/HarmonyOS/iOS。<strong>Personalized memory</strong> 持久化 contact/preference,vector store + top-k retrieval + dedup。</div>
+
+<div class="kv"><span class="pill">Eval 也是 skill</span> 用户直接发"benchmark Qwen3-VL on ScreenSpot-Pro",agent 自动跑完 infer→judge→metric 返回报告。</div>
+
+<div class="kv"><span class="pill">主要风险</span> +6.0% 没分离 "framework 自身价值" vs "具体 recipe (PRM + GiGPO + scale) 价值";real-device training 的 ablation 不充分;PRM 用 72B judge,cost 不平凡。</div>
+
+<div class="kv"><span class="pill">类比</span> 之于 GUI agent ≈ vLLM 之于 LLM serving:不是算法 paper,但若成为 community default 则范式级影响。</div>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · RLAnything: Forge Environment, Policy, and Reward Model</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>RLAnything: Forge Environment, Policy, and Reward Model in Completely Dynamic RL System</h1>
+<div class="meta">
+  Yinjie Wang, Tianbao Xie, Ke Shen, Mengdi Wang, Ling Yang (Princeton / HKU) · 2026-02-02 · <a href="https://arxiv.org/abs/2602.02488">arXiv:2602.02488</a> · ICML 2026 · Code: <a href="https://github.com/Gen-Verse/Open-AgentRL">Gen-Verse/Open-AgentRL</a><br>
+  Keywords: agentic RL, generative reward model, process reward, environment adaptation, curriculum, GRPO, OSWorld, AlfWorld
+</div>
+
+<div class="tldr">
+  <h2>TL;DR</h2>
+  <p>主流 agentic RL 框架 (veRL / AReaL / slime / AgentGym-RL) 把 <strong>environment 和 reward model 当成静态外设</strong>,只迭代 policy。RLAnything 把三者拧成一个 <strong>闭环联合优化系统</strong>:policy 用 step+outcome 整合奖励训练;reward model 用 <em>consistency feedback</em> (step 标签 × 综合 step 质量) 自监督共同迭代;environment task 由 reward model 的诊断性 critique 驱动,自动变易 / 变难。理论上证明 task 难度平衡能同时改善 PRM 估计精度。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">+9.1%</div><div class="l">Qwen3-VL-8B-Thinking @ OSWorld</div></div>
+    <div class="stat"><div class="n">+18.7%</div><div class="l">Qwen2.5-7B @ AlfWorld (in-domain)</div></div>
+    <div class="stat"><div class="n">+11.9%</div><div class="l">Qwen2.5-7B @ LiveBench (code)</div></div>
+  </div>
+  <p><span class="pill">立场</span>真正有意思的不是 +9.1%,而是 <em>reward model 训得越好,人写的 verifier 反而可以不用</em>——在 GUI 这种 verifier 极贵的领域,这给"自演化 agent"打开了一个口子。</p>
+</div>
+
+<div class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#m1">动机 — 为什么环境和 reward 不能再静态了</a></li>
+    <li><a href="#m2">背景速查 — PRM / ORM / GRPO / curriculum</a></li>
+    <li><a href="#m3">方法详解</a>
+      <ol>
+        <li><a href="#m31">三件套闭环图</a></li>
+        <li><a href="#m32">Integration Feedback (policy)</a></li>
+        <li><a href="#m33">Consistency Feedback (reward model)</a></li>
+        <li><a href="#m34">Environment auto-adaptation</a></li>
+      </ol>
+    </li>
+    <li><a href="#m4">公式与定理</a></li>
+    <li><a href="#m5">实验关键结果</a></li>
+    <li><a href="#m6">与同类工作对比</a></li>
+    <li><a href="#m7">局限 / 个人 take / 待验证</a></li>
+    <li><a href="#m8">记忆点</a></li>
+  </ol>
+</div>
+
+<h2 id="m1">§1 动机 — 为什么环境和 reward 不能再静态了</h2>
+
+<h3>1.1 历史脉络</h3>
+<p>RL for LLM 的演化大致是三步:</p>
+<ol>
+  <li><strong>RLHF</strong> (InstructGPT, 2022):静态偏好数据 → 训 reward model → 冻住 reward → PPO。reward 训完就不动了。</li>
+  <li><strong>RLVR</strong> (DeepSeek-R1, OpenAI o1, 2024–2025):放弃学出来的 reward,直接用 <em>verifiable outcome</em> (数学题答案对错、单元测试通过率) 作为 0/1 信号。reward 是死规则,environment 是题库 + checker。</li>
+  <li><strong>Agentic RL</strong> (UI-TARS, Search-R1, AgentGym, 2025):policy 在 environment 里跑长 trajectory,outcome 来自 environment 的 final verifier。问题立刻浮现——</li>
+</ol>
+<p>当 trajectory 长到 30–60 步,<span class="term">binary outcome 信号过于稀疏</span>。把 advantage 平摊到几十个 step,任何一步都拿不到强 gradient。于是出现两条修补路:</p>
+<ul>
+  <li><strong>加 process reward (PRM)</strong>:Lightman et al. (2023) 提出 step-wise scalar PRM;后来 Liu et al. (2025) 用 generative reward model 让 LLM 自己当 PRM。但 PRM 要训,得人标 step-level label——agent 任务上几乎无法 scale。</li>
+  <li><strong>加 curriculum / 自动出题</strong>:Zeng et al. 2025 (RLVE)、Xue et al. 2026 (EvoCUA)、Cai et al. 2025 (AutoForge) 试图自动合成任务以匹配 policy 当前能力。但这些 system 的 reward 仍然是静态规则,curriculum 信号靠 policy accuracy 本身闭环 (易陷入 reward hacking)。</li>
+</ul>
+<p>RLAnything 的立场:<strong>policy / reward / environment 三者必须同时动,且互相提供 critique 信号</strong>。如果只优化两个 (任意搭配),整个系统都会有"短板"。</p>
+
+<h3>1.2 别的方案为什么不够 — 对比表</h3>
+<table>
+<thead><tr><th>框架</th><th>policy</th><th>reward</th><th>environment</th><th>跨长 trajectory 的 step 信号</th><th>痛点</th></tr></thead>
+<tbody>
+<tr><td>RLHF (InstructGPT)</td><td>dynamic</td><td><span class="no">frozen</span></td><td>N/A (single-turn)</td><td>无</td><td>reward 老化 / hacking</td></tr>
+<tr><td>RLVR / DAPO / GRPO</td><td>dynamic</td><td>verifier (静态规则)</td><td>题库静态</td><td>无 (binary outcome only)</td><td>长 trajectory 信号稀疏</td></tr>
+<tr><td>veRL / AReaL / slime</td><td>dynamic</td><td>外部 (规则或冻 RM)</td><td>静态</td><td>取决于使用者</td><td>仅 infra,不解决 reward/env 退化</td></tr>
+<tr><td>AgentGym-RL / OpenManus-RL</td><td>dynamic</td><td>静态规则</td><td>固定 env pool</td><td>多数无</td><td>env 太简单或太难时 stuck</td></tr>
+<tr><td>RLVE (Zeng 2025) / AutoForge</td><td>dynamic</td><td>静态</td><td><span class="ok">dynamic</span> (难度自适应)</td><td>无</td><td>缺 step 信号,长 horizon 仍弱</td></tr>
+<tr><td>Co-evolve coder + UT (Wang 2025e)</td><td>dynamic</td><td><span class="ok">dynamic</span> (UT 联合训练)</td><td>静态</td><td>单元测试粒度,非长 trajectory</td><td>仅适用于 coding</td></tr>
+<tr><td><strong>RLAnything</strong></td><td><span class="ok">dynamic</span></td><td><span class="ok">dynamic (consistency)</span></td><td><span class="ok">dynamic (critic-guided)</span></td><td><span class="ok">PRM × m + outcome</span></td><td>—</td></tr>
+</tbody>
+</table>
+
+<h3>1.3 为什么这事不平凡</h3>
+<p>把三个组件全部 dynamic 起来听起来像"再加两个 loss",但有三个非显然的难点:</p>
+<ol>
+  <li><strong>PRM 的 self-training 没有外部 ground truth</strong>:如果 reward model 自己出标签自己学,会塌成 trivial constant (例如恒输出 +1)。RLAnything 用 <em>R<sub>τᵢ</sub> × S<sub>τᵢ,j</sub></em> 这个 consistency 信号,把 outcome (公正、可信) 和 step 多次采样的平均 (粗略 self-consistency) 当 anchor,理论上证明这个 objective 与 PRM 的预测精度等价 (Theorem 1)。</li>
+  <li><strong>Curriculum 与 PRM 训练耦合</strong>:作者证明 (Theorem 2),当 P(O<sub>τ</sub>=−1 | q) → 1 (太难) 或 → 0 (太易) 时,importance-weight ratio ‖f₊‖/‖f₋‖ 会发散,违反 Theorem 1 的 μ = p₊ + p₋ > 1 条件。也就是说<strong>不做 curriculum,PRM 训不动</strong>——这正是把 env adaptation 拉进闭环的理论依据,而不是经验装饰。</li>
+  <li><strong>Critic 反馈要"可执行"</strong>:简单根据 accuracy 自动调难度 (Zeng 2025) 只能输出 0/1 信号"加点提示";RLAnything 让 reward model 的 reasoning trace <code>r<sub>τᵢ,j</sub></code> 担任 <em>诊断报告</em>:它会告诉 task rewriter "agent 把 fx 按钮和 Σ 按钮认错了",rewriter 才知道往 task 里加 "Use Function Wizard (fx), not AutoSum" 这种 <span class="term">targeted hint</span>。这个粒度是裸 accuracy 给不出来的。</li>
+</ol>
+
+<h2 id="m2">§2 背景速查</h2>
+<table>
+<thead><tr><th>术语</th><th>简释</th></tr></thead>
+<tbody>
+<tr><td>PPO / GRPO / DAPO</td><td>三代 RL 优化器。GRPO (Shao 2024) 用 group-wise advantage 替代 critic;DAPO (Yu 2025) 加 clip-higher / dynamic sampling。RLAnything 算 advantage 时遵循 GRPO 风格:对同一 task 内 trajectories 在<strong>同一 step index i</strong> 标准化 R<sub>τᵢ</sub>。</td></tr>
+<tr><td>PRM (Process Reward Model)</td><td>对 trajectory 的每一步打分。本文用 generative PRM:LLM 当 reward model,先 reasoning 再吐 ±1。</td></tr>
+<tr><td>ORM (Outcome Reward Model) / verifiable outcome</td><td>对整条 trajectory 打分。OSWorld 用人写 evaluator script;AlfWorld 用环境内置 reward;coding 用 unit test pass rate。</td></tr>
+<tr><td>Curriculum learning</td><td>按难度排序训练样本。这里是 online 的:训练中根据 rollout accuracy 实时改写 task。</td></tr>
+<tr><td>Reward hacking</td><td>policy 学会钻 reward 的空子,而非完成真任务。dynamic reward + verifiable anchor 是一种缓解。</td></tr>
+<tr><td>Consistency loss</td><td>这里特指 step 标签 S<sub>τᵢ,j</sub> 与综合 step 质量 R<sub>τᵢ</sub> 的点乘——agreement 越高,reward model 对该 step reasoning 越受奖励。</td></tr>
+<tr><td>Importance weight (f₊, f₋)</td><td>定理 2 里出现的归因权重,衡量 trajectory 在 p₊ / p₋ 上的"密度倾斜",当 task 极端难易时严重失衡。</td></tr>
+</tbody>
+</table>
+
+<h2 id="m3">§3 方法详解</h2>
+
+<h3 id="m31">3.1 三件套闭环</h3>
+<p>整篇论文的精华是 Algorithm 1。每个 k-th iteration 包含四步:① policy rollout;② 用 reward model 给每个 step 做 m 次评估;③ 用 R<sub>τᵢ</sub> 更新 policy,同时用 R<sub>τᵢ</sub>·S<sub>τᵢ,j</sub> 更新 reward model;④ 根据 rollout accuracy 触发 task 改写。</p>
+
+<div class="fig">
+<svg viewBox="0 0 680 360" width="100%" style="max-width:680px">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+  <!-- Three nodes triangle -->
+  <circle cx="340" cy="60" r="45" fill="#fff7e0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="340" y="55" text-anchor="middle" font-size="14" font-weight="600">Environment</text>
+  <text x="340" y="73" text-anchor="middle" font-size="11" fill="#5b5e66">task q ∈ Q</text>
+
+  <circle cx="140" cy="280" r="48" fill="#e8f0ff" stroke="#2f6feb" stroke-width="2"/>
+  <text x="140" y="275" text-anchor="middle" font-size="14" font-weight="600">Policy π_θ</text>
+  <text x="140" y="293" text-anchor="middle" font-size="11" fill="#5b5e66">trajectory τ</text>
+
+  <circle cx="540" cy="280" r="48" fill="#e6f5ec" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="540" y="275" text-anchor="middle" font-size="14" font-weight="600">Reward r_φ</text>
+  <text x="540" y="293" text-anchor="middle" font-size="11" fill="#5b5e66">step S_τᵢ,j ∈ {±1}</text>
+
+  <!-- Arrows -->
+  <path d="M305,95 Q210,170 175,235" stroke="#2f6feb" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+  <text x="190" y="160" font-size="12" fill="#2f6feb">sample q → τ</text>
+
+  <path d="M195,290 Q340,330 490,290" stroke="#2f6feb" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+  <text x="290" y="335" font-size="12" fill="#2f6feb">τᵢ 送评 (m 次)</text>
+
+  <path d="M495,245 Q400,170 365,100" stroke="#cc4a1b" stroke-width="2" fill="none" marker-end="url(#ar2)"/>
+  <text x="430" y="170" font-size="12" fill="#cc4a1b">critic 摘要 → harder/easier(q)</text>
+
+  <path d="M495,275 Q340,210 190,275" stroke="#1f7a4a" stroke-width="2" fill="none" marker-end="url(#ar)" stroke-dasharray="6 4"/>
+  <text x="290" y="225" font-size="12" fill="#1f7a4a">R_τᵢ = O_τ + λ·mean S</text>
+
+  <!-- Self-update on reward -->
+  <path d="M575,255 Q610,200 555,235" stroke="#1f7a4a" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+  <text x="595" y="225" font-size="11" fill="#1f7a4a">R_τᵢ·S 自训练</text>
+
+  <text x="20" y="30" font-size="13" fill="#5b5e66">蓝实线: forward 数据流 · 红线: env adapt · 绿虚线: integrated reward 喂回 policy</text>
+</svg>
+<figcaption>三件套闭环:env 出 task,policy 跑 trajectory,reward model 给 step 评分;reward 评分既驱动 policy 的 GRPO 更新,也通过 R·S 这个 consistency 信号自训练,最后 reward 的诊断 reasoning 又被压成"critic summary"喂给 task rewriter。三个回路同时跑,没有谁是 frozen。</figcaption>
+</div>
+
+<h3 id="m32">3.2 Integration Feedback for Policy</h3>
+<p>给一个 trajectory τ = (τ₁, ..., τ_T) 和 outcome O<sub>τ</sub> ∈ {−1, +1}。对第 i 步,query reward model m 次得到 S<sub>τᵢ,1</sub>, ..., S<sub>τᵢ,m</sub> ∈ {−1, +1} (m=3 in paper)。整合的 step reward:</p>
+
+<div class="formula">
+<em>R</em><sub>τᵢ</sub> = <em>O</em><sub>τ</sub> + (<em>λ</em>/<em>m</em>) · Σ<sub>j=1..m</sub> <em>S</em><sub>τᵢ,j</sub>, &nbsp; <em>λ</em> = 1 by default
+</div>
+
+<p>每步都把<strong>整段 outcome</strong> 加进去 (注意不是 discount),保证即使 reward model 全部认为这一步正确,只要 outcome 是负的 R 也会被拉到 0;反之亦然。这是防 reward hacking 的关键 anchor。advantage 用 GRPO 风格<strong>在同 task、同 step index i 上做标准化</strong>:</p>
+
+<div class="formula">
+<em>A</em><sup>π</sup><sub>τᵢ</sub> = (<em>R</em><sub>τᵢ</sub> − μ<sub>i</sub>) / σ<sub>i</sub>, &nbsp; μ<sub>i</sub>, σ<sub>i</sub> 在 {τ ~ π(·|q)} 上算
+</div>
+
+<h4>Worked example: AlfWorld trajectory (T=8, m=3)</h4>
+<p>policy 接到 task "Place ClothType into ToiletType",采 8 个 rollout。取其中某条轨迹 τ:</p>
+<table>
+<thead><tr><th>step i</th><th>action</th><th>S<sub>τᵢ,1</sub></th><th>S<sub>τᵢ,2</sub></th><th>S<sub>τᵢ,3</sub></th><th>mean S</th><th>O<sub>τ</sub></th><th>R<sub>τᵢ</sub></th></tr></thead>
+<tbody>
+<tr><td>1–6</td><td>go to 浴室、橱柜...(找布)</td><td>-1</td><td>-1</td><td>+1</td><td>-0.33</td><td>+1</td><td>0.67</td></tr>
+<tr><td>7</td><td>take cloth 1 from toilet 1</td><td>+1</td><td>+1</td><td>+1</td><td>+1.00</td><td>+1</td><td>2.00</td></tr>
+<tr><td>8</td><td>put cloth 1 in drawer 2 (失误)</td><td>-1</td><td>-1</td><td>-1</td><td>-1.00</td><td>+1</td><td>0.00</td></tr>
+</tbody>
+</table>
+<p>同一个 step index i=7 在 8 条 rollouts 上的 R<sub>τᵢ</sub> 分布大致 {2, 1.3, 0.67, 2, ..., −0.33}。标准化后给本条 τ 的 step 7 一个偏高的 A,GRPO 把 "take cloth"这个 action 强化。<strong>反向论证</strong>:如果不加 outcome anchor (令 λ→∞ 仅用 mean S),reward model 早期偏差就会被无限放大;如果不加 step 信号 (λ=0 退化成 outcome-only GRPO),长 trajectory 的所有 step advantage 退化成相同的 ±1,Figure 6(b) 显示这就是 baseline 在 30+ 步任务上不收敛的根因。</p>
+
+<h3 id="m33">3.3 Consistency Feedback for Reward Model</h3>
+<p>核心一行式:</p>
+<div class="formula">
+<em>R</em><em>S</em><sub>τᵢ,j</sub> = <em>R</em><sub>τᵢ</sub> · <em>S</em><sub>τᵢ,j</sub>
+</div>
+
+<p>解读:R<sub>τᵢ</sub> ∈ [−2, 2] (λ=1 时) 是一个 <em>polled estimate</em> ——综合了 outcome 与 m 次 step 评估。S<sub>τᵢ,j</sub> 是单次评估。把它俩相乘:</p>
+<ul>
+  <li>当 R<sub>τᵢ</sub> > 0 (整体高质量) 且 S<sub>τᵢ,j</sub> = +1 (本次评估也说好) → +,reward 这次 reasoning 是对的。</li>
+  <li>当 R<sub>τᵢ</sub> > 0 但 S<sub>τᵢ,j</sub> = −1 (跟大局唱反调) → −,惩罚。</li>
+  <li>当 R<sub>τᵢ</sub> ≈ 0 (评估很分裂),所有 j 的 advantage 都接近 0 ——<strong>uncertain step 不参与学习</strong>,这是隐式的样本筛选。</li>
+</ul>
+
+<p>同样 advantage 在 j 维上标准化:A<sup>r</sup><sub>τᵢ,j</sub> = (R<sub>τᵢ</sub>·S<sub>τᵢ,j</sub> − μ<sub>j</sub>)/σ<sub>j</sub>。reward model 输出的是 reasoning trace + 末位 ±1,被 RL 强化的是<strong>整段 reasoning</strong> 而不只是末位 token。</p>
+
+<div class="fig">
+<svg viewBox="0 0 680 270" width="100%" style="max-width:680px">
+  <!-- Step quality as horizontal bar -->
+  <rect x="40" y="40" width="600" height="34" fill="#f3eee0" stroke="#888"/>
+  <line x1="340" y1="40" x2="340" y2="74" stroke="#888" stroke-dasharray="3 3"/>
+  <text x="40" y="32" font-size="12">R_τᵢ = −2</text>
+  <text x="340" y="32" font-size="12" text-anchor="middle">0 (uncertain)</text>
+  <text x="640" y="32" font-size="12" text-anchor="end">+2</text>
+
+  <!-- 3 evaluations example -->
+  <text x="40" y="110" font-size="13" font-weight="600">R_τᵢ = +1.33 (3 次 S = [+1,+1,−1], O=+1):</text>
+  <g>
+    <rect x="40" y="120" width="180" height="26" fill="#d6ead6" stroke="#1f7a4a"/>
+    <text x="130" y="138" text-anchor="middle" font-size="12">S=+1 → RS=+1.33 ✓ 奖</text>
+    <rect x="230" y="120" width="180" height="26" fill="#d6ead6" stroke="#1f7a4a"/>
+    <text x="320" y="138" text-anchor="middle" font-size="12">S=+1 → RS=+1.33 ✓ 奖</text>
+    <rect x="420" y="120" width="180" height="26" fill="#f5d8d8" stroke="#a8353e"/>
+    <text x="510" y="138" text-anchor="middle" font-size="12">S=−1 → RS=−1.33 ✗ 罚</text>
+  </g>
+
+  <text x="40" y="180" font-size="13" font-weight="600">R_τᵢ = +0.1 (评估分裂):</text>
+  <g>
+    <rect x="40" y="190" width="180" height="26" fill="#efefe5" stroke="#888"/>
+    <text x="130" y="208" text-anchor="middle" font-size="12">S=+1 → RS=+0.1 ≈0</text>
+    <rect x="230" y="190" width="180" height="26" fill="#efefe5" stroke="#888"/>
+    <text x="320" y="208" text-anchor="middle" font-size="12">S=−1 → RS=−0.1 ≈0</text>
+    <rect x="420" y="190" width="180" height="26" fill="#efefe5" stroke="#888"/>
+    <text x="510" y="208" text-anchor="middle" font-size="12">梯度被压缩,不学</text>
+  </g>
+  <text x="40" y="250" font-size="12" fill="#5b5e66">→ "不确定的 step"对 reward model 训练自动失活,只有 majority-vote 与 outcome 一致的 step 才贡献 gradient。</text>
+</svg>
+<figcaption>Consistency feedback 的直觉:R<sub>τᵢ</sub> 是综合 anchor,S<sub>τᵢ,j</sub> 是单次评估;相乘当 reward,实际效果是"奖励与大局一致的 reasoning"。绝对值越靠近 0 (即 step 评估意见分裂或与 outcome 矛盾),gradient 被压缩,实现隐式 uncertainty filtering。</figcaption>
+</div>
+
+<h3 id="m34">3.4 Environment Auto-Adaptation</h3>
+<p>每个 task q 有当前 rollout accuracy acc(q)。两个阈值 α<sub>high</sub>=0.8、α<sub>low</sub>=0.2。逻辑:</p>
+<ul>
+  <li>acc(q) > 0.8 (太易) → 用 LM 生成 harder(q; s),其中 s 是 reward model 对失败 step 的 critique 摘要;接受当且仅当 α<sub>low</sub> < acc(q′) < acc(q)。</li>
+  <li>acc(q) < 0.2 (太难) → 生成 easier(q; s);接受当且仅当 acc(q) < acc(q′) < α<sub>high</sub>。</li>
+  <li>0.2 ≤ acc(q) ≤ 0.8 → 保留原 task,不动。</li>
+</ul>
+
+<p>"critique 摘要" s 来自<strong>所有至少一次 S<sub>τᵢ,j</sub>=−1 的 step 的 reasoning trace r<sub>τᵢ,j</sub></strong> 的 LM 汇总 (Appendix C.6),并不是单纯的 accuracy 数字。在 OSWorld 例子里,s = "1. 把 fx 误点成 Σ; 2. 用了 SUM 给出日期而非年龄"。改写 LM (Qwen3-4B) 据此把 task 描述里追加 "Use Function Wizard (fx), make sure result is number"。</p>
+
+<div class="fig">
+<svg viewBox="0 0 680 320" width="100%" style="max-width:680px">
+  <!-- acc bar -->
+  <rect x="40" y="30" width="600" height="28" fill="url(#g1)" stroke="#888"/>
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1">
+      <stop offset="0" stop-color="#f5d8d8"/>
+      <stop offset="0.2" stop-color="#fff7e0"/>
+      <stop offset="0.8" stop-color="#fff7e0"/>
+      <stop offset="1" stop-color="#d6ead6"/>
+    </linearGradient>
+  </defs>
+  <line x1="160" y1="25" x2="160" y2="63" stroke="#a8353e" stroke-dasharray="3 3"/>
+  <text x="160" y="20" text-anchor="middle" font-size="12" fill="#a8353e">α_low=0.2</text>
+  <line x1="520" y1="25" x2="520" y2="63" stroke="#1f7a4a" stroke-dasharray="3 3"/>
+  <text x="520" y="20" text-anchor="middle" font-size="12" fill="#1f7a4a">α_high=0.8</text>
+  <text x="40" y="80" font-size="12">acc=0</text>
+  <text x="630" y="80" text-anchor="end" font-size="12">acc=1</text>
+
+  <!-- three scenarios -->
+  <g transform="translate(0,110)">
+    <rect x="40" y="0" width="180" height="160" rx="8" fill="#fdecec" stroke="#a8353e"/>
+    <text x="130" y="22" text-anchor="middle" font-weight="600" font-size="13" fill="#a8353e">acc=0.0 (too hard)</text>
+    <text x="130" y="48" text-anchor="middle" font-size="11">GUI: 误按按钮</text>
+    <text x="130" y="68" text-anchor="middle" font-size="11">→ critic: "fx vs Σ"</text>
+    <text x="130" y="92" text-anchor="middle" font-size="11">→ easier(q; s):</text>
+    <text x="130" y="108" text-anchor="middle" font-size="11">加 hint</text>
+    <text x="130" y="138" text-anchor="middle" font-size="12" fill="#1f7a4a">acc′=0.25 ✓</text>
+  </g>
+  <g transform="translate(0,110)">
+    <rect x="250" y="0" width="180" height="160" rx="8" fill="#fff7e0" stroke="#cc4a1b"/>
+    <text x="340" y="22" text-anchor="middle" font-weight="600" font-size="13" fill="#cc4a1b">acc=0.5 (sweet spot)</text>
+    <text x="340" y="60" text-anchor="middle" font-size="11">不改动</text>
+    <text x="340" y="88" text-anchor="middle" font-size="11">μ = p₊+p₋</text>
+    <text x="340" y="106" text-anchor="middle" font-size="11">最大化</text>
+    <text x="340" y="138" text-anchor="middle" font-size="12" fill="#5b5e66">保留原 q</text>
+  </g>
+  <g transform="translate(0,110)">
+    <rect x="460" y="0" width="180" height="160" rx="8" fill="#e6f5ec" stroke="#1f7a4a"/>
+    <text x="550" y="22" text-anchor="middle" font-weight="600" font-size="13" fill="#1f7a4a">acc=0.875 (too easy)</text>
+    <text x="550" y="48" text-anchor="middle" font-size="11">AlfWorld: 浪费步找物</text>
+    <text x="550" y="68" text-anchor="middle" font-size="11">→ critic: "spent most time finding"</text>
+    <text x="550" y="92" text-anchor="middle" font-size="11">→ harder(q; s):</text>
+    <text x="550" y="108" text-anchor="middle" font-size="11">换 SoapBottle</text>
+    <text x="550" y="138" text-anchor="middle" font-size="12" fill="#cc4a1b">acc′=0.5 ✓</text>
+  </g>
+</svg>
+<figcaption>Env auto-adapt 的三种状态:太难 / sweet spot / 太易。critique 不只是难度数字,而是 reward model 对失败步的<strong>具体诊断文本</strong>,这是让 task rewriter 能做 targeted 修改 (而不是瞎合成) 的关键。</figcaption>
+</div>
+
+<p><strong>反向论证</strong>:为什么阈值检查要做双向 (新 task 要既不再过难也不超出原难度)?如果直接接受 acc(q′) ∈ [0.2, 0.8] 的任何 q′,LM 容易把 task 改得失去原 essence (例如把 GUI 任务改成 trivia),accuracy 也能落进区间。论文 §3.2.9 的 96.0% (GUI) / 96.7% (AlfWorld) / 94.2% (coding) pass-at-least-one 率 (由 Qwen3-32B 16 次独立 trial 验证),就是这套接受准则有效性的证据。</p>
+
+<h2 id="m4">§4 公式与定理</h2>
+
+<h3>4.1 Theorem 1 — consistency 优化 ⇒ PRM 精度</h3>
+<p>定义 reward precision A = P(S<sub>τ⁺ᵢ</sub> > S<sub>τ⁻ᵢ</sub> | O<sub>τ⁺</sub>=1, O<sub>τ⁻</sub>=−1),其中 S<sub>τᵢ</sub> = (1/m)Σ S<sub>τᵢ,j</sub> 是 mean process reward。令 μ ≜ p₊ + p₋,p₊ = P(S<sub>τ⁺ᵢ,j</sub>=1), p₋ = P(S<sub>τ⁻ᵢ,j</sub>=−1)。结论:</p>
+<div class="formula">
+A → 1 当 m → ∞ &nbsp; ⇔ &nbsp; μ > 1; &nbsp; 且 A ≥ 1 − exp(−<em>m</em>(μ−1)²/4)
+</div>
+<p>直觉:μ 是 "对正 trajectory 的 step 也说正" + "对负 trajectory 的 step 也说负" 的概率和。要让 PRM 能区分好坏 step,这俩概率不能都偏向同一类——必须 μ>1 (即偏向"正向 calibration") 才能让两个 distribution 在 m 重采样后逐渐分离。Hoeffding 风格的指数收敛给出了 m=3 在实践中已经够用的依据。</p>
+
+<h3>4.2 Theorem 2 — task 难度失衡 ⇒ μ 估计偏</h3>
+<div class="formula">
+𝔼<sub>q,τ,S</sub>[<em>R</em><em>S</em><sub>τᵢ,j</sub>] = 4·𝔼<sub>q</sub>[⟨p₊, f₊⟩ + ⟨p₋, f₋⟩] + C
+</div>
+<p>当 λ=1。f₊, f₋ 是 trajectory 上的 importance-weight 函数,且</p>
+<div class="formula">
+‖f₊‖/‖f₋‖ → 0, &nbsp; 当 P(O<sub>τ</sub>=−1 | q) → 1 (task 全失败)<br>
+‖f₊‖/‖f₋‖ → ∞, &nbsp; 当 P(O<sub>τ</sub>=1 | q) → 1 (task 全成功)
+</div>
+<p>含义:reward model 的 RL objective 可分解为 p₊ 与 p₋ 两个内积的加权和,权重就是 importance norm。当 task 太难,几乎所有 trajectory 都是 O=−1,p₊ 那边几乎没采样,梯度被 f₋ 主导;反之亦然。<strong>这就是为什么要做 env adaptation——不是为了 policy,是为了让 reward model 的 μ 估计不偏</strong>。这条因果链是 RLAnything 区别于 RLVE / EnvGen 的核心论点。</p>
+
+<h3>4.3 边界敏感性 (Theorem 1 数值表)</h3>
+<table>
+<thead><tr><th>μ</th><th>m=1</th><th>m=3</th><th>m=10</th><th>m=30</th></tr></thead>
+<tbody>
+<tr><td>1.05</td><td>0.0006</td><td>0.0019</td><td>0.0062</td><td>0.0186</td></tr>
+<tr><td>1.2</td><td>0.0099</td><td>0.029</td><td>0.095</td><td>0.259</td></tr>
+<tr><td>1.4</td><td>0.039</td><td>0.113</td><td>0.330</td><td>0.698</td></tr>
+<tr><td>1.6</td><td>0.086</td><td>0.236</td><td>0.551</td><td>0.917</td></tr>
+</tbody>
+</table>
+<p>表中数值是下界 1 − exp(−m(μ−1)²/4)。读出来的事:μ 离 1 越近,m 必须很大才能拉满 A。论文用 m=3,等于赌 μ 不会接近 1——而这恰好是 env adaptation 要负责维持的。</p>
+
+<h2 id="m5">§5 实验关键结果</h2>
+
+<h3>5.1 主表 — 三件套消融</h3>
+<p>三种配置:① <em>Policy</em> (只用 integrated reward 训 policy,reward 和 env 冻);② <em>Policy + Reward</em> (再加 consistency 训 RM);③ <em>Policy + Reward + Env</em> = RLAnything。</p>
+<table>
+<thead>
+<tr><th rowspan="2">setting</th><th colspan="2">GUI (OSWorld)</th><th colspan="2">LLM (AlfWorld)</th><th colspan="2">Coding (LiveBench)</th></tr>
+<tr><th>In-domain</th><th>OOD</th><th>In-domain</th><th>OOD</th><th>Code</th><th>UT</th></tr>
+</thead>
+<tbody>
+<tr><td>Before</td><td>40.4</td><td>16.1</td><td>39.0</td><td>44.9</td><td>31.3</td><td>27.8</td></tr>
+<tr><td>Policy</td><td>48.3</td><td>19.8</td><td>51.1</td><td>59.3</td><td>38.8</td><td>27.8</td></tr>
+<tr><td>+ Reward</td><td>49.6</td><td>20.0</td><td>55.6</td><td>61.8</td><td>40.0</td><td>73.3</td></tr>
+<tr><td>+ Reward + Env</td><td><strong>52.1</strong> <span class="ok">+11.7</span></td><td><strong>21.3</strong> <span class="ok">+5.2</span></td><td><strong>60.2</strong> <span class="ok">+21.2</span></td><td><strong>63.6</strong> <span class="ok">+18.7</span></td><td><strong>43.2</strong> <span class="ok">+11.9</span></td><td><strong>78.9</strong> <span class="ok">+51.1</span></td></tr>
+</tbody>
+</table>
+<p>读三件事:① 三个 dynamic 组件单调累加,没有一个是噪声;② OOD 上 +5.2 / +18.7 的提升说明这不是 over-fit to 训练 task;③ coding 上 UT accuracy +51.1 是巨大的——意味着 reward model (这里是 unit test 生成器) 在 consistency loss 下变成了一个真能判断 code 对错的工具,而不是表面合理。</p>
+
+<h3>5.2 λ 消融 (AlfWorld, 100 steps)</h3>
+<table>
+<thead><tr><th>λ</th><th>RM process acc</th><th>RM outcome acc</th><th>policy acc</th></tr></thead>
+<tbody>
+<tr><td>1/4</td><td>51.8</td><td>62.5</td><td>48.0</td></tr>
+<tr><td><strong>1</strong></td><td>55.5</td><td>62.4</td><td><strong>54.1</strong></td></tr>
+<tr><td>4</td><td>57.4</td><td>60.2</td><td>53.3</td></tr>
+</tbody>
+</table>
+<p>λ 大 → RM 更看重 step quality,process acc 提升但 outcome 预测能力下降;λ=1 是甜区。policy 也最爱 λ=1。</p>
+
+<h3>5.3 优化的 RM 信号 > 人写 verifier (Figure 6a)</h3>
+<p>把 outcome reward 完全拿掉,只让 policy 拿 optimized reward model 的 step 信号训练——OSWorld 上 still 比有 verifiable outcome 的 GRPO baseline 更高。<strong>这是全文最 disruptive 的实验</strong>:在 GUI 这种 verifier 极贵 (人写脚本)、不可 scale 的场景下,自演化的 reward model 可以替代人工 verifier。</p>
+
+<h3>5.4 accepted task 线性 scale (Figure 7a)</h3>
+<p>新接受的 task 数量随训练 step 近似线性增长,policy 在新 task 上的 accuracy 稳定在 ~0.4,意味着 env adapter 持续在 "稍微超出 policy 当前能力"的区间出题——这正好对应 §4.2 让 μ 远离 1 的目标。</p>
+
+<h2 id="m6">§6 与同类工作对比</h2>
+<table>
+<thead><tr><th>系统</th><th>dynamic reward?</th><th>dynamic env?</th><th>step signal?</th><th>关键差异</th></tr></thead>
+<tbody>
+<tr><td>veRL / AReaL / slime</td><td>否</td><td>否</td><td>由 user 决定</td><td>这些是 RL <em>infra</em>,不解决信号设计</td></tr>
+<tr><td>AgentGym-RL / OpenManus-RL</td><td>否</td><td>否</td><td>无</td><td>提供 env 池但 reward / env 静态</td></tr>
+<tr><td>RLVE (Zeng 2025)</td><td>否</td><td>是 (多档难度)</td><td>无</td><td>env scale 但缺 step;短 horizon</td></tr>
+<tr><td>EnvGen / EvoCUA</td><td>否</td><td>是 (LM 合成)</td><td>无</td><td>合成任务质量缺验证;无 critic 反馈</td></tr>
+<tr><td>RL Tango (Zha 2025)</td><td>是 (gen+ver 共训)</td><td>否</td><td>有 (single-turn)</td><td>仅 single-turn,无 trajectory</td></tr>
+<tr><td>AgentPRM (Xi 2025)</td><td>是 (PRM 训练)</td><td>否</td><td>有</td><td>PRM 需要外部标签;reward / env 不耦合</td></tr>
+<tr><td>Co-evolve coder + UT (Wang 2025e)</td><td>是</td><td>否</td><td>UT 粒度</td><td>仅 coding,本文 §3.2.7 把它纳为特例</td></tr>
+<tr><td><strong>RLAnything</strong></td><td>是 (consistency loss)</td><td>是 (critic-guided)</td><td>是 (PRM × m + outcome)</td><td>三件套 + 理论保证</td></tr>
+</tbody>
+</table>
+
+<h2 id="m7">§7 局限 / 个人 take / 待验证</h2>
+<ul>
+  <li><span class="pill">局限</span>m=3 evaluations per step,每个 RL step 大约 12×8×30 = 2880 次 reward model 调用 (OSWorld),compute 不小;实际开源仓库的 throughput 怎么样需要看代码。</li>
+  <li><span class="pill">局限</span>α<sub>low</sub>=0.2, α<sub>high</sub>=0.8 是 hard-coded 双阈值,没做消融。早期 policy 弱的时候大量 task 会落进 acc=0,可能触发过度 easy-shift。</li>
+  <li><span class="pill">局限</span>Theorem 1 的"A→1 当 m→∞"是渐近,m=3 时下界仅在 μ > 1.4 才达到 0.1+;μ 估计不会"溢出"是靠 env adapt 保住的,这个闭环的稳定性论文没给 PAC-style 证明。</li>
+  <li><span class="pill">个人 take</span>真正改变社区认知的是 §3.2.6:RM 信号 > 人写 verifier。如果可复现,这意味着 OSWorld / WebArena 这类"verifier 卡脖子"的 benchmark 可以脱离人工评估自演化——这是 next-gen agentic RL 的 unlock。</li>
+  <li><span class="pill">个人 take</span>论文写法上"三件套"的卖法很 RL Tango 的扩写;但理论 contribution (Theorem 1+2) 比 RL Tango 更扎实——它把 env adapt 从经验 trick 提升到了 PRM 精度的必要条件。</li>
+  <li><span class="pill">个人 take</span>R<sub>τᵢ</sub> · S<sub>τᵢ,j</sub> 这个 consistency 信号本质是 <em>self-distillation</em>:用 m 重采样的 majority + outcome anchor 当 soft label 训单次评估。和 STaR / R<sup>2</sup>S 思路类似,但放在 step 粒度。</li>
+</ul>
+
+<h4>待验证问题</h4>
+<ol>
+  <li>m=3 是否真是 sweet spot?当 m=1 时 R<sub>τᵢ</sub> 退化成 O+λS,RM 自训练几乎只剩 outcome anchor;m=10 会不会让 μ 估计更稳但 compute 翻 3 倍。</li>
+  <li>把 reward model 换成更小的模型 (e.g. Qwen2.5-1.5B) 时,critic reasoning trace 还能不能产生可用的 task rewriting 信号?这是落地的关键。</li>
+  <li>env adapter 用的 LM (Qwen3-4B) 会不会 mode-collapse —— task 改写多轮以后是否会偏向某类 task family?</li>
+  <li>OSWorld 9.1% 提升里,有多少来自 47 个 pre-created task perturbations (§3.1.4),多少来自实际 online 改写?</li>
+  <li>"RM signal > human verifier" 是不是 specific to OSWorld 的人写脚本质量低?在 AlfWorld 这种 env 自带 reward 的场景能不能复现?</li>
+</ol>
+
+<h2 id="m8">§8 记忆点</h2>
+<div class="kv"><span class="pill">立场</span> agentic RL 的瓶颈不在 policy 算法 (PPO/GRPO/DAPO 早就够用) 而在 <strong>reward 与 environment 退化</strong>;把这两个变量也 dynamic 起来是必经之路。</div>
+<div class="kv"><span class="pill">核心公式</span> <strong>R<sub>τᵢ</sub> = O<sub>τ</sub> + (λ/m)Σ S<sub>τᵢ,j</sub></strong> 给 policy;<strong>RS<sub>τᵢ,j</sub> = R<sub>τᵢ</sub> · S<sub>τᵢ,j</sub></strong> 给 reward model。outcome anchor + step mean = 双重防 hacking。</div>
+<div class="kv"><span class="pill">理论</span> Theorem 1: PRM 精度 ⇔ μ=p₊+p₋ > 1。Theorem 2: task 全成或全败时 importance weight 失衡,μ 估计偏 → 必须 env adapt。</div>
+<div class="kv"><span class="pill">机制</span> env adaptation 由 reward model 的 <em>reasoning trace</em> 而非 accuracy 数字驱动 → targeted 改写而不是瞎合成。</div>
+<div class="kv"><span class="pill">破坏性结论</span> §3.2.6:训好的 reward model 单独当 supervision 已经 > 人写 verifier。GUI / 真实世界 agent 的 verifier 瓶颈被绕过。</div>
+<div class="kv"><span class="pill">数字记忆</span> OSWorld +9.1, AlfWorld +18.7 / +21.2, LiveBench +11.9, LiveCodeBench UT +45.9, CodeContests UT +43.3。m=3 evaluations, α=(0.2, 0.8), λ=1 默认。</div>
+<div class="kv"><span class="pill">对手</span> RLVE (env-only), AgentPRM (PRM-only), RL Tango (single-turn 双训), Co-evolve coder+UT (coding-only) — RLAnything 在 multi-turn × 三件套 这个交叉点上独占。</div>
+<div class="kv"><span class="pill">开源</span> Gen-Verse/Open-AgentRL,与作者另一个项目 DemyAgent 配对。</div>
+
+</main>
+</body>
+</html>
