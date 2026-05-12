@@ -91,7 +91,13 @@
   <ol>
     <li><a href="#sec1">动机:为什么 multi-turn agent RL 总训不稳</a></li>
     <li><a href="#sec2">背景速查 (POMDP / GRPO / 环境术语)</a></li>
-    <li><a href="#sec3">框架架构:Environment / Agent / Training 三件套</a></li>
+    <li><a href="#sec3">框架架构:Environment / Agent / Training 三件套</a>
+      <ul style="margin:4px 0 4px 18px;padding-left:8px;list-style:disc;font-size:.94em">
+        <li><a href="#memleak">3.4(1) Memory leak 到底指什么</a></li>
+        <li><a href="#multienv">3.4(2) "多 env" 的并行 client 架构</a></li>
+        <li><a href="#purpose">3.4(3) 框架本质 + scenarios/benchmarks 清单</a></li>
+      </ul>
+    </li>
     <li><a href="#sec4">ScalingInter-RL 的 horizon 课程</a></li>
     <li><a href="#sec5">公式与直觉:为什么"先 exploit 后 explore"是对的</a></li>
     <li><a href="#sec6">5 个 scenario · 27 任务概览</a></li>
@@ -353,6 +359,132 @@ actor.update_actor(batch)</pre>
 </table>
 
 <p>这些看起来"无聊"的工程修复其实是 paper 最被低估的贡献:它们让"长 horizon RL 训几小时不崩"从科幻变成默认。</p>
+
+<h3 id="sec34">3.4 三个常被混淆的概念,逐个讲清</h3>
+
+<h4 id="memleak">(1) "Memory leak" 是什么 —— 不是 agent memory,是<em>进程级内存泄漏</em></h4>
+
+<p>论文里出现两次 "memory leak",都指的是 <strong>开源 env 代码的 Python 进程级 bug</strong>,跟"agent long-term memory"完全不是一回事。两处具体来源:</p>
+
+<table>
+<thead><tr><th>环境</th><th>泄漏来源</th><th>后果</th><th>修法</th></tr></thead>
+<tbody>
+<tr><td><code>TextCraft</code></td><td>recursive <code>crafting_tree</code> 实现 里 list 反复 self-replicate</td><td><strong>指数级</strong>内存增长 → 训练几小时 OOM 崩溃</td><td>重构递归,消除冗余 list copy</td></tr>
+<tr><td><code>SciWorld</code></td><td>内部 clock 机制每 step 累积对象不释放</td><td>线性内存累积,长 rollout 不稳定</td><td>重写 clock 实现</td></tr>
+</tbody>
+</table>
+
+<div class="nb">
+<strong>区分:</strong> 你可能在别的论文里见过 "memory" 指代 <em>agent 长期记忆</em>(MemoryBank / Mem0 / Memory-R1 那条线)。AgentGym-RL 这里完全不同 — 它说的是<em>跑 RL 训练的 Python 进程</em>占内存越来越多最后 OOM。是工程 bug 不是 algorithmic 问题。这件事重要,因为 multi-turn RL 训练动辄要跑十几个小时,一次崩溃损失巨大 — 但凡有一个 env 漏一点内存,batch 里上百个 parallel client 一起漏,几个 epoch 就崩。所以 paper 把这件事郑重写进 §3.2.3。
+</div>
+
+<h4 id="multienv">(2) "多 env" 指什么 —— <em>并行环境客户端</em>架构</h4>
+
+<p>"多 env" 在论文里是 <strong>parallel environment clients</strong> 的简称。具体是什么?Trainer 一次要采 sample_num × batch 条 trajectory,如果每条 trajectory 串行跑一个 env,一个 rollout 要等几分钟。AgentGym-RL 的解法:<strong>server-client 架构 + 一个 server 多实例</strong>:</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ar34" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+
+  <!-- Trainer -->
+  <rect x="30" y="30" width="120" height="60" fill="#e7eefb" stroke="#2f6feb" stroke-width="2"/>
+  <text x="90" y="55" text-anchor="middle" font-size="13" font-weight="600">Trainer (veRL)</text>
+  <text x="90" y="75" text-anchor="middle" font-size="10" fill="#5b5e66">policy π_θ rollout</text>
+
+  <!-- HTTP arrow -->
+  <line x1="155" y1="60" x2="195" y2="60" stroke="#2f6feb" stroke-width="2" marker-end="url(#ar34)"/>
+  <text x="175" y="50" text-anchor="middle" font-size="10" fill="#5b5e66">HTTP</text>
+
+  <!-- WebArena server -->
+  <rect x="200" y="20" width="220" height="80" fill="#fff7e0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="310" y="40" text-anchor="middle" font-size="13" font-weight="600">WebArena server (1 个进程)</text>
+  <g font-size="10" fill="#1f2024">
+    <rect x="210" y="48" width="40" height="24" fill="#fff" stroke="#5b5e66"/>
+    <text x="230" y="64" text-anchor="middle">Chrome 1</text>
+    <rect x="252" y="48" width="40" height="24" fill="#fff" stroke="#5b5e66"/>
+    <text x="272" y="64" text-anchor="middle">Chrome 2</text>
+    <rect x="294" y="48" width="40" height="24" fill="#fff" stroke="#5b5e66"/>
+    <text x="314" y="64" text-anchor="middle">Chrome 3</text>
+    <text x="356" y="64" font-size="11">...×N</text>
+  </g>
+  <text x="310" y="92" text-anchor="middle" font-size="10" fill="#5b5e66" font-style="italic">subprocess pool: 一个 server 管多个 Chromium 实例</text>
+
+  <!-- Client tasks below -->
+  <text x="90" y="135" text-anchor="middle" font-size="12" font-weight="600">Trainer 同时发起 N 个 rollout</text>
+
+  <g font-size="11">
+    <rect x="30" y="150" width="120" height="22" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="90" y="166" text-anchor="middle">client #1 → task A</text>
+    <rect x="30" y="175" width="120" height="22" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="90" y="191" text-anchor="middle">client #2 → task B</text>
+    <rect x="30" y="200" width="120" height="22" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="90" y="216" text-anchor="middle">client #3 → task C</text>
+    <rect x="30" y="225" width="120" height="22" fill="#dff3e6" stroke="#1f7a4a"/>
+    <text x="90" y="241" text-anchor="middle">... ×N</text>
+  </g>
+
+  <line x1="155" y1="161" x2="208" y2="60" stroke="#1f7a4a" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <line x1="155" y1="186" x2="250" y2="60" stroke="#1f7a4a" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <line x1="155" y1="211" x2="292" y2="60" stroke="#1f7a4a" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+  <!-- Isolation note -->
+  <rect x="450" y="130" width="250" height="120" fill="#fff" stroke="#e2dfd5"/>
+  <text x="460" y="148" font-size="12" font-weight="600">三个关键保证:</text>
+  <g font-size="11" fill="#1f2024">
+    <text x="460" y="170">• <strong>隔离</strong>:client 互相不见,</text>
+    <text x="478" y="184">一个 task 状态污染不到另一个</text>
+    <text x="460" y="202">• <strong>失败局部化</strong>:Chrome i 崩</text>
+    <text x="478" y="216">不影响 Chrome j 的 rollout</text>
+    <text x="460" y="234">• <strong>full-reset</strong>:每 episode 后</text>
+    <text x="478" y="248">完全还原 web server 初态</text>
+  </g>
+</svg>
+<figcaption>"多 env"的真实结构: 一个 env server 进程 + 内部 subprocess pool 管 N 个真实 Chromium / SciWorld / TextCraft 实例。Trainer 通过 HTTP 同时发起 N 个 rollout(N = sample_num × batch),每个 rollout 拿一个独立 client,client-instance 一一对应。这是 paper §3.1 的核心 — 没有它,multi-turn RL 训练就退化成串行,速度差 N 倍。</figcaption>
+</div>
+
+<p>对比 paper 之前的方案:WebArena 原版是"一个 Chromium = 一个 OS 进程",上 16 个 parallel rollout 就要 16 个独立进程,内存爆炸还慢。AgentGym-RL 把这个改成 subprocess pool,一个 server 进程内开多个 Chrome,context 共享、内存可控。</p>
+
+<h4 id="purpose">(3) 这个框架到底是什么,能干嘛,支持什么</h4>
+
+<p><strong>本质:</strong> 一个 <em>训练 harness</em>(不是模型,不是算法),用来在多个 multi-turn agent 场景上做 RL 训练。回答你三个具体的子问:</p>
+
+<table>
+<thead><tr><th>问题</th><th>答</th></tr></thead>
+<tbody>
+<tr><td><strong>是什么</strong></td><td>建在 veRL 之上的 multi-turn agent RL training framework + 一个名为 ScalingInter-RL 的训练 recipe</td></tr>
+<tr><td><strong>能达到什么</strong></td><td>Qwen2.5-7B 训完跨 5 场景平均涨 <strong>+33.65 个点</strong>,匹敌甚至超过 OpenAI o3 / Gemini-2.5-Pro。把"7B 模型也能做 agent"从假设变成实证</td></tr>
+<tr><td><strong>谁不用它</strong></td><td>纯单轮 RLVR (math/code) 用 veRL/AReaL 更直接;单 GUI 场景用 ClawGUI 部署更全;算法层创新用 RLAnything 更激进。AgentGym-RL 的位置是<em>跨多 domain 的 multi-turn agent 训练</em></td></tr>
+</tbody>
+</table>
+
+<p><strong>支持的 5 个 scenario × 5 个 benchmark</strong>(论文 §4.1):</p>
+
+<table>
+<thead><tr><th>Scenario</th><th>具体 benchmark</th><th>任务形式</th></tr></thead>
+<tbody>
+<tr><td>Web Navigation</td><td><strong>WebArena</strong></td><td>4 个 domain: online shopping / forum / 协作开发 / business 内容管理。点击 + 表单 + 多页面跳转</td></tr>
+<tr><td>Deep Search</td><td>RAG-based 自建环境</td><td>multi-hop QA,LLM 调 search engine + Python interpreter</td></tr>
+<tr><td>Digital Games</td><td><strong>TextCraft</strong></td><td>文字版 Minecraft-style 合成游戏,自然语言交互</td></tr>
+<tr><td>Embodied</td><td><strong>BabyAI</strong></td><td>2D grid world,文字指令驱动 agent 导航 + 拿取</td></tr>
+<tr><td>Scientific</td><td><strong>SciWorld</strong></td><td>科学实验模拟,agent 设计实验、读反馈、迭代假设</td></tr>
+</tbody>
+</table>
+
+<p>共 27 个 task,所有场景共用<em>同一套</em> trainer 代码、同一组 RL 算法、同一份 ScalingInter-RL recipe。</p>
+
+<p><strong>支持的 RL 算法</strong>(可一行配置切换):</p>
+<ul>
+  <li><strong>Online RL</strong>: PPO / GRPO / RLOO / REINFORCE++(全部 multi-turn 适配)</li>
+  <li><strong>Offline / 复合</strong>: SFT / DPO / AgentEvol(rejection sampling)</li>
+</ul>
+
+<p><strong>支持的 backbone</strong>: 任意 HuggingFace causal LM。论文实测 Qwen2.5-3B / 7B 为主,作 baseline 用 Qwen-72B / Llama-3.1-8B/70B / DeepSeek-R1 / GPT-4o / Gemini-2.5-Pro / o3 / Qwen-Max 对比。</p>
+
+<div class="kv"><span class="pill">一句话</span> 这个框架做的事是把 "multi-turn agent + RL" 这一组合<em>工业化</em>:把环境并行(多 env)、把训练崩(memory leak)、把场景碎片(5 benchmark 接一套接口),三件事一次性解决,然后再叠 ScalingInter-RL 这个 horizon curriculum 当算法侧贡献。</div>
 
 <hr>
 
