@@ -675,8 +675,134 @@ FLOPs = 6 · <em>N₁</em> · <em>D</em> + 2 · <em>N₂</em> · <em>D</em>
 
 <p><strong>读法:</strong>三个家族都呈现 "参数少 30% 但 GSM8K +7% ~ +15%"。MATH 更难,gain 更明显。<em>base model 越强,recurrent 改造后 ceiling 越高</em>(Llama > OLMo > TinyLlama,论文称这是 "stronger base transfers more knowledge")。</p>
 
-<h3>8.3 推理时 r 是有效旋钮 (Figure 5/6 right)</h3>
-<p>训练 mean=16 的模型,推理时 r=1/2/4/8/16/32 的 GSM8K acc 单调递增。这是 latent reasoning 的核心承诺 — <strong>训练完一次,推理时按预算调精度</strong>。</p>
+<h3>8.3 推理时 r 是有效旋钮 (Figure 5/20 right + Appendix Table 3)</h3>
+<p>同一份 (4,8,4) TinyLlama 权重,推理时把 r 从 1 拨到 32,GSM8K acc 单调上升,在 r=4~8 处<strong>越过非循环 base 的 26.6%</strong>。下图是论文 Figure 5/20 right panel 的数值复刻 (math-only training,数据来自 Appendix Table 3):</p>
+
+<div class="fig">
+<svg viewBox="0 0 620 320" xmlns="http://www.w3.org/2000/svg">
+  <!-- axes -->
+  <line x1="70" y1="40" x2="70" y2="260" stroke="#1f2024" stroke-width="1.2"/>
+  <line x1="70" y1="260" x2="560" y2="260" stroke="#1f2024" stroke-width="1.2"/>
+
+  <!-- y ticks: 0, 10, 20, 30, 40, 50 (y=240-acc*4 invalid; use y=260-acc*4 so 0->260, 50->60) -->
+  <g font-size="10" fill="#5b5e66">
+    <line x1="65" y1="260" x2="70" y2="260" stroke="#5b5e66"/>
+    <text x="62" y="263" text-anchor="end">0</text>
+    <line x1="65" y1="220" x2="70" y2="220" stroke="#5b5e66"/>
+    <text x="62" y="223" text-anchor="end">10</text>
+    <line x1="65" y1="180" x2="70" y2="180" stroke="#5b5e66"/>
+    <text x="62" y="183" text-anchor="end">20</text>
+    <line x1="65" y1="140" x2="70" y2="140" stroke="#5b5e66"/>
+    <text x="62" y="143" text-anchor="end">30</text>
+    <line x1="65" y1="100" x2="70" y2="100" stroke="#5b5e66"/>
+    <text x="62" y="103" text-anchor="end">40</text>
+    <line x1="65" y1="60" x2="70" y2="60" stroke="#5b5e66"/>
+    <text x="62" y="63" text-anchor="end">50</text>
+  </g>
+  <!-- horizontal grid -->
+  <g stroke="#e2dfd5" stroke-width="0.8">
+    <line x1="70" y1="220" x2="560" y2="220"/>
+    <line x1="70" y1="180" x2="560" y2="180"/>
+    <line x1="70" y1="140" x2="560" y2="140"/>
+    <line x1="70" y1="100" x2="560" y2="100"/>
+    <line x1="70" y1="60" x2="560" y2="60"/>
+  </g>
+
+  <!-- x ticks at r=1,2,4,8,16,32 (log2 scale, step 90) -->
+  <g font-size="11" fill="#5b5e66">
+    <line x1="70" y1="260" x2="70" y2="265" stroke="#5b5e66"/>
+    <text x="70" y="278" text-anchor="middle">1</text>
+    <line x1="160" y1="260" x2="160" y2="265" stroke="#5b5e66"/>
+    <text x="160" y="278" text-anchor="middle">2</text>
+    <line x1="250" y1="260" x2="250" y2="265" stroke="#5b5e66"/>
+    <text x="250" y="278" text-anchor="middle">4</text>
+    <line x1="340" y1="260" x2="340" y2="265" stroke="#5b5e66"/>
+    <text x="340" y="278" text-anchor="middle">8</text>
+    <line x1="430" y1="260" x2="430" y2="265" stroke="#5b5e66"/>
+    <text x="430" y="278" text-anchor="middle">16</text>
+    <line x1="520" y1="260" x2="520" y2="265" stroke="#5b5e66"/>
+    <text x="520" y="278" text-anchor="middle">32</text>
+  </g>
+  <text x="315" y="298" text-anchor="middle" font-size="12" fill="#1f2024">test recurrence r (log₂)</text>
+  <text x="20" y="150" text-anchor="middle" font-size="12" fill="#1f2024" transform="rotate(-90 20 150)">GSM8K accuracy (%)</text>
+
+  <!-- Non-recurrent baseline: 26.6 -> y = 260 - 26.6*4 = 153.6 -->
+  <line x1="70" y1="153.6" x2="560" y2="153.6" stroke="#5b5e66" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="565" y="156" font-size="10" fill="#5b5e66">non-rec 26.6%</text>
+
+  <!-- Train Rec=4: (1,17.6) (2,32.4) (4,38.0) (8,37.7) (16,37.7) (32,37.9)
+       y = 260 - acc*4 -->
+  <polyline points="70,189.6 160,130.4 250,108 340,109.2 430,109.2 520,108.4"
+            fill="none" stroke="#2f6feb" stroke-width="2.2"/>
+  <g fill="#2f6feb">
+    <circle cx="70" cy="189.6" r="4"/>
+    <circle cx="160" cy="130.4" r="4"/>
+    <circle cx="250" cy="108" r="4"/>
+    <circle cx="340" cy="109.2" r="4"/>
+    <circle cx="430" cy="109.2" r="4"/>
+    <circle cx="520" cy="108.4" r="4"/>
+  </g>
+
+  <!-- Train Rec=16: (1,11.4) (2,32.4) (4,42.2) (8,43.9) (16,43.4) (32,43.7) -->
+  <polyline points="70,214.4 160,130.4 250,91.2 340,84.4 430,86.4 520,85.2"
+            fill="none" stroke="#1f7a4a" stroke-width="2.2"/>
+  <g fill="#1f7a4a">
+    <circle cx="70" cy="214.4" r="4"/>
+    <circle cx="160" cy="130.4" r="4"/>
+    <circle cx="250" cy="91.2" r="4"/>
+    <circle cx="340" cy="84.4" r="4"/>
+    <circle cx="430" cy="86.4" r="4"/>
+    <circle cx="520" cy="85.2" r="4"/>
+  </g>
+
+  <!-- Train Rec=32: (1,5.6) (2,24.2) (4,39.7) (8,45.3) (16,44.7) (32,45.0) -->
+  <polyline points="70,237.6 160,163.2 250,101.2 340,78.8 430,81.2 520,80"
+            fill="none" stroke="#cc4a1b" stroke-width="2.2"/>
+  <g fill="#cc4a1b">
+    <circle cx="70" cy="237.6" r="4"/>
+    <circle cx="160" cy="163.2" r="4"/>
+    <circle cx="250" cy="101.2" r="4"/>
+    <circle cx="340" cy="78.8" r="4"/>
+    <circle cx="430" cy="81.2" r="4"/>
+    <circle cx="520" cy="80" r="4"/>
+  </g>
+
+  <!-- Legend -->
+  <g font-size="11">
+    <rect x="380" y="40" width="170" height="68" fill="#fff" stroke="#e2dfd5"/>
+    <line x1="390" y1="55" x2="415" y2="55" stroke="#2f6feb" stroke-width="2.2"/>
+    <circle cx="402" cy="55" r="3" fill="#2f6feb"/>
+    <text x="420" y="58" fill="#1f2024">train r = 4</text>
+    <line x1="390" y1="73" x2="415" y2="73" stroke="#1f7a4a" stroke-width="2.2"/>
+    <circle cx="402" cy="73" r="3" fill="#1f7a4a"/>
+    <text x="420" y="76" fill="#1f2024">train r = 16</text>
+    <line x1="390" y1="91" x2="415" y2="91" stroke="#cc4a1b" stroke-width="2.2"/>
+    <circle cx="402" cy="91" r="3" fill="#cc4a1b">
+    </circle>
+    <text x="420" y="94" fill="#1f2024">train r = 32</text>
+  </g>
+
+  <!-- crossover annotation -->
+  <line x1="250" y1="153.6" x2="250" y2="108" stroke="#a8353e" stroke-width="0.8" stroke-dasharray="2 2"/>
+  <text x="255" y="148" font-size="10" fill="#a8353e">r=4 处超过 non-rec</text>
+</svg>
+<figcaption>图 5:GSM8K 上的 test-time scaling 曲线。三条线是 train recurrence ∈ {4, 16, 32} 的 (4,8,4) TinyLlama,横轴是推理时 r(log₂),纵轴 GSM8K 准确率。灰色虚线是非循环 TinyLlama (26.6%)。三条曲线都在 r=4 处越过 baseline;train r 越大,小 r 处性能越差但大 r 处天花板越高 — train r=32 在 r=8 时达到 45.3% 的峰值。数据来自 Appendix Table 3。</figcaption>
+</div>
+
+<p>四个关键观察:</p>
+<ul>
+  <li><strong>r=1 退化严重</strong>:模型从来不在 r=1 训练,直接 r=1 推理就是 OOD,准确率比非循环 base 低得多(train r=32 时 r=1 仅 5.6%)。</li>
+  <li><strong>r=4 处全部反超</strong>:三条线都在 r=4 跨越 26.6% 的 base 线,这是 latent reasoning 真正起作用的"启动门槛"。</li>
+  <li><strong>train r 大 → 天花板高</strong>:train r=32 最终在 r=8 达到 <strong>45.3% (best)</strong>,而 train r=4 卡在 ~38%。<em>训练时给得起多深,推理时就能爬多高</em>。</li>
+  <li><strong>r &gt; train r 后饱和</strong>:train r=4 的模型在 test r=4 后就持平,说明<em>它没学到怎么用更多循环</em>。这跟 Bae 2024 的 "r 升反而掉点" 不同 — 这里是平台期而非崩溃。</li>
+</ul>
+
+<p>MATH 上的曲线形状一致(详见 Appendix Table 3 的 MATH 列):train r=16 在 test r=4 已达 28.9% (vs base 24.0%),且 r=8 后基本饱和。<strong>越难的任务、train r 越大、test r 越深,gain 越明显</strong> — 这是 latent reasoning 文献一致的现象。</p>
+
+<details>
+<summary>论文为什么不画跟 CoT 的 FLOPs 对比?</summary>
+<p>论文里 CoT 只在 intro 提了一句 motivation,没有任何 head-to-head 实验。这是这条 line 最大的缺口 — 1B 级模型本身做不好 CoT,放在一起比也意义不大;真正可比的是 8B+ scale,但本文没做到。最公平的对比应该是: "<em>同一个 1B base,做 CoT-SFT vs 做 retrofit-recurrence,各花多少推理 FLOPs 才能在 GSM8K 达到 50%</em>?" — 这是后续工作可以填的坑。</p>
+</details>
 
 <h3>8.4 比 Huginn-0125 强(Table 1)</h3>
 <p>本文最强的 (4,8,4) TinyLlama recurrent 模型(~0.7B 参数,52B tokens 训练)在 MMLU 上比 Huginn-0125 (3.5B 参数,800B tokens) 高 12 个点,GSM8K 高 10 个点。这是 retrofit 策略最直接的胜利证据。</p>
