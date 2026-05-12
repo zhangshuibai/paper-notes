@@ -84,6 +84,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 09 | [HeavySkill](https://zhangshuibai.github.io/paper-notes/agents/notes/09_HeavySkill_2605.02396.html) | Agent Swarm 内化为单模型 inner skill / parallel + summarize | 52 KB |
 | 10 | [Search-R1](https://zhangshuibai.github.io/paper-notes/agents/notes/10_SearchR1_2503.09516.html) | search-augmented RL / retrieved-token masking / +41% over RAG | 46 KB |
 | 11 | [ReTool](https://zhangshuibai.github.io/paper-notes/agents/notes/11_ReTool_2504.11536.html) | code-integrated RL / cold-start SFT + outcome RL / AIME 67% (vs text-RL 40%) | 60 KB |
+| 12 | [LLM Memory 演化合集 (MemoryBank → Mem0 → MEM1 → Memory-R1)](https://zhangshuibai.github.io/paper-notes/agents/notes/12_Memory_evolution.html) | 四篇串读 / heuristic→CRUD→RL 演化 / external vs internal 路线对比 | 70 KB |
 
 ## 论文清单 (按时间)
 
@@ -151,6 +152,10 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | MemPalace 审视 | — | 2026-04 | [2604.21284](https://arxiv.org/abs/2604.21284) |
 | Search-R1 | UIUC + Meta | 2025-03 | [2503.09516](https://arxiv.org/abs/2503.09516) |
 | ReTool | ByteDance Seed | 2025-04 | [2504.11536](https://arxiv.org/abs/2504.11536) |
+| MemoryBank | Sun Yat-Sen U + HIT + KTH | 2023-05 | [2305.10250](https://arxiv.org/abs/2305.10250) |
+| Mem0 | mem0.ai | 2025-04 | [2504.19413](https://arxiv.org/abs/2504.19413) |
+| MEM1 | MIT + NUS + SMART | 2025-06 | [2506.15841](https://arxiv.org/abs/2506.15841) |
+| Memory-R1 | LMU Munich + TUM | 2025-08 | [2508.19828](https://arxiv.org/abs/2508.19828) |
 
 ## 设计原则
 
