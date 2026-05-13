@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · PinchBench (Kilo Code OpenClaw Agent Benchmark)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:820px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.88em;
+    font-family:"SF Mono",Menlo,Consolas,monospace;line-height:1.5}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff0f0;border-left:3px solid #a8353e;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em;color:#5a2024}
+  .quote-src{background:#f5f1e6;border-left:3px solid #8b7d52;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.92em;color:#3a3b40;font-style:italic}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>PinchBench · Kilo Code 出品的 OpenClaw Agent Benchmark</h1>
+<div class="meta">
+  Kilo Code(KiloClaw 母公司)· V1 2025 / V2 2026-05 · MIT License<br>
+  关键词: agent benchmark · OpenClaw · real-world tool use · auto + LLM judge · 100+ tasks<br>
+  官网: <a href="https://pinchbench.com/" target="_blank" rel="noopener">pinchbench.com</a> · GitHub: <a href="https://github.com/pinchbench" target="_blank" rel="noopener">github.com/pinchbench</a> · 关于: <a href="https://pinchbench.com/about" target="_blank" rel="noopener">pinchbench.com/about</a>
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>PinchBench 是 Kilo Code 出的 agent benchmark,用真实世界任务(CSV 分析、log 异常、email 三件套、Docker 优化、calendar 创建…)评测 LLM 作为 OpenClaw agent harness 的"大脑"表现。每个 task 是一份 markdown + Python grader + LLM judge rubric;全部 <strong>MIT 开源</strong>,可在本地 Docker 跑,结果自动上传 leaderboard。前沿模型(Claude Opus 4.7, GPT-5.5, MiMo-V2.5)已经挤在 86–92% 一档,但开源 7-9B 还在 ~35% 区间 —— 提升空间巨大。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">120+</div><div class="l">tasks across 8 categories (V2)</div></div>
+    <div class="stat"><div class="n">1.2k ⭐</div><div class="l">pinchbench/skill GitHub</div></div>
+    <div class="stat"><div class="n">~$10–25</div><div class="l">单模型跑一遍 API 成本估算</div></div>
+  </div>
+  <p><strong>结论:</strong>你训练的模型 <strong class="ok">可以</strong> 直接接进来跑(serve OpenAI-compat endpoint + OpenClaw 自定义 provider config)。Sandbox 是 Docker 化的但网络默认开放(有 web search 类任务)。可复现性高,但官方"Official Run"标记需要标准化硬件 + 官方 key。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">是什么 / 谁出的 / OpenClaw 是什么</a></li>
+    <li><a href="#sec2">任务格式 + IO + 多轮性 + 样例</a></li>
+    <li><a href="#sec3">评测机制 (auto / LLM judge / hybrid + V2 新指标)</a></li>
+    <li><a href="#sec4">完整 model leaderboard + 开源小模型表现</a></li>
+    <li><a href="#sec5">运行 / 复现性 / Sandbox / 网络隔离</a></li>
+    <li><a href="#sec6">🔑 自托管模型怎么接进来 — 完整 OpenClaw 配置</a></li>
+    <li><a href="#sec7">📤 提交流程到 official leaderboard (附原文)</a></li>
+    <li><a href="#sec8">License / 商用 / 训练数据政策</a></li>
+    <li><a href="#sec9">合成数据成本 / 自建难度</a></li>
+    <li><a href="#sec10">局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 是什么 / 谁出的 / OpenClaw 是什么</h2>
+
+<h3>1.1 三方关系图</h3>
+<p>这套生态有三个名字容易混,先拆清:</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- Kilo Code -->
+  <rect x="40" y="30" width="160" height="50" fill="#e7eefb" stroke="#2f6feb" stroke-width="2"/>
+  <text x="120" y="50" text-anchor="middle" font-size="13" font-weight="600">Kilo Code (公司)</text>
+  <text x="120" y="68" text-anchor="middle" font-size="11" fill="#5b5e66">3M+ devs, VS Code/JetBrains AI</text>
+
+  <!-- OpenClaw -->
+  <rect x="40" y="110" width="160" height="50" fill="#dff3e6" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="120" y="130" text-anchor="middle" font-size="13" font-weight="600">OpenClaw</text>
+  <text x="120" y="148" text-anchor="middle" font-size="11" fill="#5b5e66">开源 agent harness · 370k ⭐</text>
+
+  <!-- KiloClaw -->
+  <rect x="265" y="110" width="160" height="50" fill="#fff2cc" stroke="#d2a32a" stroke-width="2"/>
+  <text x="345" y="130" text-anchor="middle" font-size="13" font-weight="600">KiloClaw (产品)</text>
+  <text x="345" y="148" text-anchor="middle" font-size="11" fill="#5b5e66">Hosted OpenClaw / $9/mo</text>
+
+  <!-- PinchBench -->
+  <rect x="490" y="110" width="180" height="50" fill="#fdecdc" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="580" y="130" text-anchor="middle" font-size="13" font-weight="600">PinchBench</text>
+  <text x="580" y="148" text-anchor="middle" font-size="11" fill="#5b5e66">benchmark for OpenClaw 大脑</text>
+
+  <!-- arrows -->
+  <line x1="120" y1="82" x2="120" y2="108" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="125" y="98" font-size="10" fill="#5b5e66">出</text>
+
+  <line x1="200" y1="135" x2="263" y2="135" stroke="#5b5e66" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arr)"/>
+  <text x="232" y="128" text-anchor="middle" font-size="10" fill="#5b5e66">托管版</text>
+
+  <line x1="425" y1="135" x2="488" y2="135" stroke="#5b5e66" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arr)"/>
+  <text x="456" y="128" text-anchor="middle" font-size="10" fill="#5b5e66">出</text>
+
+  <path d="M200 120 Q 300 60 545 110" stroke="#5b5e66" stroke-width="1.5" fill="none" stroke-dasharray="3 3" marker-end="url(#arr)"/>
+  <text x="380" y="82" text-anchor="middle" font-size="10" fill="#5b5e66">PinchBench 评测的是用 OpenClaw 作为 harness 的 LLM</text>
+
+  <text x="40" y="200" font-size="12" fill="#1f2024" font-weight="600">关键点:</text>
+  <text x="40" y="220" font-size="11.5" fill="#5b5e66">PinchBench 是 benchmark · OpenClaw 是 agent harness · KiloClaw 是 OpenClaw 的 hosted SaaS · 三者均由 Kilo Code 维护</text>
+</svg>
+<figcaption>三方关系: Kilo Code 是公司,出品了开源 agent harness <code>OpenClaw</code>(类似 OpenHands / Cursor agent),hosted 版本叫 <code>KiloClaw</code>($9/mo),benchmark 叫 <code>PinchBench</code>。PinchBench 测的不是 OpenClaw 本身,而是<em>用 OpenClaw 作为 harness 时,后端 LLM 的表现</em>。</figcaption>
+</div>
+
+<h3>1.2 PinchBench 的定位</h3>
+<p>官网 about 页面原文:</p>
+
+<div class="quote-src">
+"PinchBench is a benchmarking system for evaluating LLM models as OpenClaw coding agents. It measures success rate, speed, and cost across diverse tasks." — <a href="https://pinchbench.com/about" target="_blank">pinchbench.com/about</a>
+</div>
+
+<p>设计哲学是 <strong>"real tasks, not synthetic tests"</strong>:</p>
+<ul>
+  <li>不是 multiple-choice、不是 unit-test pass rate、不是合成 QA</li>
+  <li>是 "schedule meeting / write code / triage email / research topic / manage files" 等真实工作流</li>
+  <li>测<em>四件事</em>:tool usage(选对工具+正确参数)/ multi-step reasoning / handling ambiguity / practical outcomes(真的创建了文件吗?真的发了邮件吗?)</li>
+</ul>
+
+<hr>
+
+<h2 id="sec2">2 · 任务格式 + IO + 多轮性 + 样例</h2>
+
+<h3>2.1 任务文件格式</h3>
+<p>每个 task = 一个 markdown 文件 + YAML frontmatter,位于 <code>pinchbench/skill/tasks/</code>:</p>
+
+<pre>---
+id: task_descriptive_name
+name: Task Display Name
+category: csv | log | email | research | coding | ...
+grading_type: automated | llm_judge | hybrid
+timeout_seconds: 120
+workspace_files:
+  - source: assets/input_data.csv
+    dest: data.csv
+multi_session: true        # 可选,多轮
+sessions:
+  - id: first_turn
+    prompt: Initial instruction
+  - id: follow_up
+    prompt: Continuation
+  - id: fresh_context
+    new_session: true        # 清 context 但保留 workspace
+    prompt: New session
+---
+
+# Prompt
+&lt;发给 agent 的真实 user message&gt;
+
+# Expected Behavior
+&lt;可接受的解题路径,给 LLM judge 当 context&gt;
+
+# Grading Criteria
+- atomic checklist 1
+- atomic checklist 2
+...
+
+# Automated Checks (Python)
+```python
+def grade(transcript: list, workspace_path: str) -> dict:
+    """Returns {criterion_name: 0.0-1.0}"""
+    ...
+```
+
+# LLM Judge Rubric
+### Criterion (Weight: 30%)
+**Score 1.0**: Perfect
+**Score 0.75**: Good with minor issues
+...
+</pre>
+
+<h3>2.2 任务类别 + 数量(V2 实际清点)</h3>
+
+<table>
+<thead><tr><th>类别</th><th>任务数(从 repo 实际清点)</th><th>样例</th></tr></thead>
+<tbody>
+<tr><td>CSV / 数据分析</td><td>~26</td><td>stocks volatility · GDP regions · life expectancy outliers · iris classify · pension liability</td></tr>
+<tr><td>Log 分析</td><td>~30</td><td>Apache top errors · HDFS block ops · MapReduce failures · Nginx slow requests · SSH brute-force detection · Syslog anomalies(每种 log × 5 子任务)</td></tr>
+<tr><td>Email / 通讯</td><td>~9</td><td>email triage · reply drafting · GWS task management · cross-service</td></tr>
+<tr><td>Research / 分析</td><td>~12</td><td>competitive research · contract analysis · earnings analysis · EU regulation</td></tr>
+<tr><td>Dev / DevOps</td><td>~9</td><td>CI/CD pipeline debug · Dockerfile optimization · git rescue · k8s debugging · code refine</td></tr>
+<tr><td>Productivity / 通用</td><td>14+</td><td>calendar · CVE security triage · daily summary · ELI5 PDF summary · meeting advisory · GH issue triage</td></tr>
+</tbody>
+</table>
+
+<p>合计 <strong>~120+</strong>(blog 上 Kilo 自称 "23 → 148",repo 实际清点稍少)。社区 2026-03 大扩展由 <strong>111 个 PR</strong> 推动。</p>
+
+<h3>2.3 多轮性 / Long-horizon 评估</h3>
+
+<table>
+<thead><tr><th>维度</th><th>PinchBench</th><th>对比 OSWorld / Terminal-Bench</th></tr></thead>
+<tbody>
+<tr><td>多轮支持</td><td><span class="ok">✓ multi_session 显式声明</span></td><td>OSWorld 也支持多轮但是 GUI;Terminal-Bench 单 shell session</td></tr>
+<tr><td>典型 trajectory 长度</td><td>5–20 turn / task(估算,timeout 120s)</td><td>OSWorld 30–50 turn / Terminal-Bench 10–30</td></tr>
+<tr><td>Long-horizon 程度</td><td><span class="pill">中等</span>偏短</td><td>OSWorld / GAIA / RE-Bench 才是真 long-horizon</td></tr>
+<tr><td>状态保持</td><td>multi_session 内保留 workspace,可选清 context</td><td>OSWorld 全状态保留</td></tr>
+</tbody>
+</table>
+
+<h3>2.4 一个具体样例:task_calendar</h3>
+
+<div class="quote-src">
+Prompt(假设性还原,基于 about 页样例):"Schedule a meeting next Tuesday at 3pm with bob@example.com. Title 'Q3 Review'. Description should mention the upcoming product launch and revenue numbers."<br>
+Grading Criteria:<br>
+- Event created with correct date ✓<br>
+- Time is 3:00 PM ✓<br>
+- Attendee bob@example.com included ✓<br>
+- Title matches "Q3 Review" ✓<br>
+- Description mentions "product launch" and "revenue" ✓
+</div>
+
+<p>Automated grader 会:</p>
+<ol>
+  <li>检查 workspace 里有没有写出 <code>event.ics</code> 或调了 calendar API</li>
+  <li>解析 transcript 找 <code>toolCall</code> 事件,看是否调对了 tool + 参数</li>
+  <li>读 final output 检查 5 个 criterion 各自的 0.0/1.0 分</li>
+</ol>
+
+<hr>
+
+<h2 id="sec3">3 · 评测机制 / V2 新指标</h2>
+
+<h3>3.1 三种 grading 模式</h3>
+
+<table>
+<thead><tr><th>模式</th><th>实现</th><th>适合什么任务</th></tr></thead>
+<tbody>
+<tr><td><strong>Automated</strong></td><td>Python <code>grade(transcript, workspace_path) → {criterion: score}</code></td><td>文件落盘 / tool 调用次数 / 内容字符串匹配 / 结构化 output</td></tr>
+<tr><td><strong>LLM Judge</strong></td><td>Claude Opus(V2 默认 Haiku 4.5)按 rubric 给 0/0.25/0.5/0.75/1.0</td><td>风格 / 推理质量 / 自然语言 output 评估</td></tr>
+<tr><td><strong>Hybrid</strong></td><td>两者加权混合</td><td>大多数实际任务</td></tr>
+</tbody>
+</table>
+
+<h3>3.2 评分对象:end-to-end + step-wise + trajectory-level 全有</h3>
+
+<ul>
+  <li><strong>End-to-end</strong>: top-level success rate(taskwise pass / fail aggregated)</li>
+  <li><strong>Step-wise</strong>: 每条 grading criterion 独立打分 — "tool 调用了吗 / 文件创建了吗 / 内容包含 X 吗"</li>
+  <li><strong>Trajectory-level</strong>(V2 新增):
+    <ul>
+      <li><strong>Consistency score</strong>:同一 task 多次跑的 variance</li>
+      <li><strong>First-try success rate</strong>:单次成功率(不带重试)</li>
+      <li><strong>Retry count</strong>:平均重试次数</li>
+      <li><strong>Per-task variance / std</strong></li>
+    </ul>
+  </li>
+</ul>
+
+<h3>3.3 V2 解决了 V1 的几个真问题</h3>
+
+<table>
+<thead><tr><th>V1 问题</th><th>V2 修复</th></tr></thead>
+<tbody>
+<tr><td>跑 1 题拿 100% 比跑 23 题拿 94.8% 还高 → 鼓励 cherry-pick</td><td>按 task count 归一化打分,不跑全集罚</td></tr>
+<tr><td>有 task 95% failure rate → 拉垮所有模型分布</td><td>识别异常 task 调整或剔除</td></tr>
+<tr><td>git commit hash 当版本号 → 无法追溯</td><td>semantic versioning(v2.0.0)</td></tr>
+<tr><td>grading race condition</td><td>parallel judge execution + result caching</td></tr>
+<tr><td>判得太慢(Opus 当 judge 贵)</td><td>默认 Haiku 4.5 + caching → 2-3× 提速</td></tr>
+</tbody>
+</table>
+
+<h3>3.4 同时报三种 metric 的展示</h3>
+<p>官网 leaderboard 支持四个视图:</p>
+<ul>
+  <li><strong>Success Rate</strong> — 默认,聚合分数</li>
+  <li><strong>Speed</strong> — 平均完成时间</li>
+  <li><strong>Cost</strong> — 平均 token 成本</li>
+  <li><strong>Value</strong> — 三者组合的"性价比"分</li>
+</ul>
+
+<hr>
+
+<h2 id="sec4">4 · 完整 leaderboard + 开源小模型表现</h2>
+
+<h3>4.1 官方 leaderboard 前 10(success rate 视图,2026-05 快照)</h3>
+
+<table>
+<thead><tr><th>#</th><th>模型</th><th>Provider</th><th>Success</th><th>Avg Score</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>claude-opus-4.7</strong></td><td>Anthropic</td><td><strong>91.6%</strong></td><td>73.7%</td></tr>
+<tr><td>2</td><td>claude-haiku-4.5</td><td>Anthropic</td><td>90.3%</td><td>64.8%</td></tr>
+<tr><td>3</td><td>mimo-v2.5-pro</td><td>Xiaomi</td><td>89.5%</td><td>87.7%</td></tr>
+<tr><td>4</td><td>mimo-v2.5</td><td>Xiaomi</td><td>89.5%</td><td>88.7%</td></tr>
+<tr><td>5</td><td><strong>gpt-5.5</strong></td><td>OpenAI</td><td>89.0%</td><td>75.5%</td></tr>
+<tr><td>6</td><td>claude-opus-4.6</td><td>Anthropic</td><td>88.9%</td><td>71.0%</td></tr>
+<tr><td>7</td><td>glm-5v-turbo</td><td>Z-AI</td><td>86.6%</td><td>65.1%</td></tr>
+<tr><td>8</td><td>glm-5-turbo</td><td>Z-AI</td><td>86.3%</td><td>70.0%</td></tr>
+<tr><td>9</td><td>seed-2.0-lite</td><td>ByteDance</td><td>86.2%</td><td>71.1%</td></tr>
+<tr><td>10</td><td>gpt-5.4</td><td>OpenAI</td><td>86.0%</td><td>75.6%</td></tr>
+</tbody>
+</table>
+
+<p>BenchLM 第三方快照(2026-04)还报告 <strong>Trinity-Large-Thinking (Arcee AI) 91.9%</strong> 排第一,Qwen3.6 Plus 84.0%。</p>
+
+<h3>4.2 开源 <40B 模型(数据来自 BenchLM 快照)</h3>
+
+<table>
+<thead><tr><th>模型</th><th>参数</th><th>分数</th><th>排名</th></tr></thead>
+<tbody>
+<tr><td><strong>Qwen3.5-27B</strong></td><td>27B</td><td><strong>78.5%</strong></td><td>21</td></tr>
+<tr><td>Qwen3.5-9B</td><td>9B</td><td>34.8%</td><td>62</td></tr>
+<tr><td>Qwen2.5-7B-Instruct</td><td>7B</td><td>34.1%</td><td>64</td></tr>
+<tr><td>Llama 3.1 70B Instruct</td><td>70B</td><td><span class="no">22.7%</span></td><td>65</td></tr>
+</tbody>
+</table>
+
+<div class="nb">
+<strong>关键观察:</strong> 9B → 27B 之间 Qwen 同代直接涨 44 个点(34.8 → 78.5)。这种<em>能力悬崖</em>在 BFCL / τ-Bench 上也有,说明 agent benchmark 对 mid-tier 模型梯度极陡。Llama 3.1 70B 反而比 Qwen3.5-27B 还低 56 个点 — 与 SWE-Bench / τ-Bench 一致,Llama 不擅长 tool-use 风格 agent。
+</div>
+
+<h3>4.3 提升空间判断</h3>
+<p>开源 <40B 真正可下载权重的 SOTA(Qwen3.5-27B)78.5%,比 Claude Opus 4.7 差 13 个点。<strong>这个 gap 大概率可以用 RL 训练补 5-10 个点</strong> — 任务集本身公开 + 评分函数公开 + reward 信号 episode-level 可用,接 GRPO 直接跑就行。类似 SWE-Bench 上 DeepSWE 把 Qwen3-32B 从 ~15% 拉到 59% 的故事可能在 PinchBench 重演。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 运行 / 复现性 / Sandbox / 网络</h2>
+
+<h3>5.1 运行依赖</h3>
+
+<table>
+<thead><tr><th>组件</th><th>详情</th></tr></thead>
+<tbody>
+<tr><td>Python</td><td>3.10+</td></tr>
+<tr><td>包管理</td><td><code>uv</code></td></tr>
+<tr><td>Agent runtime</td><td>本机运行的 <strong>OpenClaw</strong> instance</td></tr>
+<tr><td>Docker</td><td>有 <code>Dockerfile.benchmark</code>,容器化运行</td></tr>
+<tr><td>API key</td><td>OPENROUTER_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY 任一</td></tr>
+<tr><td>提交 key (可选)</td><td>PINCHBENCH_OFFICIAL_KEY</td></tr>
+</tbody>
+</table>
+
+<h3>5.2 Sandbox 与网络</h3>
+
+<div class="warn">
+<strong>⚠ Sandbox 文档缺口:</strong> 官方 README 只提到 <code>Dockerfile.benchmark</code> 存在,<em>没有</em>详细说明:
+<ul style="margin:.4em 0">
+  <li>容器是否限制网络出入</li>
+  <li>是否有 per-task 的 fs 隔离</li>
+  <li>tool 调用(web search / shell exec)的权限边界</li>
+  <li>是否有 seed/determinism 保证</li>
+</ul>
+从任务内容反推:存在大量 "stock prices / market research / web search" 类任务 → <strong>容器内默认有 internet 访问</strong>。这是评估"真实任务"必须的,但也意味着不同时间跑同一 task 可能拿到不同 web 结果(reproducibility 受外部状态影响)。
+</div>
+
+<h3>5.3 可复现性手段(已知)</h3>
+
+<ul>
+  <li><strong>Semantic versioning</strong>(V2 新):任务版本号清晰,可固定到具体版本</li>
+  <li><strong>Manifest-based task ordering</strong>:同一 manifest 跑同一组 task</li>
+  <li><strong>Transcript 全留底</strong>:<code>results/{run_id}_transcripts/</code> JSONL,可重新打分</li>
+  <li><strong><code>--runs N</code></strong>:每 task 跑 N 次取平均(V2 还报 variance)</li>
+  <li><strong>Judge result caching</strong>:同样 transcript 不重判</li>
+</ul>
+
+<h3>5.4 跑一遍完整 benchmark 的成本估算</h3>
+
+<table>
+<thead><tr><th>资源</th><th>估算</th></tr></thead>
+<tbody>
+<tr><td>API 调用次数</td><td>~120 task × 5–15 LLM 调用 = <strong>600 ~ 1,800 次调用</strong></td></tr>
+<tr><td>API 成本(Claude Sonnet 4.7)</td><td>单 task ~$0.05–0.15 → <strong>$10–25 / model</strong></td></tr>
+<tr><td>API 成本(GPT-5)</td><td>类似,~$10–30 / model</td></tr>
+<tr><td>LLM Judge(Haiku)</td><td>额外 ~$1–3</td></tr>
+<tr><td>挂钟时间</td><td>parallel 4–8,timeout 120s → <strong>30 min – 1 h</strong> 跑完一遍</td></tr>
+<tr><td>GPU 时间</td><td>本机不用 GPU(纯 API),除非跑 self-hosted 模型</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="sec6">6 · 🔑 自托管模型怎么接进来 — 完整配置</h2>
+
+<p>这是你问的核心:<strong>能不能 serve 自己训练的模型,让 PinchBench 跑?</strong> 答案 <span class="ok">完全可以</span>,且不需要走 OpenRouter / Anthropic / OpenAI。</p>
+
+<h3>6.1 两条路径</h3>
+
+<table>
+<thead><tr><th>路径</th><th>详情</th></tr></thead>
+<tbody>
+<tr><td><strong>A. 本地 OpenClaw + 自定义 provider</strong>(推荐)</td><td>本机起 OpenClaw,通过配置文件指向你的 model API。PinchBench 跑就直接用了。</td></tr>
+<tr><td>B. KiloClaw 云托管</td><td>$9/月 hosted OpenClaw,支持 "bring your own API key" 接 Anthropic/OpenAI/Kilo Gateway。但<strong>是否允许任意 OpenAI-compat 自托管 URL,文档不明</strong>。最务实是走路径 A。</td></tr>
+</tbody>
+</table>
+
+<h3>6.2 完整工作流(路径 A)</h3>
+
+<div class="fig">
+<svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+
+  <!-- Step 1: serve model -->
+  <rect x="40" y="30" width="280" height="80" fill="#e7eefb" stroke="#2f6feb" stroke-width="2"/>
+  <text x="180" y="50" text-anchor="middle" font-size="13" font-weight="600">① 用 vLLM / SGLang serve 你的模型</text>
+  <text x="180" y="70" text-anchor="middle" font-size="11" fill="#5b5e66">vllm serve my-model --port 8000</text>
+  <text x="180" y="86" text-anchor="middle" font-size="11" fill="#5b5e66">或: python -m sglang.launch_server --model-path</text>
+  <text x="180" y="102" text-anchor="middle" font-size="11" fill="#1f7a4a">→ http://your-server:8000/v1</text>
+
+  <line x1="180" y1="115" x2="180" y2="135" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr6)"/>
+
+  <!-- Step 2: openclaw config -->
+  <rect x="40" y="140" width="280" height="80" fill="#dff3e6" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="180" y="160" text-anchor="middle" font-size="13" font-weight="600">② OpenClaw config 加自定义 provider</text>
+  <text x="180" y="180" text-anchor="middle" font-size="11" fill="#5b5e66">~/.openclaw/config.json5</text>
+  <text x="180" y="196" text-anchor="middle" font-size="11" fill="#5b5e66">添加 providers.myserve.baseUrl</text>
+  <text x="180" y="212" text-anchor="middle" font-size="11" fill="#1f7a4a">api: "openai-completions"</text>
+
+  <line x1="180" y1="225" x2="180" y2="245" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr6)"/>
+
+  <!-- Step 3: run pinchbench -->
+  <rect x="40" y="250" width="280" height="80" fill="#fff2cc" stroke="#d2a32a" stroke-width="2"/>
+  <text x="180" y="270" text-anchor="middle" font-size="13" font-weight="600">③ 跑 PinchBench 指定该模型</text>
+  <text x="180" y="290" text-anchor="middle" font-size="11" fill="#5b5e66">./scripts/run.sh --model myserve/my-model</text>
+  <text x="180" y="306" text-anchor="middle" font-size="11" fill="#1f7a4a">PinchBench → OpenClaw → 你的 endpoint</text>
+  <text x="180" y="322" text-anchor="middle" font-size="10" fill="#5b5e66" font-style="italic">完整 trajectory + grading 自动跑</text>
+
+  <!-- Right side detail -->
+  <rect x="360" y="30" width="320" height="300" fill="#fff" stroke="#e2dfd5"/>
+  <text x="520" y="50" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">OpenClaw 自定义 provider 配置原文</text>
+  <foreignObject x="370" y="60" width="300" height="265">
+    <pre xmlns="http://www.w3.org/1999/xhtml" style="font-size:10.5px;background:#f5f1e6;padding:8px;border-radius:4px;margin:0;line-height:1.4">{
+  agents: {
+    defaults: {
+      model: {
+        primary: "myserve/my-model"
+      }
+    }
+  },
+  models: {
+    providers: {
+      myserve: {
+        baseUrl:
+          "http://your-server:8000/v1",
+        apiKey: "${MY_API_TOKEN}",
+        api: "openai-completions",
+        timeoutSeconds: 300,
+        models: [{
+          id: "my-model",
+          name: "My Trained Model",
+          contextWindow: 200000,
+          maxTokens: 8192
+        }]
+      }
+    }
+  }
+}</pre>
+  </foreignObject>
+</svg>
+<figcaption>三步走:vLLM/SGLang serve 你的模型 → OpenClaw config 加 provider → PinchBench 跑。右侧是 OpenClaw 官方文档给的<strong>原文</strong>配置格式,来自 <a href="https://docs.openclaw.ai/concepts/model-providers" target="_blank">docs.openclaw.ai/concepts/model-providers</a>。</figcaption>
+</div>
+
+<h3>6.3 OpenClaw 已经 bundle 的 OpenAI-compat 后端</h3>
+
+<table>
+<thead><tr><th>后端</th><th>用途</th><th>默认 base URL</th></tr></thead>
+<tbody>
+<tr><td><strong>vLLM</strong></td><td>生产级高吞吐 self-host</td><td>你自定义</td></tr>
+<tr><td><strong>SGLang</strong></td><td>快速 self-host,默认 plugin</td><td>http://127.0.0.1:30000/v1</td></tr>
+<tr><td><strong>LM Studio</strong></td><td>本地 GUI</td><td>http://localhost:1234/v1</td></tr>
+<tr><td><strong>Ollama</strong></td><td>本地 quantized 模型</td><td>http://localhost:11434</td></tr>
+</tbody>
+</table>
+
+<p>这意味着<strong>只要你的 serving 框架实现 OpenAI <code>/v1/chat/completions</code> API,就能直接接</strong>。vLLM / SGLang / TGI / llama.cpp server / Bedrock proxy / 任何 OpenAI 兼容 endpoint 都行。</p>
+
+<h3>6.4 是否能用云端 KiloClaw 跑?</h3>
+
+<div class="warn">
+<strong>结论: 不推荐,有不确定性。</strong><br>
+KiloClaw($9/月)的设计是<em>给个人用户</em>用 hosted OpenClaw,主打 "500+ models via Kilo Gateway zero markup"。文档说支持 "bring your own API keys"(意指 Anthropic / OpenAI 等主流商业 provider 的 key),<strong>但没有明确文档说允许任意自托管 URL</strong>。
+<br><br>
+建议路径:本地 OpenClaw + 自托管模型(完全可控、零订阅费、复现性更好)。除非你已经在用 KiloClaw 做主力 agent,才考虑云端跑。
+</div>
+
+<h3>6.5 实操注意</h3>
+
+<ul>
+  <li><strong>模型 ID 格式</strong>:必须用 <code>provider_name/model_id</code>(如 <code>myserve/my-model</code>),不能裸 model id</li>
+  <li><strong>contextWindow / maxTokens</strong>:要和你真实模型对齐,虚报会被 OpenClaw 截</li>
+  <li><strong>tool_calling 支持</strong>:你的模型必须能 reliably 输出 function call 格式(OpenAI tools schema)。Qwen3 / Llama 3.1+ instruct 模型默认支持;裸 base model 不行</li>
+  <li><strong>带宽/延迟</strong>:OpenClaw 默认 timeout 30s/call,慢模型设 <code>timeoutSeconds: 300</code></li>
+  <li><strong>不要 --official-key 上传</strong>:除非你的模型有正式 ID;否则 leaderboard 不接受自托管</li>
+</ul>
+
+<hr>
+
+<h2 id="sec7">7 · 📤 提交到 Official Leaderboard 流程</h2>
+
+<h3>7.1 三种 run 模式</h3>
+
+<table>
+<thead><tr><th>模式</th><th>命令</th><th>结果</th></tr></thead>
+<tbody>
+<tr><td><strong>本地测试</strong></td><td><code>./scripts/run.sh --model X --no-upload</code></td><td>跑完只本地存,不上传</td></tr>
+<tr><td><strong>Community run</strong></td><td><code>./scripts/run.sh --register</code> 拿 token,再跑</td><td>结果自动上传,leaderboard 标 "unofficial"</td></tr>
+<tr><td><strong>Official run</strong></td><td>需要 <code>PINCHBENCH_OFFICIAL_KEY</code></td><td>由 PinchBench team 在标准化硬件跑,leaderboard 标 "official"</td></tr>
+</tbody>
+</table>
+
+<h3>7.2 完整流程原文(README 节选)</h3>
+
+<div class="quote-src">
+Source: <a href="https://github.com/pinchbench/skill/blob/main/README.md" target="_blank">github.com/pinchbench/skill/README.md</a><br><br>
+"<strong>Register for an API token (one-time):</strong> <code>./scripts/run.sh --register</code><br>
+<strong>Run benchmark:</strong> <code>./scripts/run.sh --model openrouter/anthropic/claude-sonnet-4</code><br>
+Results auto-upload with your token.<br><br>
+<strong>To submit an official run (marked on the leaderboard):</strong><br>
+<code>export PINCHBENCH_OFFICIAL_KEY=your_official_key</code><br>
+<code>./scripts/run.sh --model X</code><br><br>
+Official runs are conducted by the PinchBench team on standardized hardware; community members can also submit runs which are marked as unofficial."
+</div>
+
+<h3>7.3 提交新任务(贡献 PR)</h3>
+<ul>
+  <li>在 <code>pinchbench/skill/tasks/</code> 加新 task,follow <code>tasks/TASK_TEMPLATE.md</code></li>
+  <li>必须包含 prompt + expected behavior + grading criteria + grader function + (如需)LLM judge rubric</li>
+  <li>提 PR 到 <a href="https://github.com/pinchbench/skill" target="_blank">pinchbench/skill</a></li>
+  <li>2026-03 一次 "call for contributors" 收到 111 个 PR,community 极活跃</li>
+</ul>
+
+<h3>7.4 为什么"official"需要团队跑</h3>
+
+<p>关键考虑:</p>
+<ul>
+  <li><strong>硬件标准化</strong> — community 跑的速度数字不可比(机器配置不同)</li>
+  <li><strong>防作弊</strong> — 否则用户可以多跑几次只交最高分</li>
+  <li><strong>token 限速 / 配额</strong> — PinchBench team 用统一 API key 保证调用一致</li>
+  <li><strong>cost 数字归一</strong> — 用同一时点的 token 价格</li>
+</ul>
+
+<p>因此:<strong>community run(可自由跑、自动上传)<em>足够</em>用于对比自己训练的不同 checkpoint</strong>。Official run 主要是给商业模型 vendor 做权威排名。</p>
+
+<hr>
+
+<h2 id="sec8">8 · License / 商用 / 训练数据政策</h2>
+
+<table>
+<thead><tr><th>Repo</th><th>License</th><th>商用</th><th>修改</th><th>output 训练</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/pinchbench/skill" target="_blank">pinchbench/skill</a></td><td><strong>MIT</strong></td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td><span class="ok">✓ 未明禁</span></td></tr>
+<tr><td><a href="https://github.com/pinchbench/leaderboard" target="_blank">pinchbench/leaderboard</a></td><td>MIT</td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td>—</td></tr>
+<tr><td><a href="https://github.com/pinchbench/api" target="_blank">pinchbench/api</a></td><td>MIT</td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td>—</td></tr>
+</tbody>
+</table>
+
+<p><strong>MIT 是最宽松的</strong> — 商用、修改、闭源衍生全允许,只要保留 copyright notice。</p>
+
+<div class="nb">
+<strong>训练数据使用建议:</strong>
+<ul style="margin:.4em 0">
+  <li>✅ 可以拿 task 的 prompt + workspace + grader 作为 RL 训练 environment(reward 是 grader 直接出的)</li>
+  <li>⚠ 排除 grader 源码不进模型 context — 否则训练时会泄漏 evaluation criteria,导致 overfit</li>
+  <li>⚠ 如果你的模型最终要交到 official leaderboard,要避免直接用 PinchBench tasks 训练(会被认为是 contamination)</li>
+  <li>✅ 用相似 task pattern 自己 paraphrase 出训练集是 OK 的</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · 合成数据 / 自建成本</h2>
+
+<p>任务格式低门槛(markdown + YAML),但好 grader 高门槛。</p>
+
+<table>
+<thead><tr><th>部分</th><th>难度</th><th>工时(per task)</th></tr></thead>
+<tbody>
+<tr><td>写 prompt + workspace assets</td><td>⭐</td><td>15 min</td></tr>
+<tr><td>写 expected behavior</td><td>⭐⭐</td><td>15 min</td></tr>
+<tr><td>写 grading criteria checklist</td><td>⭐⭐⭐</td><td>20 min</td></tr>
+<tr><td>写 Python grader function</td><td>⭐⭐⭐⭐</td><td>30–45 min</td></tr>
+<tr><td>LLM judge rubric(if 用)</td><td>⭐⭐⭐</td><td>20 min</td></tr>
+<tr><td>QA(跑几个模型验证)</td><td>⭐⭐</td><td>15 min</td></tr>
+</tbody>
+</table>
+
+<p><strong>合计 ~1.5–2 小时 / task</strong>。造 50 个 task 大约 75–100 工时 = 1.5–2 周专人专做,或 ~$3K–5K 雇 contractor。</p>
+
+<p>跟其他 agent benchmark 自建难度对比:</p>
+<table>
+<thead><tr><th>Benchmark</th><th>自建难度</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td><strong>PinchBench</strong></td><td>⭐⭐⭐</td><td>grader 是手写 Python,但 sandbox 现成</td></tr>
+<tr><td>Terminal-Bench</td><td>⭐⭐⭐⭐</td><td>Docker 容器化 + shell 测试</td></tr>
+<tr><td>SWE-Bench</td><td>⭐⭐⭐⭐⭐</td><td>真实 GitHub PR + pass-rate 测试,需 repo 还原</td></tr>
+<tr><td>τ-Bench</td><td>⭐⭐⭐</td><td>状态机模拟,需 DB</td></tr>
+<tr><td>OSWorld</td><td>⭐⭐⭐⭐⭐</td><td>完整 OS image + VM 镜像</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 个人 take</h2>
+
+<h4>这个 benchmark 的优势</h4>
+<ul>
+  <li>✅ 真实任务,不是合成 MCQ</li>
+  <li>✅ 全 MIT 开源,Docker 化好跑</li>
+  <li>✅ 自托管模型完美支持(OpenClaw 自定义 provider)</li>
+  <li>✅ V2 引入 consistency / variance / cost / speed,评测维度全面</li>
+  <li>✅ Episode-level reward 可直接给 RL 当 reward signal</li>
+</ul>
+
+<h4>局限</h4>
+<ul>
+  <li>⚠ 任务 horizon 偏短(5-20 turn),不测真正长程任务(对比 OSWorld 30-50, GAIA 多步)</li>
+  <li>⚠ 偏 productivity / coding,不覆盖 GUI / browser / OS-level agent</li>
+  <li>⚠ Sandbox 网络隔离政策不透明,web search 类任务的可复现性受外部状态影响</li>
+  <li>⚠ Official leaderboard 必须 PinchBench team 跑(community 只能拿 "unofficial" 标记)</li>
+  <li>⚠ 顶尖闭源模型已经饱和(86-92%),benchmark 区分度对前沿模型在下降</li>
+  <li>⚠ 评测主要走 Kilo 自家 OpenClaw harness,harness-specific 影响显著(Claude Haiku > Opus 4.6 就是 harness 偏好的证据)</li>
+</ul>
+
+<h4>个人 take</h4>
+<p>PinchBench 是<strong>"工业实用主义"</strong>派的 benchmark — 不追前沿 long-horizon,不堆 OSWorld 这种全 OS 任务,而是聚焦"真实小白领 daily workflow"。它的强项是 <em>commercial-friendly + 易自托管 + grader 极透明</em>。对一个想训练自己的 7B–30B agent 模型的团队,这是<strong>性价比最高的 evaluation harness 之一</strong>。</p>
+
+<p>但要明白:<em>在 PinchBench 上做 SOTA 不等于 agent 能力强</em>。它对短 horizon、productivity 类任务过拟,真正的 long-horizon agent 能力(OSWorld / RE-Bench / GAIA)PinchBench 测不出来。</p>
+
+<h4>3 个待验证问题</h4>
+<ol>
+  <li>Sandbox 的网络出口具体怎么管?能不能在 task 层面定义 allow/deny domain?</li>
+  <li>Grader 函数有没有 leak 风险 — 如果模型能读到 grader 源码,score 会被 game 多少?</li>
+  <li>把 PinchBench 当 RL training 用,有没有人公开过 recipe?目前 leaderboard 上看似没有"用 PinchBench 自训"的模型。</li>
+</ol>
+
+<hr>
+
+<h2>Memory points</h2>
+<div class="kv"><span class="pill">定位</span> Kilo Code 出的 agent benchmark,评测 LLM 作为 <strong>OpenClaw</strong> harness 大脑的表现。MIT 开源。</div>
+<div class="kv"><span class="pill">规模</span> V2 ~120+ task 分 8 类(CSV/log/email/research/coding/productivity)。Trajectory 长度 5–20 turn 中等。</div>
+<div class="kv"><span class="pill">评测</span> 三种 grading:Automated Python / LLM Judge / Hybrid。V2 加 consistency / variance / cost / speed。同时报 end-to-end + step-wise + trajectory-level。</div>
+<div class="kv"><span class="pill">leaderboard</span> Claude Opus 4.7 (91.6) / GPT-5.5 (89) / MiMo-V2.5 (89) 在 86-92 一档已饱和。开源 Qwen3.5-27B 78.5%(可下载权重 SOTA),9B 跌到 35%。</div>
+<div class="kv"><span class="pill">自托管模型</span> <strong>完全支持</strong> — vLLM / SGLang / Ollama / LM Studio 都是 OpenClaw bundled 后端;任意 OpenAI-compat URL 都能配。3 步:serve → config → run。</div>
+<div class="kv"><span class="pill">云端 KiloClaw</span> $9/月 hosted。文档不明是否支持任意自托管 URL,不推荐用来跑 PinchBench。</div>
+<div class="kv"><span class="pill">提交</span> 3 种:本地 --no-upload / community --register 自动上传(unofficial)/ official 需 PINCHBENCH_OFFICIAL_KEY 由团队在标准化硬件跑。</div>
+<div class="kv"><span class="pill">复现性</span> 中等偏高 — semantic versioning + transcript 留底 + judge caching。但 sandbox 默认有网络,web 类任务受外部状态影响。</div>
+<div class="kv"><span class="pill">商用</span> MIT 全开,可商用、可二次开发、output 未明禁训练。但官方提交需 PinchBench team 控制硬件。</div>
+
+</main>
+</body>
+</html>

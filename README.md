@@ -87,6 +87,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 12 | [LLM Memory 演化合集 (MemoryBank → Mem0 → MEM1 → Memory-R1)](https://zhangshuibai.github.io/paper-notes/agents/notes/12_Memory_evolution.html) | 四篇串读 / heuristic→CRUD→RL 演化 / external vs internal 路线对比 | 70 KB |
 | 13 | [RLAnything](https://zhangshuibai.github.io/paper-notes/agents/notes/13_RLAnything_2602.02488.html) | closed-loop RL: env + policy + reward 联合优化 / +9.1% OSWorld / ICML 2026 | 38 KB |
 | 14 | [ClawGUI](https://zhangshuibai.github.io/paper-notes/agents/notes/14_ClawGUI_2604.11784.html) | GUI agent 全栈框架 / RL + Eval + Deploy 三件套 / MobileWorld 17.1% | 50 KB |
+| 15 | [PinchBench (Kilo Code)](https://zhangshuibai.github.io/paper-notes/agents/notes/15_PinchBench.html) | OpenClaw agent benchmark 调研 / 120+ task / 自托管模型完整接入流程 + 提交流程 | 55 KB |
 
 ## 论文清单 (按时间)
 
