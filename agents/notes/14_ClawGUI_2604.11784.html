@@ -97,6 +97,7 @@
     <li><a href="#sec5">方法 · ClawGUI-Agent: hybrid CLI-GUI + 持久化记忆</a></li>
     <li><a href="#sec6">完整任务跟踪 · 给 John 发 WhatsApp</a></li>
     <li><a href="#sec7">实验关键结果</a></li>
+    <li><a href="#sec_oss">🔍 开源到底放了什么 — repo 实地清点</a></li>
     <li><a href="#sec8">与同类工作对比</a></li>
     <li><a href="#sec9">局限 / 个人 take / 待验证</a></li>
     <li><a href="#sec10">记忆点</a></li>
@@ -593,7 +594,180 @@
 
 <hr>
 
-<h2 id="sec8">8 · 与同类工作对比</h2>
+<h2 id="sec_oss">8 · 开源到底放了什么 — repo 实地清点</h2>
+
+<p>纸面声明"three components 全部 open-source"很容易,实际验证要看 repo。我去 <a href="https://github.com/ZJU-REAL/ClawGUI" target="_blank" rel="noopener">github.com/ZJU-REAL/ClawGUI</a>(<strong>注意是浙大 REAL 组,不是 Kilo</strong>)拉了完整目录结构。</p>
+
+<h3>8.0 仓库基本信息</h3>
+<table>
+<tr><th>项</th><th>值</th></tr>
+<tr><td>仓库</td><td><a href="https://github.com/ZJU-REAL/ClawGUI" target="_blank">github.com/ZJU-REAL/ClawGUI</a></td></tr>
+<tr><td>License</td><td><strong>Apache 2.0</strong>(全模块)</td></tr>
+<tr><td>Stars / Forks / Watchers</td><td>1.2k / 43 / 11</td></tr>
+<tr><td>默认 branch</td><td><code>master</code>(注意不是 <code>main</code>)</td></tr>
+<tr><td>语言占比</td><td>Python 86.2% / Kotlin 9.6%(app)/ Shell 3.2% / Jupyter 0.6% / TS 0.3% / Docker 0.1%</td></tr>
+<tr><td>项目页</td><td><a href="https://zju-real.github.io/ClawGUI-Page/" target="_blank">zju-real.github.io/ClawGUI-Page</a></td></tr>
+</table>
+
+<h3>8.1 顶层结构 — 实际是 4 个模块,不是 3 个</h3>
+
+<p>Paper 说"three modules",但 repo 实际有 <strong>4 个</strong>。第 4 个 <code>clawgui-app</code>(Android 应用)是 paper 之后新加的。</p>
+
+<pre>ClawGUI/
+├── clawgui-rl/       # 训练 — 我精读 §3 讲的就是这个
+├── clawgui-eval/     # 评测 — §4
+├── clawgui-agent/    # 部署 — §5
+├── clawgui-app/      # 📱 Android on-device 应用(NEW,paper 没提)
+├── assets/           # 图、logo
+├── LICENSE           # Apache 2.0
+├── CONTRIBUTING.md   # 8 KB
+├── README.md / README_zh.md
+└── .github/</pre>
+
+<h3>8.2 模块 1:<code>clawgui-rl/</code> — 训练 infra</h3>
+
+<table>
+<thead><tr><th>子目录 / 文件</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td><code>verl/</code></td><td>整个 <strong>verl (字节 HybridFlow)</strong> 拉进来当 backend,不是 submodule</td></tr>
+<tr><td><code>gigpo/</code></td><td><strong>GiGPO 算法实现</strong> — 替代 GRPO 的 Group-in-Group Policy Optimization。来自 <a href="https://github.com/langfengq/verl-agent" target="_blank">langfengq/verl-agent</a></td></tr>
+<tr><td><code>agent_system/</code></td><td>VLM agent 主循环(screenshot → reason → action → next screenshot)</td></tr>
+<tr><td><code>docker/</code></td><td>Android 模拟器 Docker 镜像配置(并行多 env 训练靠它)</td></tr>
+<tr><td><code>recipe/</code></td><td>训练配方 yaml(超参 / 模型路径 / reward weights)</td></tr>
+<tr><td><code>scripts/</code></td><td>启动脚本 + <code>episode_visualizer.py</code> 可回放任一 rollout</td></tr>
+<tr><td><code>examples/</code></td><td>跑通最小示例</td></tr>
+<tr><td><code>requirements.txt</code> / <code>setup.py</code></td><td>依赖 + 安装入口</td></tr>
+</tbody>
+</table>
+
+<p><strong>关键事实</strong>(从 README 读出):</p>
+<ul>
+  <li>基于 <strong>verl (Ray single-controller + FSDP)</strong> + <strong>vLLM hybrid engine</strong>(rollout / training 共享显存)</li>
+  <li>支持的策略模型: <strong>MAI-UI</strong> 和 <strong>GUI-Owl</strong> 开箱即用,Qwen3-VL 系列要自己接</li>
+  <li><strong>DAPO 风格 dynamic sampling</strong> — 过滤掉全对/全错的 group,只对有梯度信号的 group 反传</li>
+  <li>支持 <strong>parallel Docker 模拟器</strong> 或 <strong>real Android 设备</strong>(同一 API)</li>
+  <li>Spare server rotation + 自动 retry → 长训练不崩</li>
+  <li>所有 episode 存 <code>episode/</code>,可视化回放</li>
+</ul>
+
+<h3>8.3 模块 2:<code>clawgui-eval/</code> — 评测 pipeline</h3>
+
+<table>
+<thead><tr><th>子目录 / 文件</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td><code>inference/</code></td><td>每个支持模型的 inference adapter(load + prompt format + output parse)</td></tr>
+<tr><td><code>judge/</code></td><td>判分器(每个 benchmark 不同的 coordinate / element 匹配规则)</td></tr>
+<tr><td><code>metric/</code></td><td>指标聚合(success rate / IoU / 等)</td></tr>
+<tr><td><code>data/</code></td><td>本地缓存目录(数据从 HF 下载)</td></tr>
+<tr><td><code>image/</code></td><td>评测图像预处理代码(crop, resize)</td></tr>
+<tr><td><code>Dockerfile</code> + <code>docker-compose.yml</code></td><td>容器化跑评测</td></tr>
+<tr><td><code>main.py</code></td><td>统一入口</td></tr>
+<tr><td><code>scripts/</code></td><td>各 benchmark + 模型组合的启动脚本</td></tr>
+</tbody>
+</table>
+
+<p><strong>数据集</strong>(开源):</p>
+<ul>
+  <li>HuggingFace: <a href="https://huggingface.co/datasets/johnzqlu/clawgui-eval" target="_blank">johnzqlu/clawgui-eval</a></li>
+  <li>ModelScope: <a href="https://modelscope.cn/datasets/Matrix0602/clawgui-eval" target="_blank">Matrix0602/clawgui-eval</a></li>
+  <li>包含 6 个 benchmark: ScreenSpot-Pro / ScreenSpot-V2 / UIVision / MMBench-GUI / OSWorld-G / AndroidControl</li>
+  <li>支持 12+ 模型: Qwen3-VL · Qwen2.5-VL · UI-TARS · MAI-UI · GUI-G2 · UI-Venus · Gemini · Seed 1.8 · Kimi K2.5 ...</li>
+</ul>
+
+<p><strong>关键发现</strong>:支持 <strong>local GPU (transformers)</strong> 和 <strong>remote OpenAI-compatible API</strong> 两种推理后端 — 这意味着自托管 vLLM/SGLang 服务可以直接接入跑 eval,跟 PinchBench 思路一致。多 GPU 多进程并行,每进程 pin 一个 GPU。</p>
+
+<p><strong>Zoom paradigm</strong> 是 paper 没明说但代码里的细节:</p>
+<ul>
+  <li>Gemini 3.0 Pro: <strong>25% crop tiles</strong>,2-stage crop-then-ground</li>
+  <li>Seed 1.8: <strong>50% crop tiles</strong></li>
+  <li>这是为了在 ScreenSpot-Pro 这种高分辨率(4K+)task 上让闭源模型也能复现官方数字</li>
+</ul>
+
+<h3>8.4 模块 3:<code>clawgui-agent/</code> — 部署到手机</h3>
+
+<table>
+<thead><tr><th>子目录 / 文件</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td><code>nanobot/</code></td><td>聊天平台桥接 — 来自 <a href="https://github.com/HKUDS/nanobot" target="_blank">HKUDS/nanobot</a>,接 12+ chat 平台</td></tr>
+<tr><td><code>phone_agent/</code></td><td>VLM 驱动的手机控制核心:截图 → reasoning → tap/swipe/type</td></tr>
+<tr><td><code>main.py</code> / <code>webui.py</code></td><td>CLI 和 Web UI 两种入口</td></tr>
+<tr><td><code>ios.py</code></td><td>iOS 设备控制</td></tr>
+<tr><td><code>examples/</code> + <code>scripts/</code></td><td>配置示例 / 启动脚本</td></tr>
+</tbody>
+</table>
+
+<p><strong>支撑栈</strong>(全部 third-party,ClawGUI 只做集成):</p>
+<ul>
+  <li>底层 agent harness: <a href="https://github.com/openclaw/openclaw" target="_blank">OpenClaw</a>(Kilo 的)</li>
+  <li>chat 平台桥: nanobot(港大 HKUDS)</li>
+  <li>iOS 控制: 接 WebDriverAgent 之类的现成库</li>
+  <li>Android 控制: 走 ADB / Shizuku</li>
+  <li>支持的聊天平台: <strong>Feishu / DingTalk / Telegram / Discord / Slack / QQ</strong> + 其他</li>
+</ul>
+
+<h3>8.5 模块 4:<code>clawgui-app/</code> — 📱 on-device Android app(NEW)</h3>
+
+<p>这是 paper 没提的<strong>新模块</strong>,2026 年 4 月之后加的。一个完整的 Kotlin Android app(<code>build.gradle.kts</code> + <code>app/</code> + Shizuku 集成),把 brain + GUI agent 整套塞进一部手机:</p>
+
+<table>
+<tr><th>设计</th><th>详情</th></tr>
+<tr><td>底层权限</td><td><strong>Shizuku</strong>(非 root 但高权限的 Android 控制框架)</td></tr>
+<tr><td>双 agent</td><td>(1) <strong>brain</strong>: function-calling LLM 做意图理解 / 工具编排 / session 管理 / 长期记忆<br>(2) <strong>phone agent</strong>: VLM 驱动的执行器,截图 → 计划 → 通过 Shizuku 执行 tap/swipe/type/launch/scroll</td></tr>
+<tr><td>消除依赖</td><td><strong>不需要 desktop coordinator</strong>(旧架构是 PC 跑 brain + 手机跑执行,新架构全在手机上)</td></tr>
+<tr><td>UX</td><td>悬浮窗状态指示 / 内置 IME / 会话持久化 / Feishu 等外部入口 / trace 重放</td></tr>
+<tr><td>要求</td><td>Android 8.0+,需先装 Shizuku 并授权</td></tr>
+</table>
+
+<h3>8.6 模型 — <code>ClawGUI-2B</code></h3>
+
+<p>训练好的 2B 模型权重开源:</p>
+<ul>
+  <li>HuggingFace: <code>SugarVapeur/OpenGUI-2B</code>(<strong>注意 repo 名是 "OpenGUI",不是 "ClawGUI"</strong> — README 里叫 ClawGUI-2B,这是早期项目改名的痕迹)</li>
+  <li>ModelScope: <code>SugarFree/OpenGUI-2B</code></li>
+  <li>BF16 / safetensors / Apache 2.0 / 基于 Qwen3-VL 架构</li>
+  <li>结果: <strong>MobileWorld GUI-Only Success Rate = 17.1%</strong>(同尺寸 MAI-UI-2B baseline 11.1%,+6.0)</li>
+</ul>
+
+<div class="warn">
+<strong>⚠ 没开源的:</strong> <em>训练用的数据集</em>(只 release 了 eval 数据集);<em>PRM judger (Qwen3.5-72B) 的具体 prompt / fine-tune 数据</em>;<em>训练 ClawGUI-2B 用的 reward 设计完整 yaml</em>(部分见 <code>recipe/</code> 但不完整);<em>72B PRM 跑了多少 token 量 / GPU 时长</em>。
+</div>
+
+<h3>8.7 ClawGUI = "原创 + 工程集成"占比拆解</h3>
+
+<p>整个 stack 大致 30% 原创 + 70% 集成上游开源工作。诚实拆解:</p>
+
+<table>
+<thead><tr><th>组件</th><th>来源</th><th>原创度</th></tr></thead>
+<tbody>
+<tr><td>RL trainer 底座</td><td>verl (字节 HybridFlow)</td><td>0% — 直接用</td></tr>
+<tr><td>GiGPO 算法</td><td>langfengq/verl-agent</td><td>0% — 直接用</td></tr>
+<tr><td>vLLM hybrid engine</td><td>vLLM 项目</td><td>0%</td></tr>
+<tr><td>Agent harness</td><td>OpenClaw (Kilo)</td><td>0%</td></tr>
+<tr><td>Chat 平台桥</td><td>nanobot (HKUDS)</td><td>0%</td></tr>
+<tr><td>Android 控制</td><td>Shizuku (RikkaApps)</td><td>0%</td></tr>
+<tr><td>Eval 6 benchmark</td><td>各自社区</td><td>0% — 数据来自原 benchmark</td></tr>
+<tr><td><strong>Android 模拟器 Docker pool 编排</strong></td><td>ClawGUI</td><td><strong>~80%</strong></td></tr>
+<tr><td><strong>Eval 三段 pipeline + 12+ 模型 adapter</strong></td><td>ClawGUI</td><td><strong>~90%</strong></td></tr>
+<tr><td><strong>Zoom paradigm(Gemini/Seed 大模型评测)</strong></td><td>ClawGUI</td><td><strong>100%</strong></td></tr>
+<tr><td><strong>ClawGUI-2B model weights</strong></td><td>ClawGUI(用上面 infra 训出来)</td><td><strong>100%</strong></td></tr>
+<tr><td><strong>clawgui-app 双 agent Android</strong></td><td>ClawGUI</td><td><strong>~90%</strong></td></tr>
+</tbody>
+</table>
+
+<p>这不是贬义。**ClawGUI 的真实贡献是"做对了胶水层"** — 把碎片化的 verl / OpenClaw / Shizuku / 6 benchmark 整合成<em>一个可复现的全栈方案</em>,这件事比单独训个 SOTA 模型还有用,因为它降低了整个 GUI agent 社区的入门门槛。</p>
+
+<h3>8.8 Roadmap (paper / repo 上标 coming soon)</h3>
+
+<ul>
+  <li><strong>Desktop Online RL</strong> — 扩展到桌面 OS,不只是手机</li>
+  <li><strong>Web Online RL</strong> — 浏览器 task</li>
+  <li><strong>Real-time RL</strong> — 当前是 offline batch,目标 on-the-fly 更新</li>
+  <li><strong>Learned routing for hybrid CLI-GUI</strong> — paper §5 Discussion 明示当前是 prompt-driven,未来要用 RL 学</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">9 · 与同类工作对比</h2>
 
 <table>
 <thead><tr><th>系统</th><th>定位</th><th>train</th><th>eval</th><th>deploy</th><th>开源</th><th>real device</th></tr></thead>
@@ -615,7 +789,7 @@
 
 <hr>
 
-<h2 id="sec9">9 · 局限 / 个人 take / 待验证</h2>
+<h2 id="sec9">10 · 局限 / 个人 take / 待验证</h2>
 
 <h3>9.1 局限和注意点</h3>
 
@@ -653,7 +827,7 @@
 
 <hr>
 
-<h2 id="sec10">10 · 记忆点 (cold recall)</h2>
+<h2 id="sec10">11 · 记忆点 (cold recall)</h2>
 
 <div class="kv"><span class="pill">立场</span> <strong>Full-stack open-source GUI agent harness</strong>:第一个把"RL 训练 + 标准化评测 + 真实设备部署"开源捏在一起,且 RL trainer 支持<em>真实手机</em>训练。</div>
 
