@@ -88,6 +88,8 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 13 | [RLAnything](https://zhangshuibai.github.io/paper-notes/agents/notes/13_RLAnything_2602.02488.html) | closed-loop RL: env + policy + reward 联合优化 / +9.1% OSWorld / ICML 2026 | 38 KB |
 | 14 | [ClawGUI](https://zhangshuibai.github.io/paper-notes/agents/notes/14_ClawGUI_2604.11784.html) | GUI agent 全栈框架 / RL + Eval + Deploy 三件套 / MobileWorld 17.1% | 50 KB |
 | 15 | [PinchBench (Kilo Code)](https://zhangshuibai.github.io/paper-notes/agents/notes/15_PinchBench.html) | OpenClaw agent benchmark 调研 / 120+ task / 自托管模型完整接入流程 + 提交流程 | 55 KB |
+| 16 | [🖥️ 桌面 GUI / CLI Agent 开源生态全景](https://zhangshuibai.github.io/paper-notes/agents/notes/16_DesktopAgents_landscape.html) | Win/macOS/Linux 桌面 + CLI 生态调研 / 14+ repo / 仿真器+评测+训练数据+infra | 50 KB |
+| 17 | [UI-TARS-2 (ByteDance Seed)](https://zhangshuibai.github.io/paper-notes/agents/notes/17_UITARS2_2509.02544.html) | 230B MoE GUI agent / data flywheel + 多轮 PPO + GUI+SDK 混合环境 / OSWorld 47.5 / 主线权重未开源 | 56 KB |
 
 ## 论文清单 (按时间)
 
@@ -161,6 +163,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | Memory-R1 | LMU Munich + TUM | 2025-08 | [2508.19828](https://arxiv.org/abs/2508.19828) |
 | RLAnything | Gen-Verse | 2026-02 | [2602.02488](https://arxiv.org/abs/2602.02488) |
 | ClawGUI | — | 2026-04 | [2604.11784](https://arxiv.org/abs/2604.11784) |
+| UI-TARS-2 | ByteDance Seed | 2025-09 | [2509.02544](https://arxiv.org/abs/2509.02544) |
 
 ## 设计原则
 

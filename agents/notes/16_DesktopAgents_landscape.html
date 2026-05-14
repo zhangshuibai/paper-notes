@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>调研 · 桌面 GUI / CLI Agent 开源生态全景 (Win / macOS / Linux)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:860px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.88em;line-height:1.5}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:18px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.93em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 18px;margin:18px 0}
+  .toc ol{margin:.4em 0;padding-left:1.4em}
+  .toc li{margin:.2em 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  .repo-link{font-size:.85em;color:var(--muted);display:block;margin-top:2px}
+  .repo-link a{color:var(--accent)}
+  hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+  .ratio{font-weight:600}
+  .ratio.full{color:var(--good)}
+  .ratio.partial{color:#cc7a1b}
+  .ratio.none{color:var(--bad)}
+</style>
+</head>
+<body>
+<main>
+
+<h1>桌面 GUI / CLI Agent 开源生态全景</h1>
+<div class="meta">调研 · 2026-05 · Windows / macOS / Linux 桌面 GUI + CLI agent 的模拟器、评测框架、训练数据、infra 全梳理</div>
+
+<div class="tldr">
+<h2>🎯 TL;DR — 这片地的现状</h2>
+<ul>
+<li><strong>桌面 GUI 评测</strong>:<code>OSWorld</code> 是事实标准(369 task,Ubuntu/Win/macOS,VMware/Docker/AWS),Win 专属用 <code>Windows Agent Arena</code>(154 task,Azure 并行),grounding 用 <code>ScreenSpot-Pro</code>(1,581 高分辨率)</li>
+<li><strong>桌面 GUI 训练数据</strong>:开源最大盘是 <code>OS-Atlas</code>(13M GUI elements)和 <code>Aguvis</code>(4.2M grounding + 1.3M trajectory);<code>CogAgent</code> 自带 CCS400K + 140M Q&A;<code>Magma-8B</code> 用了 2.7M UI + 970K 机器人 + 25M 视频</li>
+<li><strong>桌面 GUI 训练 RL infra</strong>:<code>UI-TARS-2</code>(字节,RLVR + 沙箱)是<em>目前唯一开源的"跨平台 RL trainer"</em>;<code>Cradle</code>(BAAI)做游戏 + 软件的通用计算控制</li>
+<li><strong>CLI / SWE agent</strong>:训练用 <code>R2E-Gym</code>(8.1K 程序化生成 SWE env,K8s scale);评测用 <code>Terminal-Bench 2.0</code>(89 task,ICLR 2026) + <code>SWE-Bench Verified</code>(500 instances) + <code>SWE-Bench Pro</code>(1,865);harness 用 <code>OpenHands</code>(MIT,53%+ on SWE-V)</li>
+<li><strong>Anthropic Computer Use</strong> 提供了 Docker + Ubuntu reference impl,这是社区"起步模板",但只是参考实现,不是 trainer</li>
+<li><strong>真正的硬空白</strong>:macOS / Windows 的<em>大规模并行训练 emulator</em>(类似 Android 那种 16-24 个 KVM 容器),目前没有 ZJU-REAL/ClawGUI 这种"全栈训练 infra";UI-TARS-2 的沙箱是最接近的</li>
+</ul>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="n">≈ 14</div><div class="l">主流开源 repo</div></div>
+<div class="stat"><div class="n">369</div><div class="l">OSWorld eval tasks</div></div>
+<div class="stat"><div class="n">13M</div><div class="l">OS-Atlas grounding elements</div></div>
+<div class="stat"><div class="n">8.1K</div><div class="l">R2E-Gym SWE envs</div></div>
+</div>
+
+<div class="toc">
+<strong>目录</strong>
+<ol>
+<li><a href="#sec1">桌面 GUI 总览表</a></li>
+<li><a href="#sec2">仿真器 / 沙箱 — 跑 task 的环境</a></li>
+<li><a href="#sec3">评测 benchmark — 衡量 agent 能力</a></li>
+<li><a href="#sec4">训练数据集 — 给 base 模型学 GUI</a></li>
+<li><a href="#sec5">训练框架 / RL infra — 在线训 GUI agent</a></li>
+<li><a href="#sec6">部署 / 通用框架 — 现成的 desktop agent</a></li>
+<li><a href="#sec7">CLI / SWE Agent 生态</a></li>
+<li><a href="#sec8">按用途的推荐 — 选哪个 repo</a></li>
+<li><a href="#sec9">现状缺口 / 没被覆盖的角落</a></li>
+</ol>
+</div>
+
+<hr>
+
+<h2 id="sec1">1 · 桌面 GUI 总览表 — 一张图看清楚</h2>
+
+<table>
+<thead><tr><th>类别</th><th>项目</th><th>开源</th><th>规模</th><th>平台</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td rowspan="6"><strong>仿真器 / 沙箱</strong></td><td>OSWorld</td><td class="ratio full">★★★★★</td><td>369 task + VM 镜像</td><td>Ubuntu / Win / macOS</td><td>评测 + 训练 env</td></tr>
+<tr><td>Windows Agent Arena</td><td class="ratio full">★★★★★</td><td>154 task + Azure 并行</td><td>Windows</td><td>评测 + 训练 env</td></tr>
+<tr><td>Cradle</td><td class="ratio full">★★★★★</td><td>4 游戏 + 5+ 软件</td><td>Win(主)</td><td>通用计算控制 GCC</td></tr>
+<tr><td>Anthropic Computer Use Demo</td><td class="ratio full">★★★★★</td><td>1 个 Docker</td><td>Ubuntu(容器内)</td><td>参考实现 / 起步模板</td></tr>
+<tr><td>CUA (trycua/cua)</td><td class="ratio full">★★★★★</td><td>sandbox + SDK + bench</td><td>macOS / Linux / Win</td><td>"computer-use 版 Stripe"</td></tr>
+<tr><td>UFO² / UFO³ Galaxy</td><td class="ratio full">★★★★★</td><td>多 agent 编排</td><td>Windows</td><td>Win OS 原生 agent 框架</td></tr>
+<tr><td rowspan="4"><strong>评测 benchmark</strong></td><td>OSWorld-Verified</td><td class="ratio full">★★★★★</td><td>369 修订版</td><td>三 OS</td><td>当前桌面金标准</td></tr>
+<tr><td>ScreenSpot-Pro</td><td class="ratio full">★★★★★</td><td>1,581 截图</td><td>23 app × 3 OS</td><td>高分辨率 grounding</td></tr>
+<tr><td>SpreadsheetBench</td><td class="ratio full">★★★★★</td><td>912 Excel 题</td><td>Office</td><td>电子表格 agent</td></tr>
+<tr><td>Spider 2.0</td><td class="ratio full">★★★★★</td><td>多模式 SQL</td><td>跨数据库</td><td>text-to-SQL agent</td></tr>
+<tr><td rowspan="5"><strong>训练数据集</strong></td><td>OS-Atlas</td><td class="ratio full">★★★★★</td><td>13M GUI elements</td><td>跨平台</td><td>grounding 最大盘</td></tr>
+<tr><td>Aguvis</td><td class="ratio full">★★★★★</td><td>4.2M + 1.3M traj</td><td>Web/Desktop/Mobile</td><td>两阶段训练</td></tr>
+<tr><td>CogAgent CCS400K</td><td class="ratio full">★★★★★</td><td>400K 截图 + 140M Q&A</td><td>Web 为主</td><td>CogAgent 自带</td></tr>
+<tr><td>ShowUI</td><td class="ratio full">★★★★★</td><td>256K 指令</td><td>跨平台</td><td>轻量 2B 模型用</td></tr>
+<tr><td>Magma 训练 mix</td><td class="ratio full">★★★★★</td><td>2.7M UI + 970K 机器人 + 25M 视频</td><td>UI + 物理</td><td>多模态 agent 基座</td></tr>
+<tr><td rowspan="3"><strong>训好的开源模型</strong></td><td>UI-TARS-2 (ByteDance)</td><td class="ratio full">★★★★★</td><td>7B / 72B</td><td>跨平台 + 游戏 + Code</td><td>当前桌面 SOTA</td></tr>
+<tr><td>Magma-8B (Microsoft)</td><td class="ratio full">★★★★★</td><td>8B</td><td>UI + 机器人</td><td>统一 vision-action</td></tr>
+<tr><td>CogAgent-9B (智谱/THUDM)</td><td class="ratio full">★★★★★</td><td>9B</td><td>桌面 + Web</td><td>2023 年的开山</td></tr>
+<tr><td rowspan="3"><strong>部署框架</strong></td><td>OS-Copilot / FRIDAY</td><td class="ratio full">★★★★★</td><td>Python 库</td><td>Linux 主</td><td>自改进 agent</td></tr>
+<tr><td>Open Interpreter</td><td class="ratio full">★★★★★</td><td>Python 库</td><td>三 OS</td><td>"chat with your computer"</td></tr>
+<tr><td>Agent-S / S2 (Simular)</td><td class="ratio full">★★★★★</td><td>Python 框架</td><td>macOS/Win/Linux</td><td>非 RL,模块化</td></tr>
+</tbody>
+</table>
+
+<div class="kv">
+<strong>注</strong>:★★★★★ = 完全开源(代码 + 数据 + 模型权重 / 或 license 允许商用);★★★☆☆ = 部分开源(只有代码或只有 weights)。表里全是 ★★★★★ 的并不代表"零门槛跑起来",而是 license 上允许 — 真正的硬门槛是<strong>硬件</strong>(VM/Docker 资源 + GPU)。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 仿真器 / 沙箱 — 跑 task 的环境</h2>
+
+<h3>2.1 OSWorld(xlang-ai,NeurIPS 2024)</h3>
+<p class="repo-link">
+论文:<a href="https://arxiv.org/abs/2404.07972" target="_blank">arXiv 2404.07972</a> ·
+仓库:<a href="https://github.com/xlang-ai/OSWorld" target="_blank">xlang-ai/OSWorld</a> ·
+主页:<a href="https://os-world.github.io/" target="_blank">os-world.github.io</a>
+</p>
+
+<table>
+<tr><th>项目</th><th>详情</th></tr>
+<tr><td>开源 license</td><td>Apache 2.0</td></tr>
+<tr><td>task 数</td><td><strong>369</strong> 真实计算机 task(跨 Web 和桌面应用)+ 额外 <strong>43 个 Windows-only</strong>(因版权要 Windows 激活)</td></tr>
+<tr><td>OS 支持</td><td>Ubuntu / Windows / macOS</td></tr>
+<tr><td>虚拟化后端</td><td>VMware / VirtualBox / Docker / AWS(2024-10 加的 Docker)</td></tr>
+<tr><td>评测方式</td><td>每个 task 自带 init 配置 + 执行式 evaluation 脚本(<code>functional</code> 检查文件系统/数据库/API 状态),非 LLM judge</td></tr>
+<tr><td>数据组成</td><td>OS file I/O · 多 app workflow · Web · Office · Code · 多媒体</td></tr>
+<tr><td>SOTA(原版)</td><td>最好模型 <strong>12.24%</strong> vs human <strong>72.36%</strong></td></tr>
+<tr><td>SOTA(Verified)</td><td>修订版 ~84% of human ceiling</td></tr>
+</table>
+
+<p><strong>能不能用来训练?</strong> 理论上可以(VM 提供 step 接口),但 OSWorld 设计目标是 <em>eval</em>,跑一个 task 平均要<strong>分钟级</strong>(VM 启动 + 真实 app 加载),并发开几十个 VM 对硬件要求很高。实际上大多数论文用 OSWorld 做 eval,训练数据靠别的 dataset。</p>
+
+<h3>2.2 Windows Agent Arena(Microsoft,2024)</h3>
+<p class="repo-link">
+论文:<a href="https://arxiv.org/abs/2409.08264" target="_blank">arXiv 2409.08264</a> ·
+仓库:<a href="https://github.com/microsoft/WindowsAgentArena" target="_blank">microsoft/WindowsAgentArena</a>
+</p>
+
+<table>
+<tr><th>项目</th><th>详情</th></tr>
+<tr><td>license</td><td>MIT(部分子目录 Microsoft Research License)</td></tr>
+<tr><td>task 数</td><td><strong>154</strong> task</td></tr>
+<tr><td>OS</td><td>Windows 11 only</td></tr>
+<tr><td>覆盖应用</td><td>浏览器 · 文档(Word/Excel/PPT)· 视频 · 代码(VS Code)· Notepad / Paint / File Explorer / Clock / Settings</td></tr>
+<tr><td>scale 特性</td><td><strong>Azure Cloud 集成</strong> — 一次启几百个 agent 并行,几分钟出结果(vs 单机要好几天)</td></tr>
+<tr><td>SOTA</td><td>最好 agent <strong>19.5%</strong> vs human <strong>74.5%</strong></td></tr>
+</table>
+
+<p>WAA 是<strong>唯一一个原生 Windows 的开源 benchmark</strong>。OSWorld 的 Windows 部分 task 比 WAA 少且要用户自己装系统(因 Microsoft 版权),WAA 直接用 Microsoft 的 evaluation image。配合下面的 UFO 用最顺。</p>
+
+<h3>2.3 UFO² / UFO³ Galaxy(Microsoft,2025)</h3>
+<p class="repo-link">
+论文:<a href="https://arxiv.org/abs/2402.07939" target="_blank">arXiv 2402.07939</a>(v1)· <a href="https://arxiv.org/abs/2504.14603" target="_blank">arXiv 2504.14603</a>(UFO²)·
+仓库:<a href="https://github.com/microsoft/UFO" target="_blank">microsoft/UFO</a>
+</p>
+
+<ul>
+<li><strong>UFO(2024)</strong>:第一个"Windows OS 原生"UI agent,WindowsBench 上 86%</li>
+<li><strong>UFO²(2025-04)</strong>:"Desktop AgentOS",可独立或作为 Galaxy 的 Windows 设备 agent</li>
+<li><strong>UFO³ Galaxy(2025-11)</strong>:多设备协同,跨异构平台编排</li>
+<li>license: MIT</li>
+<li>原生支持 <strong>OSWorld(Windows)</strong> 和 <strong>WAA</strong> 两个 benchmark</li>
+</ul>
+
+<p>UFO 系列是 Microsoft 内部"对标 Anthropic Computer Use"的开源答卷,专精 Windows,Win API + UI Automation 库都有原生绑定。</p>
+
+<h3>2.4 Anthropic Computer Use Reference(2024-10)</h3>
+<p class="repo-link">
+仓库:<a href="https://github.com/anthropics/anthropic-quickstarts" target="_blank">anthropics/anthropic-quickstarts</a>(<code>computer-use-demo/</code>)
+</p>
+
+<p>这是个<strong>参考实现,不是 trainer 也不是 benchmark</strong>。包含:</p>
+<ul>
+<li>一个 <code>Dockerfile</code>(Ubuntu + xdotool + Firefox + VNC + 一个 Web UI)</li>
+<li>agent loop(Python)</li>
+<li>tool 实现(computer / bash / editor)</li>
+<li>一个 Streamlit chat 界面</li>
+</ul>
+<p>实际用途:<em>所有社区 Computer Use 复刻品的起步模板</em>。<a href="https://github.com/deedy/mac_computer_use" target="_blank">deedy/mac_computer_use</a> 是把它移植到原生 macOS 的 fork。</p>
+
+<h3>2.5 Cradle(BAAI,ICML 2025)</h3>
+<p class="repo-link">
+论文:<a href="https://arxiv.org/abs/2403.03186" target="_blank">arXiv 2403.03186</a> ·
+仓库:<a href="https://github.com/BAAI-Agents/Cradle" target="_blank">BAAI-Agents/Cradle</a> ·
+主页:<a href="https://baai-agents.github.io/Cradle/" target="_blank">baai-agents.github.io/Cradle</a>
+</p>
+
+<p>"General Computer Control"(GCC)— 输入只看截图,输出只发键鼠,不调用任何 API。覆盖:</p>
+<ul>
+<li><strong>4 个游戏</strong>:Red Dead Redemption 2 / Stardew Valley / Cities: Skylines / Dealer's Life 2</li>
+<li><strong>软件</strong>:Chrome / Outlook / CapCut / Meitu / Feishu(已知不完整列表)</li>
+<li>6 个模块:Information Gathering / Self-Reflection / Task Inference / Skill Curation / Action Planning / Memory</li>
+</ul>
+
+<p>这是把 Anthropic CU 的思想推到极致 — <em>不依赖任何 OS API,纯视觉 + 键鼠</em>。适合做"通用桌面 agent"的研究 baseline。</p>
+
+<h3>2.6 CUA(trycua/cua,2024-2025)</h3>
+<p class="repo-link">
+仓库:<a href="https://github.com/trycua/cua" target="_blank">trycua/cua</a>
+</p>
+<p>"Computer-Use Agent 版的 Stripe"— 提供 <strong>sandbox + SDK + benchmark</strong> 三件套,跨 macOS / Linux / Windows。是<em>商业基础设施视角</em>的开源(而不是研究视角)。给开发者训练和评测 CU agent 的 turn-key 方案。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 评测 benchmark — 衡量 agent 能力</h2>
+
+<table>
+<thead><tr><th>Benchmark</th><th>规模</th><th>平台</th><th>当前 SOTA</th><th>定位</th></tr></thead>
+<tbody>
+<tr><td><strong>OSWorld(原版)</strong></td><td>369 task</td><td>Ubuntu / Win / macOS</td><td>~30%+(新模型)</td><td>桌面金标准</td></tr>
+<tr><td><strong>OSWorld-Verified</strong></td><td>369 修订</td><td>同上</td><td>~84% of human</td><td>OSWorld 升级版,2025 出</td></tr>
+<tr><td><strong>OSWorld-G</strong> / <strong>OSWorld-Gold</strong></td><td>子集</td><td>同上</td><td>—</td><td>grounding subset / efficiency 评测</td></tr>
+<tr><td><strong>OSWorld-W</strong></td><td>49 task</td><td>Windows</td><td>—</td><td>OSWorld 中 Win 可跑的子集(UFO 内置)</td></tr>
+<tr><td><strong>Windows Agent Arena</strong></td><td>154 task</td><td>Windows-only</td><td>19.5% vs human 74.5%</td><td>Win 专属,Azure 并行</td></tr>
+<tr><td><strong>ScreenSpot</strong></td><td>~1,272</td><td>Web/Desktop/Mobile</td><td>~75% (ShowUI)</td><td>原始 grounding benchmark</td></tr>
+<tr><td><strong>ScreenSpot-V2</strong></td><td>修订</td><td>同上</td><td>—</td><td>V1 标注修订版</td></tr>
+<tr><td><strong>ScreenSpot-Pro</strong></td><td><strong>1,581</strong> 截图</td><td>23 app × 5 cat × 3 OS</td><td>—</td><td>高分辨率 + 专业软件 grounding</td></tr>
+<tr><td><strong>SpreadsheetBench V2</strong></td><td>912 题</td><td>Excel</td><td>—</td><td>电子表格 agent</td></tr>
+<tr><td><strong>Spider 2.0</strong></td><td>多模式</td><td>跨数据库 SQL</td><td>—</td><td>text-to-SQL 长上下文</td></tr>
+<tr><td><strong>UINavBench</strong></td><td>ICCV 2025</td><td>Mobile 为主</td><td>—</td><td>交互 digital agent 综合</td></tr>
+<tr><td><strong>GAIA</strong></td><td>466 题</td><td>通用</td><td>FRIDAY +35%</td><td>"General AI Assistant"基准,非纯 GUI</td></tr>
+</tbody>
+</table>
+
+<h3>3.1 ScreenSpot-Pro 细看(高分辨率 grounding 的代表)</h3>
+
+<p>因为它在<strong>专业软件</strong>上最难,值得单独说:</p>
+<ul>
+<li>1,581 张专家标注截图,23 个 app,5 类</li>
+<li><strong>UI 元素只占整张图 0.07%</strong>(主流 benchmark 是 2.01%)— 30 倍小,是真正的"高难度 grounding"</li>
+<li>覆盖应用类:
+<ul>
+<li>开发工具:VSCode / PyCharm / Android Studio / VMware</li>
+<li>创意:Photoshop / Premiere / Illustrator / Blender / DaVinci / FL Studio</li>
+<li>CAD/工程:AutoCAD / SolidWorks / Inventor / Vivado / Quartus</li>
+<li>科学:MATLAB / Stata / EViews</li>
+<li>Office:Word / Excel / PowerPoint</li>
+</ul></li>
+<li>OS:Windows / macOS / Linux 都有</li>
+</ul>
+
+<hr>
+
+<h2 id="sec4">4 · 训练数据集 — 给 base 模型学 GUI</h2>
+
+<p>这是"开源量级"差距最大的地方。下面按 grounding 数据规模排序:</p>
+
+<table>
+<thead><tr><th>数据集</th><th>规模</th><th>类型</th><th>开源</th><th>归属</th></tr></thead>
+<tbody>
+<tr><td><strong>OS-Atlas</strong></td><td><strong>13M GUI elements</strong></td><td>跨平台 grounding 合成 + 真实</td><td>✅ 数据+模型+工具链</td><td>OS-Atlas 团队</td></tr>
+<tr><td><strong>Aguvis Stage 1</strong></td><td>4.2M 样本</td><td>computer/mobile grounding</td><td>✅ 全开</td><td>xlang-ai,Salesforce AI</td></tr>
+<tr><td><strong>Aguvis Stage 2</strong></td><td>1.3M traj</td><td>带 reasoning 标注的 trajectory</td><td>✅ 全开</td><td>同上</td></tr>
+<tr><td><strong>Magma 训练 mix</strong></td><td>2.7M UI 截图 + 970K 机器人 + 25M 视频</td><td>UI + Action + Trace</td><td>✅ Microsoft,MIT 模型</td><td>Microsoft</td></tr>
+<tr><td><strong>CogAgent CCS400K</strong></td><td>400K 截图 + 140M Q&A</td><td>Web 截图问答</td><td>✅ 智谱/THUDM</td><td>CogAgent 自带</td></tr>
+<tr><td>CogAgent OCR / 视觉定位</td><td>80M synth OCR + 18M nat OCR + 9M doc + 40M caption</td><td>底层视觉</td><td>✅</td><td>CogAgent 预训练用</td></tr>
+<tr><td><strong>ShowUI 指令</strong></td><td>256K</td><td>视觉-动作 SFT</td><td>✅</td><td>ShowUI 团队</td></tr>
+<tr><td><strong>ClawGUI-Eval</strong>(对比项)</td><td>6 benchmark 集合</td><td>评测 only,非训练</td><td>✅ HF: johnzqlu/clawgui-eval</td><td>ZJU-REAL</td></tr>
+<tr><td><strong>UI-TARS 预训练</strong></td><td>≈ 50B tokens(混合)</td><td>多源混合,部分公开</td><td>⚠ 配方+模型开源,完整 raw data 不全</td><td>ByteDance</td></tr>
+</tbody>
+</table>
+
+<h3>4.1 OS-Atlas — 当前最大的 grounding 训练盘</h3>
+<p>OS-Atlas 的卖点是<strong>"多平台 grounding data 合成工具链"</strong>:不是手工标 13M,而是有一套自动管线把<em>真实截图 → DOM/AXTree 解析 → 元素提取 → 自然语言标注</em>串起来,所以可以无限扩。开源了:</p>
+<ul>
+<li>13M 元素的数据集</li>
+<li>训练好的 OS-Atlas-Base 模型(7B / 4B)</li>
+<li>合成工具链本身</li>
+</ul>
+
+<h3>4.2 Aguvis — 两阶段标准(grounding → reasoning)</h3>
+<p>把 GUI agent 训练分成清晰两步,后来很多工作沿用:</p>
+<ol>
+<li><strong>Stage 1 Grounding</strong>(4.2M):学"图里的按钮叫什么,坐标在哪"</li>
+<li><strong>Stage 2 Planning + Reasoning</strong>(1.3M trajectory):学"给定 task,先想再做"</li>
+</ol>
+<p>开源了数据、模型、训练 recipe,是<em>研究界做 GUI 模型时引用最多的训练 corpus</em>。</p>
+
+<h3>4.3 Magma — 把 UI 和机器人放在一个模型里</h3>
+<p>Microsoft 的野心更大:<strong>2.7M UI 截图 + 970K 机器人轨迹 + 25M 视频</strong> 一起训。两个关键标注:</p>
+<ul>
+<li><strong>Set-of-Mark(SoM)</strong>:图里可点击元素打标记</li>
+<li><strong>Trace-of-Mark(ToM)</strong>:视频里物体/机械臂的运动轨迹打标记</li>
+</ul>
+<p>训出来的 Magma-8B 在 UI 导航 + 机器人操作上都有 SOTA。<strong>MIT license</strong> 开放商用。</p>
+
+<h3>4.4 CogAgent — 国内开源的开山</h3>
+<p>智谱/THUDM 在 2023 年底就发了,后续 CogAgent-9B-20241220 大幅升级。预训练数据:</p>
+<ul>
+<li>底层视觉:80M 合成 OCR + 18M 自然图 OCR + 9M 学术文档 + 40M LAION caption</li>
+<li>CCS400K:400K 网页截图 + 140M Q&A</li>
+</ul>
+
+<hr>
+
+<h2 id="sec5">5 · 训练框架 / RL infra — 在线训 GUI agent</h2>
+
+<h3>5.1 UI-TARS-2(ByteDance,2025-09)</h3>
+<p class="repo-link">
+论文:<a href="https://arxiv.org/abs/2509.02544" target="_blank">arXiv 2509.02544</a> ·
+仓库:<a href="https://github.com/bytedance/UI-TARS" target="_blank">bytedance/UI-TARS</a> + <a href="https://github.com/bytedance/UI-TARS-desktop" target="_blank">UI-TARS-desktop</a>
+</p>
+
+<p><strong>这是目前唯一的"开源跨平台 RL GUI trainer"</strong>,涵盖桌面 + Web + 移动 + 游戏 + Code。技术报告四件套:</p>
+<ol>
+<li><strong>Data flywheel</strong> — 模型自己生成 trajectory → 验证 → 进训练池,持续 scale 数据</li>
+<li><strong>Stabilized multi-turn RL</strong> — 长 horizon GUI task 的稳定 RLVR(Verifiable Rewards)</li>
+<li><strong>Hybrid GUI environment</strong> — 把<em>文件系统 + 终端</em>集成进 GUI 沙箱,这是个"GUI + CLI 融合"的关键 trick</li>
+<li><strong>Unified sandbox platform</strong> — 大规模 rollout 用的统一沙箱</li>
+</ol>
+
+<p>开源:权重(7B / 72B 一系列)+ desktop harness + 训练配方。原始训练数据完整 raw 没全开,但 recipe 够复现。</p>
+
+<h3>5.2 ClawGUI-RL(ZJU-REAL,2026-04)— 对照</h3>
+<p>详见 <a href="14_ClawGUI_2604.11784.html">#14 精读</a>。<strong>只针对 Android 手机</strong>,桌面 RL 在 roadmap 但没做。整体架构(verl + GiGPO + 并行 Android 容器)其实可以无缝迁移到桌面,但需要新的 emulator 后端 — 这就是当前空白。</p>
+
+<h3>5.3 Cradle(BAAI)— skill-curation 路线</h3>
+<p>不是传统 RL,而是 <strong>self-improvement + skill library</strong>:agent 跑成功就把动作序列存进技能库,失败就 self-reflect。可以做训练数据生成的源头,但不直接做 SFT/RL trainer。</p>
+
+<h3>5.4 OSWorld 作为训练 env?</h3>
+<p>OSWorld 提供 <code>step()</code> 接口,理论可以挂在 verl/AReaL 等 RL framework 后面当 env。<strong>实际很少人这么做</strong>,原因:</p>
+<ul>
+<li>每个 VM 实例占 4-8 GB RAM + 一个 vCPU + 真实磁盘,并发开几十个对单机硬件压力大</li>
+<li>task 启动时间分钟级,rollout 效率低</li>
+<li>369 个 task 数量也不够大规模 RL(对比 R2E-Gym 的 8.1K)</li>
+</ul>
+<p>所以 OSWorld 在<strong>"训练 env"上事实落空</strong>,主要还是用来做 eval。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 部署 / 通用框架 — 现成的 desktop agent</h2>
+
+<table>
+<thead><tr><th>框架</th><th>定位</th><th>OS</th><th>license</th></tr></thead>
+<tbody>
+<tr><td><strong>Agent-S2</strong>(Simular)</td><td>Mixture-of-Grounding + 分层 planning,SOTA on OSWorld</td><td>mac/Win/Linux</td><td>Apache 2.0</td></tr>
+<tr><td><strong>OS-Copilot</strong> / FRIDAY</td><td>self-improving agent,GAIA +35%,SheetCopilot-20 60%</td><td>Linux 主</td><td>MIT</td></tr>
+<tr><td><strong>Open Interpreter</strong></td><td>"chat with your computer",纯 LLM + code execution + vision</td><td>三 OS</td><td>AGPLv3</td></tr>
+<tr><td><strong>UI-TARS-desktop</strong></td><td>字节官方桌面 agent stack,接 UI-TARS 模型</td><td>三 OS</td><td>Apache 2.0</td></tr>
+<tr><td><strong>Hermes Agent</strong></td><td>Nous Research,持久记忆,2026-02 release</td><td>Linux/macOS/WSL2</td><td>开源(查具体)</td></tr>
+<tr><td><strong>Bytebot</strong></td><td>"cloud scale" 商业桌面 agent infra</td><td>云端 Ubuntu</td><td>开源(查)</td></tr>
+</tbody>
+</table>
+
+<p>这一层是<strong>"研究 → 产品"的胶水</strong> — 已有训练好的 GUI 模型,要把它接到真实桌面控制(xdotool / pyautogui / AppleScript / Win UI Automation)。研究中作为<em>agent harness</em> 使用,不参与训练。</p>
+
+<hr>
+
+<h2 id="sec7">7 · CLI / SWE Agent 生态</h2>
+
+<p>CLI 这块和 GUI 是不同的世界,但用户的桌面工作大量发生在终端,值得并排看。</p>
+
+<h3>7.1 Terminal-Bench(ICLR 2026)</h3>
+<p class="repo-link">
+论文:<a href="https://arxiv.org/abs/2601.11868" target="_blank">arXiv 2601.11868</a> ·
+仓库:<a href="https://github.com/harbor-framework/terminal-bench" target="_blank">harbor-framework/terminal-bench</a> ·
+主页:<a href="https://www.tbench.ai/" target="_blank">tbench.ai</a>
+</p>
+
+<ul>
+<li>Stanford + Laude Institute 主导,Anthropic / DeepMind / 多校合作</li>
+<li><strong>Terminal-Bench 2.0</strong>:89 个困难 task,真实工作流</li>
+<li>覆盖:编译代码 / 训模型 / 装服务器 / 调试 / SysAdmin / 数据处理</li>
+<li>用 <strong>Harbor task format + Harbor harness</strong> 跑,原生支持 Claude Code / Codex CLI / OpenHands / Mini-SWE-Agent</li>
+<li>SOTA:Claude Sonnet 4.5 <strong>0.500</strong></li>
+</ul>
+
+<p>Terminal-Bench 的"task format + harness 解耦"设计很像 PinchBench 的 YAML 风格 — 是<em>CLI 领域的标准化基础设施</em>。</p>
+
+<h3>7.2 OpenHands(All-Hands-AI,formerly OpenDevin)</h3>
+<p class="repo-link">
+论文:<a href="https://arxiv.org/abs/2407.16741" target="_blank">arXiv 2407.16741</a> ·
+仓库:<a href="https://github.com/OpenHands/OpenHands" target="_blank">OpenHands/OpenHands</a> ·
+主页:<a href="https://www.openhands.dev/" target="_blank">openhands.dev</a>
+</p>
+
+<ul>
+<li><strong>license</strong>:MIT(企业目录除外)</li>
+<li>SWE-Bench Verified <strong>53%+</strong>(+ Claude 4.5)</li>
+<li>2026-01 发了 <strong>OpenHands Index</strong>(扩展到 issue resolution + greenfield app dev + frontend + testing)</li>
+<li>核心 docker image + agent-server 都 MIT</li>
+</ul>
+<p>这是目前<em>最完整的开源 SWE agent 框架</em>,自托管即可用。</p>
+
+<h3>7.3 SWE-Bench 家族</h3>
+
+<table>
+<thead><tr><th>变体</th><th>规模</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>SWE-Bench(原版)</td><td>2,294 instances</td><td>Princeton,Python GitHub PR</td></tr>
+<tr><td><strong>SWE-Bench Verified</strong></td><td>500 instances</td><td>OpenAI 人工筛过的高质量子集,事实标准</td></tr>
+<tr><td>SWE-Bench Live</td><td>每月 +50</td><td>滚动添加,抗 contamination</td></tr>
+<tr><td><strong>SWE-Bench Pro</strong>(Scale AI)</td><td>1,865 task,41 repo,4 语言</td><td>Python + Go + TS + JS,长 horizon</td></tr>
+<tr><td>SWE-Bench Multimodal</td><td>—</td><td>带截图的 PR</td></tr>
+</tbody>
+</table>
+
+<h3>7.4 R2E-Gym — 当前最大的 SWE RL 训练 env</h3>
+<p class="repo-link">
+论文:<a href="https://arxiv.org/abs/2504.07164" target="_blank">arXiv 2504.07164</a>(COLM 2025)·
+仓库:<a href="https://github.com/R2E-Gym/R2E-Gym" target="_blank">R2E-Gym/R2E-Gym</a>
+</p>
+
+<table>
+<tr><th>项目</th><th>详情</th></tr>
+<tr><td>规模</td><td><strong>8,100+</strong> 可执行训练 env(程序化合成,不依赖人写 PR / unit test)</td></tr>
+<tr><td>核心机制</td><td><strong>SWE-Gen</strong> — synthetic data 配方,自动生成执行式 env + 问题陈述</td></tr>
+<tr><td>验证</td><td><strong>Hybrid Verifiers</strong> — 执行式 + 非执行式混合</td></tr>
+<tr><td>infra</td><td><strong>Kubernetes</strong> 集成 — 1000+ CPU 核 scale,Cluster Autoscaler 自动扩缩</td></tr>
+<tr><td>性能</td><td>SWE-Bench Verified <strong>51%</strong>,首次开源模型对标 o1 / sonnet-3.5-v2</td></tr>
+<tr><td>开源</td><td>env + 模型 + agent trajectory 全开,HuggingFace + GitHub</td></tr>
+</table>
+
+<p>R2E-Gym 是 SWE 这一块的"<strong>无限数据生成器</strong>"— 没它的话,8.1K 真实可执行 SWE env 几乎不可能手凑。是<em>SWE RL 训练的 ClawGUI-Server 等价物</em>。</p>
+
+<h3>7.5 DeepSWE(Together AI)</h3>
+<p>用 R2E-Gym 训出来的 SOTA 开源 SWE agent,blog 报数字。</p>
+
+<h3>7.6 Spider 2.0 / SpreadsheetBench / OfficeCLI</h3>
+<ul>
+<li><strong>Spider 2.0</strong>:跨数据库 text-to-SQL,Spider2-DBT 包含 68 个端到端 task(<a href="https://spider2-sql.github.io/" target="_blank">主页</a>)</li>
+<li><strong>SpreadsheetBench V2</strong>:912 个 Excel 真实问题(<a href="https://spreadsheetbench.github.io/" target="_blank">主页</a>)</li>
+<li><strong>OfficeCLI</strong>:面向 AI agent 的 Word/Excel/PPT 读写 CLI(<a href="https://github.com/iOfficeAI/OfficeCLI" target="_blank">iOfficeAI/OfficeCLI</a>),不需要装 Office</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">8 · 按用途的推荐 — 选哪个 repo</h2>
+
+<h3>"我想做桌面 GUI 评测"</h3>
+<table>
+<tr><th>需求</th><th>选什么</th></tr>
+<tr><td>跨 OS,综合能力</td><td><strong>OSWorld-Verified</strong>(+ 配 UFO 或 Agent-S2 跑)</td></tr>
+<tr><td>纯 Windows,云上批量跑</td><td><strong>Windows Agent Arena</strong></td></tr>
+<tr><td>专业软件 grounding</td><td><strong>ScreenSpot-Pro</strong></td></tr>
+<tr><td>Excel 专精</td><td>SpreadsheetBench V2</td></tr>
+<tr><td>SQL agent</td><td>Spider 2.0</td></tr>
+</table>
+
+<h3>"我想训练桌面 GUI 模型"</h3>
+<table>
+<tr><th>阶段</th><th>选什么</th></tr>
+<tr><td>SFT grounding(必装)</td><td><strong>OS-Atlas</strong>(13M) + <strong>Aguvis Stage 1</strong>(4.2M)</td></tr>
+<tr><td>SFT trajectory</td><td><strong>Aguvis Stage 2</strong>(1.3M)+ CogAgent CCS400K</td></tr>
+<tr><td>多模态 + 机器人</td><td>Magma 训练 mix</td></tr>
+<tr><td>RL framework</td><td><strong>UI-TARS-2 训练 recipe</strong>(目前唯一公开的桌面 RL 全栈方案)</td></tr>
+<tr><td>RL env(实验性)</td><td>OSWorld VM + 自己写 step 接口</td></tr>
+</table>
+
+<h3>"我想做 CLI / SWE agent"</h3>
+<table>
+<tr><th>需求</th><th>选什么</th></tr>
+<tr><td>评测 SWE</td><td><strong>SWE-Bench Verified</strong>(默认)+ SWE-Bench Pro(长 horizon)</td></tr>
+<tr><td>评测 CLI 通用</td><td><strong>Terminal-Bench 2.0</strong></td></tr>
+<tr><td>训练 SWE</td><td><strong>R2E-Gym</strong>(8.1K env + K8s scale)</td></tr>
+<tr><td>SWE harness 直接用</td><td><strong>OpenHands</strong></td></tr>
+</table>
+
+<h3>"我想自己部署一个桌面 agent"</h3>
+<table>
+<tr><th>目标</th><th>选什么</th></tr>
+<tr><td>研究 baseline</td><td>Agent-S2(modular,跨 OS,SOTA)</td></tr>
+<tr><td>实际用,接 LLM</td><td>Open Interpreter(三 OS,生态最成熟)</td></tr>
+<tr><td>接 UI-TARS 模型</td><td>UI-TARS-desktop(字节官方 harness)</td></tr>
+<tr><td>Windows 专精</td><td>UFO² / UFO³</td></tr>
+<tr><td>Linux 自动化</td><td>OS-Copilot / FRIDAY</td></tr>
+<tr><td>参考 Anthropic 风格</td><td>anthropic-quickstarts/computer-use-demo</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec9">9 · 现状缺口 / 没被覆盖的角落</h2>
+
+<h3>9.1 真正的"桌面 RL 训练 emulator"还在路上</h3>
+<p>对照 ClawGUI 在 Android 那边做到的 <strong>16-24 个并行 KVM 容器 + GiGPO RL trainer</strong> 一锅端,桌面这边目前的状态是:</p>
+<ul>
+<li><strong>OSWorld</strong> 提供 VM,但 task 数少(369)、启动慢、不为 RL 设计</li>
+<li><strong>WAA</strong> Azure 并行,但 Windows-only,task 也少(154)</li>
+<li><strong>UI-TARS-2</strong> 自己的"unified sandbox"是闭源细节多,论文里有但不能直接 fork 来用</li>
+<li><strong>没有公开的"百容器并行 + 真实 Win/macOS app + RL trainer"完整开源栈</strong></li>
+</ul>
+
+<h3>9.2 macOS RL 训练 — 比 Windows 更难</h3>
+<p>Apple 限制 macOS VM 镜像分发(只能在 Apple 硬件上跑 macOS),所以"<strong>批量起 100 个 macOS VM 做 RL</strong>"几乎不可行。研究上要么:</p>
+<ul>
+<li>用 OSWorld 的 macOS 部分做小规模 eval(单机 VMware)</li>
+<li>用 ScreenSpot-Pro 的 macOS 子集做 grounding eval</li>
+<li>训练直接跳过 macOS,靠"跨平台泛化"</li>
+</ul>
+
+<h3>9.3 GUI + CLI 融合的训练 — UI-TARS-2 是先驱</h3>
+<p>UI-TARS-2 论文里点明的 <strong>"hybrid GUI environment that integrates file systems and terminals"</strong> 是个非常重要的方向:真实桌面工作就是 GUI 和 CLI 来回切换,只训 GUI 或只训 CLI 都是偏的。但这条路上目前只有 UI-TARS-2 一家公开做了。</p>
+
+<h3>9.4 评测数据 vs 训练数据 — 比例严重失衡</h3>
+<table>
+<tr><th>数据类型</th><th>开源规模</th><th>差距</th></tr>
+<tr><td>训练 grounding</td><td>O(10M+) — OS-Atlas, Aguvis</td><td>充足</td></tr>
+<tr><td>训练 trajectory</td><td>O(1M) — Aguvis Stage 2</td><td>够 SFT,不够大规模 RL</td></tr>
+<tr><td>评测 task</td><td>O(100-1000) — OSWorld 369, WAA 154</td><td><strong>非常稀缺</strong>,且 contamination 风险高</td></tr>
+</table>
+<p>这导致一个有趣现象:模型在已知 benchmark 上数字越来越高,但<em>真实部署到没见过的桌面 task 时还是脆弱</em>。WebAgent-R1 / R2E-Gym 那种"自动合成 env"的思路在桌面侧还没人完整做出来。</p>
+
+<h3>9.5 闭源商业方案的对比 baseline</h3>
+<table>
+<tr><th>产品</th><th>定位</th><th>开放程度</th></tr>
+<tr><td>Claude Computer Use(Anthropic)</td><td>API,可调用</td><td>API + Docker 参考实现开放,内部训练闭源</td></tr>
+<tr><td>OpenAI Operator / CUA</td><td>SaaS</td><td>API,无开源</td></tr>
+<tr><td>Gemini 3 Computer Use</td><td>API</td><td>API,无开源</td></tr>
+<tr><td>OpenAI Codex CLI</td><td>本地</td><td>本地工具,模型闭</td></tr>
+<tr><td>Claude Code</td><td>本地 CLI</td><td>CLI 开源,模型闭</td></tr>
+</table>
+<p>这一栏全部作为 SOTA 上限对比 baseline,但<strong>不能自训</strong>,所以研究上还是看上面开源那一拨。</p>
+
+<hr>
+
+<h2>📎 附录:核心 repo 索引(按字母)</h2>
+
+<ul>
+<li><a href="https://github.com/anthropics/anthropic-quickstarts" target="_blank">anthropic-quickstarts/computer-use-demo</a> — Anthropic CU 参考 Docker</li>
+<li><a href="https://github.com/BAAI-Agents/Cradle" target="_blank">BAAI-Agents/Cradle</a> — GCC 框架,游戏+软件</li>
+<li><a href="https://github.com/bytedance/UI-TARS" target="_blank">bytedance/UI-TARS</a> / <a href="https://github.com/bytedance/UI-TARS-desktop" target="_blank">UI-TARS-desktop</a> — 字节跨平台 RL trainer + harness</li>
+<li><a href="https://github.com/harbor-framework/terminal-bench" target="_blank">harbor-framework/terminal-bench</a> — CLI 评测</li>
+<li><a href="https://github.com/microsoft/Magma" target="_blank">microsoft/Magma</a> — 多模态 agent foundation</li>
+<li><a href="https://github.com/microsoft/UFO" target="_blank">microsoft/UFO</a> — Windows OS agent</li>
+<li><a href="https://github.com/microsoft/WindowsAgentArena" target="_blank">microsoft/WindowsAgentArena</a> — Win 评测平台</li>
+<li><a href="https://github.com/OpenHands/OpenHands" target="_blank">OpenHands/OpenHands</a> — SWE agent 框架</li>
+<li><a href="https://github.com/OS-Copilot/OS-Copilot" target="_blank">OS-Copilot/OS-Copilot</a> — FRIDAY self-improve agent</li>
+<li><a href="https://github.com/R2E-Gym/R2E-Gym" target="_blank">R2E-Gym/R2E-Gym</a> — 8.1K SWE 训练 env</li>
+<li><a href="https://github.com/simular-ai/Agent-S" target="_blank">simular-ai/Agent-S</a> — 跨 OS 模块化 agent</li>
+<li><a href="https://github.com/trycua/cua" target="_blank">trycua/cua</a> — CU agent 商业 infra</li>
+<li><a href="https://github.com/xlang-ai/aguvis" target="_blank">xlang-ai/aguvis</a> — 两阶段 GUI 训练数据</li>
+<li><a href="https://github.com/xlang-ai/OSWorld" target="_blank">xlang-ai/OSWorld</a> — 桌面 benchmark 金标准</li>
+<li><a href="https://github.com/zai-org/CogAgent" target="_blank">zai-org/CogAgent</a> — 国内开山 GUI VLM</li>
+<li><a href="https://github.com/niuzaisheng/ScreenAgent" target="_blank">niuzaisheng/ScreenAgent</a> — 早期 VLM agent</li>
+<li><a href="https://github.com/likaixin2000/ScreenSpot-Pro-GUI-Grounding" target="_blank">ScreenSpot-Pro</a> — 高分辨率 grounding</li>
+<li><a href="https://spreadsheetbench.github.io/" target="_blank">SpreadsheetBench</a> — Excel 评测</li>
+<li><a href="https://spider2-sql.github.io/" target="_blank">Spider 2.0</a> — text-to-SQL</li>
+<li><a href="https://github.com/iOfficeAI/OfficeCLI" target="_blank">iOfficeAI/OfficeCLI</a> — Office 文件 CLI</li>
+</ul>
+
+</main>
+</body>
+</html>

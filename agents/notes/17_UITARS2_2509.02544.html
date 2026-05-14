@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · UI-TARS-2: Advancing GUI Agent with Multi-Turn Reinforcement Learning</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>UI-TARS-2: Advancing GUI Agent with Multi-Turn Reinforcement Learning</h1>
+<div class="meta">
+  ByteDance Seed · 123+ 作者 · 2025-09-02 (v1) · 2025-09-05 (v2)<br>
+  <a href="https://arxiv.org/abs/2509.02544" target="_blank">arXiv:2509.02544</a> ·
+  <a href="https://github.com/bytedance/UI-TARS" target="_blank">GitHub: bytedance/UI-TARS</a> ·
+  <a href="https://github.com/bytedance/UI-TARS-desktop" target="_blank">UI-TARS-desktop</a> ·
+  <a href="https://seed-tars.com/showcase/ui-tars-2/" target="_blank">Showcase</a><br>
+  关键词: GUI agent · multi-turn RL · PPO · data flywheel · hybrid GUI+SDK env · unified sandbox · MoE 230B
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> UI-TARS-2 是 ByteDance Seed 把"GUI agent"从 vision-grounding 模型推进到<strong>原生多轮 RL agent</strong>的一次完整 system paper — 不光发了模型卡上的几个 SOTA 数字,而是把"<strong>data flywheel + 稳定的 multi-turn PPO + 混合 GUI/CLI 环境 + 千机级统一沙箱</strong>"四件套讲清楚;遗憾的是<strong>到 2026-05 为止 UI-TARS-2 的权重、训练代码、沙箱实现都没开源</strong>,GitHub repo 里只挂了 1.5-7B 权重和一个 inference / coordinate-parsing 的 util 库。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">88.2 / 47.5 / 73.3</div><div class="l">Online-Mind2Web / OSWorld / AndroidWorld 主战场 SOTA(均超 Claude-4 / OpenAI CUA / Gemini)</div></div>
+    <div class="stat"><div class="n">230B (23B active)</div><div class="l">MoE LLM + 532M ViT,初始化自 Seed-thinking-1.6 — 主线模型权重<strong>未开源</strong></div></div>
+    <div class="stat"><div class="n">PPO ≫ GRPO</div><div class="l">论文实证:multi-turn long-trajectory 场景下 PPO + decoupled / length-adaptive GAE 比 GRPO 显著更稳</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是一篇"<strong>产品级 system report</strong>"而非纯算法 paper。算法侧的贡献是一组让 PPO 在多轮长 trajectory 下不崩的工程 trick(decoupled GAE + length-adaptive λ + asymmetric clip + value pretraining);真正的硬通货是 <strong>VM 集群 (数千实例 / 数千 QPS) + 浏览器游戏沙箱 (Chrome DevTools Protocol + 时间加速) + 流式 rollout pool</strong> 这套 infra。和上一篇 #14 ClawGUI 形成有趣对照: ClawGUI 是<em>开源 infra + 中等 scale 模型</em>,UI-TARS-2 是<em>闭源 infra + 巨型 MoE 模型</em>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景:从 UI-TARS-1 到 UI-TARS-2,以及和 ClawGUI 的演化关系</a></li>
+    <li><a href="#sec2">核心方法 · 4 大柱子总览</a></li>
+    <li><a href="#sec3">训练 recipe 细节 — PPO 在多轮长 trajectory 下不崩</a></li>
+    <li><a href="#sec_oss">🔍 开源现状 — repo 实地清点</a></li>
+    <li><a href="#sec5">实验结果与 baseline 对比</a></li>
+    <li><a href="#sec6">局限 / 未解决问题</a></li>
+    <li><a href="#sec7">与 ClawGUI 的并排对比</a></li>
+    <li><a href="#sec8">记忆点</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景:UI-TARS-1 → UI-TARS-2 → 和 ClawGUI 的关系</h2>
+
+<h3>1.1 UI-TARS 一代的定位</h3>
+
+<p>UI-TARS 一代 (<a href="https://arxiv.org/abs/2501.12326" target="_blank">arXiv:2501.12326</a>, 2025-01) 已经把"<strong>native GUI agent</strong>"这件事打了第一锤 — 直接吃截图,直接吐 pyautogui 风格 action,不依赖 a11y tree。1.5 (2025-04) 在此之上加了 RL 后训练,7B 版本权重开源 (<a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B" target="_blank">HF</a>, Apache 2.0)。一代的核心痛点是:</p>
+
+<ul>
+  <li><strong>cold-start 后 SFT 数据天花板低</strong> — agent-specific 数据稀缺,而通用 vision-language 数据对"长程任务规划"几乎没用。</li>
+  <li><strong>单轮 grounding 收益接近饱和</strong> — ScreenSpot-V2 已经 94.2%,继续推数字意义不大。</li>
+  <li><strong>RL 还是后训练阶段,不进入数据回路</strong> — RL 出来的 trajectory 没被回灌进 SFT/CT,形成 one-shot 训练而非持续进化。</li>
+</ul>
+
+<h3>1.2 UI-TARS-2 想做什么</h3>
+
+<p>UI-TARS-2 的核心论点:<strong>GUI agent 应该是"训练 → rollout → 数据回灌 → 再训练"的一个闭环,而不是一次性 finetune 出来的静态模型</strong>。它把这套闭环命名为 <span class="term">data flywheel</span>,并配套地把 multi-turn RL 训练 / hybrid GUI+SDK 环境 / 千机级沙箱 三件事补齐 — 这才是 paper 70+ 页的内容。</p>
+
+<p>四个核心声明 (摘自 abstract):</p>
+
+<blockquote>(1) a data flywheel for scalable data generation, (2) a stabilized multi-turn RL framework, (3) a hybrid GUI environment that integrates file systems and terminals, and (4) a unified sandbox platform for large-scale rollouts.</blockquote>
+
+<h3>1.3 与 ClawGUI (本系列 #14) 的演化关系</h3>
+
+<p>两篇放在一起看非常有意思:</p>
+
+<table>
+<thead><tr><th>维度</th><th>ClawGUI (#14, ZJU)</th><th>UI-TARS-2 (本篇, ByteDance Seed)</th></tr></thead>
+<tbody>
+<tr><td>团队定位</td><td>学术 / 开源全栈 framework</td><td>工业产品 / 系统报告 + 模型背书</td></tr>
+<tr><td>训练规模</td><td>2B 量级模型 + 单机/几十卡集群</td><td>230B MoE (23B active) + 千机级沙箱集群</td></tr>
+<tr><td>RL 算法</td><td>GiGPO (GRPO 变种,引入 group-in-group)</td><td>PPO + 一系列稳定性 trick (decoupled/length-adaptive GAE)</td></tr>
+<tr><td>核心叙事</td><td>"infra 也算贡献,把 train+eval+deploy 串成一条流水线开源"</td><td>"用千机级 sandbox 跑 multi-turn RL 是可行的,而且 PPO 在 multi-turn 下重新打败 GRPO"</td></tr>
+<tr><td>开源策略</td><td>code / framework / 部分 emulator 都开源,模型 2B 量级权重开</td><td>除 1.5-7B 历史权重外,UI-TARS-2 主线<strong>权重 / 训练代码 / 沙箱均未开源</strong></td></tr>
+</tbody>
+</table>
+
+<p>结论:ClawGUI 解决"<em>开源社区谁都能从头训一个 GUI agent</em>",UI-TARS-2 解决"<em>大厂如何把 GUI agent 训到 frontier 水准并产品化</em>";它俩不是竞品,是同一个生态在不同 scale 上的两个切片。ClawGUI 在 §1 的 1.2 表里也把 UI-TARS-2 列为"<em>报数字但 infra 不开源</em>"的代表 — 正是本篇要承认的现实。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 核心方法 · 4 大柱子总览</h2>
+
+<h3>2.1 柱子 1 · Data Flywheel (可持续数据生成)</h3>
+
+<p>三阶段串成一个闭环:</p>
+
+<div class="formula">
+  CT (continual pretrain) → SFT → RL → 生成新 trajectory → <em>validate</em> V(s) ∈ {0,1} → 回灌
+</div>
+
+<p>具体回灌路径 (论文 verbatim 公式):</p>
+
+<ul>
+  <li><strong>V(s) = 1</strong> (高质量 trajectory): <code>D<sub>SFT</sub><sup>(t+1)</sup> = D<sub>SFT</sub><sup>(t)</sup> ∪ D<sub>RFT,high</sub><sup>(t)</sup></code> — 高质量 rollout 进下一轮 SFT。</li>
+  <li><strong>V(s) = 0</strong> (低质量 trajectory): 进 CT 数据池继续做"<em>语言/视觉先验补强</em>",而不是直接丢弃。</li>
+</ul>
+
+<p><strong>cold-start 数据来源</strong> (论文 §3.2 / §4):</p>
+
+<ul>
+  <li><strong>CT</strong>: 互联网抓取的 GUI 教程 / 演示视频 / 操作指南 + 公开 agent trajectory + ByteDance 内部标注;agent-specific 数据占比小。</li>
+  <li><strong>SFT</strong>: 合成数据 + 人工标注;agent 数据占比远高于 CT。</li>
+  <li><strong>GUI-General 任务</strong>: 标注覆盖 <strong>690 个网站</strong>,两组标注员(专家 + 新手)分别产出。</li>
+</ul>
+
+<h3>2.2 柱子 2 · Stabilized Multi-Turn RL Framework</h3>
+
+<p>主体见 §3,这里只点四件关键事:</p>
+
+<ol>
+  <li><strong>用 PPO 而不是 GRPO</strong> — paper 实证 "<em>PPO consistently outperforms GRPO by a clear margin</em>" 在多轮长 trajectory 下。</li>
+  <li><strong>Decoupled GAE</strong>:policy 和 critic 用不同 λ。</li>
+  <li><strong>Length-Adaptive GAE</strong>:<code>λ<sub>policy</sub> = 1 − 1/(α·l)</code>,α=0.05,把长 trajectory 的 advantage 估计误差压下来。</li>
+  <li><strong>Asymmetric Clipping (clip-higher)</strong>:ε<sub>low</sub> 小、ε<sub>high</sub> 大,鼓励探索而不压抑梯度。</li>
+</ol>
+
+<h3>2.3 柱子 3 · Hybrid GUI Environment (GUI + 文件系统 + 终端)</h3>
+
+<p>这是 UI-TARS-2 在概念上最像"<strong>agentic computer use</strong>"的一步 — agent 不再被锁在屏幕里:</p>
+
+<div class="kv">
+  <p><strong>同一个 containerized instance</strong> 里同时挂载:</p>
+  <ul>
+    <li><strong>GUI 通道</strong>: PyAutoGUI / ADB,产出 click / type / scroll 等 UI primitives。</li>
+    <li><strong>SDK 通道</strong>: 预定义的 terminal 命令 (文件管理 / 软件开发 / git / 编译运行) + MCP tool 调用。</li>
+    <li><strong>共享文件系统</strong>: 浏览器下载的文件 <em>同一秒</em> 就能被 shell 命令处理 — 这是和 OpenAI CUA / Anthropic Computer Use 最大的差异点。</li>
+  </ul>
+</div>
+
+<p><strong>实证收益</strong>:同一个模型挂上 SDK 通道,在 BrowseComp-zh 从 32.1% 跳到 50.5%(GUI-only → GUI+SDK),在 BrowseComp-en 从 7.0% 跳到 29.6%。这个 delta 直接说明"<em>不该让 agent 用鼠标做本该 shell 做的事</em>"。</p>
+
+<h3>2.4 柱子 4 · Unified Sandbox Platform (统一沙箱)</h3>
+
+<p>分两套实现:</p>
+
+<table>
+<thead><tr><th>类型</th><th>GUI Environment (Cloud VM)</th><th>Game Environment (Browser Sandbox)</th></tr></thead>
+<tbody>
+<tr><td>OS / runtime</td><td>Windows / Ubuntu / Android</td><td>HTML5 / WebGL,跑在 headless Chrome 里</td></tr>
+<tr><td>规模</td><td>"<em>several thousand instances</em>",中心式 VM Manager,sustaining "<em>several thousand QPS</em>"</td><td>每 container 起多个浏览器,elastic scheduling</td></tr>
+<tr><td>I/O</td><td>VNC / WebRTC 可视化,lease-based 生命周期</td><td>Chrome DevTools Protocol (Playwright 兼容),GPU 硬件加速截图</td></tr>
+<tr><td>特殊能力</td><td>session tracking + state consistency</td><td>重写 timing API → 支持<strong>时间加速 / 暂停</strong>,把游戏 wall-clock 训练成本压下来</td></tr>
+</tbody>
+</table>
+
+<p class="nb">这个"<strong>重写 timing API 把游戏时间加速</strong>"的 trick 我个人觉得很关键 — 游戏 RL 训练的 wall-clock 瓶颈往往不是 GPU forward 而是 env step latency,这一手解决了游戏类 RL 训练的根本问题。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 训练 recipe 细节 — 怎么让 PPO 在多轮长 trajectory 下不崩</h2>
+
+<h3>3.1 base model 与初始化</h3>
+
+<div class="kv">
+  <strong>架构</strong>: 532M-parameter ViT + MoE LLM (<strong>23B active / 230B total</strong>)<br>
+  <strong>初始化</strong>: 来自 ByteDance 内部的 <em>Seed-thinking-1.6</em> (paper 未公开此模型的细节)
+</div>
+
+<p>对比 1.5-7B 量级的开源版本,UI-TARS-2 主线是<strong>大约 33× active params 的跨代跳跃</strong>(7B → 23B active),且换成 MoE。</p>
+
+<h3>3.2 PPO 主公式 (论文 verbatim)</h3>
+
+<div class="formula">
+  𝒥<sub>PPO</sub>(θ) = 𝔼 [ min( <em>r<sub>t</sub></em>(θ) · Â<sub>t</sub> ,  clip(<em>r<sub>t</sub></em>(θ), 1−ε<sub>low</sub>, 1+ε<sub>high</sub>) · Â<sub>t</sub> ) ]
+</div>
+
+<p>其中 <em>r<sub>t</sub></em>(θ) = π<sub>θ</sub>(o<sub>t</sub>|q,o<sub>&lt;t</sub>) / π<sub>θ<sub>old</sub></sub>(o<sub>t</sub>|q,o<sub>&lt;t</sub>) — 标准 importance ratio。关键创新在<strong>ε<sub>low</sub> ≠ ε<sub>high</sub></strong>。</p>
+
+<h3>3.3 四件稳定性 trick 详解</h3>
+
+<h4>(a) Decoupled GAE</h4>
+<p>传统 GAE 用同一个 λ 估 policy advantage 和 value target;论文把 λ<sub>policy</sub> 和 λ<sub>critic</sub> 解耦 — policy 那边可以大 λ (低 bias)保探索质量,critic 这边可以小 λ (低 variance)保 value 学得稳。</p>
+
+<h4>(b) Length-Adaptive GAE</h4>
+<div class="formula">
+  λ<sub>policy</sub> = 1 − 1/(α·l),  α = 0.05
+</div>
+<p>l 是 trajectory 长度。trajectory 越长 → λ 越接近 1 (越依赖未来 reward);trajectory 越短 → λ 越接近 0 (退化成 TD)。直觉:长 horizon 任务需要更"<em>远视</em>"的 credit assignment。</p>
+
+<h4>(c) Value Pretraining</h4>
+<p>在固定的 policy 输出上预训 value head 直到收敛,再开始联合训练 — 解决"<em>critic 还没学好就被 noisy policy 带偏</em>"的问题。这个 trick 也在 PPO+LLM 的若干工作 (e.g., DeepSeek-R1 路线的反思) 里反复出现。</p>
+
+<h4>(d) Asymmetric Clipping (clip-higher)</h4>
+<p>ε<sub>high</sub> &gt; ε<sub>low</sub>,允许 policy 在"<em>这一步比 old 更倾向于做对的事</em>"时获得更大的梯度,但在"<em>否定 old 行为</em>"时被限制。和 DAPO 系列 clip-higher 思想一致。</p>
+
+<h3>3.4 Reward 设计:可验证 vs 不可验证</h3>
+
+<table>
+<thead><tr><th>任务类型</th><th>Reward 形式</th></tr></thead>
+<tbody>
+<tr><td>Deterministically verifiable (有 ground truth)</td><td>binary 0/1 — 直接比对</td></tr>
+<tr><td>GUI-Browsing (有参考答案)</td><td>LLM-as-Judge,把 model answer 和 reference 对齐</td></tr>
+<tr><td>GUI-General (无明确答案)</td><td><strong>UI-TARS-2 自己当 ORM</strong> (generative outcome reward model) — 输入完整文本历史 + 最后 5 张截图,输出标量 reward;在评测集上达到 <strong>F1 = 83.8</strong></td></tr>
+<tr><td>Format/length</td><td>额外的 format reward 与 length penalty</td></tr>
+</tbody>
+</table>
+
+<h3>3.5 训练 infra (生产侧)</h3>
+<ul>
+  <li><strong>异步 server-based inference</strong>: rollout 服务独立于 training framework,不互相阻塞。</li>
+  <li><strong>Streaming training with partially-filled rollout pools</strong>: 不等一个完整 batch,部分到位就开始 update — 避免 long-tail trajectory 拖累整 batch。</li>
+  <li><strong>Stateful environments</strong>: 跨 tool 调用保留执行上下文,这是和"无状态 web sandbox"最大的区别。</li>
+</ul>
+
+<h3>3.6 paper 未公开的部分</h3>
+<ul>
+  <li>具体 GPU 数 / 训练 wall-clock / 总 token 数 — 未披露</li>
+  <li>data flywheel 跑了几轮 (iteration count) — paper 未公开</li>
+  <li>SFT 数据总规模 — paper 未公开,只说 "<em>690 websites for GUI-General</em>"</li>
+  <li>Seed-thinking-1.6 详细架构 — 未公开</li>
+  <li>RLHF / 安全对齐流程 — paper 没专门章节</li>
+</ul>
+
+<hr>
+
+<h2 id="sec_oss">4 · 🔍 开源现状 — repo 实地清点</h2>
+
+<p>到 <strong>2026-05</strong> 为止盘点情况(对应 paper 已发布 ~8 个月)。直接 <code>curl</code> 看 repo:</p>
+
+<h3>4.1 主仓库 <a href="https://github.com/bytedance/UI-TARS">bytedance/UI-TARS</a></h3>
+
+<pre>UI-TARS/
+├── LICENSE                  # Apache 2.0
+├── README.md                # 14.6 KB,主推 1.5,顶部加了一句 UI-TARS-2 发布公告
+├── README_v1.md             # 29.3 KB,UI-TARS-1 历史 README
+├── README_deploy.md         # deployment guide(主要面向 1.5-7B)
+├── README_coordinates.md    # 坐标处理教学(Qwen2.5-VL 绝对坐标的兼容)
+├── UI_TARS_paper.pdf        # 35.3 MB,1 代论文
+├── UI_TARS_paper_preview.pdf
+├── codes/
+│   ├── ui_tars/             # 一个 pip 可装的小工具包 (`pip install ui-tars`)
+│   │   ├── action_parser.py    # 解析 "Action: click(start_box=...)" 字符串
+│   │   ├── prompt.py           # COMPUTER_USE / MOBILE_USE / GROUNDING 三套 prompt 模板
+│   │   └── ...
+│   └── tests/
+├── data/                    # 几个示例图(不是训练数据集)
+└── figures/</pre>
+
+<p><strong>关键事实</strong>:</p>
+<ul>
+  <li><span class="ok">✓ License: Apache 2.0</span> — 干净,商用 OK。</li>
+  <li><span class="no">✗ 训练代码</span> — repo 里<strong>没有任何训练 / RL trainer / 沙箱代码</strong>。</li>
+  <li><span class="no">✗ 沙箱 / VM Manager</span> — paper §4 那套千机集群、QPS 调度、生命周期管理 — 完全没开源。</li>
+  <li><span class="no">✗ Data flywheel pipeline</span> — V(s) 验证器、回灌脚本、数据筛选 — 完全没开源。</li>
+  <li><span class="ok">✓ 推理工具</span> — <code>ui-tars</code> pip 包提供 action 字符串 ↔ pyautogui code 的双向转换,对接 deploy 实际有用。</li>
+</ul>
+
+<h3>4.2 <a href="https://github.com/bytedance/UI-TARS-desktop">bytedance/UI-TARS-desktop</a></h3>
+
+<p>这是一个独立的 desktop harness 项目,主要是 <strong>TypeScript / Electron 前端</strong>:</p>
+
+<pre>UI-TARS-desktop/
+├── multimodal/        # 多模态 client SDK (TS),配合任意 UI-TARS 模型 backend
+├── packages/          # monorepo,electron app / agent runtime / utils
+├── apps/              # demo apps
+├── .changeset / .husky / .lintstagedrc.mjs  # 标准 JS 工程化
+└── ...</pre>
+
+<p>这套是"<strong>把 UI-TARS 跑在本地电脑上的 desktop 客户端</strong>",和 paper 描述的<strong>训练侧沙箱</strong>完全是两件事 — 不要混淆。</p>
+
+<h3>4.3 HuggingFace 模型清单 (ByteDance-Seed)</h3>
+
+<p>查询 HF org 现存 UI-TARS 系列模型:</p>
+
+<table>
+<thead><tr><th>模型名</th><th>架构 / size</th><th>License</th><th>属于哪代</th></tr></thead>
+<tbody>
+<tr><td><a href="https://huggingface.co/ByteDance-Seed/UI-TARS-2B-SFT">UI-TARS-2B-SFT</a></td><td>2B(基于 Qwen2-VL 系)</td><td>Apache 2.0</td><td>1 代 SFT</td></tr>
+<tr><td><a href="https://huggingface.co/ByteDance-Seed/UI-TARS-7B-SFT">UI-TARS-7B-SFT</a></td><td>7B</td><td>Apache 2.0</td><td>1 代 SFT</td></tr>
+<tr><td><a href="https://huggingface.co/ByteDance-Seed/UI-TARS-7B-DPO">UI-TARS-7B-DPO</a></td><td>7B + DPO</td><td>Apache 2.0</td><td>1 代</td></tr>
+<tr><td><a href="https://huggingface.co/ByteDance-Seed/UI-TARS-72B-SFT">UI-TARS-72B-SFT</a></td><td>72B</td><td>Apache 2.0</td><td>1 代</td></tr>
+<tr><td><a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B">UI-TARS-1.5-7B</a></td><td>7B(基于 Qwen2.5-VL)</td><td>Apache 2.0</td><td>1.5,latest 开源</td></tr>
+<tr><td>UI-TARS-2 (任意 size)</td><td>—</td><td>—</td><td><span class="no">✗ 未发布</span></td></tr>
+</tbody>
+</table>
+
+<p>HF 上有一个 <a href="https://github.com/bytedance/UI-TARS/issues/213">公开 issue #213</a> 由 HuggingFace 的 Niels Rogge 提交,请求 ByteDance 把 1.5 完整版和 UI-TARS-2 放到 HF — issue 至本笔记写作时<strong>仍 open,未获官方回应</strong>。</p>
+
+<h3>4.4 数据集 / 沙箱 / Flywheel 数据</h3>
+<ul>
+  <li><span class="no">✗</span> Cold-start CT 数据 — 内部 + 抓取数据混合,未释放。</li>
+  <li><span class="no">✗</span> SFT 标注集 (690 网站) — 未释放。</li>
+  <li><span class="no">✗</span> RL trajectory 数据 — 未释放。</li>
+  <li><span class="no">✗</span> 沙箱镜像 / Dockerfile — 未释放。</li>
+  <li><span class="no">✗</span> Game environment 15 款 HTML5 游戏的 wrapper — 未释放(其中部分是 poki.com 第三方游戏,license 上也无法直接重发)。</li>
+</ul>
+
+<h3>4.5 "开源度"评分表</h3>
+
+<table>
+<thead><tr><th>维度</th><th>状态</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>论文 / 技术报告</td><td><span class="ok">✓ 公开</span></td><td>arXiv:2509.02544,70+ 页详细</td></tr>
+<tr><td>UI-TARS-1 / 1.5 权重</td><td><span class="ok">✓ 全开</span></td><td>2B / 7B / 7B-DPO / 72B / 1.5-7B (Apache 2.0)</td></tr>
+<tr><td>UI-TARS-2 主线权重</td><td><span class="no">✗</span></td><td>到 2026-05 未上 HF;官方仅提供 "research access via email TARS@bytedance.com"</td></tr>
+<tr><td>推理 / 后处理工具包</td><td><span class="ok">✓</span></td><td><code>pip install ui-tars</code>,action parser + prompt templates</td></tr>
+<tr><td>Desktop 客户端 harness</td><td><span class="ok">✓</span></td><td>UI-TARS-desktop repo,TS/Electron,商用 ready</td></tr>
+<tr><td>训练 / RL trainer 代码</td><td><span class="no">✗</span></td><td>完全闭源</td></tr>
+<tr><td>统一沙箱 (VM Manager)</td><td><span class="no">✗</span></td><td>完全闭源</td></tr>
+<tr><td>Game sandbox</td><td><span class="no">✗</span></td><td>完全闭源</td></tr>
+<tr><td>Data flywheel pipeline</td><td><span class="no">✗</span></td><td>完全闭源</td></tr>
+<tr><td>训练数据 (CT/SFT/RL)</td><td><span class="no">✗</span></td><td>完全闭源</td></tr>
+<tr><td>评测脚本</td><td>部分</td><td>OSWorld 等公开 benchmark 有第三方/官方 inference 脚本,但<em>flywheel 用的内部 eval set</em> 不开源</td></tr>
+</tbody>
+</table>
+
+<p><strong>综合评分</strong>: 三件大事(权重 / 训练代码 / 沙箱)主线版本均未开源 — 把 UI-TARS-2 当 "<em>可复现 baseline</em>" 是 <strong>不现实</strong> 的;只能当 <strong>SOTA 数字参照系</strong> 和 <strong>架构 / 方法借鉴对象</strong>。要在自己环境下复现 multi-turn RL on GUI,目前更现实的选择仍是<a href="14_ClawGUI_2604.11784.html">ClawGUI</a> / AgentGym-RL / verl-agent。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 实验结果与 baseline 对比</h2>
+
+<h3>5.1 Computer Use (桌面操作)</h3>
+
+<table>
+<thead><tr><th>Benchmark</th><th>UI-TARS-2</th><th>UI-TARS-1.5</th><th>Claude-4-Sonnet/Opus</th><th>OpenAI CUA-o3</th></tr></thead>
+<tbody>
+<tr><td>OSWorld (100 steps)</td><td><strong>47.5</strong></td><td>42.5</td><td>43.9 (Sonnet)</td><td>42.9</td></tr>
+<tr><td>WindowsAgentArena (50 steps)</td><td><strong>50.6</strong></td><td>42.1</td><td>—</td><td>—</td></tr>
+<tr><td>Terminal-Bench (GUI-SDK†)</td><td><strong>45.3</strong></td><td>—</td><td>43.2 (Opus)</td><td>—</td></tr>
+<tr><td>SWE-Bench Verified (GUI-SDK†)</td><td>68.7</td><td>—</td><td><strong>72.5</strong> (Opus)</td><td>—</td></tr>
+</tbody>
+</table>
+
+<p class="nb">SWE-Bench Verified 上 Opus 仍领先 3.8 个绝对点 — paper 老实承认这一点没让数字"看起来更漂亮"。Terminal-Bench 评估了 80 个任务中的 75 个(5 个因兼容性跳过)。</p>
+
+<h3>5.2 Browser Use (浏览器)</h3>
+
+<table>
+<thead><tr><th>Benchmark</th><th>UI-TARS-2 GUI-only</th><th>UI-TARS-2 GUI-SDK</th><th>UI-TARS-1.5</th><th>Claude-4-Opus</th><th>OpenAI o3</th></tr></thead>
+<tbody>
+<tr><td>Online-Mind2Web</td><td>—</td><td><strong>88.2</strong></td><td>75.8</td><td>—</td><td>—</td></tr>
+<tr><td>BrowseComp-zh</td><td>32.1</td><td><strong>50.5</strong></td><td>—</td><td>37.4</td><td>—</td></tr>
+<tr><td>BrowseComp-en</td><td>7.0</td><td>29.6</td><td>—</td><td>—</td><td><strong>49.7</strong></td></tr>
+</tbody>
+</table>
+
+<p>BrowseComp-en 上 OpenAI o3 仍领先(49.7 vs 29.6) — 但 o3 是<em>纯文本 deep-research</em>路径,UI-TARS-2 是<em>真正用浏览器</em>。两条路径的对照本身就是看点。</p>
+
+<h3>5.3 Mobile Use</h3>
+
+<table>
+<thead><tr><th>Benchmark</th><th>UI-TARS-2</th><th>UI-TARS-1.5</th><th>OpenAI CUA-o3</th></tr></thead>
+<tbody>
+<tr><td>AndroidWorld</td><td><strong>73.3</strong></td><td>64.2</td><td>52.5</td></tr>
+</tbody>
+</table>
+
+<h3>5.4 Game (15 款 HTML5 + LMGame-Bench)</h3>
+
+<table>
+<thead><tr><th>评测</th><th>UI-TARS-2</th><th>Human</th><th>OpenAI CUA</th><th>Claude</th><th>其他</th></tr></thead>
+<tbody>
+<tr><td>15-game 平均 normalized score</td><td><strong>59.8</strong></td><td>100</td><td>24.73</td><td>21.61</td><td>—</td></tr>
+<tr><td>2048</td><td>932.4</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Shapes</td><td><strong>5.90</strong> (超人类)</td><td>5.42</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>LMGame 2048</td><td>117.1</td><td>—</td><td>—</td><td>—</td><td>o3 128.2</td></tr>
+<tr><td>LMGame Candy Crush</td><td>163.2</td><td>—</td><td>—</td><td>—</td><td>Gemini-2.5 Pro 177.3</td></tr>
+</tbody>
+</table>
+
+<h3>5.5 Grounding (沿用 1.5 的强势)</h3>
+
+<p>Grounding capability 在 paper 中没占大篇幅 — 1.5-7B 已经在 ScreenSpot-V2 报到 94.2,在 ScreenSpotPro 61.6;UI-TARS-2 没刻意推这一项,显示研发重心已经从 grounding 转向 multi-step planning。</p>
+
+<h3>5.6 量化 (W4A8)</h3>
+
+<table>
+<thead><tr><th>设置</th><th>OSWorld</th><th>每轮 latency</th></tr></thead>
+<tbody>
+<tr><td>FP (unquantized)</td><td>47.5</td><td>4.0s</td></tr>
+<tr><td>W4A8</td><td>44.4 (−3.1)</td><td><strong>2.5s</strong> (−38%)</td></tr>
+</tbody>
+</table>
+
+<p>对生产部署关键 — paper 唯一公开的量化对照。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 局限 / 未解决问题</h2>
+
+<h3>6.1 Paper 自己承认的</h3>
+<ul>
+  <li><strong>BrowseComp-en 仍落后 o3 20 个点</strong> — GUI-based 路径在<em>纯检索类</em>任务上对纯文本 o3 仍处下风。</li>
+  <li><strong>SWE-Bench Verified 落后 Claude-4-Opus 3.8 点</strong> — 复杂软件工程任务上仍未追平专门的 coding agent。</li>
+  <li><strong>样本效率 / training cost</strong> — paper 没披露 GPU 数 / 训练 wall-clock,我们无从评估"<em>这套 recipe 在 100 卡 / 10 卡 集群上是否还 work</em>"。</li>
+</ul>
+
+<h3>6.2 笔者(我)的额外质疑</h3>
+<ul>
+  <li><strong>"PPO 打败 GRPO" 的结论可推广吗?</strong> — paper 报的是<em>千机沙箱 + 230B MoE + 多轮长 trajectory</em> 这个非常具体的设置。换到 7B / 单卡 / 短 trajectory 的学术环境,结论可能反向(ClawGUI / MAI-UI 等用 GRPO 系一族仍跑得很好)。<strong>不要把 "use PPO" 当成普适建议</strong>。</li>
+  <li><strong>F1 = 83.8 的 generative ORM 怎么训的?</strong> — paper 提了一句结果,但训练数据 / loss / 监督信号没展开。这一手如果工作,意味着"<em>同一个 base model 既当 actor 又当 reward model</em>" 是可行的,潜在影响很大,但目前细节缺失。</li>
+  <li><strong>data flywheel 的稳定性</strong> — V(s)=1 的数据被回灌进 SFT,V(s)=0 的回灌进 CT;但 paper 没分析"<em>iteration t 时 V 的精度漂移会不会让数据 quality 单调劣化</em>"。这是 self-distill 类方法的经典陷阱。</li>
+  <li><strong>无 safety / RLHF 章节</strong> — 一个能跨 OS / 共享文件系统 / 执行 shell 命令的 agent,paper 完全没讨论权限边界、CAPTCHA bypass、prompt injection。1 代 README 提过 "<em>extensive internal safety evaluations are underway</em>",但本篇没把对应章节放进 paper。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec7">7 · 与 ClawGUI (#14) 的并排对比</h2>
+
+<table>
+<thead><tr><th>维度</th><th>ClawGUI</th><th>UI-TARS-2</th></tr></thead>
+<tbody>
+<tr><td><strong>模型 scale</strong></td><td>2B 量级 (ClawGUI-2B),开源</td><td>230B total / 23B active MoE,闭源主线</td></tr>
+<tr><td><strong>RL 算法</strong></td><td>GiGPO (GRPO 变种 + group-in-group + PRM)</td><td>PPO + decoupled GAE + length-adaptive λ + asymmetric clip</td></tr>
+<tr><td><strong>环境覆盖</strong></td><td>Android + HarmonyOS + iOS 真实设备 + Docker emulator pool;mobile-first</td><td>Windows + Ubuntu + Android VM 集群 + HTML5 游戏沙箱;<strong>desktop + game 偏重</strong></td></tr>
+<tr><td><strong>Hybrid 通道</strong></td><td>有 hybrid CLI-GUI routing,以 mobile 工具调用 + GUI 互补</td><td>有 GUI + SDK (shell, file, MCP);<strong>共享文件系统</strong>是亮点</td></tr>
+<tr><td><strong>数据闭环</strong></td><td>online RL + 真实设备 trajectory 回流,但无显式 flywheel 三阶段</td><td>显式 CT/SFT/RL 三阶段 flywheel,V(s) 验证决定回灌路径</td></tr>
+<tr><td><strong>开源策略</strong></td><td>全栈开源(trainer + eval + deploy + 2B 权重)</td><td>仅论文 + 历史版本 1/1.5 权重 + 推理工具包 + desktop 客户端</td></tr>
+<tr><td><strong>典型用法</strong></td><td>学术/中型团队复现 GUI agent RL 训练全流程</td><td>大厂参考 system design;或通过 email 申请 research access 拿 inference</td></tr>
+<tr><td><strong>性能定位</strong></td><td>同 size 段 SOTA (MobileWorld 17.1%)</td><td>跨 size 段 frontier SOTA (OSWorld 47.5 / AndroidWorld 73.3)</td></tr>
+</tbody>
+</table>
+
+<p class="nb">两篇放一起读最大的收获是看清"<strong>RL 算法的选择强烈依赖 scale 和 trajectory 长度</strong>"。同样训 GUI agent,2B 量级 + 短 mobile trajectory 时 GRPO 系赢,230B + 长多轮 trajectory 时 PPO 系赢 — 这和 RL 框架横评 (#19 in models/) 里观察到的"<em>algorithm choice depends on infra constraints</em>"完全一致。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 记忆点</h2>
+
+<ol>
+  <li><strong>"GUI agent" 的研发重心已经从 grounding 转移到 multi-turn planning + tool integration</strong>。ScreenSpot-V2 已经 94.2,grounding 不再是瓶颈。</li>
+  <li><strong>多轮长 trajectory 下 PPO 反胜 GRPO</strong> — 这个观察值得被 RL 框架 paper 反复引用,前提是"<em>多轮 + 大 scale + 状态化环境</em>"。</li>
+  <li><strong>GUI + SDK 混合通道带来巨大收益</strong> (BrowseComp-en 7.0 → 29.6,4× 提升)。"<em>不要让 agent 用鼠标做本该 shell 做的事</em>"。</li>
+  <li><strong>用 actor 自己当 generative ORM</strong> 是 paper 里一个被低调处理但非常有意思的点 — F1 = 83.8 已经接近可用,但训练细节未公开,值得追踪。</li>
+  <li><strong>千机级沙箱的 timing API 重写</strong> 让游戏 RL 训练的 wall-clock 可控 — 这是 system 侧最实用的一个 idea。</li>
+  <li><strong>开源 ≠ system paper 必备</strong> — UI-TARS-2 把 paper 写得比代码还细,但代码/权重没放,这是大厂 system report 的常见姿态。读者要明白"<em>论文里的 4 大柱子是工艺指南,不是开箱即用的工具箱</em>"。</li>
+</ol>
+
+<hr>
+
+<div class="meta" style="margin-top:30px">
+  <p>笔记来源:</p>
+  <ul>
+    <li><a href="https://arxiv.org/abs/2509.02544">arXiv:2509.02544 UI-TARS-2 Technical Report</a> (v1 2025-09-02, v2 2025-09-05)</li>
+    <li><a href="https://arxiv.org/html/2509.02544v1">HTML 版 (v1)</a></li>
+    <li><a href="https://github.com/bytedance/UI-TARS">github.com/bytedance/UI-TARS</a> (主仓库)</li>
+    <li><a href="https://github.com/bytedance/UI-TARS-desktop">github.com/bytedance/UI-TARS-desktop</a> (桌面客户端)</li>
+    <li><a href="https://huggingface.co/ByteDance-Seed">HuggingFace ByteDance-Seed</a> (1/1.5 历史权重)</li>
+    <li><a href="https://github.com/bytedance/UI-TARS/issues/213">Issue #213 — HF release 请求 (open)</a></li>
+    <li>UI-TARS-1: <a href="https://arxiv.org/abs/2501.12326">arXiv:2501.12326</a> (前身参考)</li>
+  </ul>
+  <p>笔记日期: 2026-05-13 · 笔记编号 #17 · 与 #14 ClawGUI 并读最佳</p>
+</div>
+
+</main>
+</body>
+</html>

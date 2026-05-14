@@ -718,7 +718,263 @@
 <tr><td>要求</td><td>Android 8.0+,需先装 Shizuku 并授权</td></tr>
 </table>
 
-<h3>8.6 模型 — <code>ClawGUI-2B</code></h3>
+<h3>8.6 Docker 与模拟器 — 训练环境到底"全开"吗?</h3>
+
+<p>这是用户最关心的一块。下面把整条链路按"<strong>三仓库 / 五镜像 / 实际依赖</strong>"拆给清楚,所有内容都是从 GitHub Contents API 直接拉的原文。</p>
+
+<h4>📦 8.6.1 三个仓库的角色</h4>
+
+<table>
+<thead><tr><th>仓库</th><th>角色</th><th>License</th><th>是否必装</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/ZJU-REAL/ClawGUI" target="_blank">ZJU-REAL/ClawGUI</a></td><td>主仓 — trainer(<code>clawgui-rl/</code>)、评测(<code>clawgui-eval/</code>)、部署(<code>clawgui-agent/</code>)、Android app(<code>clawgui-app/</code>)</td><td>Apache 2.0</td><td>必装</td></tr>
+<tr><td><a href="https://github.com/sugarandgugu/ClawGUI-Server" target="_blank">sugarandgugu/ClawGUI-Server</a></td><td>Android 模拟器容器编排 — <code>uv run mw env run --count 8</code> 一行起 8 个 emulator;封装 MobileWorld 上游</td><td><span class="no">⚠ 无 LICENSE 文件</span></td><td>训练必装(虚拟环境时)</td></tr>
+<tr><td><a href="https://github.com/Tongyi-MAI/MobileWorld" target="_blank">Tongyi-MAI/MobileWorld</a></td><td>真正的 Android 模拟器 + 应用后端 + API,被 ClawGUI-Server 拉来用</td><td>(查官方仓)</td><td>间接(通过镜像)</td></tr>
+</tbody>
+</table>
+
+<h4>🐳 8.6.2 五张 Docker 镜像各自是什么</h4>
+
+<table>
+<thead><tr><th>#</th><th>镜像</th><th>来源</th><th>用途</th><th>体积估算</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>clawgui-eval</code>(本地 build)</td><td><code>clawgui-eval/Dockerfile</code></td><td>静态 grounding benchmark 推理 + judge + metric</td><td>~10 GB</td></tr>
+<tr><td>2</td><td><code>clawgui-rl</code>(本地 build,9 变体)</td><td><code>clawgui-rl/docker/Dockerfile.*</code></td><td>vLLM / SGLang / Megatron RL trainer</td><td>~20 GB</td></tr>
+<tr><td>3</td><td><code>ghcr.io/tongyi-mai/mobile_world:latest</code></td><td>GHCR 公开 pull</td><td>Android emulator + Mattermost + Mastodon + API server,一个容器内全装</td><td>~15 GB</td></tr>
+<tr><td>4</td><td>Mattermost(嵌套在 #3 内)</td><td>官方 mattermost docker</td><td>聊天平台 task 用</td><td>—</td></tr>
+<tr><td>5</td><td>Mastodon(嵌套在 #3 内)</td><td>官方 mastodon docker</td><td>社交平台 task 用</td><td>—</td></tr>
+</tbody>
+</table>
+
+<div class="kv">
+<strong>注意 #3 是 Docker-in-Docker</strong>:<code>mobile_world</code> 镜像基于 <code>cruizba/ubuntu-dind:latest</code>,容器内还跑一个 Docker daemon 去 <code>docker load</code> 预打包的 Mattermost / Mastodon tar 包。所以宿主机要给这个容器 <strong>privileged</strong> 权限,这是个不小的安全开销。
+</div>
+
+<h4>⚙️ 8.6.3 评测镜像 <code>clawgui-eval</code> 原文(完整)</h4>
+
+<pre>FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel
+
+# system packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git wget unzip build-essential ninja-build libgl1
+
+WORKDIR /workspace
+COPY . clawgui-eval/
+WORKDIR /workspace/clawgui-eval
+
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --no-build-isolation flash-attn==2.8.1
+RUN pip install --no-cache-dir -e .
+
+CMD ["python", "main.py", "--help"]</pre>
+
+<p><code>requirements.txt</code> 完整内容(只有 8 个核心包,极其干净):</p>
+<pre>torch>=2.8.0
+transformers>=4.57.0
+qwen-vl-utils>=0.0.14
+openai>=2.9.0
+pillow>=12.0.0
+tqdm>=4.67.0
+numpy>=2.2.0
+accelerate>=1.12.0
+# optional: flash-attn>=2.8.1, vllm>=0.11.0</pre>
+
+<p><code>docker-compose.yml</code> 关键挂载:</p>
+<pre>volumes:
+  - ${DATA_DIR:-./data}:/workspace/clawgui-eval/data       # benchmark 数据
+  - ${IMAGE_DIR:-./image}:/workspace/clawgui-eval/image    # 截图素材
+  - ${OUTPUT_DIR:-./output}:/workspace/clawgui-eval/output # 评测输出
+  - ${MODEL_DIR:-/tmp/models}:/models                      # 本地模型权重
+ipc: host          # torch multiprocessing spawn 需要
+ulimits.memlock: -1
+deploy.resources.reservations.devices: [{ driver: nvidia, count: all }]</pre>
+
+<p><strong>这一块的开源度</strong>:</p>
+<ul>
+<li><span class="ok">✅</span> base image 公开(<code>pytorch/pytorch:*-devel</code>)</li>
+<li><span class="ok">✅</span> 依赖<strong>少且明确</strong>(8 个核心包,版本下限锁死,没有上限锁,易跨版本)</li>
+<li><span class="ok">✅</span> 数据集公开:HuggingFace <a href="https://huggingface.co/datasets/johnzqlu/clawgui-eval" target="_blank">johnzqlu/clawgui-eval</a> / ModelScope <code>Matrix0602/clawgui-eval</code></li>
+<li><span class="ok">✅</span> 可复现度 ≈ <strong>PinchBench 的 self-hosted 模式</strong>:一份 Dockerfile + 一份 compose 文件 + 一个 HuggingFace 数据集 ID,就够了</li>
+</ul>
+
+<h4>🔧 8.6.4 训练 Trainer 镜像 <code>clawgui-rl/docker/</code> — 9 个变体</h4>
+
+<table>
+<thead><tr><th>Dockerfile</th><th>大小</th><th>定位</th></tr></thead>
+<tbody>
+<tr><td><code>Dockerfile.vllm.sglang.megatron</code></td><td>5.3 KB</td><td><strong>主力</strong>:支持 vLLM + SGLang + Megatron 三套后端</td></tr>
+<tr><td><code>Dockerfile.ngc.vllm</code> / <code>Dockerfile.ngc.vllm0.8</code></td><td>3.3 KB</td><td>NVIDIA NGC pytorch:24.08 + vLLM</td></tr>
+<tr><td><code>Dockerfile.ngc.vllm0.8.sagemaker</code></td><td>1.8 KB</td><td>AWS SageMaker 适配版</td></tr>
+<tr><td><code>Dockerfile.sglang</code></td><td>2.4 KB</td><td>纯 SGLang 后端</td></tr>
+<tr><td><code>Dockerfile.vemlp.vllm.te</code></td><td>1.8 KB</td><td>火山引擎 ML 平台 + TransformerEngine</td></tr>
+<tr><td><code>Dockerfile.awsefa</code></td><td>2.1 KB</td><td>AWS EFA(高速网络互连)</td></tr>
+<tr><td><code>Dockerfile.rocm</code> / <code>Apptainerfile.rocm</code></td><td>1.4 KB</td><td>AMD ROCm GPU + Singularity/Apptainer</td></tr>
+</tbody>
+</table>
+
+<p>主力镜像 <code>Dockerfile.vllm.sglang.megatron</code> 的关键栈(<strong>原文摘录</strong>):</p>
+<pre>FROM nvcr.io/nvidia/pytorch:24.08-py3
+ENV MAX_JOBS=32 VLLM_WORKER_MULTIPROC_METHOD=spawn HF_HUB_ENABLE_HF_TRANSFER=1
+
+# 清掉 NV 自带 fork 版本
+RUN pip uninstall -y torch torchvision torchaudio \
+    pytorch-quantization pytorch-triton torch-tensorrt \
+    xgboost transformer_engine flash_attn apex megatron-core grpcio
+
+# 装公网版本
+RUN pip install "sglang[all]==0.4.6.post5" --find-links https://flashinfer.ai/whl/cu124/torch2.6/flashinfer-python
+RUN pip install "vllm==0.8.5.post1" "torch==2.6.0" "torchvision==0.21.0" "tensordict==0.6.2"
+RUN pip install "transformers[hf_xet]>=4.51.0" accelerate datasets peft hf-transfer \
+    ray[default] codetiming hydra-core qwen-vl-utils wandb dill liger-kernel ...
+RUN wget .../flash_attn-2.7.4.post1+cu12torch2.6cxx11abiFALSE-...whl && pip install ...</pre>
+
+<p>对应 <code>requirements.txt</code> 列出 development 全集(全部 PyPI 公开包):</p>
+<pre>accelerate, codetiming, datasets, dill, flash-attn, hydra-core,
+liger-kernel, numpy, pandas, peft, pyarrow>=19.0.0, pybind11,
+pylatexenc, pre-commit, ray[default], tensordict<=0.6.2, torchdata,
+transformers==4.51.1, wandb, packaging>=20.0, uvicorn, fastapi,
+qwen-vl-utils[decord], openpyxl</pre>
+
+<p><strong>注意</strong>:9 份 Dockerfile 都是从 verl 上游继承的<em>原版</em>(<code>setup.py</code> 头部还写着 <code>Copyright 2024 Bytedance Ltd.</code>),ClawGUI 没改 trainer 容器本身,所有改动都在 <code>agent_system/</code> Python 代码层。</p>
+
+<h4>📱 8.6.5 Android 模拟器镜像 — 真正复杂的一块</h4>
+
+<p>训练时,<code>clawgui-rl/agent_system/environments/env_package/mobileworld/envs.py</code> 里 <code>MobileWorldWorker</code>(Ray Actor)走 HTTP 连到一组 backend URL,默认从 <code>examples/env_server/mobileworld_server.txt</code> 读:</p>
+
+<pre># mobileworld_server.txt 长这样
+http://127.0.0.1:7000
+http://127.0.0.1:7001
+http://127.0.0.1:7002
+...</pre>
+
+<p>每个 URL 对应一个独立的 emulator 容器。容器的 Dockerfile(<code>ClawGUI-Server/docker/Dockerfile</code>)摘要:</p>
+
+<pre>FROM cruizba/ubuntu-dind:latest    # Docker-in-Docker 基底
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+
+RUN apt-get install -y openjdk-17-jdk scrcpy python3 python3-pip \
+    ffmpeg xvfb x11vnc openbox novnc websockify socat
+RUN pip install uv
+
+# 装 Android SDK + emulator + Pixel_8 API 34 系统镜像
+RUN cd /opt/android-sdk/cmdline-tools && \
+    wget commandlinetools-linux-13114758_latest.zip ... && \
+    sdkmanager "platform-tools" "build-tools;34.0.0" \
+               "platforms;android-34" "system-images;android-34;google_apis;x86_64"
+
+# AVD 配置 + adb key + 启动脚本
+COPY docker/Pixel_8_API_34_x86_64.avd /root/.android/avd/.../
+COPY docker/adbkey docker/adbkey.pub /root/.android/
+COPY docker/start_emulator.sh docker/start_novnc.sh /app/docker/
+
+# 应用后端预打包
+COPY docker/mattermost-docker /app/mattermost-docker-bk
+COPY docker/mastodon-docker /app/mastodon-docker-bk
+COPY docker/images /app/images        # 预打包应用镜像 tar
+
+HEALTHCHECK CMD curl -f http://localhost:6800/health || exit 1
+ENTRYPOINT ["entrypoint.sh"]</pre>
+
+<p><code>entrypoint.sh</code> 启动顺序:</p>
+<ol>
+<li><code>sysctl net.ipv6.conf.all.disable_ipv6=1</code>(否则模拟器 SIM 卡禁用)</li>
+<li><code>start-docker.sh</code> 启 inner Docker daemon</li>
+<li><code>docker load -i</code> 把 Mattermost/Mastodon tar 包载入</li>
+<li><code>start_emulator.sh</code> 启动 Android 模拟器(<code>emulator -avd Pixel_8_API_34_x86_64 -no-window -no-audio -no-snapshot -gpu swiftshader_indirect</code>)</li>
+<li><code>socat TCP-LISTEN:5556 ... TCP:127.0.0.1:5555</code> 把 ADB 暴露到 0.0.0.0</li>
+<li><code>uv run mobile-world server --port 6800</code> 启 API server</li>
+</ol>
+
+<p>每容器对外暴露的端口(用 ClawGUI-Server 的 <code>mw env run</code> 自动分配):</p>
+<table>
+<thead><tr><th>端口</th><th>用途</th><th>默认起始</th></tr></thead>
+<tbody>
+<tr><td>backend</td><td>API server(<code>/task/list</code> / <code>/step</code> / <code>/screenshot</code> 等)</td><td>7000</td></tr>
+<tr><td>viewer</td><td>Web 查看器</td><td>8000</td></tr>
+<tr><td>VNC</td><td>noVNC 远程屏幕</td><td>5900</td></tr>
+<tr><td>ADB</td><td>ADB 中继(<code>socat</code> 转发)</td><td>5600</td></tr>
+</tbody>
+</table>
+
+<p>开源状态:</p>
+<ul>
+<li><span class="ok">✅</span> Dockerfile 全开,基于公开 <code>cruizba/ubuntu-dind</code>,Android SDK 都是 <code>dl.google.com</code> 公网下载</li>
+<li><span class="ok">✅</span> 镜像 <code>ghcr.io/tongyi-mai/mobile_world:latest</code> 公开可 <code>docker pull</code>(GHCR 不限速)</li>
+<li><span class="no">⚠</span> ClawGUI-Server 仓库本身<strong>没有 LICENSE 文件</strong>(4 stars,作者 sugarandgugu)— 严格说"公开但未明示授权",但上游 MobileWorld 是 Apache 2.0,所以镜像本身用法没法律问题</li>
+<li><span class="no">⚠</span> <code>start_emulator.sh</code> 里硬编了一个 <strong>内部代理</strong> <code>PROXY_HOST=10.130.138.46:7897</code> — 这是浙大 REAL 实验室内网地址,自托管时<em>必须</em> <code>export PROXY_HOST=none</code> 把它关掉</li>
+<li><span class="no">⚠</span> <code>.env.example</code> 要求填 <code>DASHSCOPE_API_KEY</code> / <code>MODELSCOPE_API_KEY</code> / <code>USER_AGENT_API_KEY</code>(分别给 MCP task 和 user-agent 交互 task 用)— 没这些 key 跑不了完整 task 集</li>
+</ul>
+
+<h4>🚀 8.6.6 从 0 到训练跑起来 — 完整命令序列</h4>
+
+<pre># Step 1. 准备 emulator 池(在专门的物理机或带嵌套虚拟化的机器)
+git clone https://github.com/sugarandgugu/ClawGUI-Server && cd ClawGUI-Server
+uv sync
+cp .env.example .env && vim .env    # 填 API key
+sudo uv run mw env check            # 检查 Docker / KVM / .env
+docker pull ghcr.io/tongyi-mai/mobile_world:latest
+
+sudo uv run mw env run \
+    --count 16 \                    # 起 16 个并行容器
+    --backend-start-port 7000 \
+    --viewer-start-port 8000 \
+    --vnc-start-port 5900 \
+    --adb-start-port 5600 \
+    --launch-interval 3
+
+# Step 2. 把 16 个 URL 写进 trainer 配置
+cd /path/to/ClawGUI/clawgui-rl
+cat > examples/env_server/mobileworld_server.txt <<EOF
+http://127.0.0.1:7000
+http://127.0.0.1:7001
+...
+http://127.0.0.1:7015
+EOF
+
+# Step 3. build & launch trainer 容器
+cd docker && docker build -f Dockerfile.vllm.sglang.megatron -t clawgui-rl .
+docker run --gpus all --ipc=host -v $(pwd)/..:/workspace clawgui-rl bash -c "
+  cd /workspace && pip install -e . && \
+  bash examples/grpo_trainer/run_mobileworld.sh
+"</pre>
+
+<p>训练脚本 <code>run_mobileworld.sh</code> 的核心参数(直接从仓库拉的):</p>
+<pre>model_path=/models/GUI-Owl-1.5-2B-Instruct
+group_size=4
+train_data_size=1
+total_epochs=3
+adv_estimator=grpo
+server_file=../env_server/mobileworld_server.txt
+
+# 用 verl 主程序跑
+python3 -m verl.trainer.main_ppo \
+    algorithm.adv_estimator=$adv_estimator \
+    actor_rollout_ref.rollout.name=vllm \
+    actor_rollout_ref.rollout.gpu_memory_utilization=0.65 \
+    ...
+</pre>
+
+<div class="warn">
+<strong>容器数下限规则</strong>(README 明写):<br>
+<code>容器数 ≥ train_batch_size × group_size</code>;以上面默认 <code>1 × 4 = 4</code> 为最小,但作者强烈建议<strong>额外加 50%+ spare</strong>(虚拟容器常 OOM / 截图失败 / ADB 卡死,trainer 会自动 rotate 到备用 URL)。<br>
+论文实验用的是 <code>train_batch_size=4 × group_size=4 = 16</code>,加 spare 推荐 24 个容器。
+</div>
+
+<h4>📊 8.6.7 开源度总评 — 三个维度</h4>
+
+<table>
+<thead><tr><th>维度</th><th>评分</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>代码开源</strong></td><td><span class="ok">★★★★★</span></td><td>所有 Dockerfile、训练脚本、eval pipeline、agent harness、模型权重(ClawGUI-2B)全部开源,Apache 2.0(主仓)</td></tr>
+<tr><td><strong>评测可复现</strong></td><td><span class="ok">★★★★★</span></td><td>评测 Docker 一行 <code>docker compose up</code>,数据公开,12+ 模型 adapter 现成,本机一卡能跑;和 PinchBench self-hosted 模式同级</td></tr>
+<tr><td><strong>训练可复现</strong></td><td><span style="color:#cc7a1b">★★★☆☆</span></td><td>代码全开,但<strong>硬件门槛非常高</strong>:GPU 4-8 卡 + 同时要 16-24 个能开 KVM + privileged 的容器(每个吃 4-6 GB RAM,1 个 vCPU);普通云 GPU 实例(非 bare-metal)很多<em>开不了嵌套虚拟化</em>,所以训练可复现度被硬件卡住,不是被代码卡住</td></tr>
+<tr><td><strong>真机训练可复现</strong></td><td><span style="color:#cc7a1b">★★☆☆☆</span></td><td>代码全开 + 验证过两台 Android,但需要 USB 直连或云手机服务,scale 起来要解决登录验证 / 设备管理 / IP 池等工程问题,作者也承认是"notoriously challenging"</td></tr>
+</tbody>
+</table>
+
+<p><strong>一句话总结</strong>:<em>评测环境是真正"开箱即用"级别的开源,Apache 2.0 + 公开数据 + 一行启动;训练环境代码也全开,但 Android 模拟器要走另一个 repo(<code>sugarandgugu/ClawGUI-Server</code>)拉公开 GHCR 镜像,而且要凑 16-24 个 privileged + KVM 容器,这是工程门槛,不是开源门槛。</em></p>
+
+<h3>8.7 模型 — <code>ClawGUI-2B</code></h3>
 
 <p>训练好的 2B 模型权重开源:</p>
 <ul>
@@ -732,7 +988,7 @@
 <strong>⚠ 没开源的:</strong> <em>训练用的数据集</em>(只 release 了 eval 数据集);<em>PRM judger (Qwen3.5-72B) 的具体 prompt / fine-tune 数据</em>;<em>训练 ClawGUI-2B 用的 reward 设计完整 yaml</em>(部分见 <code>recipe/</code> 但不完整);<em>72B PRM 跑了多少 token 量 / GPU 时长</em>。
 </div>
 
-<h3>8.7 ClawGUI = "原创 + 工程集成"占比拆解</h3>
+<h3>8.8 ClawGUI = "原创 + 工程集成"占比拆解</h3>
 
 <p>整个 stack 大致 30% 原创 + 70% 集成上游开源工作。诚实拆解:</p>
 
@@ -756,7 +1012,91 @@
 
 <p>这不是贬义。**ClawGUI 的真实贡献是"做对了胶水层"** — 把碎片化的 verl / OpenClaw / Shizuku / 6 benchmark 整合成<em>一个可复现的全栈方案</em>,这件事比单独训个 SOTA 模型还有用,因为它降低了整个 GUI agent 社区的入门门槛。</p>
 
-<h3>8.8 Roadmap (paper / repo 上标 coming soon)</h3>
+<h3>8.9 平台覆盖 — ClawGUI 到底支持什么 OS?</h3>
+
+<p>从主仓 README 逐字核对的事实表(很多人会以为是"全平台",其实<strong>训练只覆盖 Android</strong>):</p>
+
+<table>
+<thead><tr><th>模块</th><th>Android</th><th>HarmonyOS</th><th>iOS</th><th>Windows</th><th>macOS</th><th>Linux</th><th>Web</th></tr></thead>
+<tbody>
+<tr><td><strong>ClawGUI-RL</strong>(训练)</td><td><span class="ok">✅</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td></tr>
+<tr><td><strong>ClawGUI-Eval</strong>(评测)</td><td><span class="ok">✅</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td>间接*</td><td>间接*</td><td>间接*</td><td><span class="no">❌</span></td></tr>
+<tr><td><strong>ClawGUI-Agent</strong>(部署 harness)</td><td><span class="ok">✅ ADB</span></td><td><span class="ok">✅ HDC</span></td><td><span class="ok">✅ XCTest</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td></tr>
+<tr><td><strong>ClawGUI-APP</strong>(on-device)</td><td><span class="ok">✅ Shizuku</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td></tr>
+</tbody>
+</table>
+<p style="font-size:.9em;color:var(--muted)">* "间接"指 OSWorld-G 是 OSWorld(Ubuntu/Win/macOS)的 grounding 子集,但只用静态截图,不涉及真实 OS 操作。</p>
+
+<p>主 README 自己列的 Roadmap 也承认:</p>
+<pre>- [x] ClawGUI-RL  (Android 移动训练)
+- [x] ClawGUI-2B  (训练好的模型权重)
+- [x] On-device ClawGUI-APP
+- [ ] <strong>Desktop Online RL</strong> — 扩展到桌面 OS,还没做
+- [ ] <strong>Web Online RL</strong> — 扩展到浏览器,还没做</pre>
+
+<div class="warn">
+<strong>关键澄清</strong>:iOS 只在 <em>部署 harness</em> 里出现 — 你能让一个已经训好的 GUI agent 通过 XCTest 控制 iPhone,但仓库里<strong>没有任何 iOS 训练代码、iOS benchmark、iOS reward 设计</strong>。这是因为 iOS 不允许批量启 emulator 容器,生态封闭。
+</div>
+
+<h3>8.10 缺口对应的相关 paper 与开源 repo</h3>
+
+<p>下面把 ClawGUI 暂时不覆盖的几块 — 桌面 / Web / iOS — 各自的当前 SOTA 列清楚。</p>
+
+<h4>🖥️ 桌面 GUI Agent(Windows / macOS / Linux)</h4>
+
+<table>
+<thead><tr><th>名字</th><th>平台</th><th>能力</th><th>开源</th><th>定位</th></tr></thead>
+<tbody>
+<tr><td><strong>OSWorld</strong> <br><span style="font-size:.85em;color:var(--muted)">NeurIPS 2024 · <a href="https://arxiv.org/abs/2404.07972" target="_blank">2404.07972</a> · <a href="https://github.com/xlang-ai/OSWorld" target="_blank">xlang-ai/OSWorld</a></span></td><td>Ubuntu / Win / macOS</td><td>369 个真实 task,docker-based VM,可执行评测</td><td>✅</td><td>桌面 benchmark 事实标准。OSWorld-Verified(2025)修正后 SOTA 已 ~84% of human(原版只有 12.24% vs human 72.36%)</td></tr>
+<tr><td><strong>Windows Agent Arena</strong><br><span style="font-size:.85em;color:var(--muted)">2024 · <a href="https://arxiv.org/abs/2409.08264" target="_blank">2409.08264</a> · <a href="https://github.com/microsoft/WindowsAgentArena" target="_blank">microsoft/WindowsAgentArena</a></span></td><td>Windows-only</td><td>154 task(浏览器/文档/视频/代码/Notepad/Paint/Settings),Azure 并行</td><td>✅</td><td>Microsoft 官方,SOTA 19.5% vs human 74.5%,云上一次跑完几分钟</td></tr>
+<tr><td><strong>UI-TARS-2</strong><br><span style="font-size:.85em;color:var(--muted)">2025-09 · <a href="https://arxiv.org/abs/2509.02544" target="_blank">2509.02544</a> · <a href="https://github.com/bytedance/UI-TARS" target="_blank">bytedance/UI-TARS</a> + <a href="https://github.com/bytedance/UI-TARS-desktop" target="_blank">UI-TARS-desktop</a></span></td><td>桌面 + Web + 移动 + 游戏 + Code</td><td><strong>多轮 RL (RLVR) + data flywheel + hybrid 沙箱</strong>,文件系统 + 终端集成</td><td>✅ 权重 + harness</td><td><strong>最接近 ClawGUI 但全平台的全栈方案</strong>,字节跳动,SOTA。一句话:"ClawGUI 想做但还没做的桌面 RL 版,UI-TARS-2 已经做完了"</td></tr>
+<tr><td><strong>Agent-S2</strong><br><span style="font-size:.85em;color:var(--muted)">2025 · <a href="https://github.com/simular-ai/Agent-S" target="_blank">simular-ai/Agent-S</a></span></td><td>macOS + Win + Linux</td><td>Mixture of Grounding + Proactive Hierarchical Planning(模块化框架,非 RL)</td><td>✅</td><td>OSWorld 上超 OpenAI CUA/Operator 和 Claude 3.7 Computer Use</td></tr>
+<tr><td><strong>Hermes Agent</strong><br><span style="font-size:.85em;color:var(--muted)">2026-02 · <a href="https://hermes-agent.org/" target="_blank">Nous Research</a></span></td><td>Linux / macOS / WSL2</td><td>自改进 agent,持久记忆,一行 curl 安装</td><td>✅</td><td>偏部署而非训练,补 macOS 桌面助手生态</td></tr>
+<tr><td>Claude / Gemini Computer Use</td><td>桌面</td><td>商业 API</td><td><span class="no">闭源</span></td><td>对比 baseline,不能自训</td></tr>
+</tbody>
+</table>
+
+<h4>🌐 Web GUI Agent</h4>
+
+<table>
+<thead><tr><th>名字</th><th>类型</th><th>开源</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>WebArena / VisualWebArena</strong><br><span style="font-size:.85em;color:var(--muted)"><a href="https://github.com/web-arena-x/webarena" target="_blank">web-arena-x/webarena</a></span></td><td>Benchmark + 自托管站点</td><td>✅</td><td>5 个自托管站点(电商/论坛/CMS/...),事实 web benchmark</td></tr>
+<tr><td><strong>BrowserGym + AgentLab</strong><br><span style="font-size:.85em;color:var(--muted)"><a href="https://github.com/servicenow/browsergym" target="_blank">servicenow/BrowserGym</a></span></td><td>Gym-style 包装</td><td>✅</td><td>ServiceNow 维护,把 MiniWoB / WorkArena / WebArena / VisualWebArena 统一到一个 API,带并行实验</td></tr>
+<tr><td><strong>WebAgent-R1</strong><br><span style="font-size:.85em;color:var(--muted)"><a href="https://arxiv.org/abs/2505.16421" target="_blank">2505.16421</a></span></td><td>端到端多轮 RL trainer</td><td>✅</td><td>WebArena-Lite,二值 reward;Qwen-2.5-3B <strong>6.1 → 33.9%</strong>,Llama-3.1-8B <strong>8.5 → 44.8%</strong>。<em>这是 web 上的 GiGPO 等价物</em></td></tr>
+<tr><td><strong>WEBLICA</strong><br><span style="font-size:.85em;color:var(--muted)"><a href="https://arxiv.org/abs/2605.06761" target="_blank">2605.06761</a></span></td><td>scalable web env 合成</td><td>✅</td><td>HTTP cache + LLM 自动合成 web 站点,几千个并行 env</td></tr>
+<tr><td><strong>Go-Browse</strong><br><span style="font-size:.85em;color:var(--muted)"><a href="https://arxiv.org/abs/2506.03533" target="_blank">2506.03533</a></span></td><td>结构化探索训练</td><td>✅</td><td>训 web agent 的探索策略</td></tr>
+</tbody>
+</table>
+
+<h4>📱 iOS 训练 — 一个明显的空白领域</h4>
+
+<p>iOS 因为生态封闭(没有像 Android emulator 那样的 KVM 镜像可以批量起几十个),<strong>到 2026 年 5 月没有公开的 iOS RL 训练 repo</strong>。能找到的相关工作:</p>
+
+<ul>
+<li><strong>ClawGUI-Agent</strong> 通过 XCTest 接 iPhone — 只能 deploy 不能 train</li>
+<li><strong>Apple ML Research</strong> 发了 <em>Reinforcement Learning for Long-Horizon Interactive LLM Agents</em>(<a href="https://machinelearning.apple.com/research/reinforcement-learning-long-horizon" target="_blank">machinelearning.apple.com</a>),但<strong>不针对 iOS UI</strong>,是通用长程 agent RL</li>
+<li><strong>UINavBench</strong>(ICCV 2025)— 主要 Android,iOS 子集小</li>
+<li>实际生产:研究界用 iOS 一般走 <strong>云手机服务</strong>(BrowserStack / Sauce Labs / Appium)+ XCUITest,没有专门 iOS RL trainer</li>
+<li>潜在原因:Apple 限制 IPA 注入和 emulator 镜像分发,做 100 容器并行训练在法律和工程上都难</li>
+</ul>
+
+<h4>🎯 跨平台一锅端 — 真正的 "all-OS" RL 方案</h4>
+
+<table>
+<thead><tr><th>方案</th><th>覆盖</th><th>方法</th></tr></thead>
+<tbody>
+<tr><td><strong>UI-TARS-2</strong>(ByteDance)</td><td>桌面 + Web + 移动 + 游戏 + Code(无 iOS)</td><td>多轮 RLVR + hybrid 沙箱 + data flywheel — 目前最完整的开源跨平台 RL trainer</td></tr>
+<tr><td><strong>RLAnything / Open-AgentRL</strong>(Gen-Verse, ICML 2026,<a href="13_RLAnything_2602.02488.html">见 #13 精读</a>)</td><td>Terminal + GUI + SWE + Tool-call(GUI 部分主要是 OSWorld)</td><td>"闭环优化"框架,env / policy / reward 三件套都用 RL 协同训</td></tr>
+<tr><td><strong>AgentGym-RL</strong>(<a href="06_AgentGymRL_2509.08755.html">见 #06 精读</a>)</td><td>WebArena / BabyAI / SciWorld / TextCraft / SearchQA / TextWorld(没有移动 / 桌面 GUI)</td><td>ScalingInter-RL,通用 agent RL framework,GUI 只占 Web 一块</td></tr>
+</tbody>
+</table>
+
+<div class="kv">
+<strong>结论</strong>:如果你想做的是<strong>移动端 + 真机 + 在线 RL</strong>,ClawGUI 是当前最完整的开源方案;如果你想做<strong>桌面 / Web 的 RL 训练</strong>,首选 <strong>UI-TARS-2</strong>(桌面+Web+移动一锅端)和 <strong>WebAgent-R1</strong>(纯 Web RL);如果你想做<strong>评测 only</strong>,桌面用 OSWorld,Windows-only 用 WAA;<strong>iOS 训练目前没有开源方案</strong>,只能走云手机 + deploy harness 这条路。
+</div>
+
+<h3>8.11 Roadmap (paper / repo 上标 coming soon)</h3>
 
 <ul>
   <li><strong>Desktop Online RL</strong> — 扩展到桌面 OS,不只是手机</li>
