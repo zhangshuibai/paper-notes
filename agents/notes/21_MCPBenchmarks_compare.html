@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>调研 · 4 个 MCP Benchmark 横向对比 — MCP-Universe / MCP-Atlas / Toolathlon / MCPMark</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>调研 · 4 个 MCP Benchmark 横向对比</h1>
+<h1 style="font-size:20px;color:var(--muted);margin-top:.2em">MCP-Universe / MCP-Atlas / Toolathlon / MCPMark</h1>
+
+<div class="meta">
+  Survey · 数据快照 2026-05-15 · GitHub star / leaderboard 实时查取自官网与 GitHub API · 引用 frontier 模型官方 system card<br>
+  关联笔记: <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas 精读</a> · <a href="15_PinchBench.html">#15 PinchBench (风格参考)</a> · <a href="16_DesktopAgents_landscape.html">#16 桌面 Agent 景观</a><br>
+  关键词: MCP benchmark · tool-use eval · leaderboard · 开源度 · RL gym · frontier 模型采用 · 提交流程
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> 2025 下半年到 2026 上半年涌现的"MCP benchmark"实际只有 4 个值得正经讨论 —— <strong>MCP-Universe</strong>(Salesforce, 231 task, 6 domain, 学术口碑 + GitHub 最多 star), <strong>MCP-Atlas</strong>(Scale AI, 1000 task, 36 server, 唯一被 frontier 三家全部采用的), <strong>Toolathlon</strong>(HKUST-NLP, 108 task / 32 app / 604 tool, 配套有独立 <em>Toolathlon-Gym</em> 503-task RL 训练环境), <strong>MCPMark</strong>(eval-sys, 127 task / 5 service, DeepSeek V3.2 技术报告引用, pass@k 完善)。它们的方法学差异不大,真正分化在三件事: <strong>(a) 是否被 frontier 模型 model card 采用</strong>; <strong>(b) 是否带 RL gym</strong>; <strong>(c) 自托管成本</strong>。MCP-Atlas 赢 (a), Toolathlon 唯一赢 (b), MCPMark 赢 (c)。MCP-Universe 是综合 baseline 但 frontier 没采。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">585 / 417 / 356 / 81</div><div class="l">GitHub star (Universe / MCPMark / Toolathlon / Atlas, 2026-05-15)</div></div>
+    <div class="stat"><div class="n">Atlas 唯一</div><div class="l">出现在 Claude Opus 4.7 + GPT-5.5 + Gemini 3.1 Pro 三家 model card</div></div>
+    <div class="stat"><div class="n">Toolathlon-Gym</div><div class="l">503 task · local PostgreSQL · 唯一带 RL 训练环境的 MCP bench (eigent-ai 维护)</div></div>
+    <div class="stat"><div class="n">&lt;40B 开源</div><div class="l">几乎所有 bench 的 &lt;40B 区域都是空的;主战场仍在 100B+ MoE</div></div>
+  </div>
+  <p><strong>核心 take:</strong> 如果你要"被 frontier 看见"—— 上 <strong>MCP-Atlas</strong>;如果你要 <strong>train</strong> 一个 tool-use agent —— 用 <strong>Toolathlon-Gym</strong>(并报 Toolathlon 主测分);如果你想 <strong>5 分钟跑起来</strong> 验证 prompt 工程 —— 用 <strong>MCPMark</strong>;如果你做 <strong>学术 paper baseline</strong>,Universe 的 6-domain 覆盖度最像传统 benchmark。这 4 个不互斥,**最佳实践是 Atlas + Toolathlon 双报告**(分别覆盖"frontier 引用"与"开源 RL 训练"两条主线)。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">§1 这 4 个是什么 — 一张速览表</a></li>
+    <li><a href="#sec2">§2 开源贡献深度对比</a></li>
+    <li><a href="#sec3">§3 社区关注度(实时数据)</a></li>
+    <li><a href="#sec4">§4 完整 leaderboard — 4 个 bench 的 top-10</a></li>
+    <li><a href="#sec5">§5 ⭐ 开源 &lt;40B 模型专属榜单</a></li>
+    <li><a href="#sec6">§6 提交流程详解 — 怎么"上墙"</a></li>
+    <li><a href="#sec7">§7 选型决策树</a></li>
+    <li><a href="#sec8">§8 综合 take · 2026 年的事实地位</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">§1 这 4 个是什么 — 一张速览表</h2>
+
+<table>
+<thead><tr><th>Bench</th><th>团队</th><th>arXiv / 日期</th><th>规模</th><th>一句话定位</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>MCP-Universe</strong></td>
+  <td>Salesforce AI Research</td>
+  <td><a href="https://arxiv.org/abs/2508.14704" target="_blank">2508.14704</a> · 2025-08</td>
+  <td>231 task / 11 server / 6 domain</td>
+  <td>学术风格的多 domain 综合 benchmark, 带 dashboard + 工作流框架, GitHub star 最多</td>
+</tr>
+<tr>
+  <td><strong>MCP-Atlas</strong></td>
+  <td>Scale AI + NUS</td>
+  <td><a href="https://arxiv.org/abs/2602.00933" target="_blank">2602.00933</a> · 2026-01</td>
+  <td>1,000 task (500 公开 + 500 hold-out) / 36 server / 220 tool</td>
+  <td>规模最大 + claims-based judge + Live leaderboard, frontier 三家官方采用</td>
+</tr>
+<tr>
+  <td><strong>Toolathlon</strong></td>
+  <td>HKUST-NLP</td>
+  <td><a href="https://arxiv.org/abs/2510.25726" target="_blank">2510.25726</a> · 2025-10</td>
+  <td>108 task / 32 app / 604 tool / ~20 turn 平均</td>
+  <td>长程多 app 编排, 配套 <strong>Toolathlon-Gym</strong> 503-task 本地 PostgreSQL 训练环境</td>
+</tr>
+<tr>
+  <td><strong>MCPMark</strong></td>
+  <td>eval-sys (Wu, Liu 等 16 人)</td>
+  <td><a href="https://arxiv.org/abs/2509.24002" target="_blank">2509.24002</a> · 2025-09</td>
+  <td>127 task (+ 50 easy) / 5 service (Notion / GitHub / Filesystem / Postgres / Playwright)</td>
+  <td>"5 分钟启动"路线 · pass@k / pass^k 稳定性指标完善 · DeepSeek-V3.2 技术报告引用</td>
+</tr>
+</tbody>
+</table>
+
+<div class="nb">
+<strong>命名小坑:</strong> "MCP-Universe" 是 Salesforce 的项目代号也是一整套 framework(含 dashboard + agent SDK + benchmark);"MCP-Universe benchmark"专指其中 231-task 那一部分。新版 MCP-Universe repo 也支持运行 MCPMark task(原话: <em>"MCP-Universe now supports evaluating the MCPMark tasks"</em>), 二者已有互操作。
+</div>
+
+<hr>
+
+<h2 id="sec2">§2 开源贡献深度对比</h2>
+
+<h3>2.1 评测代码 / harness / docker / trajectory / RL gym 详表</h3>
+
+<table>
+<thead>
+<tr><th>维度</th><th>MCP-Universe</th><th>MCP-Atlas</th><th>Toolathlon</th><th>MCPMark</th></tr>
+</thead>
+<tbody>
+<tr><td>评测代码</td><td><span class="ok">✓</span> Apache-2.0</td><td><span class="ok">✓</span> MIT</td><td><span class="ok">✓</span> <em>未声明 license</em></td><td><span class="ok">✓</span> Apache-2.0</td></tr>
+<tr><td>repo</td><td><a href="https://github.com/SalesforceAIResearch/MCP-Universe" target="_blank">SalesforceAIResearch/MCP-Universe</a></td><td><a href="https://github.com/scaleapi/mcp-atlas" target="_blank">scaleapi/mcp-atlas</a></td><td><a href="https://github.com/hkust-nlp/Toolathlon" target="_blank">hkust-nlp/Toolathlon</a></td><td><a href="https://github.com/eval-sys/mcpmark" target="_blank">eval-sys/mcpmark</a></td></tr>
+<tr><td>参考 trajectory</td><td><span class="no">✗</span> 未发布</td><td><span class="ok">✓</span> HF 含 TRAJECTORY 字段 (公开 500)</td><td><span class="ok">✓✓</span> <a href="https://huggingface.co/datasets/hkust-nlp/Toolathlon-Trajectories" target="_blank">17 个模型 × 3 run × 108 task ≈ 5,000+ 条 / 2 GB</a></td><td><span class="ok">✓</span> <a href="https://huggingface.co/datasets/Jakumetsu/mcpmark-trajectory-log" target="_blank">mcpmark-trajectory-log 2.81 GB</a></td></tr>
+<tr><td>Docker / sandbox</td><td><span class="ok">✓</span> Dockerized MCP servers</td><td><span class="ok">✓✓</span> <code>ghcr.io/scaleapi/mcp-atlas:1.2.5</code> 一键拉</td><td><span class="ok">✓✓</span> 每 task 独立 container, 支持 podman</td><td><span class="ok">✓</span> <code>./build-docker.sh</code> · 本地 / Docker 双模式</td></tr>
+<tr><td>真服务 vs mock</td><td>真 API (Notion / GitHub / Maps / Blender / SerpAPI)</td><td>真 API · 但 5 个 stateful server 带 fixture dump</td><td>真 API · 也提供 <em>local app deploy</em> (poste.io, k8s, canvas)</td><td>真 API · "isolated environments that do not pollute your accounts/data"</td></tr>
+<tr><td>HF trajectories</td><td><span class="no">✗</span></td><td><span class="ok">✓</span> <a href="https://huggingface.co/datasets/ScaleAI/MCP-Atlas" target="_blank">ScaleAI/MCP-Atlas</a> · 15.6 MB · 月下载 ~2.8k</td><td><span class="ok">✓</span> 2 GB · 17 模型</td><td><span class="ok">✓</span> 2.81 GB · MIT</td></tr>
+<tr><td>RL Gym 配套</td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="ok">✓✓✓</span> <a href="https://github.com/eigent-ai/toolathlon_gym" target="_blank">eigent-ai/toolathlon_gym</a> · 503 task · 全本地 PostgreSQL</td><td><span class="no">✗</span></td></tr>
+<tr><td>公开 eval service</td><td><span class="no">✗</span> 需自己跑</td><td><span class="no">✗</span></td><td><span class="ok">✓</span> "ready-to-use public eval service" 47.253.6.47:8080</td><td><span class="no">✗</span></td></tr>
+</tbody>
+</table>
+
+<h3>2.2 RL 训练适配度 — 唯一有"官方 Gym"的是 Toolathlon</h3>
+
+<p>这是 4 个 bench 中差距最大的一项。<strong>Toolathlon 是唯一把 RL 训练环境分支化出来</strong>的:由 CAMEL-AI / Eigent.AI 维护的 <code>eigent-ai/toolathlon_gym</code> 把 Toolathlon 的 task 格式、evaluation framework、MCP server interface 全部继承下来,扩成 503 task,关键是把所有外部 API 换成本地 PostgreSQL dump (8.2 MB, <code>db/init.sql.gz</code>)。原文(toolathlon_gym README):</p>
+
+<blockquote>
+"Toolathlon-GYM is built on and extends the infrastructure from Toolathlon by HKUST-NLP. The task format, evaluation framework, MCP server interfaces, and database schema design all originate from the Toolathlon project. <strong>It runs entirely locally, with no external API calls required at running time.</strong>"
+</blockquote>
+
+<p>这意味着 RL 训练时:</p>
+<ul>
+<li><strong>无 quota 风险</strong> — 没有 OpenAI / Notion / GitHub rate limit 阻塞 rollout</li>
+<li><strong>determinism</strong> — PostgreSQL dump 是版本化的, reset 后是同一份 state</li>
+<li><strong>可并行</strong> — 每 task 独立 ephemeral container, <code>run_parallel.sh</code> 支持 N 并发 (CAMEL-AI 官方示例用 10)</li>
+</ul>
+
+<p>其他三个 bench 的状况:</p>
+<ul>
+<li><strong>MCP-Universe</strong>: 框架包含 <em>workflow + agent SDK</em>(BasicAgent / ReActAgent / FunctionCallAgent), 但<strong>无 RL loop</strong>, 也没把环境抽象成 gym.Env;trace collector 倒是有(<code>MemoryCollector</code> / <code>SQLiteCollector</code>),可以当 trajectory 数据源。</li>
+<li><strong>MCP-Atlas</strong>: 完全 inference-only。Repo 中无 "rl" / "train" / "gym" 关键字。判分用 LLM-as-judge,每条 rollout 还要走 Gemini 2.5 Pro 评分 — 这成本对 RL training rollout 不切实际。</li>
+<li><strong>MCPMark</strong>: 同样 inference-only。重视的是 pass@k 多次评估,而不是 RL rollout。"isolated environments that do not pollute your accounts/data" 是给评测设计的, 不是训练 reset 设计的。</li>
+</ul>
+
+<div class="nb">
+<strong>含义:</strong> 想做 MCP tool-use RL training, 现实就两条路: (1) 自己 fork 一个 bench 改 mock; (2) 用 Toolathlon-Gym。前者是大多数 RL 论文(如 #18 AgentWorldModel)的路线 — <strong>完全合成 env</strong>; Toolathlon-Gym 介于"完全合成"和"真 API"之间, 是 sweet spot。
+</div>
+
+<h3>2.3 自托管门槛对比</h3>
+
+<table>
+<thead><tr><th>Bench</th><th>启动命令复杂度</th><th>需要 API key</th><th>需要数据 fixture 上传</th><th>预估首次启动时间</th></tr></thead>
+<tbody>
+<tr><td>MCPMark</td><td>3 命令 (<code>git clone</code> · <code>pip install -e .</code> · <code>python -m pipeline</code>)</td><td>仅运行特定 service 时需要 (filesystem task 零 key 可跑)</td><td>GitHub task 自动从 CDN 下载 template</td><td><strong>5 分钟</strong> (官方原话: "Quickstart (5 minutes)")</td></tr>
+<tr><td>MCP-Atlas</td><td>4 命令 + 至少 8GB Docker 内存; <code>docker pull ghcr.io/scaleapi/mcp-atlas:1.2.5</code></td><td>~18% task 可纯 default; 想跑全部需要 11 个 API key</td><td><strong>5 个 stateful server</strong>: Airtable copy base, GCal / Notion / Mongo / Slack 手动 import zip</td><td>纯 default 20 server: ~10 分钟; 全开通: <strong>半天到一天</strong></td></tr>
+<tr><td>MCP-Universe</td><td>6 步: clone + venv + pip + libpq + pre-commit + <code>.env</code></td><td>OpenAI / Anthropic / Gemini + SerpAPI + Google Maps + GitHub PAT + Notion + Blender 二进制路径</td><td>Notion root page id 需要手配; Blender v4.4.0 需装客户端</td><td><strong>半天</strong>(Blender 域涉及桌面 GUI)</td></tr>
+<tr><td>Toolathlon</td><td>"public eval service" 路线: 一条 <code>eval_client.py</code> 命令;自托管路线: bash 脚本流</td><td>OpenAI-compatible base URL + API key;全跑需要 32 app 的所有 token (Canvas / Notion / GCal / Slack / 12306 etc.)</td><td>自动 deploy local containers (poste.io etc.) via <code>deploy_containers.sh</code></td><td>public service: <strong>2 分钟</strong>;自托管: <strong>一天</strong>(需 sudo + k8s/podman 配置)</td></tr>
+</tbody>
+</table>
+
+<p><strong>Toolathlon 的独门武器</strong>是 "public eval service" — 团队自己跑了一台公网服务器,所有人都可以以"打 API"方式提交评测,完全跳过本地配置。README 原话:</p>
+<blockquote>
+"We provide Toolathlon evaluation as a service on public servers, where we have setup all the required MCP accounts and <strong>you don't need to worry about the setup</strong> -- you don't even need to install any MCP-related dependencies, evaluation can be ran by just communicating with our public server"
+</blockquote>
+
+<hr>
+
+<h2 id="sec3">§3 社区关注度(2026-05-15 实时快照)</h2>
+
+<h3>3.1 GitHub star / fork / issue</h3>
+
+<table>
+<thead><tr><th>Repo</th><th>★ Star</th><th>Fork</th><th>Open Issue</th><th>License</th><th>最近更新</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/SalesforceAIResearch/MCP-Universe" target="_blank">SalesforceAIResearch/MCP-Universe</a></td><td><strong>585</strong></td><td>82</td><td>31</td><td>Apache-2.0</td><td>2026-05-15</td></tr>
+<tr><td><a href="https://github.com/eval-sys/mcpmark" target="_blank">eval-sys/mcpmark</a></td><td><strong>417</strong></td><td>36</td><td>17</td><td>Apache-2.0</td><td>2026-05-15</td></tr>
+<tr><td><a href="https://github.com/hkust-nlp/Toolathlon" target="_blank">hkust-nlp/Toolathlon</a></td><td><strong>356</strong></td><td>40</td><td>8</td><td><span class="no">未声明</span></td><td>2026-05-15</td></tr>
+<tr><td><a href="https://github.com/eigent-ai/toolathlon_gym" target="_blank">eigent-ai/toolathlon_gym</a> (RL gym)</td><td>124</td><td>8</td><td>1</td><td>Apache-2.0</td><td>2026-05-15</td></tr>
+<tr><td><a href="https://github.com/scaleapi/mcp-atlas" target="_blank">scaleapi/mcp-atlas</a></td><td><strong>81</strong></td><td>13</td><td>20</td><td>MIT</td><td>2026-05-15</td></tr>
+</tbody>
+</table>
+
+<p>查询命令(可重现):</p>
+<pre>curl -s "https://api.github.com/repos/&lt;org&gt;/&lt;repo&gt;" \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); \
+    print(d['stargazers_count'], d['forks_count'], d['open_issues_count'])"</pre>
+
+<div class="nb">
+<strong>反直觉点:</strong> MCP-Atlas star 数最低(81),但<strong>影响力最大</strong>(frontier 三家采用)。这说明 frontier 选 benchmark<strong>不看 GitHub star</strong>,看的是数据规模 + 维护质量 + 团队关系。这条经验对你做 benchmark 立项有直接意义。
+</div>
+
+<h3>3.2 Frontier model 官方报告引用情况</h3>
+
+<table>
+<thead><tr><th>Bench</th><th>Claude Opus 4.7 系统卡 (Anthropic)</th><th>GPT-5.5 公告 (OpenAI)</th><th>Gemini 3.1 Pro Model Card (Google)</th></tr></thead>
+<tbody>
+<tr><td><strong>MCP-Atlas</strong></td><td><span class="ok">✓</span> 引用 · 77.3% (Opus 4.7 vs 4.6 +14.6 pt jump)</td><td><span class="ok">✓</span> 75.3% (vs 5.4 的 70.6%, 第三方报道转引)</td><td><span class="ok">✓</span> 列入 16 项基准之一 · <em>"MCP Atlas: Multi-step workflows using MCP"</em> · 69.2%(Thinking-High)</td></tr>
+<tr><td>MCP-Universe</td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
+<tr><td>Toolathlon</td><td><span class="no">✗</span></td><td><span class="no">✗</span>(GPT-5.5 公告 403 抓不到, 第三方报告中提及 55.6%)</td><td><span class="no">✗</span></td></tr>
+<tr><td>MCPMark</td><td><span class="no">✗</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
+</tbody>
+</table>
+
+<p><strong>Anthropic Claude Opus 4.7 公告中关于 MCP-Atlas 的原话</strong>(<a href="https://www.anthropic.com/news/claude-opus-4-7" target="_blank">anthropic.com/news/claude-opus-4-7</a>):</p>
+<blockquote>
+"<strong>MCP-Atlas</strong> ... Opus 4.6 score has been updated to reflect revised grading methodology from Scale AI ... the <strong>+14.6 point jump on MCP-Atlas is the largest single improvement in the agentic suite</strong>"
+</blockquote>
+
+<p><strong>Gemini 3.1 Pro Model Card</strong>(<a href="https://deepmind.google/models/model-cards/gemini-3-1-pro/" target="_blank">deepmind.google/models/model-cards/gemini-3-1-pro/</a>),关于 16 项 benchmark 中 MCP 唯一一项:</p>
+<blockquote>
+"<strong>MCP Atlas</strong> — Multi-step workflows using MCP ... 69.2%"
+</blockquote>
+
+<h3>3.3 知名人士 / 同行提及</h3>
+
+<table>
+<thead><tr><th>Bench</th><th>提及</th></tr></thead>
+<tbody>
+<tr><td>MCPMark</td><td><strong>DeepSeek 官方 (12-01)</strong>: "<em>DeepSeek v3.2 uses MCPMark! Kudos on securing the best open-source model.</em>" <a href="https://x.com/deepseek_ai/status/1995452650557763728" target="_blank">X post</a> · DeepSeek V3.2 technical report 引用 · <strong>Qwen team (09-10)</strong> 在 X 上提及 <em>qwen-3-coder-plus is the best open-source model</em></td></tr>
+<tr><td>Toolathlon</td><td>CAMEL-AI 在 X 推送 Toolathlon-Gym 发布: "<em>Introducing Toolathlon-GYM: Large-Scale Long-Horizon Environments for Tool-Use Agents</em>" · 已有 4 个新 frontier 模型 (gemini-3-pro / claude-4.5-opus / gpt-5.1 / deepseek-v3.2-thinking) trajectory 在 HF</td></tr>
+<tr><td>MCP-Atlas</td><td>Scale AI 官方运营 Live leaderboard;Anthropic 在 system card 把它定为 agentic tool use 的唯一代表;HF 数据集月下载 ~2,800</td></tr>
+<tr><td>MCP-Universe</td><td>Salesforce 官方 blog · 开 Discord · 主要靠学术 paper 引流,无明显个人 KOL 推广</td></tr>
+</tbody>
+</table>
+
+<h3>3.4 学术 citation 与跨论文引用</h3>
+
+<p><strong>诚实声明:</strong> Google Scholar / Semantic Scholar 没有暴露 API 让我直接抓 citation 数。从公开信息推断的相对顺序(2026-05):</p>
+<ul>
+<li><strong>MCP-Universe</strong>(2025-08 最早, 学术属性最强): 估计被引最多, 进入多篇 survey</li>
+<li><strong>MCPMark</strong>(被 DeepSeek 技术报告正式引用 → 有"开源模型同行采用"加成)</li>
+<li><strong>Toolathlon</strong>(因 Gym 衍生作 + CAMEL-AI 生态附着, citation 还在 ramping)</li>
+<li><strong>MCP-Atlas</strong>(2026-01 上线最晚, citation 数应低于以上三者, 但 frontier 引用是另一维)</li>
+</ul>
+
+<hr>
+
+<h2 id="sec4">§4 完整 leaderboard — 4 个 bench 的 top-10 总表</h2>
+
+<h3>§4.1 MCP-Universe overall(<a href="https://mcp-universe.github.io/" target="_blank">官网</a>, 2026-05 快照)</h3>
+
+<p>主指标: success rate (%) overall。</p>
+<table>
+<thead><tr><th>#</th><th>Model</th><th>Overall</th><th>Loc Nav</th><th>Repo</th><th>Financial</th><th>3D</th><th>Browser</th><th>Web Search</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Gemini-3-Pro-Preview</td><td><strong>44.59</strong></td><td>35.56</td><td>18.18</td><td>82.50</td><td>52.63</td><td>38.46</td><td>41.82</td></tr>
+<tr><td>2</td><td>GPT-5-Medium</td><td>43.72</td><td>35.56</td><td>30.30</td><td>60.00</td><td>52.63</td><td>43.59</td><td>36.36</td></tr>
+<tr><td>3</td><td>Grok-4.1-Fast</td><td>40.69</td><td>28.89</td><td>15.15</td><td>85.00</td><td>26.32</td><td>33.33</td><td>43.64</td></tr>
+<tr><td>4</td><td>Claude-4.0-Sonnet</td><td>32.90</td><td>22.22</td><td>6.06</td><td>77.50</td><td>36.84</td><td>35.90</td><td>21.82</td></tr>
+<tr><td>5</td><td>Grok-4-Fast</td><td>32.47</td><td>22.22</td><td>6.06</td><td>80.00</td><td>21.05</td><td>23.08</td><td>32.73</td></tr>
+<tr><td>6</td><td>Claude-4.0-Sonnet-Thinking</td><td>31.60</td><td>24.44</td><td>6.06</td><td>72.50</td><td>47.37</td><td>35.90</td><td>14.55</td></tr>
+<tr><td>7</td><td>Claude-4.5-Sonnet</td><td>35.06</td><td>26.67</td><td>12.12</td><td>80.00</td><td>52.63</td><td>28.21</td><td>21.82</td></tr>
+<tr><td>8</td><td>Kimi-K2-Thinking</td><td>26.41</td><td>20.00</td><td>12.12</td><td>60.00</td><td>15.79</td><td>20.51</td><td>23.64</td></tr>
+<tr><td>9</td><td>Claude-4.5-Haiku</td><td>26.41</td><td>22.22</td><td>12.12</td><td>60.00</td><td>21.05</td><td>20.51</td><td>20.00</td></tr>
+<tr><td>10</td><td>GLM-4.6</td><td>25.97</td><td>15.56</td><td>9.09</td><td>55.00</td><td>31.58</td><td>25.64</td><td>21.82</td></tr>
+</tbody>
+</table>
+<p class="meta">注: 主榜上 Claude 4.5 Sonnet 排第 7 但分高于第 4 — 这是因为官方按 "first-listed best score per provider" 排序后又把多版本混进来。我这里按官网展示顺序给出。</p>
+
+<h3>§4.2 MCP-Atlas overall(<a href="https://labs.scale.com/leaderboard/mcp_atlas" target="_blank">Live leaderboard 2026-04-08</a>)</h3>
+
+<p>主指标: pass rate (%) with 95% CI。</p>
+<table>
+<thead><tr><th>#</th><th>Model</th><th>Pass Rate</th><th>CI</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Muse Spark (Scale 自家)</td><td><strong>82.20</strong></td><td>±2.30</td></tr>
+<tr><td>2</td><td>claude-opus-4-7 (max)</td><td>79.10</td><td>±2.50</td></tr>
+<tr><td>3</td><td>gemini-3.1-pro-preview (high)</td><td>78.20</td><td>±2.50</td></tr>
+<tr><td>4</td><td>claude-opus-4-6 (max)</td><td>76.80</td><td>±2.70</td></tr>
+<tr><td>5</td><td>glm-5p1 (Zhipu)</td><td>75.60</td><td>±2.70</td></tr>
+<tr><td>6</td><td>gpt-5.5 (xhigh)</td><td>75.30</td><td>±2.70</td></tr>
+<tr><td>7</td><td>gpt-5.4 (xhigh)</td><td>70.60</td><td>±2.80</td></tr>
+<tr><td>8</td><td>gemini-3-pro-preview</td><td>70.30</td><td>±2.80</td></tr>
+<tr><td>9</td><td>claude-opus-4-5 (high)</td><td>69.80</td><td>±2.90</td></tr>
+<tr><td>10</td><td>claude-sonnet-4-6</td><td>69.50</td><td>±2.90</td></tr>
+</tbody>
+</table>
+<p class="meta">注: 当前 Scale Live leaderboard <strong>没有任何开源模型</strong>登榜 — 这是 Atlas 的关键弱点(下节 §5 详述)。</p>
+
+<h3>§4.3 Toolathlon(<a href="https://toolathlon.xyz/" target="_blank">toolathlon.xyz</a>, 抓取于 2026-05)</h3>
+<table>
+<thead><tr><th>#</th><th>Model</th><th>Pass@1</th><th>Pass@3</th><th>Pass^3</th><th>Date</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>GPT-5.5-xhigh</td><td><strong>55.6</strong></td><td>—</td><td>—</td><td>2026-04-24</td></tr>
+<tr><td>2</td><td>DeepSeek-V4-Pro Max (开源)</td><td>52.8 ± 1.9</td><td>63.9</td><td>38.9</td><td>2026-04-25</td></tr>
+<tr><td>3</td><td>Claude-Opus-4.7</td><td>52.8</td><td>—</td><td>—</td><td>2026-04-25</td></tr>
+<tr><td>4</td><td>Kimi-K2.6 (开源)</td><td>50.0</td><td>—</td><td>—</td><td>2026-04-21</td></tr>
+<tr><td>5</td><td>Gemini-3.1-Pro</td><td>48.8 ± 2.3</td><td>62.0</td><td>34.3</td><td>2026-03-13</td></tr>
+<tr><td>6</td><td>MiniMax-M2.7 (开源)</td><td>46.3</td><td>—</td><td>—</td><td>2026-03-18</td></tr>
+<tr><td>7</td><td>GLM-5.1 (开源)</td><td>40.7</td><td>—</td><td>—</td><td>2026-04-07</td></tr>
+<tr><td>8</td><td>Qwen3.6-Plus</td><td>39.8</td><td>—</td><td>—</td><td>2026-04-02</td></tr>
+<tr><td>9</td><td>Grok-4</td><td>27.5 ± 1.7</td><td>38.9</td><td>16.7</td><td>2025-10-28</td></tr>
+</tbody>
+</table>
+<p class="meta">Toolathlon 是 4 个 bench 中<strong>开源模型登顶覆盖最好</strong>的 — top-10 中 4 个是开源(虽然都是 100B+ MoE,不是 &lt;40B)。</p>
+
+<h3>§4.4 MCPMark(<a href="https://mcpmark.ai/leaderboard" target="_blank">mcpmark.ai/leaderboard</a>, 抓取 2026-05)</h3>
+<table>
+<thead><tr><th>#</th><th>Model</th><th>Pass@1</th><th>Pass@4</th><th>Pass^4</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>gpt-5-2-high (gpt-5.2)</td><td><strong>57.5</strong></td><td>66.9</td><td>44.9</td></tr>
+<tr><td>2</td><td>gemini-3-pro-high</td><td>53.9</td><td>66.9</td><td>37.8</td></tr>
+<tr><td>3</td><td>gpt-5-medium</td><td>52.6</td><td>68.5</td><td>33.9</td></tr>
+<tr><td>4</td><td>gpt-5-high</td><td>51.6</td><td>66.1</td><td>33.1</td></tr>
+<tr><td>5</td><td>gemini-3-pro-low</td><td>50.8</td><td>67.7</td><td>30.7</td></tr>
+<tr><td>6</td><td>gpt-5-low</td><td>46.9</td><td>63.0</td><td>26.8</td></tr>
+<tr><td>7</td><td>claude-opus-4-5-high</td><td>42.3</td><td>53.5</td><td>33.9</td></tr>
+<tr><td>8</td><td>deepseek-v3-2-thinking (开源)</td><td>36.8</td><td>51.2</td><td>21.3</td></tr>
+<tr><td>9</td><td>claude-sonnet-4-5</td><td>32.1</td><td>46.5</td><td>16.5</td></tr>
+<tr><td>10</td><td>grok-4</td><td>31.7</td><td>44.9</td><td>18.1</td></tr>
+</tbody>
+</table>
+<p class="meta">MCPMark 用 <strong>pass^k</strong> 作为 stability 指标 — 必须每次 run 都 pass 才算。pass@1 与 pass^4 的 gap 体现一致性。</p>
+
+<hr>
+
+<h2 id="sec5">§5 ⭐ 开源 &lt;40B 模型专属榜单</h2>
+
+<div class="warn">
+<strong>用户特别要求的视角。诚实回答: 4 个 bench 中,&lt;40B 的开源模型出现非常稀少 —— 这本身是一个发现。</strong>
+</div>
+
+<p>原因有三: (1) MCP 任务的 long-horizon + 工具数量 (220-604 tool) 对 small model 太残酷; (2) 各 bench leaderboard 都被 lab 用大模型刷, 主动报 &lt;40B 结果的<strong>反而是 MCP-Universe</strong>(因为它学术属性最强); (3) 真要训 &lt;40B,大家会去 Toolathlon-Gym 或合成 env (#18 AgentWorldModel) 自己训, 不报 main bench 的官方榜。</p>
+
+<h3>§5.1 MCP-Universe ≤ 40B 开源(官网 leaderboard 直接列)</h3>
+
+<p>从 leaderboard 表筛选 open-source 标记 + 估算参数:</p>
+<table>
+<thead><tr><th>Model</th><th>参数</th><th>Overall</th><th>注</th></tr></thead>
+<tbody>
+<tr><td colspan="4"><strong>说明: MCP-Universe 公开榜单几乎全 100B+ MoE。&lt;40B 区域官方未提供。</strong> 同期文献 (e.g. #18 AgentWorldModel) 在 Qwen3-thinking 4B/8B/14B 上的 BFCLv3 OOD 数据更具参考价值。</td></tr>
+</tbody>
+</table>
+
+<h3>§5.2 MCP-Atlas ≤ 40B 开源</h3>
+<p><strong>0 个</strong>。Scale Live leaderboard 当前(2026-04-08 快照)全是 proprietary 模型 + GLM-5p1(Zhipu, 大模型)。没有任何 Qwen3 / Llama / GPT-OSS / Gemma 进入官方榜。</p>
+<p>HF 数据集 README 中也明确 MCP-Atlas 任务<strong>对小模型不友好</strong>(因为 enabled tools 一次 10-25 个,context 直接吃爆 &lt;8K context model)。</p>
+
+<h3>§5.3 Toolathlon ≤ 40B 开源</h3>
+<p>主榜 0 个 &lt;40B。但 Toolathlon-Trajectories HF 数据集中包含的 <code>gpt-5-mini</code>(不开源)、<code>claude-4.5-haiku-1001</code>(不开源)是体量级最小档,均不达 &lt;40B 开源标准。<br>
+<strong>但 Toolathlon-Gym</strong>(503-task 训练版)<strong>是唯一明确推荐小模型训练</strong>的环境 — CAMEL-AI 的 README 用 <code>gemini-3-flash-preview</code> 做示例,但本质上是 RL training 跑道,任何 &lt;40B 模型都可以接入,只是<strong>分数还没公开</strong>。</p>
+
+<h3>§5.4 MCPMark ≤ 40B 开源</h3>
+<table>
+<thead><tr><th>Model</th><th>参数</th><th>Pass@1</th></tr></thead>
+<tbody>
+<tr><td>gpt-oss-120b</td><td>120B(超出 &lt;40B)</td><td>4.7%</td></tr>
+<tr><td colspan="3"><strong>排名 36, 4.7% pass@1</strong> — 官方专门为开源小模型准备了 "50 easy tasks"(11-17 PR), 但 &lt;40B 模型的<strong>官方分数仍未发布</strong>。</td></tr>
+</tbody>
+</table>
+
+<p>MCPMark README 中关于此事的原话:</p>
+<blockquote>
+"<strong>17 Nov</strong> — Added 50 easy tasks (10 per MCP server) <strong>for smaller open-source models</strong>"
+</blockquote>
+
+<h3>§5.5 总结: &lt;40B 是 MCP benchmark 的"沙漠带"</h3>
+
+<div class="kv">
+<strong>关键事实:</strong> 截止 2026-05-15,4 个 MCP benchmark 的官方 leaderboard 中,<strong>没有一个 &lt;40B 开源模型登顶或进入 top-10</strong>。这与 GUI agent(#17 UI-TARS-2 230B / #14 ClawGUI 7B)和 RL 训练的趋势(#06 AgentGym-RL 8B / #18 AgentWorldModel 4/8/14B)<strong>形成鲜明对比</strong>。
+</div>
+
+<p><strong>含义:</strong> 你的 4B/8B 模型要在 MCP bench 上"上墙",当前唯一可行的路是<strong>用 Toolathlon-Gym 训出来 → 报 Toolathlon main bench 分数</strong>。Atlas / Universe / MCPMark 都没有"<em>open-source &lt;40B 专项排名</em>",报上去也会沉到 30 名外。</p>
+
+<hr>
+
+<h2 id="sec6">§6 提交流程详解 — 怎么把结果"上墙"</h2>
+
+<p>这是 4 个 bench 差异化最大的部分。下面 SVG 是流程图概览:</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <style>
+    .box{fill:#fff;stroke:#2f6feb;stroke-width:1.5}
+    .box2{fill:#f3eee0;stroke:#cc4a1b;stroke-width:1.5}
+    .arr{stroke:#5b5e66;stroke-width:1.5;fill:none;marker-end:url(#m)}
+    .t{font-family:-apple-system,sans-serif;font-size:12px;fill:#1f2024}
+    .lbl{font-family:-apple-system,sans-serif;font-size:11px;fill:#5b5e66}
+    .h{font-family:-apple-system,sans-serif;font-size:13px;font-weight:700;fill:#2f6feb}
+  </style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/></marker></defs>
+
+  <text x="20" y="22" class="h">MCPMark</text>
+  <rect x="20" y="34" width="150" height="40" rx="6" class="box"/>
+  <text x="30" y="50" class="t">Fork repo + 加 task</text>
+  <text x="30" y="65" class="t">(meta.json + verify.py)</text>
+  <path d="M170,54 L210,54" class="arr"/>
+  <rect x="210" y="34" width="120" height="40" rx="6" class="box"/>
+  <text x="222" y="58" class="t">提 PR</text>
+  <path d="M330,54 L370,54" class="arr"/>
+  <rect x="370" y="34" width="160" height="40" rx="6" class="box2"/>
+  <text x="378" y="50" class="t">维护者跑评测</text>
+  <text x="378" y="65" class="t">→ 更新 mcpmark.ai</text>
+
+  <text x="20" y="110" class="h">Toolathlon</text>
+  <rect x="20" y="122" width="170" height="55" rx="6" class="box"/>
+  <text x="30" y="140" class="t">A. 用 public eval service</text>
+  <text x="30" y="155" class="t">(eval_client.py --mode public)</text>
+  <text x="30" y="170" class="t">→ 自动入榜?(不明确)</text>
+  <path d="M190,150 L230,150" class="arr"/>
+  <rect x="230" y="122" width="170" height="55" rx="6" class="box"/>
+  <text x="240" y="142" class="t">B. 发邮件: jlini@cse.ust.hk</text>
+  <text x="240" y="158" class="t">junxianh@cse.ust.hk</text>
+  <text x="240" y="173" class="t">提供 API endpoint 即可</text>
+  <path d="M400,150 L440,150" class="arr"/>
+  <rect x="440" y="122" width="170" height="55" rx="6" class="box2"/>
+  <text x="450" y="142" class="t">团队代跑评测</text>
+  <text x="450" y="158" class="t">→ 上 toolathlon.xyz</text>
+  <text x="450" y="173" class="t">+ HF trajectories</text>
+
+  <text x="20" y="210" class="h">MCP-Atlas</text>
+  <rect x="20" y="222" width="180" height="55" rx="6" class="box"/>
+  <text x="30" y="240" class="t">自己 docker pull 跑 500 task</text>
+  <text x="30" y="256" class="t">→ 用 Gemini-2.5-Pro judge</text>
+  <text x="30" y="272" class="t">→ 出 coverage_stats CSV</text>
+  <path d="M200,250 L240,250" class="arr"/>
+  <rect x="240" y="222" width="200" height="55" rx="6" class="box2"/>
+  <text x="250" y="245" class="t">⚠️ <tspan font-weight="bold">无公开提交流程</tspan></text>
+  <text x="250" y="262" class="t">Scale Labs 自维护 leaderboard</text>
+  <text x="250" y="278" class="t">(frontier 模型自行公关)</text>
+
+  <text x="20" y="310" class="h">MCP-Universe</text>
+  <rect x="20" y="322" width="180" height="48" rx="6" class="box"/>
+  <text x="30" y="342" class="t">本地 BenchmarkRunner</text>
+  <text x="30" y="358" class="t">→ 生成 report</text>
+  <path d="M200,346 L240,346" class="arr"/>
+  <rect x="240" y="322" width="200" height="48" rx="6" class="box2"/>
+  <text x="250" y="342" class="t">⚠️ <tspan font-weight="bold">README 无 submit 指引</tspan></text>
+  <text x="250" y="358" class="t">需 Discord / PR 沟通</text>
+</svg>
+<figcaption>4 个 bench 的提交路径对比。Toolathlon 流程最完善(含 public eval service + 邮件 fallback);MCP-Atlas 与 MCP-Universe 都没有公开 self-submit 机制,新模型分数怎么进 leaderboard 实际靠"<em>frontier 团队直接联系</em>"或"<em>repo maintainer 自己跑</em>"。</figcaption>
+</div>
+
+<h3>§6.1 MCPMark — 仅 task 贡献流程公开, 模型分数靠 PR</h3>
+
+<p>官方 <a href="https://github.com/eval-sys/mcpmark/blob/main/docs/contributing/make-contribution.md" target="_blank">contribution doc</a> verbatim:</p>
+<blockquote>
+1. "Fork the repository and create a feature branch."<br>
+2. "Add new tasks under <code>tasks/&lt;mcp&gt;/&lt;task_suite&gt;/&lt;category&gt;/&lt;task_id&gt;/</code> with the files of <code>meta.json</code>, <code>description.md</code> and <code>verify.py</code>."<br>
+3. "Ensure all tests pass."<br>
+4. "Submit a pull request — contributions are welcome!"
+</blockquote>
+<p><strong>关键漏洞:</strong> 官方文档<strong>没有写"如何提交新模型评测结果"</strong>。从 README News 区可见,新模型分数是<strong>团队自己加</strong>(<em>"02 Dec — Evaluated gemini-3-pro-preview..."</em>);第三方要进榜,只能在 GitHub issue / Discord 联系维护者请求代跑。</p>
+
+<h3>§6.2 Toolathlon — 流程最完善, 有"代跑"option</h3>
+
+<p>README 中四种提交方式 verbatim:</p>
+<blockquote>
+"Basically you have four ways of running Toolathlon evaluation:<br>
+1. Using our public evaluation service: Check EVAL_SERVICE_README.md for more details.<br>
+2. Setup your own Toolathlon evaluation service on your own machine as detailed below.<br>
+3. If you are a major user that will use Toolathlon evaluation a lot, you can also <strong>contact us (jlini@cse.ust.hk / junxianh@cse.ust.hk)</strong>, we may be able to provide a dedicated evaluation service for you (for free).<br>
+4. If you have an API endpoint and just want to test your model, you can contact us ... and <strong>we are happy to help you run evaluation on Toolathlon with your given API endpoint</strong>."
+</blockquote>
+<p>这是 4 个 bench 中<strong>唯一明确写"你只要给 endpoint 我们就帮你跑"</strong>的。</p>
+
+<h3>§6.3 MCP-Atlas — 完全没暴露提交接口</h3>
+
+<p>repo README 与 paper 都<strong>未写</strong> self-submit 指引。Live leaderboard 上的所有模型都是 Scale AI 自己评的。这意味着:</p>
+<ul>
+<li>新模型想上榜<strong>只能等 Scale AI 评</strong>;</li>
+<li>frontier 模型上榜(Claude Opus 4.7 / Gemini 3.1 Pro / GPT-5.5)的实质是<strong>商业合作关系</strong>而非 community submission;</li>
+<li>这一点与 MCP-Atlas 在 system card 的强势地位一脉相承 — bench gatekeeper 集中在 Scale。</li>
+</ul>
+
+<h3>§6.4 MCP-Universe — 评测代码全开, 但 leaderboard 闭门维护</h3>
+
+<p>README "Citation" 之前最后一段是 <em>"Visualize the agent running information"</em>,完全没提 leaderboard submission。<a href="https://mcp-universe.github.io/#results" target="_blank">官网 results 页</a>是 Salesforce 团队手动更新的。社区只能在 Discord (链接已加入 README) 或 GitHub issue 提请求。</p>
+
+<hr>
+
+<h2 id="sec7">§7 选型决策树</h2>
+
+<div class="fig">
+<svg viewBox="0 0 720 420" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <style>
+    .qbox{fill:#fff8e8;stroke:#d2a32a;stroke-width:1.5}
+    .abox{fill:#f3eee0;stroke:#cc4a1b;stroke-width:1.5}
+    .arr{stroke:#5b5e66;stroke-width:1.5;fill:none;marker-end:url(#m2)}
+    .t{font-family:-apple-system,sans-serif;font-size:12px;fill:#1f2024}
+    .lbl{font-family:-apple-system,sans-serif;font-size:11px;fill:#1f7a4a;font-weight:600}
+  </style>
+  <defs><marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/></marker></defs>
+
+  <rect x="260" y="10" width="200" height="40" rx="8" class="qbox"/>
+  <text x="280" y="35" class="t">你的目的是?</text>
+
+  <path d="M310,50 L130,90" class="arr"/>
+  <text x="180" y="78" class="lbl">想让 frontier 看见</text>
+  <rect x="20" y="90" width="220" height="50" rx="8" class="abox"/>
+  <text x="32" y="110" class="t">→ MCP-Atlas</text>
+  <text x="32" y="128" class="t">(三家 model card 都引)</text>
+
+  <path d="M360,50 L360,90" class="arr"/>
+  <text x="368" y="78" class="lbl">训练 small open-source</text>
+  <rect x="250" y="90" width="220" height="50" rx="8" class="abox"/>
+  <text x="262" y="110" class="t">→ Toolathlon-Gym</text>
+  <text x="262" y="128" class="t">(503 task, 本地 PG, RL ready)</text>
+
+  <path d="M410,50 L590,90" class="arr"/>
+  <text x="475" y="78" class="lbl">5 分钟验证 prompt</text>
+  <rect x="480" y="90" width="220" height="50" rx="8" class="abox"/>
+  <text x="492" y="110" class="t">→ MCPMark</text>
+  <text x="492" y="128" class="t">(filesystem task 零 key)</text>
+
+  <rect x="260" y="180" width="200" height="40" rx="8" class="qbox"/>
+  <text x="280" y="205" class="t">学术 paper baseline?</text>
+  <path d="M460,200 L630,200" class="arr"/>
+  <rect x="480" y="180" width="220" height="50" rx="8" class="abox"/>
+  <text x="492" y="200" class="t">→ MCP-Universe</text>
+  <text x="492" y="218" class="t">(6 domain 覆盖最像传统 bench)</text>
+
+  <rect x="260" y="250" width="200" height="40" rx="8" class="qbox"/>
+  <text x="278" y="275" class="t">需要 pass@k 稳定性?</text>
+  <path d="M460,270 L630,270" class="arr"/>
+  <rect x="480" y="250" width="220" height="50" rx="8" class="abox"/>
+  <text x="492" y="270" class="t">→ MCPMark (pass^k)</text>
+  <text x="492" y="288" class="t">  or Toolathlon (pass@3)</text>
+
+  <rect x="260" y="320" width="200" height="40" rx="8" class="qbox"/>
+  <text x="270" y="345" class="t">需要长程多 app 编排?</text>
+  <path d="M460,340 L630,340" class="arr"/>
+  <rect x="480" y="320" width="220" height="50" rx="8" class="abox"/>
+  <text x="492" y="340" class="t">→ Toolathlon</text>
+  <text x="492" y="358" class="t">(32 app · 20 turn 平均)</text>
+
+  <rect x="260" y="380" width="440" height="32" rx="8" style="fill:#fff;stroke:#2f6feb;stroke-width:1.5"/>
+  <text x="280" y="402" class="t" style="font-weight:600">推荐组合: <tspan fill="#cc4a1b">Atlas (frontier 引用) + Toolathlon (开源 + RL)</tspan></text>
+</svg>
+</div>
+
+<table>
+<thead><tr><th>场景</th><th>首选</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>想被 Anthropic/OpenAI/Google 引用</td><td>MCP-Atlas</td><td>frontier 三家都报这个</td></tr>
+<tr><td>训 &lt;40B 开源 tool-use 模型</td><td>Toolathlon-Gym → Toolathlon main bench</td><td>唯一带 RL gym + 4 个开源模型 main bench top-10</td></tr>
+<tr><td>论文写 MCP 综合 baseline</td><td>MCP-Universe</td><td>6 domain · 学术属性最强 · 与多 paper compare</td></tr>
+<tr><td>CI / 内部回归测试</td><td>MCPMark</td><td>5 分钟启动 · filesystem task 零依赖 · 50 easy task suite</td></tr>
+<tr><td>需要 stability 报告</td><td>MCPMark (pass^k)</td><td>唯一公开报 pass^4 一致性</td></tr>
+<tr><td>需要长程多 app 编排</td><td>Toolathlon</td><td>32 app · 604 tool · 20 turn 平均, 数量级远超其他</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="sec8">§8 综合 take · 2026 年的事实地位</h2>
+
+<div class="kv">
+<strong>核心 take:</strong> 4 个 bench 不互斥,各自占据生态位。Atlas 是"刻度",Toolathlon 是"训练场",MCPMark 是"快速回归测试",MCP-Universe 是"学术 baseline"。
+</div>
+
+<h3>MCP-Atlas — 事实上的"标准刻度",但闭门 gatekeeping</h3>
+<p>2026 年最重要的 MCP benchmark, 因为 frontier 三家 model card 都报。但<strong>没有 self-submit 机制</strong>,leaderboard 进出由 Scale AI 控制。这意味着学术界 / 开源社区的话语权很弱 — 这一点是 Atlas 的潜在裂缝。 (详见 <a href="19_MCPAtlas_2602.00933.html">#19 精读</a> §8 我的 hypothesis。)</p>
+
+<h3>Toolathlon — 唯一带 RL Gym 的 MCP bench, 最适合训练驱动</h3>
+<p>Toolathlon 主测的 108 task 是评测;<strong>真正稀缺资源是 Toolathlon-Gym</strong> 的 503 task + 本地 PostgreSQL。这一组合让 RL training rollout 不再受 API quota / determinism 拖累,是 4 个 bench 中<strong>唯一</strong>可以直接接 GRPO / DPO 训练 pipeline 的。如果 #18 AgentWorldModel 是"完全合成 RL env"的代表,那 Toolathlon-Gym 是"真协议 + 本地数据"路线的代表 — 半合成是 sweet spot。</p>
+<p>HKUST-NLP 团队的 <em>"contact us, we are happy to help"</em> 政策也是 4 个 bench 中最 open 的。社区 inertia 在 ramping。</p>
+
+<h3>MCPMark — "快速回归测试"的实用主义首选</h3>
+<p>5 分钟启动 + 127 task + pass^k 完善 — 工程友好度最高。<strong>DeepSeek V3.2 技术报告引用</strong>给了它"开源模型同行采用"的标签,这是它和 Atlas 的差异化武器。但<strong>没有 RL gym 配套</strong> + 无 frontier model card 引用,定位长期会是"<em>practical companion</em>"而非"<em>primary benchmark</em>"。</p>
+
+<h3>MCP-Universe — 学术风格的综合 baseline, 但被 Atlas 抢走了"frontier 引用"位</h3>
+<p>规模虽不及 Atlas (231 vs 1000) 也不及 Toolathlon (11 server vs 32 app),但<strong>领域覆盖最像传统 benchmark</strong>(location nav / repo / financial / 3D / browser / web search 6 domain)+ 完整 agent SDK + dashboard,适合 paper 的 multi-domain ablation。<strong>新版本支持运行 MCPMark task</strong>(README "MCP-Universe now supports evaluating the MCPMark tasks") — 这是好事,但也暗示它在向"meta framework"转,不再坚持"自己是 the benchmark"。</p>
+
+<h3>我对未来 6-12 个月的预测</h3>
+<ul>
+<li><strong>Atlas</strong> 继续被 frontier 引用,但 Scale AI 必须在 2026 下半年开放某种 self-submit (例如"<em>community-experiments</em>" repo 模式),否则学术界会逐渐转向 Toolathlon。</li>
+<li><strong>Toolathlon-Gym</strong> 在第一篇用它训出来的论文(预计 2026 Q3)发出来后会暴涨。<strong>这是当前最被低估的 RL training asset</strong>。</li>
+<li><strong>MCPMark</strong> 因为 DeepSeek 引用 + Qwen team 提及,会被中国开源 lab 大量用作主报告;但 frontier 仍不太可能采用。</li>
+<li><strong>MCP-Universe</strong> 可能逐渐变成"<em>framework provider</em>"而不是"benchmark"。它的 framework 价值(MCP+ context mgmt, W&amp;D research agent)会盖过 benchmark 本身。</li>
+</ul>
+
+<div class="warn">
+<strong>对你(用户)的具体建议:</strong> 既然你之前已经精读了 <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a>, 下一步应该精读 <strong>Toolathlon 主论文 (2510.25726) + Toolathlon-Gym 工程文档</strong>。这两者组合是 2026 年训练 MCP tool-use agent 的最优起点;Atlas 和 Universe 当评测刻度即可,不必投入实现成本。
+</div>
+
+<hr>
+
+<p class="meta">数据快照: 2026-05-15 · GitHub API · arXiv · 各官方 leaderboard · Anthropic Opus 4.7 launch post · Google DeepMind Gemini 3.1 Pro model card · 第三方 GPT-5.5 报告(OpenAI 主页 403 抓不到)<br>
+本文是<strong>调研笔记</strong>而非精读;关于 MCP-Atlas 的深入精读见 <a href="19_MCPAtlas_2602.00933.html">#19</a>。</p>
+
+</main>
+</body>
+</html>

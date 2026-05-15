@@ -93,6 +93,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 18 | [Agent World Model (Snowflake)](https://zhangshuibai.github.io/paper-notes/agents/notes/18_AgentWorldModel_2602.10090.html) | 全合成 code-driven env / 1,000 envs · 35,062 tools / Qwen3-thinking 4/8/14B GRPO / BFCLv3 8B 53.83→65.94 OOD / 全开源 | 60 KB |
 | 19 | [MCP-Atlas (Scale AI)](https://zhangshuibai.github.io/paper-notes/agents/notes/19_MCPAtlas_2602.00933.html) | 36 real MCP server · 220 tool · 1,000 task (500 公开 + 500 hold-out) / claims-based Gemini-2.5-Pro judge / Live leaderboard / 被 Claude Opus 4.7 system card 引用 77.3% | 50 KB |
 | 20 | [SETA (CAMEL-AI / Eigent.AI)](https://zhangshuibai.github.io/paper-notes/agents/notes/20_SETA_camel.html) | Terminal agent 训练 env / 400+ Docker 合成任务 / AReaL GRPO + RLVR / Qwen3-8B / Claude Sonnet 4.5 + CAMEL = TB2.0 #1 (46.5%) / 全 Apache-2.0 开源 | 50 KB |
+| 21 | [4 个 MCP Benchmark 横向对比](https://zhangshuibai.github.io/paper-notes/agents/notes/21_MCPBenchmarks_compare.html) | MCP-Universe / MCP-Atlas / Toolathlon / MCPMark 调研 / GitHub 实时 star / frontier model card 引用 / Toolathlon-Gym 唯一 RL gym / 4 bench 提交流程对比 + 选型决策树 | 55 KB |
 
 ## 论文清单 (按时间)
 
