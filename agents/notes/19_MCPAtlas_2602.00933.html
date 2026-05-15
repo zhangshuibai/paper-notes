@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · MCP-Atlas: A Large-Scale Benchmark for Tool-Use Competency with Real MCP Servers (2602.00933)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>MCP-Atlas: A Large-Scale Benchmark for Tool-Use Competency with Real MCP Servers</h1>
+<div class="meta">
+  Scale AI (主) + NUS · Bandi, Hertzberg, Boo, Polakam, Da, Hassaan, Sharma, Park, Hernandez, Rambado, Salazar, Cruz, Rane, Levin, Kenstler, Liu · v1 2026-01-31 · v2 2026-05-04<br>
+  <a href="https://arxiv.org/abs/2602.00933" target="_blank">arXiv:2602.00933</a> ·
+  <a href="https://arxiv.org/html/2602.00933v2" target="_blank">HTML v2</a> ·
+  <a href="https://github.com/scaleapi/mcp-atlas" target="_blank">GitHub: scaleapi/mcp-atlas</a> ·
+  <a href="https://huggingface.co/datasets/ScaleAI/MCP-Atlas" target="_blank">HF: ScaleAI/MCP-Atlas</a> ·
+  <a href="https://labs.scale.com/leaderboard/mcp_atlas" target="_blank">Live leaderboard</a><br>
+  关键词: MCP benchmark · tool-use · claims-based rubric · 36 servers / 220 tools / 1,000 tasks · containerized harness · Scale Labs leaderboard · 被 Claude Opus 4.7 model card 引用
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> MCP-Atlas 是 Scale AI 把<strong>真实公网 MCP server 工程化打包成 docker</strong> + <strong>人工写 1,000 个跨 server 任务</strong> + <strong>claims-based LLM-judge rubric</strong> 三件套做出来的 benchmark。它不是学术上最"巧"的设计,但是<strong>第一个被 Anthropic 官方写进 Claude Opus 4.7 model card 的 MCP benchmark</strong> (77.3%) —— 这是它和 MCPMark / Toolathlon / MCP-Bench 拉开身位的关键事实。和 #18 AWM 完全合成路线相反,Atlas 走"<em>真服务器、真 API、真出 quota error</em>"路线;和同期 MCPMark 比则<strong>规模大一个量级</strong>(36 vs 5 server, 1000 vs 127 task)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">36 / 220 / 1,000</div><div class="l">真实 MCP server / 工具 / 任务,500 task 公开,500 task 留作 hold-out 防污染</div></div>
+    <div class="stat"><div class="n">77.3 → 79.1%</div><div class="l">Claude Opus 4.7: model-card 静态报告 77.3 · Live leaderboard (2026-04-08) 79.1 (max);第 1 是 Scale 自家 Muse Spark 82.2%</div></div>
+    <div class="stat"><div class="n">Gemini 2.5 Pro</div><div class="l">claims-based judge 模型,与多数人类投票 78% 一致;pass 阈值 0.75,sensitivity 在 0.65–0.85 稳定</div></div>
+    <div class="stat"><div class="n">MIT + CC-BY-4.0</div><div class="l">repo MIT, dataset CC-BY-4.0; harness + 500 task + 5 数据 seed 全开;judge prompt 与 hold-out 500 task <strong>未公开</strong></div></div>
+  </div>
+  <p><strong>立场:</strong> 论文方法侧没有 surprise (claims rubric + LLM judge 是 standard);<strong>真正的 contribution 是工程</strong>—— 把 36 个 server 用 docker 打包到可一键启动、把 API key 注入和速率限制做平、把 5 个 stateful server (Airtable / GCal / Notion / Mongo / Slack) 的初始数据集 dump 出来当 fixture。这套 infra 决定了别人能不能复现你的 score,也决定了 frontier lab 要不要采用。<strong>我的核心 hypothesis</strong>: Claude Opus 4.7 model card 选 MCP-Atlas 而不是 MCPMark / Toolathlon,首要原因是 <strong>(a)</strong> Scale AI 与 Anthropic 长期数据合作关系 + <strong>(b)</strong> Live leaderboard 长期维护承诺 + <strong>(c)</strong> 1,000 task 的 statistical power 让 ±2.5% CI 足以分辨相邻模型,这是 100-task 量级 benchmark 给不了的。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景:为什么 MCP-Atlas 是第一个被 frontier 官方采用的 MCP benchmark</a></li>
+    <li><a href="#sec2">设计哲学:36 / 220 / 1,000 的规模为什么"刚好够"</a></li>
+    <li><a href="#sec3">任务构造方法 — 怎么搞出 1,000 个 verifiable task</a></li>
+    <li><a href="#sec4">评测 pipeline:harness + claims rubric + judge</a></li>
+    <li><a href="#sec5">🔍 开源现状 — repo 实地清点 (CRITICAL)</a></li>
+    <li><a href="#sec6">实验结果 + 当前 leaderboard 全表</a></li>
+    <li><a href="#sec7">与 MCPMark / Toolathlon / MCP-Bench 的并排对比</a></li>
+    <li><a href="#sec8">为什么这篇被 frontier 采用 — 我的假设</a></li>
+    <li><a href="#sec9">局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景:为什么 MCP-Atlas 是第一个被 frontier 官方采用的 MCP benchmark</h2>
+
+<h3>1.1 一个被低估的事实</h3>
+
+<p>2025 下半年到 2026 上半年,围绕 Model Context Protocol (MCP) 的 benchmark 至少有 6 篇 paper / repo:MCP-Universe (231 task / 11 server)、MCPEval (676 task, auto-gen)、MCP-Bench (104 task, Accenture)、Toolathlon (108 task / 32 app, HKUST-NLP)、MCPMark (127 task / 5 server, eval-sys)、LiveMCPBench (95 task / 70 server, mostly mock),还有这篇 MCP-Atlas (1000 task / 36 server, Scale AI)。它们的方法学差异其实并不悬殊 —— 都是"<em>多 server 跨 tool 编排 + 某种自动化 verifier</em>"。</p>
+
+<p>但<strong>到 2026 年 4 月 Anthropic 发布的 Claude Opus 4.7 system card 里,作为 "agentic tool use" 一档的代表性 benchmark 出现的只有 MCP-Atlas 一个</strong>,数字是 77.3%。同一张表里 MCPMark / Toolathlon / MCP-Bench 都没出现。这是一件值得追问的事情 —— 因为它直接决定了未来 6-12 个月哪个 benchmark 会被 community 当作"标准刻度"来衡量 agent 能力。</p>
+
+<div class="kv">
+<strong>关键事实链:</strong>
+<ul>
+<li>2026-01-31: arXiv v1 上线</li>
+<li>2026-04-16: Claude Opus 4.7 system card 引用 MCP-Atlas 77.3%</li>
+<li>2026-04-08: Scale Labs live leaderboard 更新 Opus 4.7 (max) 至 79.1% ± 2.5</li>
+<li>2026-05-04: arXiv v2 修订</li>
+<li>2026-05: HuggingFace 月下载 2,649 — agent benchmark 里属于第一梯队活跃度</li>
+</ul>
+</div>
+
+<h3>1.2 这篇笔记和之前 MCP benchmark 笔记的关系</h3>
+
+<p>之前用户已经精读过的 MCP benchmark 系列:</p>
+
+<table>
+<thead><tr><th>笔记</th><th>规模</th><th>验证机制</th><th>开源度</th><th>frontier 采用?</th></tr></thead>
+<tbody>
+<tr><td>MCPMark (eval-sys)</td><td>127 task / 5 server</td><td>per-task verifier script (rule-based)</td><td>全开</td><td>无</td></tr>
+<tr><td>Toolathlon (HKUST-NLP)</td><td>108 task / 32 app / 604 tool</td><td>state-based + custom verifier</td><td>全开</td><td>无</td></tr>
+<tr><td>Toolathlon-Gym (eigent-ai)</td><td>503 task (RL 版)</td><td>同上</td><td>全开</td><td>无</td></tr>
+<tr><td>MCP-Bench (Accenture)</td><td>104 task</td><td>holistic LLM-as-judge</td><td>全开</td><td>无</td></tr>
+<tr><td><strong>MCP-Atlas (Scale AI, 本文)</strong></td><td><strong>1,000 task / 36 server / 220 tool</strong></td><td><strong>claims-based LLM judge (Gemini 2.5 Pro)</strong></td><td><strong>半开</strong>(500/1000 task 公开,judge prompt 闭源)</td><td><strong>Claude Opus 4.7 ✓</strong></td></tr>
+</tbody>
+</table>
+
+<p>这就是 §8 要回答的核心问题:<strong>规模上 Atlas ≈ Toolathlon-Gym × 2,验证设计上没有压倒性的新意 —— 那么 frontier lab 选它的真正原因在哪儿?</strong> 我的答案在 §8。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 设计哲学:36 / 220 / 1,000 的规模为什么"刚好够"</h2>
+
+<h3>2.1 三件事的 trade-off 几何</h3>
+
+<p>所有 MCP benchmark 都在 3 个轴上权衡:</p>
+
+<div class="fig">
+<svg width="600" height="240" viewBox="0 0 600 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- triangle axes -->
+  <polygon points="300,30 80,200 520,200" fill="none" stroke="#5b5e66" stroke-width="1.5"/>
+  <text x="300" y="22" text-anchor="middle" font-size="14" font-weight="600">真实性 (real APIs, 真出错)</text>
+  <text x="55" y="215" text-anchor="middle" font-size="14" font-weight="600">规模 (#tasks)</text>
+  <text x="545" y="215" text-anchor="middle" font-size="14" font-weight="600">可复现性 (state-reset)</text>
+
+  <!-- benchmark dots -->
+  <circle cx="300" cy="115" r="6" fill="#cc4a1b"/>
+  <text x="310" y="118" font-size="13" font-weight="600">MCP-Atlas</text>
+  <text x="310" y="134" font-size="11" fill="#5b5e66">36 srv · 1000 task · docker fixture</text>
+
+  <circle cx="180" cy="180" r="5" fill="#2f6feb"/>
+  <text x="190" y="183" font-size="12">MCPMark (5 srv · 127)</text>
+
+  <circle cx="240" cy="160" r="5" fill="#2f6feb"/>
+  <text x="250" y="163" font-size="12">Toolathlon (32 app · 108)</text>
+
+  <circle cx="400" cy="170" r="5" fill="#2f6feb"/>
+  <text x="338" y="173" font-size="12">MCP-Bench (104)</text>
+
+  <circle cx="450" cy="190" r="5" fill="#2f6feb"/>
+  <text x="365" y="195" font-size="12">LiveMCPBench (70 srv mock)</text>
+
+  <!-- center label -->
+  <text x="300" y="225" text-anchor="middle" font-size="11" fill="#5b5e66">越靠近顶点 = 越偏向该维度</text>
+</svg>
+<figcaption>MCP-Atlas 在三角形里的位置:它<strong>不极端</strong>追求规模(比不上 MCPEval 676 auto-gen task)、不极端追求 reproducibility(比不上 AWM 的全合成),但<strong>同时给到 1000 task 真实 server 的中间点</strong> —— 这恰好是 frontier model 评测最需要的:够多让 CI 不爆,够真让 score 有意义。</figcaption>
+</div>
+
+<h3>2.2 "为什么 36 而不是 5 或 70"</h3>
+
+<p>选择 36 个 server 而非 5 个 (MCPMark) 或 70 个 (LiveMCPBench) 的理由,paper 没有展开论证,但能从数据反推:</p>
+
+<table>
+<thead><tr><th>server bucket</th><th>代表 server</th><th>占比逻辑</th></tr></thead>
+<tbody>
+<tr><td>Basic / search</td><td>brave_search, ddg_search, exa, calculator, weather, google-maps</td><td>"无 API key 也能跑"的入口</td></tr>
+<tr><td>Analytics</td><td>airtable, mongodb, f1-mcp-server</td><td>需要 stateful fixture</td></tr>
+<tr><td>Productivity</td><td>filesystem, notion, slack, arxiv, google-workspace, pubmed</td><td>SaaS + 学术</td></tr>
+<tr><td>Financial</td><td>twelvedata, alchemy</td><td>real-money API 触感</td></tr>
+<tr><td>Coding</td><td>git, github, mcp-code-executor, cli-mcp-server</td><td>对照 SWE-bench 类工作</td></tr>
+<tr><td>其他 (appendix H)</td><td>oxylabs, wikipedia, national-parks, desktop-commander, clinicaltrialsgov-mcp-server, whois, fetch, memory, context7, ...</td><td>长尾长度</td></tr>
+</tbody>
+</table>
+
+<p>36 这个数字的含义是: <strong>每 bucket 5-7 个,既覆盖到了"工具组合性"(产生 cross-server task),又把每个 server 的 API key 管理 / 速率限制 / 数据初始化复杂度控制在 docker compose 能处理的级别</strong>。70 个 (LiveMCPBench) 的代价是必须 mock,5 个 (MCPMark) 的代价是没法构造跨域 task。</p>
+
+<h3>2.3 "为什么 1,000 task 不 over-fit"</h3>
+
+<p>1,000 task 的"够用感"来自两件事:</p>
+
+<ol>
+<li><strong>500 公开 + 500 hold-out</strong>: 这是 paper 明文写的反污染设计。MCPMark / Toolathlon 都没有 hold-out, 全部 task 都进了 HuggingFace,因此 long-term 上 train-on-eval 风险更高。Atlas 的 500 hold-out 由 Scale Labs 内部跑 → 这意味着 <em>frontier lab 拿到的 leaderboard 分数会比自跑高 ~3%</em>(因为公开 500 容易被 RL 训过)。</li>
+<li><strong>CI 宽度</strong>: 在 leaderboard 上每条记录都标了 ±2.5 ~ ±3.1 的 95% CI —— 这正是 ≈500 个 binary task 的 1/(2√n) 的理论下限。换言之,Atlas 的设计假设是<em>每相邻 2-3% 是一档显著差异</em>。100-task 量级的 benchmark 给不了这个分辨率。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec3">3 · 任务构造方法 — 怎么搞出 1,000 个 verifiable task</h2>
+
+<h3>3.1 三层人工 + 一层 LLM 的 pipeline</h3>
+
+<p>这是 paper 里写得最朴素也最关键的部分: <strong>1,000 个 task 是真的人写的</strong>,不是 LLM 生成的(对照 MCPEval 676 auto-gen)。流程:</p>
+
+<div class="fig">
+<svg width="600" height="220" viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+  <rect x="10" y="40" width="120" height="50" rx="6" fill="#fff" stroke="#2f6feb"/>
+  <text x="70" y="63" text-anchor="middle" font-size="13" font-weight="600">domain SME</text>
+  <text x="70" y="80" text-anchor="middle" font-size="11" fill="#5b5e66">写 prompt + claims</text>
+
+  <rect x="160" y="40" width="120" height="50" rx="6" fill="#fff" stroke="#2f6feb"/>
+  <text x="220" y="60" text-anchor="middle" font-size="13" font-weight="600">第 2 层 review</text>
+  <text x="220" y="76" text-anchor="middle" font-size="11" fill="#5b5e66">自然语言审查</text>
+  <text x="220" y="88" text-anchor="middle" font-size="11" fill="#5b5e66">(避免 tool name 泄漏)</text>
+
+  <rect x="310" y="40" width="120" height="50" rx="6" fill="#fff" stroke="#2f6feb"/>
+  <text x="370" y="60" text-anchor="middle" font-size="13" font-weight="600">LLM verifier</text>
+  <text x="370" y="76" text-anchor="middle" font-size="11" fill="#5b5e66">claims 完整性</text>
+  <text x="370" y="88" text-anchor="middle" font-size="11" fill="#5b5e66">自动检查</text>
+
+  <rect x="460" y="40" width="120" height="50" rx="6" fill="#fff" stroke="#2f6feb"/>
+  <text x="520" y="60" text-anchor="middle" font-size="13" font-weight="600">QC sample</text>
+  <text x="520" y="76" text-anchor="middle" font-size="11" fill="#5b5e66">随机抽样</text>
+  <text x="520" y="88" text-anchor="middle" font-size="11" fill="#5b5e66">人工二次校</text>
+
+  <line x1="130" y1="65" x2="160" y2="65" stroke="#2f6feb" stroke-width="2" marker-end="url(#ah2)"/>
+  <line x1="280" y1="65" x2="310" y2="65" stroke="#2f6feb" stroke-width="2" marker-end="url(#ah2)"/>
+  <line x1="430" y1="65" x2="460" y2="65" stroke="#2f6feb" stroke-width="2" marker-end="url(#ah2)"/>
+
+  <text x="300" y="130" text-anchor="middle" font-size="13" font-weight="600">输出: 1 个 task = (PROMPT, ENABLED_TOOLS, GTFA_CLAIMS, TRAJECTORY)</text>
+  <text x="300" y="160" text-anchor="middle" font-size="12" fill="#5b5e66">PROMPT: 84-601 字符 自然语言, 不提 tool 名</text>
+  <text x="300" y="178" text-anchor="middle" font-size="12" fill="#5b5e66">ENABLED_TOOLS: 10-25 个 tool (3-7 required + 5-10 distractor)</text>
+  <text x="300" y="196" text-anchor="middle" font-size="12" fill="#5b5e66">GTFA_CLAIMS: 一组 atomic factual claims, 用作 rubric</text>
+</svg>
+<figcaption>任务构造 4 阶段流水线。Atlas 没有像 Toolathlon-Gym 那样做 LLM-generated 上规模,而是接受 1000 task 的"贵"(估算 ≥ 数千 SME 工时),换来<strong>分布更接近真实用户问题</strong>。</figcaption>
+</div>
+
+<h3>3.2 task 的几个关键约束</h3>
+
+<ul>
+<li><strong>3-6 tool call</strong> 是目标长度;大多数 task 跨 ≥ 2 个 server;<strong>~1/3 含 conditional logic</strong>(下一步 tool 取决于上一步输出)。</li>
+<li><strong>single-turn prompt</strong>: agent 收到的是一次性 user message,不允许 user back-and-forth 反复确认。这是和 Toolathlon (multi-turn) 的一个显著区别 —— Atlas 故意排除 dialog 能力,专注于 planning + execution。</li>
+<li><strong>distractor tool</strong>: 每个 task exposed 10-25 个 tool,但其中只 3-7 个是真正解题需要的。这逼着 agent 自己做 tool selection,不是只 dispatch。</li>
+</ul>
+
+<h3>3.3 HF dataset schema</h3>
+
+<pre>{
+  "TASK": "uuid-style-24char-id",
+  "ENABLED_TOOLS": "tool1, tool2, ... (183-1.44k chars)",
+  "PROMPT": "自然语言 user 请求 (84-601 chars)",
+  "GTFA_CLAIMS": "claim_1; claim_2; ... (79-3.02k chars)",
+  "TRAJECTORY": "完整 ground truth tool-call 序列 (2k-4.4M chars)"
+}</pre>
+
+<p><span class="term">TRAJECTORY</span> 字段是个亮点 —— 它把<strong>人写的 reference trajectory 也开源了</strong>。这点 MCPMark 和 Toolathlon 都没做(只给 verifier 不给 reference traj)。对 SFT / behavior cloning 训练而言,这是个非平凡的资源。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 评测 pipeline:harness + claims rubric + judge</h2>
+
+<h3>4.1 三段式 pipeline</h3>
+
+<pre>1) Completion phase
+   uv run python mcp_completion_script.py \
+       --model claude-opus-4-7 \
+       --input tasks_500.jsonl \
+       --output traj_opus47.jsonl
+   ↓ 调用 localhost:1984 (MCP server 集群) + localhost:3000 (completion svc)
+   ↓ agent 单轮 plan, 多次 tool call 直到吐出 final answer
+
+2) Scoring phase
+   uv run mcp_evals_scores.py \
+       --input-file traj_opus47.jsonl \
+       --model-label opus47
+   ↓ 拿 Gemini 2.5 Pro 当 judge
+   ↓ 对每个 claim 打 {fulfilled=1, partially=0.5, not_fulfilled=0}
+   ↓ coverage = Σ claim_score / |claims|
+
+3) Pass/fail
+   pass if coverage ≥ 0.75 else fail
+   pass_rate = #pass / #tasks</pre>
+
+<h3>4.2 关键设计决策</h3>
+
+<table>
+<thead><tr><th>决策</th><th>选择</th><th>对照</th></tr></thead>
+<tbody>
+<tr><td>verifier 类型</td><td>LLM judge (Gemini 2.5 Pro) on final answer claims</td><td>vs MCPMark 的 rule-based per-task script · vs Toolathlon 的 state-based diff</td></tr>
+<tr><td>judge ground truth</td><td>100 task 上的<strong>多数人类投票</strong>,judge 与之 78% agreement</td><td>vs MCP-Bench 的 holistic-only(有 style bias)</td></tr>
+<tr><td>pass 阈值</td><td>0.75,sensitivity 在 [0.65, 0.85] 验证稳定</td><td>—</td></tr>
+<tr><td>tool list 暴露</td><td>每 task 10-25 tool(混 distractor),agent 看得到 schema</td><td>vs MCPMark 全 5 server 都暴露</td></tr>
+<tr><td>tool 调用格式</td><td>server-declared JSON schema,严格类型 + required/optional check</td><td>—</td></tr>
+<tr><td>execution budget</td><td>有限制(具体数字 paper 未明说)</td><td>—</td></tr>
+<tr><td>multi-turn?</td><td><strong>否</strong> — single user prompt</td><td>vs Toolathlon multi-turn</td></tr>
+</tbody>
+</table>
+
+<h3>4.3 失败模式分析(诊断的真正贡献)</h3>
+
+<p>paper §6 / appendix 给了一张 frontier model 失败原因占比表,这是它比 MCPMark / Toolathlon 更有 "model-card 友好度"的关键 —— Anthropic / OpenAI 可以拿这张表直接讨论"我的模型短板在哪一档":</p>
+
+<table>
+<thead><tr><th>失败类</th><th>平均占比</th><th>典型 sub-error</th></tr></thead>
+<tbody>
+<tr><td><strong>Tool Usage (主要)</strong></td><td>56.7% (47.5-68.5%)</td><td>"no tools called" 36.0%; "incorrect parameters" 14.2%</td></tr>
+<tr><td>Task Understanding</td><td>30.3%</td><td>"partial completion" 25.8%</td></tr>
+<tr><td>Response Quality</td><td>8.5%</td><td>tool call 成功但 final synthesis 错</td></tr>
+<tr><td>Logical Errors</td><td>4.5%</td><td>对输出推理错误(最少见)</td></tr>
+</tbody>
+</table>
+
+<p>注意"no tools called"在所有模型上都占主导 —— 包括 frontier model。这说明<strong>"决定调用 tool"本身就是个非 trivial 决策</strong>,模型在不确定时倾向于直接幻觉答案。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 🔍 开源现状 — repo 实地清点 (CRITICAL)</h2>
+
+<p>这一节是用户最关心的。把 github + huggingface + paper 三处对照后,清单如下:</p>
+
+<table>
+<thead><tr><th>资源</th><th>状态</th><th>位置</th><th>license</th></tr></thead>
+<tbody>
+<tr><td>500 公开 task (PROMPT + ENABLED_TOOLS + GTFA_CLAIMS + reference TRAJECTORY)</td><td class="ok">✓ 全开</td><td>HF: <code>ScaleAI/MCP-Atlas</code> (15.6 MB parquet)</td><td>CC-BY-4.0</td></tr>
+<tr><td>另外 500 hold-out task</td><td class="no">✗ 闭源 (Scale Labs 内部用于 leaderboard)</td><td>未公开</td><td>—</td></tr>
+<tr><td>36 MCP server 的 docker 化封装</td><td class="ok">✓ 全开</td><td>repo <code>services/</code></td><td>MIT</td></tr>
+<tr><td>completion service (agent harness, port 3000)</td><td class="ok">✓ 全开</td><td><code>services/</code> + <code>mcp_completion_script.py</code></td><td>MIT</td></tr>
+<tr><td>scoring script (含 judge 调用)</td><td class="ok">✓ 开</td><td><code>mcp_evals_scores.py</code></td><td>MIT</td></tr>
+<tr><td>judge prompt (Gemini 2.5 Pro 用的 system + few-shot)</td><td class="no">⚠ paper 描述了规则但 prompt 全文 <strong>未公开</strong></td><td>嵌入 scoring 脚本里可能能反推</td><td>—</td></tr>
+<tr><td>stateful server 的 fixture data (5 个 server: Airtable / GCal / Notion / Mongo / Slack)</td><td class="ok">✓ 全开</td><td>repo <code>data_exports/</code> (~1.5 MB)</td><td>MIT</td></tr>
+<tr><td>per-task diagnostic flags (tool usage / understanding / response / logical)</td><td class="no">✗ 未公开</td><td>paper 给了汇总数字</td><td>—</td></tr>
+<tr><td>Live leaderboard</td><td class="ok">✓ 公网</td><td><a href="https://labs.scale.com/leaderboard/mcp_atlas">labs.scale.com</a></td><td>—</td></tr>
+<tr><td>提交新模型上 leaderboard 的流程</td><td class="no">⚠ paper / repo 未明示;需通过 Scale Labs 联系</td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+
+<h3>5.1 self-host 跑通 500 task 需要什么</h3>
+
+<pre>依赖: Docker, UV (python pkg manager), jq, Python 3.10+
+.env 里两个 key: LLM_API_KEY (待测模型), EVAL_LLM_API_KEY (Gemini 2.5 Pro judge)
+端口: 1984 (MCP servers 容器), 3000 (completion svc)
+
+额外需要的 API key (运行全 500 task 时):
+- brave_search, exa, oxylabs, twelvedata, alchemy, ...
+- 部分 server (notion / slack / airtable / gcal / mongo) 需要 OAuth + 恢复 fixture
+</pre>
+
+<p>跑通 10 个 sample task 的 minimum 路径不需要付费 key — 这一点比 MCPMark 友好(MCPMark 的 5 个 server 几乎都要 paid key)。</p>
+
+<h3>5.2 与同期 benchmark 的开源度对比</h3>
+
+<table>
+<thead><tr><th>benchmark</th><th>task 全开?</th><th>harness 全开?</th><th>verifier 全开?</th><th>reference traj?</th><th>hold-out?</th><th>live leaderboard?</th></tr></thead>
+<tbody>
+<tr><td>MCPMark</td><td class="ok">✓ 127</td><td class="ok">✓</td><td class="ok">✓ rule-based scripts 全开</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+<tr><td>Toolathlon</td><td class="ok">✓ 108</td><td class="ok">✓</td><td class="ok">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+<tr><td>Toolathlon-Gym</td><td class="ok">✓ 503</td><td class="ok">✓</td><td class="ok">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+<tr><td>MCP-Bench</td><td class="ok">✓ 104</td><td class="ok">✓</td><td class="ok">✓ holistic prompt 开</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+<tr><td><strong>MCP-Atlas</strong></td><td>⚠ 500/1000</td><td class="ok">✓</td><td>⚠ 代码开, judge prompt 闭</td><td class="ok">✓</td><td class="ok">✓ 500 hold-out</td><td class="ok">✓</td></tr>
+<tr><td>AWM (#18)</td><td class="ok">✓ 10k</td><td class="ok">✓</td><td class="ok">✓ code-driven</td><td>—</td><td class="no">✗</td><td class="no">✗</td></tr>
+</tbody>
+</table>
+
+<div class="nb">
+<strong>诚实评价:</strong> 在"纯开源度"这个轴上 MCP-Atlas 反而<strong>不是最开放</strong>的 —— 它故意保留 500 hold-out + 闭 judge prompt。但这恰恰是它<strong>能被 frontier 引用</strong>的设计:<em>有 hold-out 的 benchmark 才能维持 leaderboard 的长期可信度</em>。MCPMark / Toolathlon 一旦数据全开,就失去了"做出官方榜单"的资格 — 因为对手可以训过。
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · 实验结果 + 当前 leaderboard 全表</h2>
+
+<h3>6.1 paper v2 (2026-05-04) 报告的分数</h3>
+
+<table>
+<thead><tr><th>Model</th><th>Pass Rate</th><th>Mean Coverage</th></tr></thead>
+<tbody>
+<tr><td>Claude Opus 4.5</td><td>62.30%</td><td>78.5%</td></tr>
+<tr><td>Gemini 3 Pro</td><td>54.10%</td><td>73.2%</td></tr>
+<tr><td>GPT-5</td><td>44.50%</td><td>61.7%</td></tr>
+<tr><td>Claude Sonnet 4.5</td><td>43.80%</td><td>62.1%</td></tr>
+<tr><td>o3 Pro (high)</td><td>43.60%</td><td>66.9%</td></tr>
+<tr><td>Claude Opus 4.1</td><td>40.90%</td><td>64.9%</td></tr>
+<tr><td>Claude Sonnet 4</td><td>35.60%</td><td>57.3%</td></tr>
+<tr><td>GLM-4.5 Air</td><td>34.00%</td><td>60.5%</td></tr>
+<tr><td>Kimi K2 Instruct</td><td>23.90%</td><td>50.4%</td></tr>
+<tr><td>Qwen3-235B-A22B</td><td>12.00%</td><td>29.0%</td></tr>
+<tr><td>Gemini 2.5 Pro</td><td>8.80%</td><td>30.7%</td></tr>
+<tr><td>GPT-4o</td><td>7.20%</td><td>28.5%</td></tr>
+<tr><td>Gemini 2.5 Flash</td><td>3.40%</td><td>17.8%</td></tr>
+</tbody>
+</table>
+
+<p>paper 自己的话: "Top frontier models achieve pass rates exceeding 50%, with primary failure modes related to inadequate tool usage and task comprehension."</p>
+
+<h3>6.2 Live leaderboard (Scale Labs, 截至 2026-04-08)</h3>
+
+<table>
+<thead><tr><th>#</th><th>Model</th><th>Pass</th><th>±95%CI</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>Muse Spark</strong> (Scale 自家)</td><td><strong>82.2%</strong></td><td>2.30</td></tr>
+<tr><td>2</td><td><strong>Claude Opus 4.7 (max)</strong></td><td><strong>79.1%</strong></td><td>2.50</td></tr>
+<tr><td>3</td><td>Gemini 3.1 Pro Preview (high)</td><td>78.2%</td><td>2.50</td></tr>
+<tr><td>4</td><td>Claude Opus 4.6 (max)</td><td>76.8%</td><td>2.70</td></tr>
+<tr><td>5</td><td>GLM-5p1</td><td>75.6%</td><td>2.70</td></tr>
+<tr><td>6</td><td>GPT-5.5 (xhigh)</td><td>75.3%</td><td>2.70</td></tr>
+<tr><td>7</td><td>GPT-5.4 (xhigh)</td><td>70.6%</td><td>2.80</td></tr>
+<tr><td>8</td><td>Gemini 3 Pro Preview</td><td>70.3%</td><td>2.80</td></tr>
+<tr><td>9</td><td>Claude Opus 4.5 (high)</td><td>69.8%</td><td>2.90</td></tr>
+<tr><td>10</td><td>Claude Sonnet 4.6</td><td>69.5%</td><td>2.90</td></tr>
+<tr><td>11-20</td><td>GPT-5.2 / Kimi-K2p5 / Gemini 3 Flash / Sonnet 4.5 / GLM-4p7 / Gemini 3.1 Flash Lite / GPT-5.4 Mini / GPT-5.1 / O3-Pro / Haiku 4.5</td><td>67.6 → 40.2%</td><td>~3.0</td></tr>
+</tbody>
+</table>
+
+<div class="warn">
+<strong>注意 model-card vs live leaderboard 的 ~2% gap:</strong> Anthropic Opus 4.7 system card (2026-04-16) 引用 <strong>77.3%</strong>, leaderboard 同期显示 <strong>79.1%</strong>。原因可能是:(a) max 是 best-of-N / 推理 budget 更高的设置, system card 报告的是标准 setting;(b) Scale 表态 "Opus 4.6 score has been updated to reflect revised grading methodology",说明 judge 在迭代,数字随之变。<em>引用时务必标 snapshot 日期。</em>
+</div>
+
+<h3>6.3 几个有意思的观察</h3>
+
+<ul>
+<li><strong>Muse Spark 82.2% 是 Scale AI 自家模型</strong>(2026 年新发) —— 第 1 位是自家这件事本身值得 raised eyebrow,但 Scale 在 leaderboard 做 ground truth 同时上自家模型 SOTA 是 RM benchmark 时代就有的传统(详见 LMArena ↔ Scale 关系)。</li>
+<li><strong>Gemini 2.5 Pro 在 paper 里只跑出 8.8%</strong> —— 但<strong>它本身就是 judge 模型</strong>!这意味着 Atlas 的 judge 模型解题能力远低于它当 judge 的能力,这在心理学叫 evaluator-solver gap,是 LLM-as-judge 范式的常见现象。</li>
+<li><strong>Claude vs GPT 的 head-to-head</strong>: 几乎每一代 Claude 在 Atlas 上都领先同代 GPT 一个身位 (Opus 4.7 79.1 vs GPT-5.5 75.3, Opus 4.5 69.8 vs GPT-5.2 67.6)。这强化了 Anthropic 的 "agentic" 叙事 — 也部分回答了为什么 Anthropic 选这个 benchmark 上 model card。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec7">7 · 与 MCPMark / Toolathlon / MCP-Bench 的并排对比</h2>
+
+<table>
+<thead><tr><th>维度</th><th>MCPMark</th><th>Toolathlon</th><th>MCP-Bench</th><th><strong>MCP-Atlas</strong></th></tr></thead>
+<tbody>
+<tr><td>团队</td><td>eval-sys</td><td>HKUST-NLP</td><td>Accenture</td><td><strong>Scale AI + NUS</strong></td></tr>
+<tr><td>规模</td><td>127 task / 5 server</td><td>108 task / 32 app / 604 tool</td><td>104 task</td><td><strong>1,000 task / 36 server / 220 tool</strong></td></tr>
+<tr><td>task 来源</td><td>人工</td><td>人工</td><td>人工 + LLM</td><td>人工 (3-layer review)</td></tr>
+<tr><td>verifier</td><td>per-task script (规则)</td><td>state diff + 自定义 verifier</td><td>holistic LLM judge</td><td>claims-based LLM judge</td></tr>
+<tr><td>metric</td><td>pass^k</td><td>success rate</td><td>holistic score</td><td>pass rate (coverage≥0.75)</td></tr>
+<tr><td>multi-turn?</td><td>视 task 而定</td><td>multi-turn</td><td>single-turn</td><td>single-turn</td></tr>
+<tr><td>真实 server?</td><td>5 个真</td><td>真 (但需挂载 OAuth)</td><td>真</td><td>真 + dockerized</td></tr>
+<tr><td>hold-out</td><td>无</td><td>无</td><td>无</td><td><strong>500/1000</strong></td></tr>
+<tr><td>live leaderboard</td><td>无</td><td>无</td><td>无</td><td><strong>Scale Labs 维护</strong></td></tr>
+<tr><td>reference trajectory</td><td>无</td><td>无</td><td>无</td><td><strong>有</strong></td></tr>
+<tr><td>frontier 官方采用?</td><td>无</td><td>无</td><td>无</td><td><strong>Claude Opus 4.7 ✓</strong></td></tr>
+<tr><td>license</td><td>MIT (全开)</td><td>MIT (全开)</td><td>MIT (全开)</td><td>MIT + CC-BY-4.0 (data 500 task)</td></tr>
+<tr><td>RL training fork</td><td>无</td><td>Toolathlon-Gym (eigent-ai)</td><td>无</td><td>无</td></tr>
+</tbody>
+</table>
+
+<p><strong>关键差异化(按重要性排序):</strong></p>
+<ol>
+<li><strong>Live leaderboard + hold-out</strong> — 唯一一个有"非数据集化"承诺的</li>
+<li><strong>规模 10×</strong> — 让 CI ≤ 3%,是 frontier 模型间分辨可行的最低要求</li>
+<li><strong>reference trajectory 也开源</strong> — 给后续 SFT 喂料</li>
+<li><strong>Scale AI 的销售/数据网络</strong> — 不在 paper 内,但是隐含 distribution advantage</li>
+</ol>
+
+<hr>
+
+<h2 id="sec8">8 · 为什么这篇被 frontier 采用 — 我的假设</h2>
+
+<p>把所有证据放在一起,我对 "为什么 Anthropic 把 MCP-Atlas 而不是 MCPMark / Toolathlon / MCP-Bench 写进 Claude Opus 4.7 model card" 的最佳猜测,按可信度排序:</p>
+
+<h3>H1 (最强): leaderboard infra + hold-out 让数字 "可被定期更新"</h3>
+
+<p>Anthropic / OpenAI / Google 在写 model card 时需要的不是<em>一个静态 paper 数字</em>,而是一个<em>未来发新模型时能继续 quote 的 benchmark</em>。MCPMark / Toolathlon 都是"paper-and-go"模式 — 一旦 paper 发了,数据集 freeze 在 HuggingFace 上,leaderboard 就要靠社区 cobble 起来,容易污染。Atlas 的 Scale Labs leaderboard 是<strong>第一个 by-design 持续运营</strong>的 MCP benchmark。这对 frontier lab 来说是基础设施 lock-in。</p>
+
+<h3>H2 (次强): Scale AI 与 Anthropic 的长期 data 合作关系</h3>
+
+<p>Scale AI 是 Anthropic 最主要的 RLHF data partner 之一(以及 OpenAI 的)。当 Scale 推出一个 benchmark 时,商务通道上 Anthropic 团队拿到这个 benchmark 的时间会早于其他 academic 团队 — 一个 frontier lab 内部已经用了几个月的 benchmark,自然会出现在 model card 里。MCPMark/Toolathlon 是学术 / 创业团队,没有这条快车道。<em>这是个 "Scale AI 卖通道" 的故事,不是技术故事。</em></p>
+
+<h3>H3 (中等): 规模够大让 CI 够窄</h3>
+
+<p>1000 task → 500 公开测试上 95% CI ≈ ±2.5%。Anthropic 报 Opus 4.7 = 77.3% 时 vs Opus 4.6 = 75.8%,这 1.5% 在 100-task benchmark 上根本不显著 (±5% CI),在 500-task 上才勉强 statistical claim。Model card 写代际 incremental improvement,<strong>必须有低 CI benchmark</strong>。</p>
+
+<h3>H4 (弱): claims-based rubric 的可解释性</h3>
+
+<p>Atlas 的 claims rubric 给了 fine-grained 失败诊断("no tool called" 占 36%, "incorrect parameter" 占 14% 这种)。这种 breakdown 是 model card 写"我们改进了 X 的能力"时需要的素材。MCPMark 的 binary pass/fail 给不了这种叙事。</p>
+
+<h3>H5 (诚实承认): Claude 在 Atlas 上分数最好看</h3>
+
+<p>从 leaderboard 看,Claude 系列在 Atlas 上的相对排名比在 SWE-bench / τ-bench 上更靠前(Opus 4.7 第 2,只输给 Scale 自家)。<strong>不能排除 "Anthropic 选这个 benchmark 因为这个 benchmark 上他们赢得最漂亮"</strong>。这是 model card benchmark 选择的公开秘密。</p>
+
+<div class="nb">
+<strong>组合假设:</strong> 大概率是 H1 + H2 主导(infra + 商务通道),H3 + H4 + H5 是技术/叙事上的合理化。如果只是 H3-H5 的话,Toolathlon-Gym (503 task) 也满足规模和 fine-grained 指标,但它没被 quote — 这反过来印证 H1 + H2 是决定性的。
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · 局限 / 个人 take</h2>
+
+<h3>9.1 论文方法学的真实局限</h3>
+
+<ul>
+<li><strong>Single-turn 是个 strong assumption</strong>: 真实 agent 用户经常 mid-task 改主意 / 加约束。Atlas 完全不测这个。Toolathlon 在这一点上反而更接近现实。</li>
+<li><strong>Judge = Gemini 2.5 Pro</strong> 是个 weak 模型(它自己在 Atlas 上只考 8.8%)。让一个解题能力低的模型去 judge frontier 模型,长期有 ceiling 问题。Scale 自己也承认 "judge has been updated, scores revised" — 说明 judge 是个 moving target,跨 snapshot 比较得小心。</li>
+<li><strong>没有 RL 训练 fork</strong>: Atlas 还没有出现像 Toolathlon → Toolathlon-Gym 那样的 RL 训练版,这意味着开源社区目前不能直接用 Atlas 训 agent。考虑到 reference trajectory 已经开放,这个 fork 出现是迟早的事。</li>
+<li><strong>API key 配齐的实际成本</strong>: 跑完 500 task 需要 ≥ 10 个 paid API (oxylabs / twelvedata / alchemy / brave / exa / ...),自托管 cost ≥ 数百美元/次。这对独立研究者是 entry barrier,只有大组能 reproduce。</li>
+</ul>
+
+<h3>9.2 我的判断</h3>
+
+<p>MCP-Atlas 不是技术上最聪明的 MCP benchmark — <strong>它是产品化做得最好的那个</strong>。Scale AI 把它当一个<strong>持续运营的 leaderboard product</strong>(类似 LMSys Chatbot Arena 的位置),而不是单次发布的 paper artifact。这就是它和 MCPMark / Toolathlon 的根本差别,也是 frontier lab 需要的差别。</p>
+
+<p>对用户(<a href="https://zhangshuibai.github.io">szhang967</a>)的实际建议:</p>
+
+<table>
+<thead><tr><th>用途</th><th>推荐 benchmark</th></tr></thead>
+<tbody>
+<tr><td>纯学术发 paper, 想要 verifier 完全可控</td><td>MCPMark (5 server, rule-based)</td></tr>
+<tr><td>训 agent (RL/SFT), 要规模</td><td>Toolathlon-Gym 503 task 或 AWM 10k 合成</td></tr>
+<tr><td>对标 frontier model 数字, 写 paper 时给读者熟悉的刻度</td><td><strong>MCP-Atlas</strong>(quote Opus 4.7 = 77.3 已经是标准刻度)</td></tr>
+<tr><td>验证 self-host model 的 tool-use 能力</td><td>10-task sample + 500 公开 task — 但准备好 ≥ $200 API 预算</td></tr>
+<tr><td>研究 multi-turn dialog agent</td><td>Atlas <strong>不适合</strong> → 改用 Toolathlon</td></tr>
+</tbody>
+</table>
+
+<h3>9.3 一个 counterintuitive finding</h3>
+
+<p>看 §6.3 的失败模式表,"no tools called" 占了 frontier model 36% 的失败原因 —— 即<strong>第一档 failure mode 不是 "tool 用错",而是 "完全不调用 tool"</strong>。这与"模型越强越倾向于直接幻觉答案而不 ground"这个老观察对上了。对 prompt engineer 的 actionable insight:在系统提示里强制要求 "for any factual question, you must call at least one tool" 可能直接消除 1/3 的 failure。这是从 Atlas 中提炼出的最有用的工程经验,paper 没有显式 highlight 但数据明摆着。</p>
+
+<hr>
+
+<div class="kv">
+<strong>速查总结:</strong>
+<ul>
+<li><span class="pill">paper</span> arXiv:2602.00933 · Scale AI + NUS · v1 2026-01-31, v2 2026-05-04</li>
+<li><span class="pill">scale</span> 36 MCP server · 220 tool · 1000 task (500 公开 + 500 hold-out)</li>
+<li><span class="pill">verifier</span> claims-based, Gemini 2.5 Pro judge, threshold 0.75, 78% human agreement</li>
+<li><span class="pill">open</span> repo MIT (scaleapi/mcp-atlas), data CC-BY-4.0 (HF: ScaleAI/MCP-Atlas, 15.6 MB, 500 行)</li>
+<li><span class="pill">SOTA</span> Muse Spark 82.2% / Opus 4.7 (max) 79.1% / Gemini 3.1 Pro 78.2% (live, 2026-04-08)</li>
+<li><span class="pill">cited by</span> Claude Opus 4.7 system card 77.3% (model-card snapshot)</li>
+<li><span class="pill">why-frontier</span> Scale 商务通道 + Live leaderboard + 500 hold-out + 1000 task CI ≤ 3%</li>
+</ul>
+</div>
+
+</main>
+</body>
+</html>
