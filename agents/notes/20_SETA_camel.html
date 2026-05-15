@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · SETA: Scaling Environments for Terminal Agents</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>SETA: Scaling Environments for Terminal Agents</h1>
+<div class="meta">
+  CAMEL-AI · Eigent.AI · SambaNova · KAUST · Imperial / Stanford / Oxford · 2026-01<br>
+  作者: Qijia Shen, Jay Rainton, Aznaur Aliev, Ahmed Awelkair, Boyuan Ma, Zhiqi (Julie) Huang, Yuzhen Mao, Wendong Fan, Philip Torr, Bernard Ghanem, Changran Hu, Urmish Thakker, Guohao Li<br>
+  <a href="https://www.camel-ai.org/blogs/seta-scaling-environments-for-terminal-agents" target="_blank">CAMEL Blog</a> ·
+  <a href="https://eigent-ai.notion.site/SETA-Scaling-Environments-for-Terminal-Agents-2d2511c70ba280a9b7c0fe3e7f1b6ab8" target="_blank">Notion Tech Report</a> ·
+  <a href="https://github.com/camel-ai/seta" target="_blank">GitHub: seta</a> ·
+  <a href="https://github.com/camel-ai/seta-env" target="_blank">seta-env</a> ·
+  <a href="https://huggingface.co/datasets/camel-ai/seta-env" target="_blank">HF dataset</a> ·
+  <a href="https://huggingface.co/camel-ai/seta-rl-qwen3-8b" target="_blank">HF model</a><br>
+  关键词: Terminal agent · Terminal-Bench 2.0 · RLVR · AReaL · synthetic env · CAMEL · Qwen3-8B · Apache-2.0
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> SETA 是 CAMEL-AI / Eigent.AI 把"为 terminal agent 训练用的 RL 环境"<strong>整套搬到开源</strong>的项目——核心包括 (1) 一份与 Terminal-Bench 任务格式兼容的 <strong>400+ 合成任务数据集</strong>(LLM-生成 / Docker 容器 / unit-test verifier),(2) 一个 <strong>双工具包(TerminalToolkit + NoteToolkit)</strong>,(3) <strong>AReaL 上的端到端 GRPO 训练 workflow</strong> + rLLM 集成 demo。它对应的"训→评闭环"是 SWE-Gym → SWE-Bench 的 terminal 版,即 <strong>SETA → Terminal-Bench</strong>。代码、数据、Qwen3-8B 训练后权重<strong>全部 Apache-2.0 开源</strong>。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">400 / 260</div><div class="l">初始合成任务数 / RLVR 微调实际用到的子集</div></div>
+    <div class="stat"><div class="n">46.5%</div><div class="l">Claude Sonnet 4.5 + CAMEL terminal agent · Terminal-Bench 2.0 排名 #1(领先第 2 名 3 pp)</div></div>
+    <div class="stat"><div class="n">3.4% → 20.2% ↑</div><div class="l">Qwen3-8B 基线 3.4% on TB2.0;RLVR 后 unit-test 通过率 0.38 → 0.45(+20.2%)</div></div>
+  </div>
+  <p><strong>立场:</strong> SETA 不是一篇有 arXiv 编号的 paper,而是一份"<strong>持续更新</strong>"的 Notion 技术报告 + 两个活跃 GitHub 仓库。和姊妹项目 Toolathlon-Gym(MCP 域)以及 R2E-Gym(SWE 域)形成同一 CAMEL/Eigent 生态下的<strong>三大开源训练 env 矩阵</strong>。它最有信号价值的一句来自创始人 Guohao Li: "<em>Frontier labs spend millions purchasing RL environments for training terminal agents. But we decided to open source it.</em>"——直接把 frontier lab 的"软资产"打回到 commodity。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景:为什么 2026 突然需要 "terminal RL env" 这种东西</a></li>
+    <li><a href="#sec2">SETA = toolkit + env + 训练 workflow 三合一</a></li>
+    <li><a href="#sec3">任务设计:400 task 长什么样(含实例)</a></li>
+    <li><a href="#sec4">训练 recipe:AReaL GRPO + RLVR 配方拆解</a></li>
+    <li><a href="#sec5">实证:TB2.0 #1 (46.5%) 与 Qwen3-8B 微调收益</a></li>
+    <li><a href="#sec6">🔍 开源现状清点(repo 实地走查)</a></li>
+    <li><a href="#sec7">与同类工作横排:SETA / Toolathlon / R2E / AgentGym-RL / TB</a></li>
+    <li><a href="#sec8">SETA + Terminal-Bench 的训→评闭环(流程图)</a></li>
+    <li><a href="#sec9">局限与个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景:为什么 2026 突然需要 "terminal RL env" 这种东西</h2>
+
+<p>2024–2025 这一年,"<strong>终端</strong>"突然变成 agent 工程的中心舞台:</p>
+
+<ul>
+  <li><strong>Anthropic Claude Code</strong>(2025 中)、<strong>OpenAI Codex CLI</strong>、<strong>Cursor agent</strong>、<strong>OpenHands</strong>、<strong>Aider</strong>——一夜之间产品形态变成 "<em>一个 shell prompt + 一个 LLM</em>"。</li>
+  <li><strong>Terminal-Bench</strong>(Stanford / Anthropic 等,2025)从 <em>0.1 → 1.0 → 2.0</em>,逐步成为衡量 terminal agent 的"事实标准"——TB 2.0 包含 89 个真实世界 task,覆盖 git/devops/security/bioinfo/crypto 等领域。</li>
+  <li><strong>RL 训练侧</strong>:frontier lab(OpenAI / Anthropic / Google)被广泛猜测在内部维护着<strong>付费购买</strong>或<strong>内部合成</strong>的 terminal RL env 池——但<em>没有任何开源对应物</em>。</li>
+</ul>
+
+<blockquote>
+"Frontier labs spend millions purchasing RL environments for training terminal agents. But we decided to open source it. Introducing SETA: Scaling Environments for Terminal Agents, the largest open source training RL environments for terminal agents." —— Guohao Li (CAMEL-AI 创始人,X)
+</blockquote>
+
+<p>这句话点透了 SETA 的真正定位——<strong>不是再写一个 benchmark</strong>(那是 Terminal-Bench 的工作),<strong>而是把 "训练数据 + verifier + 训练 pipeline" 这个完整闭环开源化</strong>,让小团队 / 学术界也能跑得起 terminal agent 的 RL 训练。这与笔者前面读过的几个工作可以并排理解:</p>
+
+<table>
+<tr><th>对应关系</th><th>"benchmark"(评测)</th><th>"gym / env"(训练)</th><th>关系</th></tr>
+<tr><td>Coding / SWE</td><td>SWE-Bench</td><td>SWE-Gym / R2E-Gym</td><td>SWE-Gym 显式 "train for SWE-Bench"</td></tr>
+<tr><td>MCP / tool-use</td><td>MCP-Atlas (#19) / MCP-Universe</td><td>Toolathlon-Gym</td><td>Toolathlon-Gym 提供同源训练环境</td></tr>
+<tr><td>GUI</td><td>OSWorld / AndroidWorld</td><td>UI-TARS-2 沙箱 (#17) / ClawGUI (#14)</td><td>—</td></tr>
+<tr><td><strong>Terminal (本篇)</strong></td><td><strong>Terminal-Bench 1.0/2.0</strong></td><td><strong>SETA</strong></td><td><strong>SETA 任务格式直接兼容 TB harness</strong></td></tr>
+</table>
+
+<p>所以 SETA 在 2026 这一波"agent env / gym 大爆发"里的角色,是 <strong>terminal 这一象限的 SWE-Gym 等价物</strong>。它不是要取代 TB,而是要做 TB 的"上游训练管线"。</p>
+
+<h2 id="sec2">2 · SETA = toolkit + env + 训练 workflow 三合一</h2>
+
+<p>看 repo 结构最快理解它的边界:<code>camel-ai/seta</code>(代码 + 训练)+ <code>camel-ai/seta-env</code>(任务数据)共构。</p>
+
+<h3>2.1 TerminalToolkit:agent 用什么"敲键盘"</h3>
+
+<p>SETA 给 agent 的<strong>不是裸 bash</strong>,而是一套封装好的 <span class="term">TerminalToolkit</span>(<code>docs/terminal_toolkit_design.md</code>),核心 6 个 API:</p>
+
+<table>
+<tr><th>API</th><th>作用</th></tr>
+<tr><td><code>shell_exec(cmd, block, id)</code></td><td>blocking / non-blocking 命令执行;Docker 后端自动 <code>bash -c</code> 包装</td></tr>
+<tr><td><code>shell_write_content_to_file</code></td><td>直接写文件——绕开 <code>echo</code> 嵌套引号灾难</td></tr>
+<tr><td><code>shell_write_to_process</code></td><td>给已运行的非阻塞 session 喂输入(交互式 REPL / vim / 数据库 shell)</td></tr>
+<tr><td><code>shell_view(id)</code></td><td>查看后台 session 当前输出</td></tr>
+<tr><td><code>shell_wait(id)</code></td><td>事件驱动等待(基于"输出流空闲一段稳定时间")</td></tr>
+<tr><td><code>shell_kill_process(id)</code></td><td>结束 session</td></tr>
+</table>
+
+<p>关键设计点(从 design doc 提炼):</p>
+<ul>
+  <li><strong>每个 non-blocking session 跑独立后台 reader 线程</strong> + thread-safe Queue,捕获实时输出——不会因为主程序阻塞而丢日志。</li>
+  <li><strong>"idle detection"代替 <code>sleep</code></strong>:<code>_collect_output_until_idle</code> 持续监测 output stream,当连续静默达到稳定阈值才返回——这是 terminal agent 的痛点 #1 解法(你不知道命令什么时候真正"完成")。</li>
+  <li><strong>双后端</strong>:local <code>subprocess.Popen</code> / Docker exec socket,统一 API。</li>
+  <li><strong>session 日志的双轨制</strong>:blocking 全部追加进 <code>blocking_commands.log</code>;non-blocking 每个 session 一个 <code>session_{id}.log</code> raw interleaved transcript——这对 trajectory 复盘 / reward 调试至关重要。</li>
+</ul>
+
+<h3>2.2 NoteToolkit:long-horizon 记忆补丁</h3>
+
+<p>blog 显式提到第二组工具,用于"long-horizon task"的<strong>外部 scratchpad</strong>(因为 LLM context 装不下整个 session log):</p>
+
+<pre>create_note(name, content)
+append_note(name, content)
+read_note(name)
+list_note()</pre>
+
+<p>对比 #17 UI-TARS-2 的"内部 memory token"路线,SETA 这里走的是<strong>显式 external memory</strong>——朴素但和 Claude Code / Codex CLI 的工程实践一致。</p>
+
+<h3>2.3 任务环境:Terminal-Bench 兼容包(<code>seta-env</code>)</h3>
+
+<p>每个 task 是一个独立目录,内含:</p>
+
+<pre>&lt;task_id&gt;/
+├── task.yaml          # instruction + difficulty + category + tags + timeouts
+├── Dockerfile         # 完整可复现环境定义
+├── docker-compose.yaml
+├── solution.sh        # 标准答案(oracle agent 用)
+├── run-tests.sh       # 运行测试
+├── tests/             # pytest 测试集
+└── weights.json       # 评分权重</pre>
+
+<p>第一行总是 <code>Terminal-Bench Canary String, DO NOT REMOVE</code> + 一个 GUID——这是 TB 的<strong>数据污染检测金丝雀</strong>,显示 SETA 任务设计完全沿用 TB 的标准格式。</p>
+
+<h3>2.4 训练 workflow:AReaL 主线 + rLLM 备线</h3>
+
+<p>训练 workflow 在 <code>seta/training/</code>:</p>
+<ul>
+  <li><code>tbench_areal_workflow/</code> —— <strong>主线,基于清华+蚂蚁的 AReaL 框架</strong>(<a href="https://arxiv.org/abs/2505.24298">2505.24298</a>,见 models/#19 综述)。包含完整 <code>train.py</code>(33 KB)、<code>eval.py</code>(28 KB)、<code>chat_agent_trace.py</code>、<code>terminal_toolkit.py</code>、配置文件。</li>
+  <li><code>tbench_rllm_workflow/</code> —— <strong>备线,集成 Agentica 的 rLLM 框架</strong>(README 自述 "have not been extensively tested yet")。</li>
+  <li><code>data_utils/</code> —— 数据下载 + 转 parquet 工具。</li>
+</ul>
+
+<h2 id="sec3">3 · 任务设计:400 task 长什么样</h2>
+
+<h3>3.1 合成 pipeline:两个 LLM agent 接力</h3>
+
+<p>blog 描述任务生成 pipeline:</p>
+
+<table>
+<tr><th>阶段</th><th>角色</th><th>输出</th></tr>
+<tr><td>1. 种子收集</td><td>—</td><td>从 web 内容收集约 <strong>1,300 个 Q&A pair</strong></td></tr>
+<tr><td>2. Idea Generation Agent</td><td>LLM</td><td>把 raw Q&A 转成"详细 task spec"</td></tr>
+<tr><td>3. Datapoint Creation Agent</td><td>LLM</td><td>输出"complete, executable Terminal-Bench task"(yaml + Dockerfile + tests)</td></tr>
+<tr><td>4. 验证</td><td>oracle agent</td><td>用 <code>tb run --agent "oracle"</code> 跑通 → 入库</td></tr>
+</table>
+
+<p>难度分布:blog 自述<strong>"most tasks are medium-level"</strong>,设计动机是"<em>fill the gap between limited terminal capability of small models and difficult terminal-bench tasks</em>"——也就是给小模型铺中间台阶。</p>
+
+<h3>3.2 7 大任务类别</h3>
+
+<table>
+<tr><th>类别</th><th>典型场景</th></tr>
+<tr><td>software-engineering</td><td>打包安装清单、备份脚本、构建系统</td></tr>
+<tr><td>system-administration</td><td>用户/组管理、文件权限、SSH key 迁移</td></tr>
+<tr><td>security</td><td>cert/key 操作、cryptography 题</td></tr>
+<tr><td>debugging</td><td>修坏的脚本 / Dockerfile</td></tr>
+<tr><td>systems-programming</td><td>低层 C / 系统调用</td></tr>
+<tr><td>networking</td><td>iptables / curl / DNS / socket</td></tr>
+<tr><td>devops</td><td>CI/CD / docker compose / 容器编排</td></tr>
+</table>
+
+<h3>3.3 三个真实 task 例子(实地从 repo 抽出)</h3>
+
+<details><summary>例 1 · <code>Dataset/0/task.yaml</code> — software-engineering / medium / 15 min</summary>
+<pre>You need to create a reproducible package inventory from the current
+Ubuntu system and prepare it for bulk installation on another system.
+Generate a complete list of all currently installed packages
+(excluding deinstalled ones), save it to packages.txt in $HOME, and
+create install_packages.sh that can reinstall those packages on a
+fresh Ubuntu system. The script should handle install errors
+gracefully and provide a summary of successful/failed installs.
+
+category: software-engineering
+parser_name: pytest
+max_agent_timeout_sec: 360
+expert_time_estimate_min: 15
+junior_time_estimate_min: 30</pre>
+</details>
+
+<details><summary>例 2 · <code>Dataset/100/task.yaml</code> — system-administration / medium / 20 min</summary>
+<pre>Rename user account "olduser" → "newuser" while preserving UID/GID,
+moving /home, updating ownership across filesystem, fixing all
+config files that contain hardcoded references to the old username,
+preserving SSH key functionality, and verifying that the new user
+can authenticate. The old username should no longer exist.
+
+category: system-administration
+tags: [linux, user-management, system-administration]
+max_agent_timeout_sec: 600</pre>
+</details>
+
+<details><summary>例 3 · <code>Dataset/500/task.yaml</code> — software-engineering / medium / 10 min</summary>
+<pre>Create a system backup script /workspace/backup.sh that:
+- creates compressed tar archive (backup.tar.gz) of /workspace/system_root/
+- EXCLUDES /dev /proc /sys /tmp /media /mnt /lost+found and the archive itself
+- INCLUDES /home /etc /var /usr
+- uses gzip compression and preserves directory structure
+Validation: archive must contain all INCLUDE_MARKER files and
+none of the EXCLUDE_MARKER files.
+
+tags: [bash, tar, linux, backup, filesystem]</pre>
+</details>
+
+<p>这三例集中体现了 SETA 任务的<strong>风格特征</strong>:<em>多步骤、有副作用、需要 robust 错误处理、unit-test 可验证</em>。和 Terminal-Bench 2.0 那种"play-zork / pwntools / bioinfo pipeline"的真实任务相比,SETA 任务更"标准化"——但这正是 RL <em>训练</em>需要的:reward signal 干净、能批量并行、Docker 化彻底。</p>
+
+<div class="nb">
+注: <code>camel-ai/seta-env/Dataset/</code> 当前可见目录数已经 ≥ 1000(GitHub API 第一页返回 1000),另有 <code>Harbor-Dataset/</code> 同样规模。Blog 自述"400 with continuous scaling"是 <strong>RLVR-ready 的初始批</strong>,实际仓库已超出。
+</div>
+
+<h2 id="sec4">4 · 训练 recipe:AReaL GRPO + RLVR 配方拆解</h2>
+
+<h3>4.1 框架选择:AReaL(主线)+ rLLM(备线)</h3>
+
+<p>主线训练在 <strong>AReaL</strong> 上完成(<code>training/tbench_areal_workflow/train.py</code>,33 KB)。AReaL 是<strong>完全异步</strong>的 RL 框架——rollout server (SGLang) 与 trainer 解耦,policy lag 可控(配置里 <code>max_head_offpolicyness: 2</code>)。这与 SETA 这种"任务可能跑 6 分钟、不同任务方差极大"的场景天然契合。rLLM workflow 提供小规模可读 demo。</p>
+
+<h3>4.2 实证 hyperparam(从 <code>config.yaml</code> 直接读出)</h3>
+
+<table>
+<tr><th>参数</th><th>取值</th><th>解读</th></tr>
+<tr><td>base model</td><td><code>Qwen/Qwen3-8B</code></td><td>非 thinking 版</td></tr>
+<tr><td>total epochs</td><td>10</td><td>非常短——260 任务 × 10 epoch ≈ 2600 步</td></tr>
+<tr><td>n_trajs</td><td>2</td><td>每个 task 采 2 条轨迹</td></tr>
+<tr><td>max_tokens / trajectory</td><td>32,768</td><td>长 horizon</td></tr>
+<tr><td>max_concurrent_rollouts</td><td>64</td><td>并行 64 个 Docker 环境</td></tr>
+<tr><td>algorithm</td><td>GRPO(experiment_name 显示)</td><td>group_size=1,实际更像单 traj policy gradient + group baseline</td></tr>
+<tr><td>lr</td><td>1.70e-5</td><td>constant schedule</td></tr>
+<tr><td>weight_decay</td><td>0.017</td><td></td></tr>
+<tr><td>eps_clip</td><td>0.4</td><td>较大,允许更激进 update</td></tr>
+<tr><td>use_decoupled_loss</td><td>true</td><td>off-policy 修正</td></tr>
+<tr><td>behav_imp_weight_cap</td><td>5.0</td><td>importance weight clip</td></tr>
+<tr><td>kl_ctl</td><td><strong>0.0</strong></td><td>⚠️ <strong>完全无 KL 约束</strong></td></tr>
+<tr><td>reward_scaling</td><td>10.0</td><td>原始 reward × 10</td></tr>
+<tr><td>reward_bias</td><td>-0.5</td><td>把 [0,1] 平移到 [-0.5, +0.5]</td></tr>
+<tr><td>cluster</td><td>1 node × 8 GPU(default 8×H100 config 存在)</td><td>—</td></tr>
+<tr><td>allocation_mode</td><td><code>sglang:d4p1t1+d4p1t1</code></td><td>4 GPU 推理 + 4 GPU 训练</td></tr>
+<tr><td>backend</td><td>FSDP</td><td></td></tr>
+</table>
+
+<h3>4.3 Reward 设计(RLVR 核心)</h3>
+
+<p>blog 明文:</p>
+<blockquote>
+"We use unit test pass ratio for each rollout as reward, with additional bonus reward 1 assigned to fully succeeded rollout. The reward value could be larger than 1 since we add a bonus for full completion trajectories."
+</blockquote>
+
+<div class="formula">
+<em>R</em>(τ) = (passed_tests / total_tests) + <em>𝟙</em>[all_passed]
+</div>
+
+<p>非常朴素的 RLVR 配方:</p>
+<ul>
+  <li>没有 process reward,没有 LLM-judge,纯 unit-test 通过率(<em>verifiable</em>)。</li>
+  <li>"全过 +1 bonus"避开 partial credit gaming——避免 agent 学会"先过几个简单 test 就摆烂"。</li>
+  <li>R ∈ [0, 2],再经 <code>reward_scaling=10</code> + <code>reward_bias=-0.5</code> 平移到 advantage 较友好的区间。</li>
+  <li>KL=0 + decoupled loss + clip cap 5 这个组合,意味着<strong>放手让模型偏离 base</strong>——但靠 importance weight 截断防爆。</li>
+</ul>
+
+<h3>4.4 训练基础设施(从 README 推断)</h3>
+
+<ul>
+  <li>Docker per task,且必须为 <strong>address pool 用尽</strong> 准备 daemon.json 自定义 subnet(README 单列一章)——侧面证明并行规模可观。</li>
+  <li>blog 提到 "<strong>Remote Environment Manager</strong>" 通过 TCP 编排远程主机上的容器生命周期,使用 "AWS server fleet" 与 "<strong>256+ containers concurrently</strong>"。</li>
+  <li>提供 sglang server 与 trainer 分离的部署模式(<code>train_remote_rollout.py</code>),应对单机不够的情况。</li>
+  <li>GPU 总小时 <strong>未公开</strong>。</li>
+</ul>
+
+<h3>4.5 260 / 400 的取舍</h3>
+
+<p>blog 直接说 "<em>400 terminal tasks ..., 260 of which have been used for RLVR finetuning</em>"。Notion 报告(持续更新中)未给出明确剔除标准——合理推测:剩下 140 是 oracle 验证不稳定 / Docker 资源占用过大 / 难度偏离目标分布的部分。<strong>这部分笔者未在 repo 中找到显式 split 列表</strong>。</p>
+
+<h2 id="sec5">5 · 实证:TB2.0 #1 (46.5%) 与 Qwen3-8B 微调收益</h2>
+
+<h3>5.1 双线结果:大模型 + CAMEL agent 框架</h3>
+
+<p>第一个数字与 RL 训练无关,而是<strong>"frontier model + CAMEL agent 框架"在 Terminal-Bench 上的成绩</strong>——这是 CAMEL 团队展示 agent infra 价值的数字:</p>
+
+<table>
+<tr><th>Setting</th><th>TB 版本</th><th>分数</th><th>排名</th><th>领先</th></tr>
+<tr><td>Claude Sonnet 4.5 + CAMEL terminal agent</td><td>2.0(89 tasks)</td><td><strong>46.5%</strong></td><td>#1</td><td>+3 pp(vs #2)</td></tr>
+<tr><td>GPT-4.1 + CAMEL terminal agent</td><td>1.0</td><td>35.0%</td><td>#1</td><td>+4.7 pp(vs #2)</td></tr>
+</table>
+
+<p>分领域表现(TB 2.0,from blog):</p>
+
+<table>
+<tr><th>Domain</th><th>Pass rate</th></tr>
+<tr><td>Git 操作</td><td>80% (4/5)</td></tr>
+<tr><td>DevOps workflows</td><td>100% (3/3)</td></tr>
+<tr><td>Code security</td><td>100% (3/3)</td></tr>
+<tr><td>Cryptography</td><td>33% (1/3)</td></tr>
+<tr><td>Bioinformatics</td><td><strong>0%</strong> (0/3)</td></tr>
+</table>
+
+<p>典型的"<em>泛型工程任务很强,垂直领域知识题崩盘</em>"——bioinformatics 0/3 暴露了纯 prompting + 工程 toolkit 的天花板。</p>
+
+<h3>5.2 Qwen3-8B 主战场:RLVR 真的有用吗</h3>
+
+<table>
+<tr><th>Metric</th><th>Before RLVR</th><th>After RLVR</th><th>Δ</th></tr>
+<tr><td>TB 2.0 task 通过(out of 89)</td><td>3 tasks(3.4%)</td><td>3 + 4 = 7 tasks</td><td>+4 task</td></tr>
+<tr><td>Unit-test pass ratio(per rollout 平均)</td><td>0.38</td><td>0.45</td><td><strong>+20.2%</strong> relative</td></tr>
+</table>
+
+<p>这组数字老实但<strong>不闪亮</strong>:</p>
+<ul>
+  <li>基线 3.4% 本来就在地板上,绝对增量 4 task 听上去微小;但 unit-test pass ratio +20.2% 是个像样的训练信号。</li>
+  <li>说明在 Qwen3-8B 这个 scale 上,纯 RLVR + 260 task + 10 epoch 还不足以让小模型"突变"——它<em>能学</em>,但还远不够替代 frontier。</li>
+  <li>但这同时也是 SETA 的 honest 之处:不挑樱桃,直接报 89 task 上的实测。</li>
+</ul>
+
+<div class="warn">
+<strong>注意区分两个故事</strong>: TB2.0 #1 (46.5%) <strong>不是</strong> Qwen3-8B + RLVR 跑出来的,<strong>是 Claude Sonnet 4.5 + CAMEL agent 工程框架</strong>跑出来的。两者交叉混淆容易误读 SETA 的 RL 价值。 RLVR 训练目前只在 Qwen3-8B 上做了,且收益是温和的 +4 task / +20.2% pass ratio。
+</div>
+
+<h2 id="sec6">6 · 🔍 开源现状清点(repo 实地走查)</h2>
+
+<p>这是本篇<strong>最关键</strong>的一节——直接决定 SETA 能不能被复用。截至 2026-05,走查结果如下:</p>
+
+<h3>6.1 仓库清单 & license</h3>
+
+<table>
+<tr><th>资产</th><th>位置</th><th>License</th><th>规模</th><th>状态</th></tr>
+<tr><td>SETA 代码主仓</td><td><a href="https://github.com/camel-ai/seta">camel-ai/seta</a></td><td><strong>Apache-2.0</strong></td><td>~9 MB,104★</td><td><span class="ok">✓ 全开</span></td></tr>
+<tr><td>SETA 任务数据仓</td><td><a href="https://github.com/camel-ai/seta-env">camel-ai/seta-env</a></td><td><strong>Apache-2.0</strong></td><td>~22 MB,134★</td><td><span class="ok">✓ 全开</span></td></tr>
+<tr><td>HF dataset</td><td><a href="https://huggingface.co/datasets/camel-ai/seta-env">camel-ai/seta-env</a></td><td><strong>Apache-2.0</strong></td><td>10.9 MB(预览)</td><td><span class="ok">✓ 月下载 735</span></td></tr>
+<tr><td>训练后模型</td><td><a href="https://huggingface.co/camel-ai/seta-rl-qwen3-8b">camel-ai/seta-rl-qwen3-8b</a></td><td>(继承 Qwen3 协议)</td><td>Qwen3-8B BF16</td><td><span class="ok">✓ 权重已放</span></td></tr>
+<tr><td>技术报告</td><td>Notion(eigent-ai)</td><td>—</td><td>持续更新</td><td><span class="ok">✓ 可读</span></td></tr>
+<tr><td>arXiv paper</td><td>—</td><td>—</td><td>—</td><td><span class="no">✗ 无,只挂 BibTeX</span></td></tr>
+</table>
+
+<h3>6.2 <code>camel-ai/seta</code> 内容剖面</h3>
+
+<pre>seta/
+├── dataset/                                  # 任务数据(submodule + 转换)
+│   ├── tbench-tasks/  (symlink)             #   终端 bench 原任务
+│   └── tbench-tasks_convert/                #   parquet 转换后版
+├── docs/terminal_toolkit_design.md          # 详细工具设计文档
+├── evaluation/
+│   ├── terminal_bench_eval/                 # 跑 TB 1.0 / TB 2.0 官方评测
+│   └── terminal_bench_run/                  # single-agent / workforce 试跑
+├── training/
+│   ├── tbench_areal_workflow/               # 主线 RL 训练(AReaL)
+│   │   ├── train.py (33 KB)
+│   │   ├── eval.py  (28 KB)
+│   │   ├── terminal_toolkit.py
+│   │   ├── chat_agent_trace.py
+│   │   ├── prompts.py
+│   │   └── configs/
+│   │       ├── config_8xh100-qwen3-8b.yaml
+│   │       └── config_test_tasks_qwen3-8b_synthdata_1-400.yaml
+│   ├── tbench_rllm_workflow/                # rLLM 备线(README 自述未充分测试)
+│   └── data_utils/                          # 下载 / 转 parquet 工具
+├── external/                                # git submodule
+├── setup.sh
+└── LICENSE  (Apache-2.0)</pre>
+
+<h3>6.3 自托管要点 / 复现门槛</h3>
+
+<ul>
+  <li><strong>可复现性 ≈ 中上</strong>:训练脚本、config、reward 设计、prompts 全部开源。和 #18 Agent World Model(全开源)相当,显著优于 #17 UI-TARS-2(主线权重 / 沙箱 / 训练全闭)。</li>
+  <li><strong>硬件门槛</strong>:config 默认 1 node × 8 H100,sglang 分配 d4p1t1 + 训练 d4p1t1。要复现 GRPO 训练你大约需要 8×H100(80 GB),并预留充足 docker 网络池子(README 专门提了 address pool drain 故障)。</li>
+  <li><strong>非琐碎的依赖</strong>:依赖 AReaL(也开源,清华+蚂蚁)、SGLang、Terminal-Bench harness、Docker。整个栈是开源的,但 first-time setup 不轻松。</li>
+  <li><strong>RL 训好的权重直接可下</strong>: <code>camel-ai/seta-rl-qwen3-8b</code> 是 BF16 完整 8B,可直接 inference 看效果——不必跑训练。</li>
+  <li><strong>评测复现</strong>:<code>evaluation/terminal_bench_eval/run_tb2.sh</code> 一键跑 TB 2.0,只需要替换 <code>tbench_camel_agent.py</code> 的 API key。</li>
+</ul>
+
+<h3>6.4 开源度对比:同生态三件套</h3>
+
+<table>
+<tr><th>项目</th><th>域</th><th>训练 code</th><th>数据</th><th>权重</th><th>arXiv</th><th>License</th></tr>
+<tr><td><strong>SETA</strong>(本篇)</td><td>Terminal</td><td><span class="ok">✓ AReaL+rLLM</span></td><td><span class="ok">✓ 400+,持续增</span></td><td><span class="ok">✓ Qwen3-8B</span></td><td><span class="no">无,Notion</span></td><td>Apache-2.0</td></tr>
+<tr><td>Toolathlon-Gym</td><td>MCP</td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td>部分</td><td>无</td><td>Apache-2.0</td></tr>
+<tr><td>R2E-Gym</td><td>SWE</td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td><span class="ok">✓</span></td><td><span class="ok">有</span></td><td>—</td></tr>
+<tr><td>Agent World Model(#18)</td><td>多任务合成</td><td><span class="ok">✓</span></td><td><span class="ok">✓ 1K env / 35K tools</span></td><td><span class="ok">✓ 4/8/14B</span></td><td><span class="ok">2602.10090</span></td><td>—</td></tr>
+<tr><td>AgentGym-RL(#6)</td><td>5 类多 env</td><td><span class="ok">✓</span></td><td><span class="ok">✓ 27 task</span></td><td>部分</td><td><span class="ok">2509.08755</span></td><td>—</td></tr>
+<tr><td>UI-TARS-2(#17)</td><td>GUI</td><td><span class="no">✗ 主线闭</span></td><td><span class="no">✗</span></td><td><span class="no">✗ 主线 230B 闭</span></td><td><span class="ok">2509.02544</span></td><td>—</td></tr>
+</table>
+
+<h2 id="sec7">7 · 与同类工作横排</h2>
+
+<table>
+<tr><th>维度</th><th>SETA</th><th>Toolathlon-Gym</th><th>R2E-Gym</th><th>AgentGym-RL(#6)</th><th>Terminal-Bench 2.0</th></tr>
+<tr><td>定位</td><td>Terminal 训练 env</td><td>MCP 训练 env</td><td>SWE 训练 env</td><td>通用多 env 训练框架</td><td>Terminal 评测</td></tr>
+<tr><td>对应评测</td><td>TB 1.0 / 2.0</td><td>MCP-Atlas / Universe</td><td>SWE-Bench Verified</td><td>27 内置 env</td><td>—</td></tr>
+<tr><td>任务数</td><td>400+(目标持续增)</td><td>—</td><td>—</td><td>27 task</td><td>89 (v2)</td></tr>
+<tr><td>任务生成</td><td>LLM 自动合成(双 agent 流水线)</td><td>—</td><td>真实 GitHub issue 来源</td><td>多源</td><td>人工 + 社区贡献</td></tr>
+<tr><td>动作空间</td><td>TerminalToolkit (6 tool)+ NoteToolkit (4)</td><td>MCP-tool 调用</td><td>code patch + bash</td><td>每 env 不同</td><td>bash</td></tr>
+<tr><td>Reward</td><td>unit-test pass ratio + 全过 bonus</td><td>—</td><td>测试通过</td><td>env-specific</td><td>测试通过(评测)</td></tr>
+<tr><td>RL 框架</td><td><strong>AReaL</strong>(主)+ rLLM</td><td>—</td><td>—</td><td>自有 ScalingInter-RL</td><td>—</td></tr>
+<tr><td>训练模型</td><td>Qwen3-8B</td><td>—</td><td>Qwen / Llama 多</td><td>多</td><td>—</td></tr>
+<tr><td>License</td><td><strong>Apache-2.0</strong></td><td>Apache-2.0</td><td>—</td><td>—</td><td>—</td></tr>
+</table>
+
+<h2 id="sec8">8 · SETA + Terminal-Bench 的训→评闭环</h2>
+
+<div class="fig">
+<svg width="740" height="430" viewBox="0 0 740 430" xmlns="http://www.w3.org/2000/svg" style="background:#fff">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+
+  <!-- Stage 1: Web Q&A seeds -->
+  <rect x="20" y="30" width="160" height="60" rx="8" fill="#f3eee0" stroke="#e2dfd5"/>
+  <text x="100" y="55" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">① Web Q&amp;A</text>
+  <text x="100" y="75" text-anchor="middle" font-size="11" fill="#5b5e66">~1,300 raw pairs</text>
+
+  <!-- Stage 2: Idea Gen Agent -->
+  <rect x="220" y="30" width="160" height="60" rx="8" fill="#f3eee0" stroke="#e2dfd5"/>
+  <text x="300" y="52" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">② Idea Generation</text>
+  <text x="300" y="70" text-anchor="middle" font-size="11" fill="#5b5e66">LLM agent</text>
+  <text x="300" y="84" text-anchor="middle" font-size="11" fill="#5b5e66">→ task spec</text>
+
+  <!-- Stage 3: Datapoint Creation -->
+  <rect x="420" y="30" width="160" height="60" rx="8" fill="#f3eee0" stroke="#e2dfd5"/>
+  <text x="500" y="52" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">③ Datapoint Creation</text>
+  <text x="500" y="70" text-anchor="middle" font-size="11" fill="#5b5e66">LLM agent</text>
+  <text x="500" y="84" text-anchor="middle" font-size="11" fill="#5b5e66">→ task.yaml+Dockerfile+tests</text>
+
+  <!-- Stage 4: Oracle validation -->
+  <rect x="600" y="30" width="120" height="60" rx="8" fill="#fff4e0" stroke="#f0d8a3"/>
+  <text x="660" y="55" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">④ Oracle 验证</text>
+  <text x="660" y="75" text-anchor="middle" font-size="11" fill="#5b5e66">tb run --agent oracle</text>
+
+  <line x1="180" y1="60" x2="220" y2="60" stroke="#2f6feb" stroke-width="1.8" marker-end="url(#arr)"/>
+  <line x1="380" y1="60" x2="420" y2="60" stroke="#2f6feb" stroke-width="1.8" marker-end="url(#arr)"/>
+  <line x1="580" y1="60" x2="600" y2="60" stroke="#2f6feb" stroke-width="1.8" marker-end="url(#arr)"/>
+
+  <!-- Dataset -->
+  <rect x="180" y="130" width="380" height="60" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="370" y="155" text-anchor="middle" font-size="14" font-weight="600" fill="#2f6feb">SETA-Env Dataset (400+, Apache-2.0)</text>
+  <text x="370" y="175" text-anchor="middle" font-size="11" fill="#5b5e66">Terminal-Bench 兼容 / Docker + pytest verifier / 7 categories</text>
+
+  <line x1="660" y1="90" x2="560" y2="135" stroke="#2f6feb" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Train pipeline -->
+  <rect x="40" y="240" width="320" height="100" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+  <text x="200" y="263" text-anchor="middle" font-size="14" font-weight="600" fill="#cc4a1b">AReaL GRPO 训练(260 task × 10 ep)</text>
+  <text x="200" y="285" text-anchor="middle" font-size="11" fill="#5b5e66">Qwen3-8B base · 8×H100 · sglang 异步 rollout</text>
+  <text x="200" y="302" text-anchor="middle" font-size="11" fill="#5b5e66">R = unit-test pass ratio + 𝟙[all pass]</text>
+  <text x="200" y="319" text-anchor="middle" font-size="11" fill="#5b5e66">decoupled loss · KL=0 · clip 0.4 · imp cap 5</text>
+
+  <line x1="270" y1="190" x2="200" y2="240" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#arrR)"/>
+
+  <!-- Trained model -->
+  <rect x="400" y="240" width="300" height="100" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="1.5"/>
+  <text x="550" y="263" text-anchor="middle" font-size="14" font-weight="600" fill="#1f7a4a">camel-ai/seta-rl-qwen3-8b</text>
+  <text x="550" y="285" text-anchor="middle" font-size="11" fill="#5b5e66">3.4% baseline → +4 task on TB 2.0</text>
+  <text x="550" y="302" text-anchor="middle" font-size="11" fill="#5b5e66">unit-test pass: 0.38 → 0.45 (+20.2%)</text>
+  <text x="550" y="319" text-anchor="middle" font-size="11" fill="#5b5e66">HF 公开权重</text>
+
+  <line x1="360" y1="290" x2="400" y2="290" stroke="#2f6feb" stroke-width="1.8" marker-end="url(#arr)"/>
+
+  <!-- Eval feedback -->
+  <rect x="180" y="370" width="380" height="40" rx="8" fill="#f3eee0" stroke="#e2dfd5"/>
+  <text x="370" y="395" text-anchor="middle" font-size="13" font-weight="600" fill="#1f2024">Terminal-Bench 2.0(89 真实任务)→ 评测 + 反馈到 ① 收集更难种子</text>
+
+  <line x1="550" y1="340" x2="430" y2="370" stroke="#2f6feb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 200 410 Q 100 410 100 90" stroke="#cc4a1b" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#arrR)"/>
+  <text x="55" y="220" font-size="11" fill="#cc4a1b" transform="rotate(-90 55 220)">feedback (难样本回流)</text>
+</svg>
+<figcaption>SETA 训→评闭环: <strong>①→②→③→④</strong> 是 LLM 自动化任务合成管线(双 agent),产物是 <strong>SETA-Env Dataset</strong>。下游 AReaL GRPO 在 260 task 上 fine-tune Qwen3-8B,得到 <code>seta-rl-qwen3-8b</code>;最后用 <strong>Terminal-Bench 2.0</strong> 评测,失败案例回流到种子池(虚线红色 = feedback)。这与 SWE-Gym → SWE-Bench 的范式同构。</figcaption>
+</div>
+
+<h2 id="sec9">9 · 局限与个人 take</h2>
+
+<h3>9.1 老实的局限</h3>
+
+<ul>
+  <li><strong>400 task 还不够</strong>。对比 R2E-Gym 上千、Agent World Model 1,000 env / 35,062 tool 的规模,SETA 的初始 batch 偏小。好消息是"continuous scaling"且 repo 里已经能看到 1000+ task 目录——但 RLVR 实际只用了 260。</li>
+  <li><strong>合成任务的分布偏向 "medium"</strong>。这恰恰是有意为之(填中间台阶),但意味着 SETA 训练完的小模型对 TB2.0 里的 bioinfo / cryptography 这种长尾<strong>不会有结构性突破</strong>——这与"+4 task / +20.2% pass ratio"的温和提升一致。</li>
+  <li><strong>主线 RL 跑在 Qwen3-8B,缺更大 scale</strong>。没有 14B / 32B / MoE 的对照实验,无法判断 RLVR 配方在大模型上 saturate 还是 keep scaling。</li>
+  <li><strong>无 arXiv,只有 Notion 报告 + blog</strong>。技术细节(reward 公式、最终 ablation 表)需要交叉读 blog + config + train.py 才能拼齐——这篇笔记本身就是为弥补这点而写。</li>
+  <li><strong>对 CAMEL agent 框架的依赖</strong>。<code>tbench_camel_agent.py</code> 直接绑定 CAMEL 的 ChatAgent / Workforce,迁移到其他 agent 架构(LangGraph / OpenHands / 自研)需要小改写。但好在 toolkit 接口标准、reward 函数干净——并不"vendor-locked"。</li>
+  <li><strong>KL=0 的训练配方比较激进</strong>。在小数据(260 task × 2 traj × 10 epoch ≈ 5,200 trajectories)上+无 KL 锚定,理论上有<strong>模式坍缩到几个高 reward 命令套路</strong>的风险——blog 没报告 generation diversity 指标。</li>
+</ul>
+
+<h3>9.2 个人 take</h3>
+
+<ol>
+  <li><strong>战略价值 > 工程数字</strong>。SETA 的"+4 task on TB 2.0"是个温和数字,但项目真正的价值是<strong>把 frontier lab 的"软资产"开源化</strong>——任何团队现在都能用 8×H100 复现一个 terminal RL 训练管线,这对学术界和小厂是巨大的杠杆。</li>
+  <li><strong>双 agent 合成 pipeline 是核心 IP</strong>。"Idea Generation + Datapoint Creation"这种<em>从 1,300 个 Q&A 种子合成可执行 Docker task</em>的能力,本身比合成出来的 400 task 更有复用价值——这与 #18 Agent World Model 的 code-driven env 生成思路相通,但 SETA 走的是 "Docker + pytest"更工程化的路线。</li>
+  <li><strong>三件套生态的信号</strong>。CAMEL/Eigent 在 2026 初连发 SETA(terminal)+ Toolathlon-Gym(MCP)+(预计的 GUI gym),形成<strong>"训练 env 矩阵"打法</strong>。这与"先做模型再补 env"的 frontier lab 路径正好相反——是<strong>"先把 env 做厚,模型谁来训都行"的赋能策略</strong>。 SETA 的 Qwen3-8B 训练某种意义上只是"用例 demo",真正的产品是 env 本身。</li>
+  <li><strong>对照 #17 UI-TARS-2 的反讽</strong>。UI-TARS-2 是 ByteDance 把 230B MoE + 千机沙箱<strong>全闭</strong>;SETA 是 CAMEL 把 8×H100 跑得动的训练全栈<strong>全开</strong>。两者代表了 agent infra 在 2026 的两条路:闭源垂直巨型 vs 开源水平赋能。SETA 这一手开源,大概率会让"frontier lab 花百万买 terminal RL env"这条护城河迅速干涸。</li>
+  <li><strong>意外发现</strong>: HF dataset 卡片只显示 3 行,但实际 GitHub <code>seta-env/Dataset/</code> 已经有 1000+ 任务目录,<code>Harbor-Dataset/</code> 又有 1000+。"400"是 blog 时点的 RLVR-ready 子集,实际开源池子已远超此数——这是用户实际复用时容易忽略的 silver lining。</li>
+</ol>
+
+<hr>
+
+<div class="paper-card">
+<div class="ttl">SETA: Scaling Environments for Terminal Agents <span class="date">2026-01</span></div>
+<p>Shen, Rainton, Aliev, Awelkair, Ma, Huang, Mao, Fan, Torr, Ghanem, Hu, Thakker, Li · CAMEL-AI + Eigent.AI + SambaNova + KAUST + Imperial / Stanford / Oxford</p>
+<p>
+  <a href="https://www.camel-ai.org/blogs/seta-scaling-environments-for-terminal-agents">CAMEL Blog</a> ·
+  <a href="https://eigent-ai.notion.site/SETA-Scaling-Environments-for-Terminal-Agents-2d2511c70ba280a9b7c0fe3e7f1b6ab8">Notion Tech Report</a> ·
+  <a href="https://github.com/camel-ai/seta">GitHub seta</a> ·
+  <a href="https://github.com/camel-ai/seta-env">GitHub seta-env</a> ·
+  <a href="https://huggingface.co/datasets/camel-ai/seta-env">HF dataset</a> ·
+  <a href="https://huggingface.co/camel-ai/seta-rl-qwen3-8b">HF model</a>
+</p>
+</div>
+
+<div class="paper-card">
+<div class="ttl">关联阅读</div>
+<ul>
+  <li><a href="06_AgentGymRL_2509.08755.html">#06 AgentGym-RL</a> — 多 env 训练框架,概念上更宽,但 env 池子更小(27)</li>
+  <li><a href="14_ClawGUI_2604.11784.html">#14 ClawGUI</a> — Android GUI agent 全栈,开源度可比但域不同</li>
+  <li><a href="16_DesktopAgents_landscape.html">#16 桌面 GUI/CLI Agent 生态调研</a> — 把 SETA 放到 desktop/CLI 大图里</li>
+  <li><a href="17_UITARS2_2509.02544.html">#17 UI-TARS-2</a> — 闭源版本的对位:GUI 域 / 千机闭沙箱</li>
+  <li><a href="18_AgentWorldModel_2602.10090.html">#18 Agent World Model</a> — 同期"1K env"全合成,但 code-driven 而非 Docker</li>
+  <li><a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> — Toolathlon-Gym 训练对应的评测;SETA / TB 是 terminal 域的同构</li>
+</ul>
+</div>
+
+</main>
+</body>
+</html>

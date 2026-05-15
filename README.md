@@ -92,6 +92,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 17 | [UI-TARS-2 (ByteDance Seed)](https://zhangshuibai.github.io/paper-notes/agents/notes/17_UITARS2_2509.02544.html) | 230B MoE GUI agent / data flywheel + 多轮 PPO + GUI+SDK 混合环境 / OSWorld 47.5 / 主线权重未开源 | 56 KB |
 | 18 | [Agent World Model (Snowflake)](https://zhangshuibai.github.io/paper-notes/agents/notes/18_AgentWorldModel_2602.10090.html) | 全合成 code-driven env / 1,000 envs · 35,062 tools / Qwen3-thinking 4/8/14B GRPO / BFCLv3 8B 53.83→65.94 OOD / 全开源 | 60 KB |
 | 19 | [MCP-Atlas (Scale AI)](https://zhangshuibai.github.io/paper-notes/agents/notes/19_MCPAtlas_2602.00933.html) | 36 real MCP server · 220 tool · 1,000 task (500 公开 + 500 hold-out) / claims-based Gemini-2.5-Pro judge / Live leaderboard / 被 Claude Opus 4.7 system card 引用 77.3% | 50 KB |
+| 20 | [SETA (CAMEL-AI / Eigent.AI)](https://zhangshuibai.github.io/paper-notes/agents/notes/20_SETA_camel.html) | Terminal agent 训练 env / 400+ Docker 合成任务 / AReaL GRPO + RLVR / Qwen3-8B / Claude Sonnet 4.5 + CAMEL = TB2.0 #1 (46.5%) / 全 Apache-2.0 开源 | 50 KB |
 
 ## 论文清单 (按时间)
 
@@ -168,6 +169,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | UI-TARS-2 | ByteDance Seed | 2025-09 | [2509.02544](https://arxiv.org/abs/2509.02544) |
 | Agent World Model | Snowflake AI Research | 2026-02 | [2602.10090](https://arxiv.org/abs/2602.10090) |
 | MCP-Atlas | Scale AI + NUS | 2026-02 | [2602.00933](https://arxiv.org/abs/2602.00933) |
+| SETA | CAMEL-AI + Eigent.AI + SambaNova + KAUST 等 | 2026-01 | [CAMEL Blog](https://www.camel-ai.org/blogs/seta-scaling-environments-for-terminal-agents) / [GitHub](https://github.com/camel-ai/seta) |
 
 ## 设计原则
 
