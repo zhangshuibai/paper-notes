@@ -95,6 +95,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 20 | [SETA (CAMEL-AI / Eigent.AI)](https://zhangshuibai.github.io/paper-notes/agents/notes/20_SETA_camel.html) | Terminal agent 训练 env / 400+ Docker 合成任务 / AReaL GRPO + RLVR / Qwen3-8B / Claude Sonnet 4.5 + CAMEL = TB2.0 #1 (46.5%) / 全 Apache-2.0 开源 | 50 KB |
 | 21 | [4 个 MCP Benchmark 横向对比](https://zhangshuibai.github.io/paper-notes/agents/notes/21_MCPBenchmarks_compare.html) | MCP-Universe / MCP-Atlas / Toolathlon / MCPMark 调研 / GitHub 实时 star / frontier model card 引用 / Toolathlon-Gym 唯一 RL gym / 4 bench 提交流程对比 + 选型决策树 | 55 KB |
 | 22 | [TOUCAN (MIT-IBM + UW)](https://zhangshuibai.github.io/paper-notes/agents/notes/22_TOUCAN.html) | 1.5M tool-agentic SFT 数据 / 495 真实 MCP server · 2,000+ tools / 5-LLM 出题 + 3-teacher × 2-framework distill + 双层 rule+LLM 过滤 / Qwen2.5-32B SFT 后 BFCL V3 70.45 险胜 GPT-4.5-Preview / 数据+27 ckpt+pipeline 全开源 | 50 KB |
+| 23 | [EnvScaler (RUC NLPIR)](https://zhangshuibai.github.io/paper-notes/agents/notes/23_EnvScaler.html) | 程序化合成 tool-interactive env / Python class = env / dual-agent 100 轮质量门 / 191 env · ~7K scen · ~9K traj / Qwen3-Thinking 1.7B/4B/8B + Reinforce++ / Qwen3-8B BFCL-MT 41.88 超 GPT-4.1 / MIT 全开源 | 50 KB |
 
 ## 论文清单 (按时间)
 
@@ -173,6 +174,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | MCP-Atlas | Scale AI + NUS | 2026-02 | [2602.00933](https://arxiv.org/abs/2602.00933) |
 | SETA | CAMEL-AI + Eigent.AI + SambaNova + KAUST 等 | 2026-01 | [CAMEL Blog](https://www.camel-ai.org/blogs/seta-scaling-environments-for-terminal-agents) / [GitHub](https://github.com/camel-ai/seta) |
 | TOUCAN | MIT-IBM Watson AI Lab + UW | 2025-10 | [2510.01179](https://arxiv.org/abs/2510.01179) |
+| EnvScaler | RUC NLPIR (Gaoling 高瓴) | 2026-01 | [2601.05808](https://arxiv.org/abs/2601.05808) |
 
 ## 设计原则
 

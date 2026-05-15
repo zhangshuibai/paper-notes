@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · EnvScaler: Scaling Tool-Interactive Environments for LLM Agent via Programmatic Synthesis</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>EnvScaler: Scaling Tool-Interactive Environments for LLM Agent via Programmatic Synthesis</h1>
+<div class="meta">
+  人大 (RUC) Gaoling 高瓴 · Xiaoshuai Song, Haofei Chang, Guanting Dong, Yutao Zhu, Zhicheng Dou, Ji-Rong Wen · 2026-01-09 (v1) · 2026-04-17 (v2)<br>
+  <a href="https://arxiv.org/abs/2601.05808" target="_blank">arXiv:2601.05808</a> ·
+  <a href="https://arxiv.org/html/2601.05808v2" target="_blank">HTML v2</a> ·
+  <a href="https://github.com/RUC-NLPIR/EnvScaler" target="_blank">GitHub: RUC-NLPIR/EnvScaler</a> ·
+  <a href="https://huggingface.co/XXHStudyHard" target="_blank">HF: XXHStudyHard</a><br>
+  关键词: tool-use agent · environment synthesis · Python class as env · dual-agent quality check · SFT + RL · Qwen3-Thinking
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> RUC NLPIR 提出 <span class="term">EnvScaler</span> —— 一条由 LLM "<strong>反向挖主题 → 规划状态空间 → 生成 Python class</strong>" 的<strong>程序化合成</strong>流水线,把 environment 直接落成一个有 state-as-attribute、tool-as-method 的可执行 Python 文件,并配合一个 "<strong>checker-agent + tester-agent 互相对打 100 轮</strong>" 的 dual-agent 质量门把不合格 env 筛掉。最终产出 <strong>191 个 env / ~7K scenarios / ~9K SFT trajectory</strong>,在 Qwen3-Thinking 1.7B/4B/8B 上跑 SFT + Reinforce++,BFCL-v3 Multi-Turn / τ-Bench / ACEBench-Agent 上 8B 比 base 全面 +6 ~ +13 分。<strong>代码、权重、数据全 MIT 开源</strong> —— 这一点上比 #18 AWM 走得更彻底。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">191</div><div class="l">合成 env 总数 (266 → 191,28.2% rejection)</div></div>
+    <div class="stat"><div class="n">~7K / ~9K</div><div class="l">scenarios / SFT trajectories</div></div>
+    <div class="stat"><div class="n">Qwen3-Thinking 1.7B / 4B / 8B</div><div class="l">基座三档,SFT + Reinforce++ RL</div></div>
+    <div class="stat"><div class="n">+13.0 / +12.5 / +6.6</div><div class="l">Qwen3-8B SFT&amp;RL 后 BFCL-MT / τ-Bench / ACEBench 涨幅</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是合成 env 这条线<strong>时间最早、最完整开源</strong>的一篇之一(2026-01,与 Snowflake AWM #18 同期),也是后续 <a href="03_AgentWorld_2604.18292.html">Agent-World (#03)</a> 和 <a href="18_AgentWorldModel_2602.10090.html">AWM (#18)</a> 都把它列作"<em>程序化合成 baseline</em>"的原因。EnvScaler 选了"<strong>Python class 即 environment</strong>"这个最简范式 —— state 就是 class 属性,tool 就是 class method,verifier 就是 K 个返回 True/False 的函数,reward 就是通过率 1/K · Σ。简洁但有代价:验证代码本身是 LLM 生成,AWM 报告 EnvScaler 在 code-only 验证下 <strong>46.8% 的 task 因 verifier bug 永远不可通过</strong> —— 这是该范式最大的暗礁。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景 — 程序化合成 env 在 agentic RL 光谱里的位置</a></li>
+    <li><a href="#sec2">核心方法 · SkelBuilder + ScenGenerator 双阶段流水线</a></li>
+    <li><a href="#sec3">关键设计 — "程序"具体指什么 / tool 池 / reward / 失败处理</a></li>
+    <li><a href="#sec4">训练 recipe + 主表 (Qwen3 三档 · 三 benchmark)</a></li>
+    <li><a href="#sec_oss">🔍 开源现状 — repo 实地清点 + 与 4 篇横向对比</a></li>
+    <li><a href="#sec6">在 agent-env 生态里的定位 — pre-AWM baseline / 设计哲学差异</a></li>
+    <li><a href="#sec7">局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景 — 程序化合成 env 在 agentic RL 光谱里的位置</h2>
+
+<h3>1.1 为什么"<em>合成 tool-interactive env</em>"是 2026 上半年的核心战场</h3>
+
+<p>过去一年里 agentic RL 已经过了"<em>有 reward 就能训</em>"的初级阶段,瓶颈整体上移到了"<em>没有足够多样的可执行环境</em>"。现在主流四条获取 env 的路线 —— 见 <a href="03_AgentWorld_2604.18292.html">#03 Agent-World §1.2</a> 那张表 —— 大致是:</p>
+
+<table>
+<thead><tr><th>路线</th><th>代表</th><th>痛点</th></tr></thead>
+<tbody>
+<tr><td>① 真实 service 抓取</td><td>WebArena, OS-World, <strong>Agent-World (#03)</strong></td><td>真实但贵 / 受 rate limit / 状态不可重置</td></tr>
+<tr><td>② LLM 当 simulator</td><td>Simulator-8B, GenEnv</td><td>幻觉,transition 不一致 → RL signal 崩</td></tr>
+<tr><td>③ 程序化合成 (本文路线)</td><td><strong>EnvScaler (本篇)</strong>, <strong>AWM (#18)</strong>, AgentScaler, AutoForge, WorldCoder</td><td>脱离真实工作流,但确定性 + 可重置 + 可大规模并发</td></tr>
+<tr><td>④ Docker per task</td><td><strong>SETA (#20)</strong></td><td>真实工具但任务粒度小,scale 上靠 Docker 编排</td></tr>
+</tbody>
+</table>
+
+<p>EnvScaler 站在第 ③ 行的<strong>最早开源版本之一</strong>。它和 AWM 是<em>同期同路线</em>(EnvScaler v1 2026-01-09,AWM 2026-02),后续 Agent-World 的 §1.2 表格里就把这两篇并列写作"<em>程序化 FSM/sandbox</em>"。</p>
+
+<h3>1.2 EnvScaler 的关键差异化论断</h3>
+
+<p>paper 在 related work 里把自己跟更早的同路线工作做了三点划界:</p>
+
+<blockquote>
+"AgentScaler and AutoForge rely on pre-collected toolsets or tool documentation, and lack an automated mechanism for assessing environment quality."<br>
+"WorldCoder ... inevitably depends on access to pre-existing environments."<br>
+—— EnvScaler 的差异点 = <strong>不依赖 tool 文档先验</strong> + <strong>不依赖既有 env 模板</strong> + <strong>有自动质量门</strong>。
+</blockquote>
+
+<p>翻译: 它声称是首个能从"<em>仅有 task 集</em>"这一最小先验下,反推出 env 结构 + tool 接口 + verifier 的全自动 pipeline,并且<strong>每个 env 都要先通过 dual-agent 100 轮对打才能入库</strong>。这是该 paper 给自己留的护城河 —— 不过这个护城河被 AWM 在比较时戳穿过(后面 §5 表里详谈)。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 核心方法 · SkelBuilder + ScenGenerator 双阶段流水线</h2>
+
+<p>EnvScaler 把整条 pipeline 拆成两阶段,中间用 Python class 文件作为接口契约。下图是把 paper §3 的 Figure 2 重画成更直观的流程图:</p>
+
+<div class="fig">
+<svg viewBox="0 0 760 580" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:12px">
+  <text x="380" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#2f6feb">EnvScaler · 程序化合成流水线 (双阶段)</text>
+
+  <!-- Phase 1: SkelBuilder -->
+  <rect x="20" y="40" width="720" height="240" rx="12" fill="#fbf6e6" stroke="#cc4a1b" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="40" y="62" font-weight="bold" fill="#cc4a1b" font-size="13">阶段 A · SkelBuilder — 从 task 集反推 env 骨架</text>
+
+  <!-- A1: Topic mining -->
+  <rect x="40" y="80" width="150" height="80" rx="8" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+  <text x="115" y="100" text-anchor="middle" font-weight="bold" fill="#cc4a1b">① Topic Mining</text>
+  <text x="115" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">已有 task set</text>
+  <text x="115" y="132" text-anchor="middle" font-size="10" fill="#5b5e66">→ LLM 反向推 env</text>
+  <text x="115" y="146" text-anchor="middle" font-size="10" fill="#5b5e66">主题/domain</text>
+
+  <!-- A2: Logic planning -->
+  <rect x="210" y="80" width="150" height="80" rx="8" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+  <text x="285" y="100" text-anchor="middle" font-weight="bold" fill="#cc4a1b">② Logic Planning</text>
+  <text x="285" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">states / rules / tools</text>
+  <text x="285" y="132" text-anchor="middle" font-size="10" fill="#5b5e66">三件套 blueprint</text>
+  <text x="285" y="146" text-anchor="middle" font-size="10" fill="#5b5e66">(自然语言)</text>
+
+  <!-- A3: Program modeling -->
+  <rect x="380" y="80" width="150" height="80" rx="8" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+  <text x="455" y="100" text-anchor="middle" font-weight="bold" fill="#cc4a1b">③ Program Modeling</text>
+  <text x="455" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">blueprint → Python class</text>
+  <text x="455" y="132" text-anchor="middle" font-size="10" fill="#5b5e66">state = attribute</text>
+  <text x="455" y="146" text-anchor="middle" font-size="10" fill="#5b5e66">tool = method</text>
+
+  <!-- A4: Assembly -->
+  <rect x="550" y="80" width="170" height="80" rx="8" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+  <text x="635" y="100" text-anchor="middle" font-weight="bold" fill="#cc4a1b">④ Program Assembly</text>
+  <text x="635" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">AST 合法性验证</text>
+  <text x="635" y="132" text-anchor="middle" font-size="10" fill="#5b5e66">→ 完整 .py 文件</text>
+  <text x="635" y="146" text-anchor="middle" font-size="10" fill="#5b5e66">→ Σ_tool 接口集</text>
+
+  <path d="M 190 120 L 210 120" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M 360 120 L 380 120" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M 530 120 L 550 120" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+
+  <!-- Dual-agent quality gate -->
+  <polygon points="280,200 480,200 440,260 320,260" fill="#fff4e0" stroke="#cc7a1b" stroke-width="2"/>
+  <text x="380" y="222" text-anchor="middle" font-weight="bold" fill="#cc7a1b">⑤ Dual-Agent 质量门 · 100 轮闭环</text>
+  <text x="380" y="240" text-anchor="middle" font-size="10" fill="#5b5e66">Tester · 调 tool 撒 task</text>
+  <text x="380" y="252" text-anchor="middle" font-size="10" fill="#5b5e66">Checker · 看源码 / 返回 / state-diff 判合理性</text>
+
+  <path d="M 635 160 L 635 180 L 480 220" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <text x="640" y="190" font-size="10" fill="#cc4a1b">.py</text>
+
+  <text x="200" y="240" font-size="10" fill="#a8353e">↘ reject 28.2%</text>
+  <text x="540" y="240" font-size="10" fill="#1f7a4a">↗ pass 191/266</text>
+
+  <!-- Phase 2: ScenGenerator -->
+  <rect x="20" y="300" width="720" height="200" rx="12" fill="#e8f1ff" stroke="#2f6feb" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="40" y="322" font-weight="bold" fill="#2f6feb" font-size="13">阶段 B · ScenGenerator — 同一 env 上扩多个 scenario</text>
+
+  <!-- B1: init state -->
+  <rect x="40" y="340" width="150" height="80" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="115" y="360" text-anchor="middle" font-weight="bold" fill="#2f6feb">① Init State</text>
+  <text x="115" y="378" text-anchor="middle" font-size="10" fill="#5b5e66">LLM 生成具体</text>
+  <text x="115" y="392" text-anchor="middle" font-size="10" fill="#5b5e66">database/state 数据</text>
+  <text x="115" y="406" text-anchor="middle" font-size="10" fill="#5b5e66">(env 实例化)</text>
+
+  <!-- B2: task gen -->
+  <rect x="210" y="340" width="150" height="80" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="285" y="360" text-anchor="middle" font-weight="bold" fill="#2f6feb">② Task Generation</text>
+  <text x="285" y="378" text-anchor="middle" font-size="10" fill="#5b5e66">基于 init state + Σ_tool</text>
+  <text x="285" y="392" text-anchor="middle" font-size="10" fill="#5b5e66">+ rules 生成挑战</text>
+  <text x="285" y="406" text-anchor="middle" font-size="10" fill="#5b5e66">性 task 描述</text>
+
+  <!-- B3: validator gen -->
+  <rect x="380" y="340" width="150" height="80" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="455" y="360" text-anchor="middle" font-weight="bold" fill="#2f6feb">③ Validator Code</text>
+  <text x="455" y="378" text-anchor="middle" font-size="10" fill="#5b5e66">task → K 个 check</text>
+  <text x="455" y="392" text-anchor="middle" font-size="10" fill="#5b5e66">每个 f_k^c(S_final)</text>
+  <text x="455" y="406" text-anchor="middle" font-size="10" fill="#5b5e66">→ True/False</text>
+
+  <!-- B4: trajectory -->
+  <rect x="550" y="340" width="170" height="80" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="635" y="360" text-anchor="middle" font-weight="bold" fill="#2f6feb">④ Trajectory + Reward</text>
+  <text x="635" y="378" text-anchor="middle" font-size="10" fill="#5b5e66">teacher 模型 rollout</text>
+  <text x="635" y="392" text-anchor="middle" font-size="10" fill="#5b5e66">r = 1/K · Σ 通过</text>
+  <text x="635" y="406" text-anchor="middle" font-size="10" fill="#5b5e66">∈ [0, 1] 部分信用</text>
+
+  <path d="M 190 380 L 210 380" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M 360 380 L 380 380" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M 530 380 L 550 380" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+
+  <!-- Output -->
+  <rect x="220" y="445" width="320" height="40" rx="8" fill="#e6f5ec" stroke="#1f7a4a" stroke-width="1.5"/>
+  <text x="380" y="462" text-anchor="middle" font-weight="bold" fill="#1f7a4a">入库 · 191 envs · ~7K scenarios · ~9K SFT traj</text>
+  <text x="380" y="478" text-anchor="middle" font-size="10" fill="#5b5e66">→ 进入 SFT (140 envs) + RL (51 envs)</text>
+
+  <path d="M 635 420 L 635 440 L 470 460" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+
+  <!-- Cost annotation -->
+  <text x="40" y="520" font-size="11" fill="#5b5e66" font-weight="bold">论文报价(GPT-4.1 / GPT-4.1-mini):</text>
+  <text x="40" y="538" font-size="11" fill="#5b5e66">· 每个 env: ~$1.02 · 每个 scenario: ~$0.064 → 全数据集成本约 ~$650</text>
+  <text x="40" y="554" font-size="11" fill="#5b5e66">· Env 内统计: 平均 18.58 tools / 21.38 state categories / 4.58 rules</text>
+
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>EnvScaler 的两阶段流水线: <strong>SkelBuilder</strong> 从 task 集反推出 env 骨架(Python class)并经 dual-agent 100 轮筛掉 28.2%; <strong>ScenGenerator</strong> 在同一 env 上扩出多个 scenario,每个 scenario 配套一个 K-check validator。reward = 通过 check 的比例,允许部分信用。</figcaption>
+</div>
+
+<h3>2.1 与同类 pipeline 的 inline 对比</h3>
+
+<p>把同期三条路线的 pipeline 一一对位 —— 三家做的是<em>同一件事</em>,但分歧点很有意思:</p>
+
+<table>
+<thead><tr><th>阶段</th><th><strong>EnvScaler (本篇)</strong></th><th>AWM (#18)</th><th>Agent-World (#03)</th></tr></thead>
+<tbody>
+<tr><td>env 起点</td><td>已有 <em>task 集</em>(反向推)</td><td>100 seed scenario(扩到 1,000)</td><td>真实 MCP <em>registry</em> + web 抓取</td></tr>
+<tr><td>logic 规划</td><td>state + rule + tool blueprint (NL)</td><td>5 阶段: scenario→schema→tool→verify→reset</td><td>无规划,直接 mining + 适配</td></tr>
+<tr><td>env 物理形态</td><td><strong>单个 Python class</strong>(state=attr, tool=method)</td><td><strong>SQLite + Python tool functions</strong>(分离)</td><td><strong>真实 MCP server</strong>(Docker / API 调用)</td></tr>
+<tr><td>verifier</td><td>K 个独立 Python 函数 (LLM 生成)</td><td>LLM-augmented verify (有 LLM-judge 兜底)</td><td>自动 unit-test + LLM-judge 混合</td></tr>
+<tr><td>质量门</td><td><strong>Dual-agent 100 轮</strong>(本篇护城河)</td><td>Self-correct 平均 1.13 次 / blocked 11.5%</td><td>"Browse" agent 自动跑通可达性测试</td></tr>
+<tr><td>产物规模</td><td>191 env / ~7K scen / ~9K traj</td><td>1,000 env / 10K task / 35,062 tool</td><td>1,978 env / 19,822 tool / 33,409 task</td></tr>
+<tr><td>cost</td><td><strong>~$650 全量</strong>(超便宜)</td><td>未公开美元数</td><td>很贵(deep-research agent 调用 + 自动 verify)</td></tr>
+</tbody>
+</table>
+
+<p class="nb"><strong>结构差异要点</strong>: EnvScaler 把整个 env 塞进一个 Python class —— "state 是 attribute,tool 是 method";AWM 把 state 和 tool 物理分离(SQLite 在一边,Python tool functions 在另一边)。前者优雅但耦合,后者解耦但工程量更大。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 关键设计 — "程序"具体指什么 / tool 池 / reward / 失败处理</h2>
+
+<h3>3.1 "程序化"= LLM 生 Python class + AST 校验,并非 DSL / JSON Schema</h3>
+
+<p>这是 paper 容易被误读的点 —— "programmatic synthesis" 不是说有一个 DSL 或 JSON Schema 模板,而是<strong>LLM 直接生成 Python 类</strong>,再用 AST 做语法 sanity check。具体步骤:</p>
+
+<blockquote>"LLM first converts the planned state space into class attribute definitions ... then generates the corresponding class-method implementation."</blockquote>
+
+<ul>
+  <li><strong>State 表达</strong>: Python 类的 attribute(可能是 list / dict / 自定义对象)。论文报告平均一个 env 有 <strong>21.38 个 state category</strong>。</li>
+  <li><strong>Tool 表达</strong>: Python 类的 method。method 签名 + docstring 后续会被 AST + 正则抽取出来,形成<strong>tool 接口集 Σ_tool</strong>,这就是 agent 看到的 tool definition。平均一个 env 有 <strong>18.58 个 tool</strong>。</li>
+  <li><strong>Rule 表达</strong>: 自然语言约束,在 task 生成阶段灌进 prompt。平均 4.58 个 rule / env。</li>
+  <li><strong>校验</strong>: AST parse 通过 + 能 import 成功 + 能被 dual-agent 测试通过 → 入库。</li>
+</ul>
+
+<p>这种"<em>Python class 即 environment</em>"的范式好处是极致简单 —— 不用维护任何 DSL,任何 LLM 都能写;坏处是 state 全在内存,无法跨进程持久化,也不易做差分快照(对比 AWM 用 SQLite 后,reset 一行 SQL 就行)。</p>
+
+<h3>3.2 工具池 — per-env 私有,无共享</h3>
+
+<p>EnvScaler 的工具是<strong>per-env 私有</strong>的(因为 tool 就是 env class 的 method),没有跨 env 复用的"shared tool registry"。这点和 AWM 一致 —— AWM 的 35,062 个工具也是各 env 私有的。对比 Agent-World 那边 19,822 个工具是从真实 MCP registry mining 来的<em>共享池</em>(很多 env 共享同一些工具如 Notion / Slack),EnvScaler 这种范式更适合 stateful 业务而非真实 SaaS 模拟。</p>
+
+<h3>3.3 Reward · 部分信用 + LLM 生成 verifier</h3>
+
+<p>奖励就是验证函数通过比例 —— paper 原话:</p>
+
+<blockquote>"Decomposing the task into multiple validation functions not only captures partial completion, but also is easier for the LLM to generate."</blockquote>
+
+<div class="formula">
+  <em>r</em> = (1/K) · Σ<sub><em>k</em>=1..K</sub> 𝟙[<em>f<sub>k</sub><sup>c</sup></em>(<em>S</em><sub>final</sub>) = True]
+</div>
+
+<p>这是个典型 <strong>execution-based + rule-based 混合</strong>的 reward —— 验证代码本身是 LLM 一次性生成的(rule-based 的形式),但是真正跑在 final state 上(execution-based 的执行)。<em>没有 LLM-judge 兜底</em>,这是 EnvScaler 和 AWM 的最关键区别。AWM 之所以在论文里专门 ablate "code-only verify",就是为了讨这个便宜 —— 后面 §5 表里详谈。</p>
+
+<h3>3.4 Dual-Agent 质量门(本篇真正的护城河)</h3>
+
+<p>这是 EnvScaler 在合成 env 这条线上最有原创性的设计。具体做法:</p>
+
+<blockquote>"The testing and checking agents form a closed loop, iterating for N rounds to cover diverse situations. The average judging pass rate serves as the quantitative metric for the environment's quality."</blockquote>
+
+<p>—— <strong>Tester</strong> agent 假装是用户,在 env 里调 tool 做事;<strong>Checker</strong> agent <em>看 tool 的源码 + 返回值 + 调用前后的 state diff</em>,判断"<em>tool 行为是否符合 docstring 承诺</em>"。100 轮跑完看 pass rate,低于阈值的 env 直接丢掉 —— 最终 266 个候选 env 里 75 个被丢了(28.2% rejection)。</p>
+
+<p>这个机制的核心价值是<strong>filter 出"自洽"的 env</strong> —— 因为 logic / class / verifier 都是 LLM 一次性生的,中间有 bug 几乎是必然,通过 dual-agent 反复触发能查出来。但<em>它查不出"verifier 系统性偏差"</em>(verifier 永远把某类正确答案判错),这是后面 AWM 抓住的痛点。</p>
+
+<h3>3.5 失败 trajectory 怎么处理</h3>
+
+<p>SFT 阶段用 <strong>Qwen3-30B-A3B-Thinking-2507 当教师</strong>生成 ~9K 条 trajectory。判定"成功"的 trajectory 才被纳入 SFT 数据 —— 这跟 AWM 的 V=0 丢弃失败样本是一样的(参见 <a href="18_AgentWorldModel_2602.10090.html">#18 §3</a>)。RL 阶段不丢失败 trajectory,而是直接喂 reward ∈ [0,1] 进 Reinforce++ —— 这一点比 AWM 的 GRPO 更宽容,因为 GRPO 必须有相对 baseline,而 Reinforce++ 直接吃绝对 reward。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 训练 recipe + 主表(Qwen3 三档 · 三 benchmark)</h2>
+
+<h3>4.1 训练配方</h3>
+
+<div class="kv">
+  <strong>基座</strong>: Qwen3-Thinking 1.7B / 4B / 8B 三个 size(<em>没有 14B</em>)<br>
+  <strong>教师</strong>: Qwen3-30B-A3B-Thinking-2507<br>
+  <strong>SFT</strong>: 140 envs / ~9K trajectories / 3 epochs / lr 1e-6<br>
+  <strong>RL</strong>: <span class="term">Reinforce++</span> 算法(<em>非 GRPO,非 PPO</em>),51 envs / 64 task × 8 rollout per step / ≤200 step<br>
+  <strong>训练数据规模</strong>: SFT scenarios 4.7K / RL scenarios 2.5K(开源在 HF)
+</div>
+
+<p class="nb">注: paper 提到的 <em>Reinforce++</em> 是 OpenRLHF 提供的一种 RL 算法变种(REINFORCE + advantage normalization + token-level KL),不是 GRPO 系。值得对比 —— 同时期 AWM 用 GRPO,Agent-World 用 GRPO,SETA 用 GRPO,EnvScaler 是这 4 篇里唯一一个用 Reinforce++ 的。</p>
+
+<h3>4.2 主表 — Qwen3-Thinking 三档 × 三 benchmark</h3>
+
+<p>从 paper Table 4 抄,base / +SFT / +SFT&amp;RL 三档,数字是<strong>绝对分</strong> + (相对 base 涨幅):</p>
+
+<table>
+<thead><tr><th>模型 size</th><th>阶段</th><th>BFCL-v3 MT</th><th>ACEBench-Agent</th><th>τ-Bench</th></tr></thead>
+<tbody>
+<tr><td rowspan="3"><strong>Qwen3-1.7B</strong></td><td>Base</td><td>9.75</td><td>12.50</td><td>31.95</td></tr>
+<tr><td>+SFT</td><td>18.13 <span class="ok">(+8.38)</span></td><td>17.44 <span class="ok">(+4.94)</span></td><td>43.61 <span class="ok">(+11.66)</span></td></tr>
+<tr><td>+SFT&amp;RL</td><td><strong>23.00 <span class="ok">(+13.25)</span></strong></td><td><strong>16.28 <span class="ok">(+3.78)</span></strong></td><td><strong>50.00 <span class="ok">(+18.05)</span></strong></td></tr>
+<tr><td rowspan="3"><strong>Qwen3-4B</strong></td><td>Base</td><td>25.38</td><td>33.44</td><td>55.28</td></tr>
+<tr><td>+SFT</td><td>34.88 <span class="ok">(+9.50)</span></td><td>38.20 <span class="ok">(+4.76)</span></td><td>66.67 <span class="ok">(+11.39)</span></td></tr>
+<tr><td>+SFT&amp;RL</td><td><strong>38.00 <span class="ok">(+12.62)</span></strong></td><td><strong>41.06 <span class="ok">(+7.62)</span></strong></td><td><strong>70.55 <span class="ok">(+15.27)</span></strong></td></tr>
+<tr><td rowspan="3"><strong>Qwen3-8B</strong></td><td>Base</td><td>28.88</td><td>38.19</td><td>60.00</td></tr>
+<tr><td>+SFT</td><td>37.00 <span class="ok">(+8.12)</span></td><td>41.35 <span class="ok">(+3.16)</span></td><td>71.67 <span class="ok">(+11.67)</span></td></tr>
+<tr><td>+SFT&amp;RL</td><td><strong>41.88 <span class="ok">(+13.00)</span></strong></td><td><strong>44.81 <span class="ok">(+6.62)</span></strong></td><td><strong>72.50 <span class="ok">(+12.50)</span></strong></td></tr>
+<tr style="background:#f3eee0"><td colspan="2"><em>对照 frontier</em></td><td></td><td></td><td></td></tr>
+<tr><td colspan="2">GPT-4.1</td><td>40.00</td><td>57.48</td><td>77.50</td></tr>
+<tr><td colspan="2">Qwen3-235B-Thinking</td><td>45.75</td><td>56.90</td><td>74.17</td></tr>
+<tr><td colspan="2">Kimi-K2-Instruct</td><td>45.88</td><td>61.94</td><td>79.17</td></tr>
+</tbody>
+</table>
+
+<p class="nb"><strong>关键观察</strong>: <strong>(a)</strong> Qwen3-8B + EnvScaler 在 BFCL-MT 上 <strong>41.88 已经超过 GPT-4.1 (40.00)</strong> —— 是这张表里最亮眼的数字; <strong>(b)</strong> τ-Bench 72.50 落后 GPT-4.1 5 分,落后 Kimi-K2 6.67 分,差距相对小; <strong>(c)</strong> ACEBench-Agent 44.81 落后 GPT-4.1 12.67 分,差距最大 —— 这个 benchmark 强调 agent 的 long-horizon 能力,合成 env 给不了足够长 horizon 的训练; <strong>(d)</strong> SFT 自己已经吃掉大部分 gain(8B 上 SFT 占 +8.12 / 13.00 = 62% BFCL 涨幅),RL 只是锦上添花。</p>
+
+<h3>4.3 关键 ablation</h3>
+
+<table>
+<thead><tr><th>Ablation</th><th>结果</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td>训环境与测试环境的<strong>相似性</strong> (Table 5)</td><td>top 50% similar ≈ bottom 50% similar (~32 综合分)</td><td>性能涨幅<strong>不依赖</strong>训练 env 与测试 env 的直接相似性 —— 学到的是<em>通用 tool-use</em>能力</td></tr>
+<tr><td><strong>纯 RL no SFT</strong> (Table 7)</td><td>Qwen3-8B 直接 RL +8.74 (BFCL-MT)</td><td>cold-start SFT 仍然贡献了相当一部分增益; 小模型尤其需要先 SFT</td></tr>
+<tr><td>Conv / Non-Conv 训练混合 (Table 6)</td><td>Full > Non-Conv > Conv</td><td>对话型 task 和单轮 task 都要保留</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="sec_oss">5 · 🔍 开源现状 — repo 实地清点 + 与 4 篇横向对比</h2>
+
+<h3>5.1 EnvScaler 单家清点</h3>
+
+<p>这一点 EnvScaler 做得相当干净 —— <strong>MIT 协议,模型 / 数据集 / 代码全开</strong>:</p>
+
+<div class="paper-card">
+<div class="ttl">GitHub: <a href="https://github.com/RUC-NLPIR/EnvScaler" target="_blank">RUC-NLPIR/EnvScaler</a> <span class="pill">MIT</span></div>
+<p style="font-size:.95em">六大模块: <code>skel_builder/</code>(env 骨架构造) · <code>scen_generator/</code>(scenario 生成) · <code>interact_with_env/</code>(agent ↔ env 交互) · <code>sft/</code>(SFT 训练) · <code>rl/</code>(RL 训练) · <code>evaluation/</code>(评测)。Demo 入口: <code>python interact_with_env/app.py</code> + <code>python skel_builder/env_build_demo.py</code>。</p>
+</div>
+
+<div class="paper-card">
+<div class="ttl">HuggingFace 模型(3 个)</div>
+<ul style="font-size:.95em">
+  <li><a href="https://huggingface.co/XXHStudyHard/EnvScaler-Qwen3-1.7B" target="_blank">EnvScaler-Qwen3-1.7B</a></li>
+  <li><a href="https://huggingface.co/XXHStudyHard/EnvScaler-Qwen3-4B" target="_blank">EnvScaler-Qwen3-4B</a></li>
+  <li><a href="https://huggingface.co/XXHStudyHard/EnvScaler-Qwen3-8B" target="_blank">EnvScaler-Qwen3-8B</a></li>
+</ul>
+<p style="font-size:.9em;color:#5b5e66"><em>(注: paper 没有训练 14B; 外面有些文献写 "EnvScaler-8B / 14B" 其实是把 EnvScaler 当 baseline 跑在 Qwen3-14B 上)</em></p>
+</div>
+
+<div class="paper-card">
+<div class="ttl">HuggingFace 数据集(4 个)</div>
+<ul style="font-size:.95em">
+  <li><a href="https://huggingface.co/datasets/XXHStudyHard/EnvScaler-191-Env" target="_blank">EnvScaler-191-Env</a> — 191 个 env metadata</li>
+  <li><a href="https://huggingface.co/datasets/XXHStudyHard/EnvScaler-SFT-Scenario" target="_blank">EnvScaler-SFT-Scenario</a> — 4.7K SFT scenario</li>
+  <li><a href="https://huggingface.co/datasets/XXHStudyHard/EnvScaler-RL-Scenario" target="_blank">EnvScaler-RL-Scenario</a> — 2.5K RL scenario</li>
+  <li><a href="https://huggingface.co/datasets/XXHStudyHard/EnvScaler-SFT-Traj-9K" target="_blank">EnvScaler-SFT-Traj-9K</a> — 9K SFT trajectories</li>
+</ul>
+</div>
+
+<div class="kv"><strong>可复现性自评</strong>: pipeline 代码 + 中间数据 + 最终权重三件套齐全; 想本地全量重建只需要一个 GPT-4.1/mini API key(全数据集约 $650)。这是<strong>本系列(#01–#22)所有 agent-env 类论文里复现门槛最低的一篇</strong>。</div>
+
+<h3>5.2 与 4 篇横向 5 项对比</h3>
+
+<table>
+<thead><tr><th>维度</th><th><strong>EnvScaler (本篇)</strong></th><th>AWM (#18)</th><th>Agent-World (#03)</th><th>SETA (#20)</th><th>Toolathlon-Gym</th></tr></thead>
+<tbody>
+<tr><td>团队</td><td>RUC NLPIR</td><td>Snowflake AI Research</td><td>RUC + ByteDance</td><td>CAMEL-AI + Eigent.AI</td><td>Toolathlon (CMU+...)</td></tr>
+<tr><td>规模</td><td>191 env / ~7K task</td><td>1,000 env / 10K task</td><td>1,978 env / 33K task</td><td>~400 task</td><td>(per-task Docker)</td></tr>
+<tr><td>realism 来源</td><td>LLM 反推</td><td>LLM 生(seed scenario)</td><td>真实 MCP registry</td><td>真实 terminal CLI</td><td>真实 MCP server</td></tr>
+<tr><td>verifier</td><td>K 个 Python 函数<br>(LLM 生)</td><td>LLM-aug + code 混合</td><td>auto unit-test + LLM-judge</td><td>RLVR rule + LLM-judge</td><td>per-task 自定义</td></tr>
+<tr><td>训练值</td><td>SFT + Reinforce++</td><td>GRPO</td><td>SFT + GRPO + 多轮 self-evolve</td><td>AReaL GRPO</td><td>(主要 eval)</td></tr>
+<tr><td>License</td><td><span class="ok">MIT(全开)</span></td><td><span class="ok">全开源</span></td><td><span class="ok">部分开</span></td><td><span class="ok">Apache 2.0</span></td><td><span class="ok">Apache 2.0</span></td></tr>
+<tr><td>权重发布</td><td><span class="ok">1.7B / 4B / 8B 全开</span></td><td><span class="ok">4B / 8B / 14B 全开</span></td><td><span class="ok">8B / 14B 开</span></td><td><span class="ok">8B 开</span></td><td>无(eval only)</td></tr>
+</tbody>
+</table>
+
+<h3>5.3 AWM 视角的 EnvScaler 对照(本系列 #18 § 4 自报)</h3>
+
+<p>AWM paper 把 EnvScaler 作为<strong>主要 baseline</strong>之一,他们的对比对 EnvScaler 是不太友善的:</p>
+
+<table>
+<thead><tr><th>指标</th><th>EnvScaler</th><th>AWM</th><th>来源</th></tr></thead>
+<tbody>
+<tr><td>LLM-judge Task Feasibility</td><td>2.94</td><td>3.68</td><td>AWM paper</td></tr>
+<tr><td>Blocked tasks (code-only verify)</td><td><strong>46.8%</strong></td><td>11.5%</td><td>AWM paper</td></tr>
+</tbody>
+</table>
+
+<p class="nb">"Blocked task" = verifier 永远不可能输出 True,无论 agent 怎么做。AWM 报 EnvScaler 在 code-only 验证下 <strong>46.8% 的 task 是 blocked</strong>(自家是 11.5%) —— 这是个挺尖的指控,但要谨慎理解: 这数字是 AWM 自己跑 EnvScaler 数据时算的,EnvScaler paper 没自报。可能性: (a) EnvScaler 实际跑训练时有 dual-agent 兜着,所以这个静态指标不是真实瓶颈; (b) AWM 选的评测协议对 EnvScaler 不利。但无论如何,它定位了<strong>"verifier 代码本身就是 LLM 生的"</strong>是 EnvScaler 范式的真痛点。</p>
+
+<h3>5.4 EnvScaler 作为 Agent-World baseline 的表现(#03 §4 自报)</h3>
+
+<p>Agent-World 把 EnvScaler-8B 拿来在自家 self-evolve 框架里跑("证明 self-evolve 范式无关 base model"),记下了 EnvScaler-8B 在三个 frontier benchmark 上的基线表现:</p>
+
+<table>
+<thead><tr><th>EnvScaler-8B 基线</th><th>τ²-Bench</th><th>BFCL V4</th><th>MCP-Mark</th></tr></thead>
+<tbody>
+<tr><td>base</td><td>37.9</td><td>47.6</td><td>9.5</td></tr>
+<tr><td>+1 round self-evolve</td><td>40.2</td><td>49.1</td><td>13.9 <span class="ok">(+4.4)</span></td></tr>
+<tr><td>+2 rounds</td><td>41.6</td><td>50.0</td><td>15.1</td></tr>
+</tbody>
+</table>
+
+<p class="nb">注意这里的 BFCL <em>V4</em> 47.6 跟 EnvScaler 自报的 BFCL <em>v3 Multi-Turn</em> 41.88 不是同一指标。但 MCP-Mark 9.5 直观印证了 EnvScaler 范式的天花板 —— 合成 env 训出来的 agent 在<strong>真实 MCP server</strong>上几乎过不了关。这也正是 Agent-World 路线 (从真实 MCP 来的 env) 给自己留的差异化论据。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 在 agent-env 生态里的定位</h2>
+
+<h3>6.1 时间线 — EnvScaler 是这条路线的"<em>开门人</em>"</h3>
+
+<table>
+<thead><tr><th>日期</th><th>论文</th><th>位置</th></tr></thead>
+<tbody>
+<tr><td>2026-01-09</td><td><strong>EnvScaler v1 (本篇)</strong></td><td>程序化合成最早完整开源版本</td></tr>
+<tr><td>2026-01 (CAMEL blog)</td><td><a href="20_SETA_camel.html">SETA</a></td><td>Docker per task (不同路线)</td></tr>
+<tr><td>2026-02</td><td><a href="19_MCPAtlas_2602.00933.html">MCP-Atlas</a></td><td>纯 eval,真实 MCP</td></tr>
+<tr><td>2026-02</td><td><a href="18_AgentWorldModel_2602.10090.html">AWM</a></td><td>同路线,更大规模(1,000 env),更好 verifier</td></tr>
+<tr><td>2026-04</td><td><a href="03_AgentWorld_2604.18292.html">Agent-World</a></td><td>从真实 MCP 抓,把 EnvScaler 列为 baseline</td></tr>
+<tr><td>2026-04-17</td><td>EnvScaler v2</td><td>反向更新,部分回应 AWM 的指控</td></tr>
+</tbody>
+</table>
+
+<h3>6.2 设计哲学三角 — EnvScaler / AWM / Agent-World</h3>
+
+<div class="fig">
+<svg viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:12px">
+  <text x="350" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#2f6feb">合成 env 三家设计哲学</text>
+
+  <!-- triangle vertices -->
+  <polygon points="350,60 100,310 600,310" fill="none" stroke="#5b5e66" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- EnvScaler -->
+  <circle cx="350" cy="60" r="30" fill="#fff4e0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="350" y="65" text-anchor="middle" font-weight="bold" fill="#cc4a1b">EnvScaler</text>
+  <text x="350" y="35" text-anchor="middle" font-size="11" fill="#cc4a1b" font-weight="bold">极简优雅</text>
+  <text x="350" y="105" text-anchor="middle" font-size="10" fill="#5b5e66">Python class = env</text>
+  <text x="350" y="118" text-anchor="middle" font-size="10" fill="#5b5e66">dual-agent 100 轮筛</text>
+
+  <!-- AWM -->
+  <circle cx="100" cy="310" r="30" fill="#e8f1ff" stroke="#2f6feb" stroke-width="2"/>
+  <text x="100" y="315" text-anchor="middle" font-weight="bold" fill="#2f6feb">AWM</text>
+  <text x="100" y="355" text-anchor="middle" font-size="11" fill="#2f6feb" font-weight="bold">解耦稳健</text>
+  <text x="100" y="370" text-anchor="middle" font-size="10" fill="#5b5e66">SQLite + Python tool</text>
+
+  <!-- Agent-World -->
+  <circle cx="600" cy="310" r="30" fill="#e6f5ec" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="600" y="315" text-anchor="middle" font-weight="bold" fill="#1f7a4a">Agent-World</text>
+  <text x="600" y="355" text-anchor="middle" font-size="11" fill="#1f7a4a" font-weight="bold">真实优先</text>
+  <text x="600" y="370" text-anchor="middle" font-size="10" fill="#5b5e66">真实 MCP 抓 + verify</text>
+
+  <!-- axes -->
+  <text x="225" y="195" text-anchor="middle" font-size="11" fill="#5b5e66" transform="rotate(-50 225 195)">verifier 可靠性 ↑</text>
+  <text x="475" y="195" text-anchor="middle" font-size="11" fill="#5b5e66" transform="rotate(50 475 195)">真实分布 ↑</text>
+  <text x="350" y="335" text-anchor="middle" font-size="11" fill="#5b5e66">scale / cost ↓</text>
+
+  <!-- annotations -->
+  <text x="350" y="180" text-anchor="middle" font-size="10" fill="#a8353e">↓ AWM 的 critique: verifier 不够稳</text>
+  <text x="350" y="195" text-anchor="middle" font-size="10" fill="#a8353e">(blocked 46.8% vs 11.5%)</text>
+  <text x="350" y="220" text-anchor="middle" font-size="10" fill="#1f7a4a">↑ EnvScaler 优势: cost 最低 ($650)</text>
+  <text x="350" y="245" text-anchor="middle" font-size="10" fill="#1f7a4a">+ 开源最齐</text>
+
+  <text x="350" y="280" text-anchor="middle" font-size="10" fill="#5b5e66" font-style="italic">三家共享痛点: MCP-Universe / MCP-Mark 等真实 bench 上还是 ~10%</text>
+</svg>
+<figcaption>三家在"verifier 可靠性 / 真实分布 / scale·cost" 三角上的取舍。EnvScaler 牺牲 verifier 稳健性换 cost 最低; AWM 稍贵但 verifier 加 LLM-judge 兜底; Agent-World 砸钱买真实分布。在真实 MCP-Universe / MCP-Mark 上三家都很拉胯,说明合成 env 类整条线在 ~10% 处碰到天花板。</figcaption>
+</div>
+
+<h3>6.3 它与 AWM 哪一面更近、哪一面更远</h3>
+
+<table>
+<thead><tr><th>维度</th><th>更近 AWM</th><th>更远 AWM</th></tr></thead>
+<tbody>
+<tr><td>哲学</td><td>都是"全合成 + code-driven"</td><td></td></tr>
+<tr><td>env 物理形态</td><td></td><td>EnvScaler 用 Python class 一体化; AWM 用 SQLite + Python tool 解耦</td></tr>
+<tr><td>verifier</td><td>都用 LLM 生 Python 验证函数</td><td>AWM 加了 LLM-judge 兜底,EnvScaler 没</td></tr>
+<tr><td>质量门</td><td></td><td>EnvScaler 自己设计了 dual-agent 100 轮 (本篇独有); AWM 靠 self-correct 循环</td></tr>
+<tr><td>RL 算法</td><td></td><td>EnvScaler 用 Reinforce++; AWM 用 GRPO</td></tr>
+<tr><td>基座</td><td>都是 Qwen3-Thinking 系列</td><td>EnvScaler 上限 8B,没训 14B; AWM 上限 14B</td></tr>
+<tr><td>开源</td><td>都开源</td><td>EnvScaler 是 MIT,AWM 协议未细查</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="sec7">7 · 局限 / 个人 take</h2>
+
+<h3>7.1 paper 自报的局限</h3>
+
+<ul>
+  <li><strong>LLM 偏差</strong>: env 结构是 LLM 凭空生的,跟真实系统有 gap (paper 原话: "<em>LLM-based construction may introduce biases versus real systems</em>")</li>
+  <li><strong>不支持 open env</strong>: web search / browser 类无法封装到 Python class 里</li>
+  <li><strong>无 real-world noise</strong>: 网络延迟、API 限流、超时等 simulated 不出来</li>
+  <li><strong>纯文本</strong>: 不支持多模态 tool</li>
+  <li><strong>scale 200 / 7K 已是 ceiling</strong>: paper 说"<em>current scale limited to ~200 environments and 7K scenarios due to resource constraints</em>"</li>
+</ul>
+
+<h3>7.2 我的额外 take</h3>
+
+<ol>
+  <li><strong>程序化合成的天花板:</strong> EnvScaler / AWM 都没能在 <em>真实 benchmark</em>(MCP-Mark, MCP-Universe)上做到 30%+,而 frontier model (Claude Opus 4.7 / GPT-5) 在这些 benchmark 上能到 70%+。说明<strong>"合成 env 的训练信号"和"真实工作流的能力需求"之间存在系统性 gap</strong>。这个 gap 不是 scale 191 → 1,000 → 10,000 能直接补上的 —— 训练 distribution 本身就偏。Agent-World 路线的存在意义,正是承认这个 gap 后选择硬磕真实分布。</li>
+
+  <li><strong>"程序"= Python class 是不是最优形态:</strong> 把 state 和 tool 塞进同一个 class 是<em>编程优雅</em>的,但<em>工程上反模式</em>: state 没有 schema 化,无法跨进程序列化,reset 要重新 instantiate。AWM 用 SQLite + 独立 tool function 看起来啰嗦,但跨进程 / checkpoint / reset 都更稳。等 RL pipeline 跑大规模并发时,EnvScaler 这套范式的 OPS 痛点会暴露。</li>
+
+  <li><strong>Dual-agent quality gate 的实证价值:</strong> 这是 EnvScaler 最有原创性的设计,值得后续工作 borrow。但 paper 没做一个"<em>有 vs 无 dual-agent</em>"的端到端 ablation —— 我们只知道它筛掉了 28.2% 的 env,但<em>如果不筛,直接全 266 个 env 训会怎样</em>?paper 没回答。这是该范式可推广性的关键空缺。</li>
+
+  <li><strong>EnvScaler-8B 自己作为 base model 的<em>实用价值有多大</em>:</strong> Agent-World 论文里 EnvScaler-8B 在 MCP-Mark 上 base 9.5,self-evolve 后 15.1 —— 这数字对工程产品而言<em>用不了</em>。更现实的用法: 把 EnvScaler 的<strong>数据集和 pipeline 当原材料</strong>(MIT 协议,191 env / 9K traj 都现成),而<em>不要直接用它的模型 checkpoint</em>。这跟 Agent-World 自己得出的"<em>EnvScaler-8B 是个合格 base 但需后续 self-evolve</em>"结论一致。</li>
+
+  <li><strong>vs SFT 的 RL 增量比较少 —— 是 Reinforce++ 的锅吗?</strong> 在 Qwen3-8B 上 SFT 已经吃了 62% 的 BFCL-MT 涨幅(8.12 / 13.00),RL 只贡献 38%。这个比例比 AWM (GRPO) 报的 RL 增量低,但 paper 没对比 Reinforce++ vs GRPO vs PPO。如果 RL 算法本身有改进空间,EnvScaler 当前数据下还能涨。</li>
+</ol>
+
+<h3>7.3 一句话立场</h3>
+
+<p><strong>EnvScaler 是合成 env 这条线"<em>论文以外的全套素材开源得最干净</em>"的一篇</strong> —— MIT + 9K trajectory + 191 env + 三档模型 + pipeline 代码 —— 论文里的数字反而不是它真正的贡献,数据+代码才是。当你需要在自家 8B Qwen 模型上加 tool-use 能力做 baseline 时,先克隆 EnvScaler repo 跑 demo,基本就能起个底。但<strong>不要相信合成 env 的训练就能推进真实 MCP 工作流的能力</strong> —— 在 MCP-Mark / MCP-Universe 这些<em>真实分布</em> benchmark 上,EnvScaler / AWM 都还在 10% 区段挣扎,真实 MCP 抓取的 Agent-World 才是这一波的赢家。</p>
+
+<hr>
+
+<p style="color:#5b5e66;font-size:13px;margin-top:40px">
+  关联笔记: <a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a> ·
+  <a href="06_AgentGymRL_2509.08755.html">#06 AgentGym-RL</a> ·
+  <a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a> ·
+  <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> ·
+  <a href="20_SETA_camel.html">#20 SETA</a> ·
+  <a href="21_MCPBenchmarks_compare.html">#21 MCP Bench 横评</a>
+</p>
+
+</main>
+</body>
+</html>
