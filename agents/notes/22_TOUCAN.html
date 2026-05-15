@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · TOUCAN: Synthesizing 1.5M Tool-Agentic Data from Real-World MCP Environments</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>TOUCAN: Synthesizing 1.5M Tool-Agentic Data from Real-World MCP Environments</h1>
+<div class="meta">
+  MIT-IBM Watson AI Lab + University of Washington · Zhangchen Xu, Adriana Meza Soria, Shawn Tan, Anurag Roy, Ashish Sunil Agrawal, Radha Poovendran, Rameswar Panda · 2025-10-01 (v1)<br>
+  <a href="https://arxiv.org/abs/2510.01179" target="_blank">arXiv:2510.01179</a> ·
+  <a href="https://github.com/TheAgentArk/Toucan" target="_blank">GitHub: TheAgentArk/Toucan</a> ·
+  <a href="https://huggingface.co/datasets/Agent-Ark/Toucan-1.5M" target="_blank">HF Dataset</a> ·
+  <a href="https://huggingface.co/Agent-Ark" target="_blank">HF Models (Agent-Ark org)</a> ·
+  <a href="https://research.ibm.com/blog/toucan-for-tool-calling" target="_blank">IBM Research Blog</a><br>
+  关键词: tool-agentic SFT · MCP · 1.5M trajectory · multi-teacher synthesis · real-tool-execution · BFCL V3 · τ²-Bench · MCP-Universe
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> TOUCAN 是 MIT-IBM Watson AI Lab + UW 联合产出的<strong>目前公开规模最大的 tool-agentic SFT 数据集</strong> —— 1,527,259 条 trajectory,来源是 <strong>495 个真实可联通的 MCP server / 2,000+ tools</strong>(从 Smithery + GitHub 上的 ~2,800 个 server 过滤而来)。整条 pipeline 用 <strong>5 个 LLM 做 task 合成 → Kimi-K2 做 6 维 Likert 质量评分 → 3 个 teacher model × 2 个 agent framework 做真实工具执行 trajectory → rule + GPT-OSS-120B 双重 post-filter</strong>。SFT 完毕的 Qwen-2.5-32B 在 BFCL V3 上 70.45%,<strong>险胜 GPT-4.5-Preview 70.32%</strong>。最关键的是: <strong>数据 + 训好的 7B/14B/32B 模型 + 合成 pipeline 全部开源</strong>(Apache-2.0 dataset, MIT code)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">1,527,259</div><div class="l">trajectory 总数 — 比 Nemotron (310K) 大 5×</div></div>
+    <div class="stat"><div class="n">495 / 2,000+</div><div class="l">真实 MCP server / 工具数</div></div>
+    <div class="stat"><div class="n">规则+LLM</div><div class="l">两层验证: tool-call 顺序规则 + GPT-OSS-120B Likert</div></div>
+    <div class="stat"><div class="n">+8.72 pp</div><div class="l">32B 在 BFCL V3 上的绝对涨幅 (61.73 → 70.45)</div></div>
+  </div>
+  <p><strong>立场:</strong> TOUCAN 把"<strong>tool-agentic SFT 数据</strong>"这件事推到了规模化工业流水线层面 — 不是发明新算法,而是把"<em>真 MCP server + 多 teacher + 多 framework + 多层过滤</em>"做成一条可复现的合成流水线,并且把<strong>所有中间产物 (1.5M raw trajectories + 119K SFT subset + 27 个 fine-tune 后的 checkpoint)</strong>全开源。和最近读的 <a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a>(全合成 env)、<a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a>(真 MCP env mining)、<a href="20_SETA_camel.html">#20 SETA</a>(400 task RLVR)正好补完了"<em>合成 env / 真 env / 终端 env / 真 MCP 大规模 SFT</em>" 四象限的最后一块拼图。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景:为什么需要 1.5M scale 的 tool-agentic SFT 数据</a></li>
+    <li><a href="#sec2">数据合成 pipeline 全景 — 5 阶段 + 3 扩展</a></li>
+    <li><a href="#sec3">关键设计选择 — MCP 来源 / 多样性 / 验证器</a></li>
+    <li><a href="#sec4">训练 recipe + benchmark 结果</a></li>
+    <li><a href="#sec_oss">🔍 开源现状 — repo 实地清点</a></li>
+    <li><a href="#sec6">与同类工作的横向矩阵</a></li>
+    <li><a href="#sec7">局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景:1.5M scale 在 tool-agentic 数据上意味着什么</h2>
+
+<h3>1.1 已有方案的三角困局</h3>
+
+<p>过去一年内,围绕"<strong>怎么造出能教 LLM 调工具的数据</strong>"这件事,三条主流路线各自被卡在一个角落:</p>
+
+<table>
+  <tr><th>路线</th><th>代表</th><th>规模</th><th>真实度</th><th>验证可靠</th><th>痛点</th></tr>
+  <tr>
+    <td>真实 env mining</td>
+    <td><a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a></td>
+    <td>1,978 env</td>
+    <td class="ok">真</td>
+    <td class="no">弱(无 trajectory 验证器)</td>
+    <td>paper-only release,数据不公开</td>
+  </tr>
+  <tr>
+    <td>全合成 code-driven env</td>
+    <td><a href="18_AgentWorldModel_2602.10090.html">#18 AWM (Snowflake)</a></td>
+    <td>1,000 env / 35K tool</td>
+    <td class="no">假(代码模拟)</td>
+    <td class="ok">强(SQLite 状态可查)</td>
+    <td>分布脱离真实 MCP 用法</td>
+  </tr>
+  <tr>
+    <td>终端 Docker 任务</td>
+    <td><a href="20_SETA_camel.html">#20 SETA</a></td>
+    <td>400 task</td>
+    <td class="ok">真(Docker 即跑)</td>
+    <td class="ok">强(RLVR 出题人)</td>
+    <td>规模小,只覆盖 terminal 域</td>
+  </tr>
+  <tr>
+    <td>tool-call SFT 旧大头</td>
+    <td>Nemotron / ToolACE / xLAM</td>
+    <td>~300K</td>
+    <td>混合</td>
+    <td>弱</td>
+    <td>"tools 是 schema 不是真接口",function-name 拟合,没有 real tool response</td>
+  </tr>
+  <tr style="background:#f3eee0">
+    <td><strong>TOUCAN</strong></td>
+    <td>本文</td>
+    <td><strong>1.5M traj / 495 MCP / 2K tool</strong></td>
+    <td class="ok">真(remote HTTP MCP server)</td>
+    <td>双层(rule + LLM)</td>
+    <td>无 RL signal,纯 SFT</td>
+  </tr>
+</table>
+
+<p>TOUCAN 在这张三角上的<strong>占位</strong>是: <em>"用真实 MCP server 把规模一次堆到 1.5M,但放弃 RL,只做高质量 SFT distillation"</em>。换句话说,它和 AWM/Agent-World 不是替代关系,而是<strong>把"现成多 teacher model + 真 MCP 联通"这一最廉价的合成形式做到极致</strong>。</p>
+
+<h3>1.2 为什么"真" MCP 比合成 schema 重要</h3>
+
+<p>论文反复强调一点(§1, §3): 过去的 tool-call SFT 数据集(ToolACE 等)<strong>用的是 schema 字符串而不是真的 server</strong> —— 也就是 LLM 看到 <code>{"name":"get_weather", "params":...}</code>,然后 LLM <strong>自己</strong>编一个 fake response。这意味着:</p>
+
+<ul>
+  <li><strong>tool error 不在分布里</strong>:真 MCP server 会返回 rate-limit / auth-fail / malformed-args,合成 schema 永远不会;</li>
+  <li><strong>tool chain 的语义依赖被压平</strong>:get_user(id) → get_orders(user.email) 这种"前一步的<em>真</em>输出决定下一步参数"在 schema 合成里就退化成 LLM 对 plausible-looking dict 的拟合;</li>
+  <li><strong>multi-turn 状态一致性丢失</strong>:同一 server 多次 call 之间的 stateful behavior 没有真的 backend 是无法演出的。</li>
+</ul>
+
+<p>TOUCAN 的核心 commitment 就是 <strong>每条 trajectory 中的 tool response 都是 real MCP server 的真实回包</strong>(因此他们要在 onboarding 阶段筛掉所有需要第三方 credentials 的 server,把 ~2,800 减到 495)。这是和 #18 AWM 的最大哲学分歧:AWM 选择"<em>用 SQLite + Python 当受控 backend</em>"(可重置 / 可校验状态),TOUCAN 选择"<em>就接到真 server 上,失败 trajectory 当噪声扔掉</em>"。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 数据合成 pipeline 全景</h2>
+
+<h3>2.1 一图看完整条流水线</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 540" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+
+  <!-- Stage 1: MCP onboarding -->
+  <rect x="20" y="20" width="180" height="80" rx="8" fill="#f3eee0" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="110" y="42" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">Stage 1 · MCP Onboarding</text>
+  <text x="110" y="62" text-anchor="middle" font-size="11">Smithery + GitHub 抓 ~2,800 server</text>
+  <text x="110" y="78" text-anchor="middle" font-size="11">→ HTTP 可连 / 无 credential</text>
+  <text x="110" y="93" text-anchor="middle" font-size="11" fill="#cc4a1b">→ 495 server / 2,000+ tools</text>
+
+  <!-- Stage 2: Task Synthesis -->
+  <rect x="220" y="20" width="200" height="80" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="320" y="42" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">Stage 2 · Task Synthesis</text>
+  <text x="320" y="60" text-anchor="middle" font-size="11">5 个 LLM × 3 策略</text>
+  <text x="320" y="74" text-anchor="middle" font-size="10">Mistral-S / DevStral-S / GPT-OSS</text>
+  <text x="320" y="86" text-anchor="middle" font-size="10">Kimi-K2 / Qwen3-32B</text>
+  <text x="320" y="98" text-anchor="middle" font-size="10" fill="#cc4a1b">Single / Multi / Featured</text>
+
+  <!-- Stage 3: Task Filter -->
+  <rect x="440" y="20" width="180" height="80" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="530" y="42" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">Stage 3 · Task Filter</text>
+  <text x="530" y="60" text-anchor="middle" font-size="11">Kimi-K2 打 6 维 Likert</text>
+  <text x="530" y="74" text-anchor="middle" font-size="10">difficulty · uniqueness · quality</text>
+  <text x="530" y="86" text-anchor="middle" font-size="10">realism · verifiable · stability</text>
+  <text x="530" y="98" text-anchor="middle" font-size="10" fill="#cc4a1b">阈值过滤 → 干净 query pool</text>
+
+  <!-- Stage 4: Trajectory -->
+  <rect x="220" y="140" width="380" height="90" rx="8" fill="#f3eee0" stroke="#2f6feb" stroke-width="2"/>
+  <text x="410" y="162" text-anchor="middle" font-size="14" font-weight="bold" fill="#2f6feb">Stage 4 · Trajectory Generation (核心)</text>
+  <text x="410" y="180" text-anchor="middle" font-size="12">3 teacher 模型 × 2 agent framework = 6 组合</text>
+  <text x="410" y="196" text-anchor="middle" font-size="11">teacher: GPT-OSS-120B · Kimi-K2 · Qwen3-32B</text>
+  <text x="410" y="210" text-anchor="middle" font-size="11">framework: Qwen-agent · OpenAI-agent</text>
+  <text x="410" y="224" text-anchor="middle" font-size="11" fill="#cc4a1b">→ 每次 call 真接到 remote MCP server,拿真 response</text>
+
+  <!-- Stage 5: Post-Filter -->
+  <rect x="220" y="260" width="380" height="80" rx="8" fill="#fff" stroke="#cc4a1b" stroke-width="1.5"/>
+  <text x="410" y="282" text-anchor="middle" font-size="13" font-weight="bold" fill="#cc4a1b">Stage 5 · Post-Filter (双层验证)</text>
+  <text x="410" y="302" text-anchor="middle" font-size="11">Rule 层:无 tool call / init 失败 / 本地路径 / 工具顺序错 → 丢</text>
+  <text x="410" y="318" text-anchor="middle" font-size="11">LLM 层: GPT-OSS-120B 打 completeness · conciseness Likert</text>
+  <text x="410" y="332" text-anchor="middle" font-size="10" fill="#cc4a1b">综合阈值: 质量≥5 / 真实≥5 / 完整≥4 / 简洁≥4 / 工具用对=1.0</text>
+
+  <!-- Extensions branching out -->
+  <rect x="40" y="380" width="170" height="80" rx="8" fill="#fff" stroke="#1f7a4a" stroke-width="1.5"/>
+  <text x="125" y="402" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f7a4a">Ext.1 · Irrelevance</text>
+  <text x="125" y="420" text-anchor="middle" font-size="11">shuffle server metadata</text>
+  <text x="125" y="436" text-anchor="middle" font-size="11">→ 无解 query</text>
+  <text x="125" y="452" text-anchor="middle" font-size="11" fill="#cc4a1b">教模型"拒绝" (40K)</text>
+
+  <rect x="225" y="380" width="170" height="80" rx="8" fill="#fff" stroke="#1f7a4a" stroke-width="1.5"/>
+  <text x="310" y="402" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f7a4a">Ext.2 · Persona Diverse</text>
+  <text x="310" y="420" text-anchor="middle" font-size="11">保留 target tool</text>
+  <text x="310" y="436" text-anchor="middle" font-size="11">换 context + 角色</text>
+  <text x="310" y="452" text-anchor="middle" font-size="11" fill="#cc4a1b">语境多样化 (15.8K)</text>
+
+  <rect x="410" y="380" width="170" height="80" rx="8" fill="#fff" stroke="#1f7a4a" stroke-width="1.5"/>
+  <text x="495" y="402" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f7a4a">Ext.3 · Multi-Turn</text>
+  <text x="495" y="420" text-anchor="middle" font-size="11">复杂任务切子问</text>
+  <text x="495" y="436" text-anchor="middle" font-size="11">+ 续问 follow-up</text>
+  <text x="495" y="452" text-anchor="middle" font-size="11" fill="#cc4a1b">567K 多轮 (35.2K SFT)</text>
+
+  <!-- Final Pool -->
+  <rect x="600" y="380" width="160" height="80" rx="8" fill="#f3eee0" stroke="#a8353e" stroke-width="2"/>
+  <text x="680" y="402" text-anchor="middle" font-size="13" font-weight="bold" fill="#a8353e">最终入库</text>
+  <text x="680" y="420" text-anchor="middle" font-size="11">1,527,259 traj (raw)</text>
+  <text x="680" y="436" text-anchor="middle" font-size="11">119,300 SFT subset</text>
+  <text x="680" y="452" text-anchor="middle" font-size="11" fill="#cc4a1b">Apache-2.0</text>
+
+  <!-- 27 models -->
+  <rect x="280" y="490" width="220" height="40" rx="8" fill="#fff" stroke="#a8353e" stroke-width="1.5"/>
+  <text x="390" y="508" text-anchor="middle" font-size="12" font-weight="bold" fill="#a8353e">Student SFT</text>
+  <text x="390" y="523" text-anchor="middle" font-size="11">Qwen2.5-7B / 14B / 32B · 27 个公开 ckpt</text>
+
+  <!-- arrows top row -->
+  <line x1="200" y1="60" x2="218" y2="60" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="420" y1="60" x2="438" y2="60" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="530" y1="102" x2="410" y2="138" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="410" y1="232" x2="410" y2="258" stroke="#cc4a1b" stroke-width="2" marker-end="url(#arr2)"/>
+  <!-- to extensions -->
+  <line x1="280" y1="342" x2="125" y2="378" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="410" y1="342" x2="310" y2="378" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="540" y1="342" x2="495" y2="378" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="580" y1="300" x2="600" y2="395" stroke="#a8353e" stroke-width="2" marker-end="url(#arr2)"/>
+  <!-- ext to final -->
+  <line x1="210" y1="420" x2="220" y2="420" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="395" y1="420" x2="408" y2="420" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <line x1="580" y1="420" x2="598" y2="420" stroke="#1f7a4a" stroke-width="1.5" marker-end="url(#arr2)"/>
+  <!-- final to SFT -->
+  <line x1="600" y1="455" x2="500" y2="500" stroke="#a8353e" stroke-width="2" marker-end="url(#arr2)"/>
+</svg>
+<figcaption>图 1 · TOUCAN 五阶段合成 pipeline + 三个扩展机制 + 最终入库分布。蓝色为主线 stage,绿色为扩展模块,红色为质检 / 最终产物。注意 Stage 4 是<strong>真接到 remote MCP server</strong>,而不是 LLM 模拟工具响应。</figcaption>
+</div>
+
+<h3>2.2 各阶段输入 → 输出</h3>
+
+<table>
+  <tr><th>Stage</th><th>输入</th><th>输出</th><th>关键 model / 操作</th></tr>
+  <tr><td>S1 Onboarding</td><td>Smithery + GitHub 上的 ~2,800 MCP server</td><td>495 个可联通 server</td><td>HTTP 可达性测试 / credential 过滤 / 25 个手动选 "featured"</td></tr>
+  <tr><td>S2 Task Synth</td><td>495 server 的 tool schema</td><td>原始 task query 池</td><td>5 个 LLM 各跑 3 策略 (Single/Multi/Featured)</td></tr>
+  <tr><td>S3 Task Filter</td><td>原始 query</td><td>合格 query</td><td>Kimi-K2 6 维 Likert 评分 → 阈值过滤</td></tr>
+  <tr><td>S4 Trajectory</td><td>合格 query + 真 MCP server</td><td>原始 trajectory(含真 tool response)</td><td>3 teacher × 2 framework = 6 组合并行跑</td></tr>
+  <tr><td>S5 Post-Filter</td><td>原始 trajectory</td><td>1.5M 干净 trajectory + 119K SFT subset</td><td>Rule (5 条硬规则) + GPT-OSS-120B Likert</td></tr>
+  <tr><td>Ext.1-3</td><td>合格 trajectory</td><td>+40K 无解 / +15.8K 多 persona / +35.2K 多轮</td><td>shuffle metadata · persona inject · self-simulation 切子问</td></tr>
+</table>
+
+<h3>2.3 和 AWM / Agent-World 的并排对照</h3>
+
+<table>
+  <tr><th>维度</th><th>TOUCAN</th><th>#18 AWM</th><th>#03 Agent-World</th></tr>
+  <tr><td>核心阶段数</td><td>5 (Onboard / Synth / Filter / Traj / Post-filter) + 3 ext</td><td>5 (scenario / DB schema / tool / verifier / task)</td><td>双轨: env mining + arena evolve</td></tr>
+  <tr><td>Env 来源</td><td><strong>真 MCP server</strong>(Smithery + GitHub)</td><td>纯代码合成(LLM 写 Python+SQLite)</td><td>真 web 上 mining</td></tr>
+  <tr><td>Tool response</td><td>真实 MCP 回包</td><td>SQLite 状态机回包</td><td>真实 server 回包</td></tr>
+  <tr><td>验证器</td><td>规则 + LLM-judge Likert</td><td>verifier code(LLM 写的 unit test 风格)</td><td>无 trajectory 级 verifier</td></tr>
+  <tr><td>RL 还是 SFT</td><td>纯 SFT distillation</td><td>GRPO (RL)</td><td>self-evolve arena</td></tr>
+  <tr><td>规模</td><td>1.5M trajectory</td><td>10K task / 1K env</td><td>1,978 env</td></tr>
+  <tr><td>开源度</td><td>全开(data + 27 ckpt + pipeline)</td><td>全开(data + pipeline + ckpt)</td><td>paper-only,无 release</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec3">3 · 关键设计选择</h2>
+
+<h3>3.1 Real-World MCP 来源 — 为什么是 495 而不是 2,800</h3>
+
+<p>onboarding 阶段的过滤非常严格(§3.1):</p>
+
+<ul>
+  <li><strong>必须是 remote HTTP-accessible</strong>:本地需要 docker / npm 启动的 MCP server 一律不要 — 因为后面 trajectory 生成要并发跑几百个 worker,本地启动 server 不可扩展;</li>
+  <li><strong>必须不需要第三方 credential</strong>:这条砍掉了 Gmail / Notion / Slack / GitHub auth 等大类(虽然真实,但跑不动);</li>
+  <li><strong>必须 stability ≥ 阈值</strong>:被 Kimi-K2 在 stability 这维打低分的(connection 不稳 / 经常 timeout)在 task filter 后直接丢;</li>
+  <li><strong>25 个 "featured" server 手动精选</strong>:覆盖 web search / file ops / data analysis / coding 等高频域,作为 quality anchor。</li>
+</ul>
+
+<div class="nb">
+<strong>个人观察:</strong> 这 495 个 "real" MCP server 其实是 <em>"public, no-auth, HTTP-only, stable"</em> 的子集 — 也就是<strong>多数 demo-grade / mock-data 性质的 server</strong>(类似 公共 weather API, public dataset query, simple data utility)。真正在生产中带状态的 MCP server(Notion 数据库 / Gmail / Linear)因为 auth 要求被排除在外。这是 TOUCAN 的 <strong>"真实度上限"</strong>,也是它和 SETA 在 Docker 里自建 backend 的本质区别。</div>
+
+<h3>3.2 Task 多样性的三层保证</h3>
+
+<ol>
+  <li><strong>5 个不同 LLM 出题</strong>(Mistral-Small, DevStral-Small, GPT-OSS, Kimi-K2, Qwen3-32B): 不同模型有不同的 prompt-following bias,多 model 出题降低了"全 dataset 都是 Kimi-K2 风"的风险;</li>
+  <li><strong>3 种采样策略并行</strong>(Single-Server / Multi-Server / Featured-Server): Single 训"用对工具", Multi 训"跨 server 组合", Featured 在 25 个精选 server 上深挖;</li>
+  <li><strong>6 维 Likert 评分</strong>(difficulty / uniqueness / quality / realism / verifiable / stability)— uniqueness 这一维专门为<strong>反 mode-collapse</strong> 设计,把"和池子里已有 task 太像"的 query 主动剔出。</li>
+</ol>
+
+<h3>3.3 验证器: 两层硬过滤</h3>
+
+<div class="kv">
+<strong>Rule 层 (Stage 5a)</strong> — 命中任一条即丢弃:
+<ul style="margin:.4em 0">
+  <li>agent 初始化或 MCP server 连接失败</li>
+  <li>整条 trajectory 零 tool call(纯文本闲聊)</li>
+  <li>包含 tool response 失败/错误的</li>
+  <li>包含本地文件系统路径(防止泄漏 worker 信息)</li>
+  <li>没按要求顺序使用 target tools (desired tool usage % &lt; 1.0 或 order ≠ 1.0)</li>
+</ul>
+</div>
+
+<div class="kv">
+<strong>LLM 层 (Stage 5b)</strong> — GPT-OSS-120B 打 Likert:
+<ul style="margin:.4em 0">
+  <li><strong>Completeness</strong>: 是否完整回答了 user query;</li>
+  <li><strong>Conciseness</strong>: 是否冗余 / 重复 / 多余试错;</li>
+  <li>SFT subset 阈值: 质量≥5, 真实≥5, 完整≥4, 简洁≥4, desired tool usage = 1.0。</li>
+</ul>
+</div>
+
+<h3>3.4 失败 trajectory 是否回流?</h3>
+
+<p><strong>不回流。</strong> 不同于 AWM 在 GRPO 里把 V=0 的失败 trajectory 当负样本利用,TOUCAN 是纯 SFT distillation,失败 trajectory 直接扔掉(rule 层就过滤了)。这也是为什么它需要 <strong>1.5M raw → 119K SFT</strong> 这么夸张的"上 12.5× 数据冗余,只取 8% 入训"的设计 — 因为没有 RL 的负样本机制,质量只能靠多倒少进的过筛保证。</p>
+
+<h3>3.5 三个 Extension 机制 — 教 SFT 模型 "更难的事"</h3>
+
+<table>
+  <tr><th>Ext</th><th>做什么</th><th>SFT 想教的能力</th><th>规模</th></tr>
+  <tr><td>Ext.1 Irrelevance</td><td>shuffle MCP server 的 metadata,让 query 和 server 工具集错位</td><td>"拒绝无解 query"(防止幻觉调用)</td><td>40K</td></tr>
+  <tr><td>Ext.2 Persona-Diverse</td><td>保留 target tool,但用 LLM 重写 query — 加 persona / context / 复杂度约束</td><td>语境鲁棒性 / 抗 prompt 风格变化</td><td>15.8K</td></tr>
+  <tr><td>Ext.3 Multi-Turn</td><td>把复杂 multi-tool task 切成顺序子问;或在已成 trajectory 后续问 follow-up</td><td>多轮对话 / context-carry</td><td>35.2K (从 567K 多轮池里筛)</td></tr>
+</table>
+
+<p>注意 Ext.1 的设计很巧妙:不需要再生成新 trajectory,只要把已有 trajectory 的 server metadata 和 query 错配,就自动得到"<em>query 想做的事 server 做不到</em>"的训练样本 — 教 SFT 模型该说 "我做不到" 而不是硬调一个无关工具。这条对修 BFCL V3 里"<strong>relevance / irrelevance</strong>" 子项尤其有用。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 训练 recipe + benchmark 结果</h2>
+
+<h3>4.1 训练配置</h3>
+
+<div class="kv">
+<strong>训练 hyperparams</strong>(§4.1):<br>
+- 基座: Qwen2.5-Instruct 的 7B / 14B / 32B 三档<br>
+- SFT 数据: 上述 <strong>119.3K subset</strong>(从 1.5M raw 里筛)<br>
+- 2 epochs, lr = 2×10⁻⁵, effective batch size = 64, max seq len = 32,768<br>
+- 算法: 纯 SFT(无 RL,无 DPO)
+</div>
+
+<h3>4.2 BFCL V3 — 最亮眼的数字</h3>
+
+<table>
+  <tr><th>模型</th><th>Overall</th><th>Single-Turn</th><th>Multi-Turn</th></tr>
+  <tr><td>Qwen2.5-7B baseline</td><td>55.10</td><td>—</td><td>—</td></tr>
+  <tr><td>Qwen2.5-7B + Toucan</td><td><strong>58.26</strong> (+3.16)</td><td>78.52</td><td>74.50</td></tr>
+  <tr><td>Qwen2.5-14B baseline</td><td>57.69</td><td>—</td><td>—</td></tr>
+  <tr><td>Qwen2.5-14B + Toucan</td><td><strong>65.09</strong> (+7.40)</td><td>85.42</td><td>76.01</td></tr>
+  <tr><td>Qwen2.5-32B baseline</td><td>61.73</td><td>—</td><td>—</td></tr>
+  <tr><td>Qwen2.5-32B + Toucan</td><td><strong>70.45</strong> (+8.72)</td><td>87.12</td><td>78.90</td></tr>
+  <tr style="background:#fff8e8"><td>GPT-4.5-Preview</td><td>70.32</td><td>86.12</td><td>79.34</td></tr>
+</table>
+
+<p>32B 在 overall 上以 <strong>0.13 pp 险胜 GPT-4.5-Preview</strong>。这是论文最常被引用的卖点,但要注意 multi-turn 这一栏 GPT-4.5-Preview 反过来 78.90 vs 79.34 略低 — 32B 的胜出主要来自 single-turn 和 relevance 子项。</p>
+
+<h3>4.3 τ-Bench / τ²-Bench / MCP-Universe</h3>
+
+<table>
+  <tr><th>模型</th><th>τ-Bench Avg</th><th>τ²-Bench Avg</th></tr>
+  <tr><td>Qwen2.5-7B + Toucan</td><td>22.48 (+7.45)</td><td>17.77 (+1.69)</td></tr>
+  <tr><td>Qwen2.5-14B + Toucan</td><td>35.24 (+4.39)</td><td>30.43 (+5.97)</td></tr>
+  <tr><td>Qwen2.5-32B + Toucan</td><td>42.33 (+3.57)</td><td>31.60 (+2.20)</td></tr>
+</table>
+
+<p>τ-Bench / τ²-Bench 上的涨幅明显小于 BFCL V3(7.45 → 3.57 随尺寸递减),说明 <strong>SFT 数据更"对得上" BFCL V3 这种 function-call 形式</strong>,对真正的 dual-control 长对话(τ²)收益边际更小。</p>
+
+<p>MCP-Universe 上论文只给了 Pareto 图(Fig.8),说 "Toucan-tuned 模型在更小尺寸上 push 前沿" — 没给绝对数,但和 <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> / <a href="21_MCPBenchmarks_compare.html">#21</a> 里那张 MCP-Universe 排行榜对得上(Qwen2.5-32B + Toucan 大致落在 25-30% 区间)。</p>
+
+<h3>4.4 Ablation 摘录</h3>
+
+<p>论文 §4.3 做了 ablation,关键发现:</p>
+
+<ul>
+  <li><strong>规模 ablation</strong>:从 30K → 60K → 119K subset,BFCL V3 单调上升但收益递减 — 119K 后接近饱和;</li>
+  <li><strong>3 个 extension 各自贡献</strong>:Ext.1 (Irrelevance) 对 BFCL V3 的 relevance 子项贡献最大(+~5pp);Ext.3 (Multi-Turn) 对 multi-turn 子项贡献最大;Ext.2 (Diversify) 贡献最分散;</li>
+  <li><strong>双 framework (Qwen-agent + OpenAI-agent) 比单 framework 更好</strong>: 两种 framework 写 tool call 的格式不同,混训能避免格式过拟合。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec_oss">5 · 🔍 开源现状 — repo 实地清点</h2>
+
+<p>这是这篇 paper 最让人惊喜的部分 — <strong>几乎所有中间产物都开源了</strong>,而且 license 干净。逐项清点:</p>
+
+<table>
+  <tr><th>Artifact</th><th>状态</th><th>License</th><th>链接</th></tr>
+  <tr>
+    <td>📄 论文</td>
+    <td class="ok">开放</td>
+    <td>arXiv</td>
+    <td><a href="https://arxiv.org/abs/2510.01179" target="_blank">2510.01179</a></td>
+  </tr>
+  <tr>
+    <td>💾 1.5M 全量 trajectory</td>
+    <td class="ok">完全公开</td>
+    <td>Apache-2.0</td>
+    <td><a href="https://huggingface.co/datasets/Agent-Ark/Toucan-1.5M" target="_blank">Agent-Ark/Toucan-1.5M</a> (21.8 GB, 1,646,546 行 parquet,4 个 subset: Kimi-K2 / OSS / Qwen3 / SFT)</td>
+  </tr>
+  <tr>
+    <td>🛠 合成 pipeline 代码</td>
+    <td class="ok">开源</td>
+    <td>MIT</td>
+    <td><a href="https://github.com/TheAgentArk/Toucan" target="_blank">TheAgentArk/Toucan</a>(<code>./datagen</code> 目录)</td>
+  </tr>
+  <tr>
+    <td>🤖 7B SFT checkpoint</td>
+    <td class="ok">公开</td>
+    <td>(随 base model)</td>
+    <td><a href="https://huggingface.co/Agent-Ark/Toucan-Qwen2.5-7B-Instruct-v0.1" target="_blank">Toucan-Qwen2.5-7B-Instruct-v0.1</a>(333K 下载)</td>
+  </tr>
+  <tr>
+    <td>🤖 14B SFT checkpoint</td>
+    <td class="ok">公开</td>
+    <td>(随 base model)</td>
+    <td><a href="https://huggingface.co/Agent-Ark/Toucan-Qwen2.5-14B-Instruct-v0.1" target="_blank">Toucan-Qwen2.5-14B-Instruct-v0.1</a></td>
+  </tr>
+  <tr>
+    <td>🤖 32B SFT checkpoint</td>
+    <td class="ok">公开</td>
+    <td>(随 base model)</td>
+    <td><a href="https://huggingface.co/Agent-Ark/Toucan-Qwen2.5-32B-Instruct-v0.1" target="_blank">Toucan-Qwen2.5-32B-Instruct-v0.1</a></td>
+  </tr>
+  <tr>
+    <td>📦 GGUF 量化 ckpt 等</td>
+    <td class="ok">社区上传</td>
+    <td>—</td>
+    <td>共 <strong>27 个</strong> derivative 模型在 HF 上(社区 fine-tune / quantize 衍生)</td>
+  </tr>
+  <tr>
+    <td>📊 训练 + 评测脚本</td>
+    <td class="ok">同 repo</td>
+    <td>MIT</td>
+    <td>repo 内 <code>./train</code> / <code>./eval</code></td>
+  </tr>
+  <tr>
+    <td>📋 MCP server 列表 (495 个)</td>
+    <td class="ok">公开</td>
+    <td>MIT</td>
+    <td>repo Appendix B.1 + <code>./datagen</code> 内 metadata</td>
+  </tr>
+  <tr>
+    <td>🔒 trained model RL weights</td>
+    <td class="no">无</td>
+    <td>—</td>
+    <td>不存在 — 论文是纯 SFT,无 RL stage</td>
+  </tr>
+</table>
+
+<h3>5.1 和 #18 AWM / #03 Agent-World / #20 SETA 的开源度横向</h3>
+
+<table>
+  <tr><th>项</th><th>TOUCAN</th><th>#18 AWM</th><th>#03 Agent-World</th><th>#20 SETA</th></tr>
+  <tr><td>论文</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td>blog</td></tr>
+  <tr><td>数据集</td><td class="ok">1.5M 全开</td><td class="ok">1K env + traj 全开</td><td class="no">未公开</td><td class="ok">400 任务全开</td></tr>
+  <tr><td>合成 pipeline</td><td class="ok">datagen/ 公开</td><td class="ok">公开</td><td class="no">未公开</td><td class="ok">公开</td></tr>
+  <tr><td>训好的 ckpt</td><td class="ok">7B/14B/32B 全开</td><td class="ok">4B/8B/14B 全开</td><td class="no">无</td><td class="ok">8B 全开</td></tr>
+  <tr><td>训练代码</td><td class="ok">repo 内</td><td class="ok">repo 内</td><td class="no">无</td><td class="ok">基于 AReaL</td></tr>
+  <tr><td>License (data)</td><td>Apache-2.0</td><td>Apache-2.0</td><td>—</td><td>Apache-2.0</td></tr>
+  <tr><td>License (code)</td><td>MIT</td><td>Apache-2.0</td><td>—</td><td>Apache-2.0</td></tr>
+</table>
+
+<p><strong>结论:</strong> TOUCAN 的开源完整度和 AWM 是<strong>当前 agentic data 这一线最高的两家</strong>,显著高于 Agent-World(paper-only)。SETA 因为是 RLVR-Docker 路线,可比性稍弱但也接近全开。</p>
+
+<h3>5.2 自托管 / 复现需要什么</h3>
+
+<ul>
+  <li><strong>只想用数据 SFT 自己的模型</strong>: <code>datasets.load_dataset("Agent-Ark/Toucan-1.5M", "SFT")</code> 就能拿到 119K 高质量 SFT subset(parquet 格式,messages 已是 chat-format);</li>
+  <li><strong>想跑 inference 比 baseline</strong>: 三档 ckpt 直接从 HF 拉,GGUF 量化版可在 4090 上跑 32B q4;</li>
+  <li><strong>想从头重跑 pipeline</strong>: 需要(1)各 teacher model 的 API 密钥 或 部署(GPT-OSS-120B / Kimi-K2 / Qwen3-32B 都有公开 endpoint);(2)能联通 495 个 remote MCP server 的网络环境 — Smithery 上挂了 hosted version;(3)算力堆 1.5M trajectory 的生成。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · 与同类工作的横向矩阵</h2>
+
+<table>
+  <tr><th>维度</th><th>TOUCAN<br>(MIT-IBM+UW)</th><th>#18 AWM<br>(Snowflake)</th><th>#03 Agent-World<br>(RUC+ByteDance)</th><th>#20 SETA<br>(CAMEL-AI)</th><th>Nemotron tool-call<br>(NVIDIA)</th><th>ToolACE<br>(Huawei)</th></tr>
+  <tr><td>规模 (trajectory/task)</td><td><strong>1.5M traj</strong></td><td>10K task</td><td>1,978 env</td><td>400 task</td><td>310K traj</td><td>~26K</td></tr>
+  <tr><td>Env / Tool 数</td><td>495 / 2,000+</td><td>1,000 / 35,062</td><td>1,978 / 19,822</td><td>400 Docker</td><td>—</td><td>~26K function</td></tr>
+  <tr><td>Env 真实性</td><td>真 MCP server</td><td>合成 SQLite</td><td>真 MCP</td><td>Docker (真)</td><td>function schema</td><td>function schema</td></tr>
+  <tr><td>Tool response 真假</td><td class="ok">真</td><td>SQLite 状态机</td><td class="ok">真</td><td class="ok">Docker 真执行</td><td class="no">合成</td><td class="no">合成</td></tr>
+  <tr><td>验证机制</td><td>rule + LLM Likert</td><td>verifier code</td><td>无 traj 级</td><td>RLVR 出题人</td><td>LLM judge</td><td>双验证 LLM</td></tr>
+  <tr><td>训练算法</td><td>SFT (Qwen2.5 7/14/32B)</td><td>GRPO (Qwen3-thinking 4/8/14B)</td><td>self-evolve arena</td><td>GRPO via AReaL (8B)</td><td>SFT</td><td>SFT</td></tr>
+  <tr><td>BFCL V3 (best size)</td><td>32B: 70.45</td><td>8B: 65.94 (OOD)</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>开源度</td><td class="ok">data + ckpt + pipeline 全开</td><td class="ok">全开</td><td class="no">paper-only</td><td class="ok">全开</td><td>部分</td><td>部分</td></tr>
+  <tr><td>典型 license</td><td>Apache-2.0 / MIT</td><td>Apache-2.0</td><td>—</td><td>Apache-2.0</td><td>NC</td><td>—</td></tr>
+</table>
+
+<p><strong>定位</strong>: TOUCAN 占据 <em>"真 env + 超大 SFT 规模 + 全开源"</em> 这个空格 — 这恰好是上面其它工作都没占的位置(AWM 真 env 假但全开,Agent-World 真 env 但不开,Nemotron/ToolACE 假 env 大规模但弱真实)。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 局限 / 个人 take</h2>
+
+<h3>7.1 "1.5M scale" 是 marketing number 吗?</h3>
+
+<p><strong>部分是。</strong> 1,527,259 是<strong>所有 teacher model × framework 组合 raw 产出</strong>的总量,真正进入 SFT 的只有 119,300(约 8%)。HF 上的 4 个 subset 是按 teacher 切分的(Kimi-K2 519K / OSS 457K / Qwen3 552K / SFT 119K) — <strong>三个 teacher subset 之间有相当大的重叠</strong>(同一 query 被 3 个 teacher 各跑一遍)。真正 SFT 上有效的"unique high-quality trajectory"是 119K 这个量级,这才是与 Nemotron 310K / ToolACE 26K 公平对比的数。所以 IBM blog 上的 "5× Nemotron" 说法<strong>实质上是 1.5M raw vs 310K 全量</strong>的对比,不完全公平 — 但 119K SFT 的质量密度确实高(每条都过双层过滤)。</p>
+
+<h3>7.2 "real-world MCP" 真的"真"吗?</h3>
+
+<p><strong>真,但是"窄"。</strong> 495 个 server 都是 <em>public + no-auth + HTTP-only + stable</em> 的 — 也就是<strong>多半是 mock-data 或 read-only public API</strong> 性质(public weather, public dataset query, file conversion utility 等),并不是生产中带 stateful database 的 Notion/Linear/Gmail 类。所以 "真实度" 比合成 SQLite 高,但比 SETA 在 Docker 里跑真 git+linux command 要低一档。可以把它定位成 <em>"中等真实度,极大规模"</em>。</p>
+
+<h3>7.3 训出来的模型公开榜上能查到吗?</h3>
+
+<p><strong>可以,但需要小心 selection bias</strong>:</p>
+<ul>
+  <li>BFCL V3 上 32B = 70.45 这个数字在 BFCL 的 v3 leaderboard 上是 <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank">Berkeley 维护的</a>,可以查到(论文有截图);</li>
+  <li>τ-Bench / τ²-Bench 的对比数都是论文自己跑的(用 BFCL 提供的 evaluation harness),没有第三方独立复测;</li>
+  <li>MCP-Universe 上只有 Pareto 图,没有绝对数 — 想看具体落点需要去 MCP-Universe 自己的 leaderboard(目前 Toucan-32B 在 25-30% 区间);</li>
+  <li><strong>没有任何 frontier 厂商的 model card 直接引用过 Toucan</strong>(对比 #19 MCP-Atlas 被 Claude Opus 4.7 system card 引 77.3% 这种待遇)。</li>
+</ul>
+
+<h3>7.4 论文没回答的几个问题</h3>
+
+<div class="warn">
+<strong>待考察:</strong>
+<ul style="margin:.4em 0">
+  <li><strong>SFT vs RL 哪个更值</strong>: 同样 119K 数据,如果在上面跑 GRPO/PPO 而不是纯 SFT,能不能再涨 5pp?论文没做这个 ablation,因为 1.5M 数据的 RL 跑不动。</li>
+  <li><strong>495 个 server 的覆盖偏置</strong>: Smithery 上 web-search / file-utility 类的 server 远多于 specialized domain (medical / legal / finance),Toucan-tuned 模型在这些长尾域到底什么表现?</li>
+  <li><strong>对 base model 的依赖</strong>: 全套实验都在 Qwen2.5 上,在 Llama-3 / Mistral 上效果如何不清楚。</li>
+  <li><strong>是否会衰减通用能力</strong>: SFT 1.5M tool-call 数据后,通用 chat / 推理 benchmark (MMLU, HumanEval) 有没有 regression?论文没报告。</li>
+</ul>
+</div>
+
+<h3>7.5 一句话评价</h3>
+
+<blockquote>
+TOUCAN 不是一篇方法创新型的 paper — 它的所有技术(多 teacher distill / Likert filter / rule+LLM 双过滤 / persona inject / multi-turn 切分)都不新。但它是<strong>"把已有方法做到工业流水线规模,并 100% 全开源"</strong>这件事的当前 ceiling。如果你想 SFT 自己的 7B-32B 模型让它会调 MCP,<strong>直接拉 HF 上的 SFT subset 跑 2 epoch 是 2026 上半年最理性的起点</strong>。
+</blockquote>
+
+<hr>
+
+<h2>附:阅读路径建议</h2>
+
+<p>这篇笔记之前已读过 → 推荐 follow-up:</p>
+<ol>
+  <li>如果你已读 <a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a>: TOUCAN 是 AWM 的"真 env 大规模 SFT 版" — 两者是互补的(AWM 选 RL+合成,TOUCAN 选 SFT+真);</li>
+  <li>如果你已读 <a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a>: TOUCAN 把 Agent-World 没做的"<em>把 1.9K env 真的转成可训 SFT 数据并公开</em>"这步补上了 — 虽然 server 数 (495) 不如 Agent-World (1,978),但 trajectory 是真公开的;</li>
+  <li>如果你已读 <a href="20_SETA_camel.html">#20 SETA</a>: TOUCAN 的 SFT vs SETA 的 RLVR 形成<strong>方法学正交</strong> — 同样追求"真 tool"但一个走规模化 distill,一个走小规模 RL;</li>
+  <li>读完 TOUCAN 后,有兴趣可以追 <a href="21_MCPBenchmarks_compare.html">#21</a> 看 MCP-Universe 这条评测线 — TOUCAN-32B 大概落在哪里。</li>
+</ol>
+
+</main>
+</body>
+</html>
