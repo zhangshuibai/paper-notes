@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Agent World Model: Infinity Synthetic Environments for Agentic RL (2602.10090)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Agent World Model: Infinity Synthetic Environments for Agentic Reinforcement Learning</h1>
+<div class="meta">
+  Snowflake AI Research · Zhaoyang Wang, Canwen Xu, Boyi Liu, Yite Wang, Siwei Han, Zhewei Yao, Huaxiu Yao, Yuxiong He · 2026-02<br>
+  <a href="https://arxiv.org/abs/2602.10090" target="_blank">arXiv:2602.10090</a> ·
+  <a href="https://arxiv.org/html/2602.10090v1" target="_blank">HTML 版</a> ·
+  <a href="https://github.com/Snowflake-Labs/agent-world-model" target="_blank">GitHub: Snowflake-Labs/agent-world-model</a><br>
+  关键词: synthetic environments · code-driven simulation · MCP toolset · multi-turn tool-use RL · GRPO · Qwen3-thinking · OOD generalization
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> Snowflake AI Research 提出 <span class="term">Agent World Model (AWM)</span> —— 一条<strong>完全合成、代码驱动</strong>的环境生产流水线,把"scenario → task → 数据库 schema → MCP tool 接口 → 验证代码"五件事用 LLM 串成 software-dev 风格的 pipeline,一次性吐出 <strong>1,000 个可执行环境 / 10,000 个 task / 35,062 个工具</strong>。在这些环境里跑 GRPO 训 Qwen3-thinking 4B/8B/14B,在 3 个完全 OOD 的 benchmark (BFCLv3 / τ²-bench / MCP-Universe) 上全面打过同类合成 baseline (EnvScaler) 和 LLM-as-environment baseline (Simulator)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">1,000</div><div class="l">合成环境数 (100 seed → 1,000 scenarios)</div></div>
+    <div class="stat"><div class="n">35,062</div><div class="l">总工具数 (mean 35.1 / env)</div></div>
+    <div class="stat"><div class="n">Qwen3 4/8/14B</div><div class="l">三个 thinking 模型上做 GRPO</div></div>
+    <div class="stat"><div class="n">+12.1 / +7.0</div><div class="l">8B BFCLv3 / τ²-bench OOD 涨幅</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是一篇关于"<strong>合成环境的可靠性 vs 多样性</strong>"的论文。和 <a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a> 形成<em>正交对照</em> —— 后者从真实 web 上 mining 1,978 个"真"环境(贵但真实);AWM 走"<em>用代码彻底合成</em>"路线(便宜、可重置、状态一致,但脱离真实分布)。和 <a href="17_UITARS2_2509.02544.html">#17 UI-TARS-2</a> 的 data flywheel 也形成对照 —— flywheel 用 policy rollout 扩 task,AWM 在 task 之前一层就扩了 environment 本身。<strong>核心论断</strong>: 当 LLM-simulated env (e.g. GPT-5 当 transition function) 给 RL 提供的状态不一致时,RL signal 会崩;用 SQLite + Python 当 backend 是更稳的折衷。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景:为什么"全合成"环境是 RL 的第三条路 — 兼与 #03 区分</a></li>
+    <li><a href="#sec2">核心方法 · 五阶段 code-driven 环境生成</a></li>
+    <li><a href="#sec3">RL 训练 recipe — GRPO + 三层 reward + 滑窗历史</a></li>
+    <li><a href="#sec4">实验结果 · 三个 OOD benchmark + ablation</a></li>
+    <li><a href="#sec5">🔍 开源现状 — repo 实地清点</a></li>
+    <li><a href="#sec6">与 #03 Agent-World 并排对比</a></li>
+    <li><a href="#sec7">与 #17 UI-TARS-2 data flywheel 的关系</a></li>
+    <li><a href="#sec8">局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景:为什么"全合成"环境是 agentic RL 的第三条路</h2>
+
+<h3>1.1 三种环境路线的分类</h3>
+
+<p>2025-2026 这一波 agentic RL 的 paper 在"<strong>环境从哪儿来</strong>"这个问题上呈现出三条明确的路线:</p>
+
+<table>
+<thead><tr><th>路线</th><th>代表作</th><th>状态如何转移</th><th>cost / 可靠性</th><th>多样性</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>① 真实环境 mining</strong></td>
+  <td><a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a> (RUC + ByteDance)<br>OSWorld / AndroidWorld</td>
+  <td>真实服务 / 真实 OS</td>
+  <td>贵 (sandbox 部署 / 限速 / API 收费),状态可能漂移</td>
+  <td>极高 (真实分布)</td>
+</tr>
+<tr>
+  <td><strong>② LLM-as-environment</strong></td>
+  <td>τ²-bench user-simulator / Simulator (Li/Chen 2025)</td>
+  <td>GPT-5 当 transition function</td>
+  <td>贵 (每步一次 LLM call),状态不一致 (LLM 会 hallucinate state)</td>
+  <td>高 (LLM 自由发挥)</td>
+</tr>
+<tr>
+  <td><strong>③ 全合成 code-driven</strong> ← <em>本篇</em></td>
+  <td><strong>AWM (#18)</strong>,EnvScaler (concurrent)</td>
+  <td>SQLite DB + Python 工具确定性执行</td>
+  <td>便宜 (无 API / 无 LLM-in-loop),状态严格一致</td>
+  <td>中 (受限于 LLM 想象出来的 scenario)</td>
+</tr>
+</tbody>
+</table>
+
+<h3>1.2 和 #03 Agent-World 的命名混淆 — 一定要分清</h3>
+
+<div class="warn">
+<p>两篇 paper 中文名几乎一样,但<strong>是两件完全不同的事</strong>:</p>
+<table>
+<thead><tr><th></th><th>#03 Agent-World (2604.18292)</th><th>#18 Agent World Model (2602.10090, 本篇)</th></tr></thead>
+<tbody>
+<tr><td>团队</td><td>RUC (Guanting Dong) + ByteDance Seed</td><td>Snowflake AI Research</td></tr>
+<tr><td>arXiv 日期</td><td>2026-04</td><td>2026-02</td></tr>
+<tr><td>核心动作</td><td><strong>从真实 web mining 环境</strong></td><td><strong>用 LLM + 代码从零合成环境</strong></td></tr>
+<tr><td>环境数</td><td>1,978 个真实 MCP 服务</td><td>1,000 个合成 SQLite-backed 环境</td></tr>
+<tr><td>工具数</td><td>19,822 个真实 tool (从 MCP 服务暴露)</td><td>35,062 个合成 tool (35.1/env mean)</td></tr>
+<tr><td>状态后端</td><td>各 MCP 服务的真实 backend</td><td>每环境一个 SQLite database</td></tr>
+<tr><td>训练 base</td><td>未明确指定单个模型族</td><td>Qwen3-thinking 4B / 8B / 14B</td></tr>
+<tr><td>RL 算法</td><td>GRPO (multi-environment)</td><td>GRPO (single algorithm focus)</td></tr>
+<tr><td>主要叙事</td><td>"环境是 agent RL 的新瓶颈,要去 mining"</td><td>"LLM 模拟环境不可靠,代码 + DB 才稳"</td></tr>
+<tr><td>self-evolve 闭环</td><td>✓ (有 self-evolving arena)</td><td>✗ (一次性生成 1000 envs,无 evolve)</td></tr>
+</tbody>
+</table>
+<p><strong>两者关系</strong>: 互补,不是竞品。#03 在<em>真实分布</em>这一端推到极致;#18 在<em>可复现 + 状态一致</em>这一端推到极致。"<strong>放在一起读才能看清 agentic RL 环境层的两种工程权衡</strong>"。</p>
+</div>
+
+<h3>1.3 论文的核心主张</h3>
+
+<p>AWM 不去争"我的环境数比 #03 多" —— 1,000 < 1,978 反而少。它的卖点是:</p>
+
+<ol>
+  <li><strong>状态可重置 + 严格一致</strong> —— SQLite 一行命令回滚,千 worker 并发训练每个环境实例都独立。LLM-simulated env 做不到 (Simulator baseline)。</li>
+  <li><strong>训练时 zero LLM call</strong> —— transition 完全是 Python 函数执行,RL latency 不被 LLM 拖死。</li>
+  <li><strong>reward 来自 database state diff</strong> —— 不依赖 LLM judge,可逐步验证。这一手让 reward 函数本身可执行、可单元测试。</li>
+  <li><strong>OOD 测试更干净</strong> —— 训练环境是"日常 SaaS-like" scenarios,而评测的 BFCLv3 / τ²-bench / MCP-Universe 是完全不同分布(对话、refusal、浏览器自动化),证明"合成训练 → 真实泛化"是 work 的。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec2">2 · 核心方法 · 五阶段 code-driven 环境生成</h2>
+
+<h3>2.1 全景流水线</h3>
+
+<p>论文把环境合成做成<strong>类软件开发的流水线</strong>:从"想做什么场景"一路推到"可执行环境 + 验证测试"。每一步都用 LLM 提议、用代码执行验证,失败了 self-correct 再重试。</p>
+
+<div class="fig">
+<svg viewBox="0 0 780 540" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:12px">
+  <text x="390" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#2f6feb">AWM Code-Driven Environment Pipeline · 五阶段</text>
+
+  <!-- Stage 1 -->
+  <rect x="40" y="50" width="140" height="80" rx="10" fill="#f3eee0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="110" y="73" text-anchor="middle" font-weight="bold" fill="#cc4a1b">① Scenario</text>
+  <text x="110" y="90" text-anchor="middle" font-size="11">100 seed websites</text>
+  <text x="110" y="105" text-anchor="middle" font-size="11">↓ self-instruct + 去重</text>
+  <text x="110" y="121" text-anchor="middle" font-size="11" font-weight="bold">1,000 scenarios</text>
+
+  <!-- Stage 2 -->
+  <rect x="210" y="50" width="140" height="80" rx="10" fill="#f3eee0" stroke="#2f6feb" stroke-width="2"/>
+  <text x="280" y="73" text-anchor="middle" font-weight="bold" fill="#2f6feb">② Task</text>
+  <text x="280" y="90" text-anchor="middle" font-size="11">k=10 / scenario</text>
+  <text x="280" y="105" text-anchor="middle" font-size="11">每条 task 含</text>
+  <text x="280" y="121" text-anchor="middle" font-size="11" font-weight="bold">10,000 tasks</text>
+
+  <!-- Stage 3 -->
+  <rect x="380" y="50" width="140" height="80" rx="10" fill="#f3eee0" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="450" y="73" text-anchor="middle" font-weight="bold" fill="#1f7a4a">③ Database</text>
+  <text x="450" y="90" text-anchor="middle" font-size="11">DDL (SQL CREATE)</text>
+  <text x="450" y="105" text-anchor="middle" font-size="11">+ INSERT 采样</text>
+  <text x="450" y="121" text-anchor="middle" font-size="11">SQLite 实例</text>
+
+  <!-- Stage 4 -->
+  <rect x="550" y="50" width="140" height="80" rx="10" fill="#f3eee0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="620" y="73" text-anchor="middle" font-weight="bold" fill="#cc4a1b">④ Interface</text>
+  <text x="620" y="90" text-anchor="middle" font-size="11">MCP tool 暴露</text>
+  <text x="620" y="105" text-anchor="middle" font-size="11">Python 函数</text>
+  <text x="620" y="121" text-anchor="middle" font-size="11" font-weight="bold">35.1 tools / env</text>
+
+  <!-- Stage 5 -->
+  <rect x="295" y="180" width="200" height="80" rx="10" fill="#fff4e0" stroke="#cc7a1b" stroke-width="2"/>
+  <text x="395" y="203" text-anchor="middle" font-weight="bold" fill="#cc7a1b">⑤ Verification</text>
+  <text x="395" y="220" text-anchor="middle" font-size="11">Python 函数 V(s_before, s_after)</text>
+  <text x="395" y="236" text-anchor="middle" font-size="11">对比 DB state 差异</text>
+  <text x="395" y="252" text-anchor="middle" font-size="11">→ {full, partial, fail}</text>
+
+  <!-- arrows top -->
+  <path d="M 180 90 L 210 90" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M 350 90 L 380 90" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M 520 90 L 550 90" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M 620 130 Q 620 165 495 200" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a)"/>
+
+  <!-- Self-correct loop -->
+  <rect x="60" y="290" width="180" height="60" rx="10" fill="#f9e6e8" stroke="#a8353e" stroke-width="2"/>
+  <text x="150" y="313" text-anchor="middle" font-weight="bold" fill="#a8353e">Self-correct loop</text>
+  <text x="150" y="330" text-anchor="middle" font-size="11">任一阶段失败 → LLM 修复</text>
+  <text x="150" y="345" text-anchor="middle" font-size="11">avg 1.13 iterations</text>
+
+  <path d="M 295 220 Q 200 250 200 290" stroke="#a8353e" stroke-width="2" stroke-dasharray="5,3" fill="none" marker-end="url(#a)"/>
+
+  <!-- Stats box -->
+  <rect x="280" y="290" width="220" height="80" rx="10" fill="#e8f3ea" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="390" y="313" text-anchor="middle" font-weight="bold" fill="#1f7a4a">Pipeline stats</text>
+  <text x="390" y="330" text-anchor="middle" font-size="11">成功率 &gt; 85%</text>
+  <text x="390" y="345" text-anchor="middle" font-size="11">自纠正平均仅 1.13 次</text>
+  <text x="390" y="360" text-anchor="middle" font-size="11">RL 期间 env error ~4%</text>
+
+  <!-- Output -->
+  <rect x="540" y="290" width="200" height="80" rx="10" fill="#fff" stroke="#2f6feb" stroke-width="2"/>
+  <text x="640" y="313" text-anchor="middle" font-weight="bold" fill="#2f6feb">最终产出</text>
+  <text x="640" y="330" text-anchor="middle" font-size="11">1,000 envs × 10 tasks</text>
+  <text x="640" y="345" text-anchor="middle" font-size="11">= 10,000 (task, env) 对</text>
+  <text x="640" y="360" text-anchor="middle" font-size="11">35,062 tools 总量</text>
+
+  <!-- Bottom: comparison -->
+  <text x="40" y="410" font-weight="bold" fill="#2f6feb">和两条对照路线的关键差异:</text>
+  <text x="40" y="432" font-size="12">· vs <tspan font-weight="bold">LLM-as-env (Simulator)</tspan>:transition 用 Python 而非 GPT-5 call,RL latency ↓,状态一致 ↑</text>
+  <text x="40" y="452" font-size="12">· vs <tspan font-weight="bold">code-only verify (EnvScaler)</tspan>:加 LLM-augmented 验证后,blocked task 11.5% vs 46.8%</text>
+  <text x="40" y="472" font-size="12">· vs <tspan font-weight="bold">真实 env (#03 Agent-World)</tspan>:无 API 费用,可全并发训练,但分布脱离真实 SaaS</text>
+
+  <text x="40" y="510" font-size="11" fill="#5b5e66">LLM-judge quality (Task Feasibility): AWM 3.68 vs EnvScaler 2.94 (paper 自报)</text>
+
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>五阶段流水线:scenario → task → database → MCP interface → verification。每一步 LLM 提议 + 代码验证 + self-correct (平均 1.13 次)。最终产出可在 RL 训练时直接 import 的可执行环境集合。</figcaption>
+</div>
+
+<h3>2.2 各阶段细节</h3>
+
+<h4>① Scenario Generation</h4>
+
+<div class="kv">
+  <strong>输入</strong>: 100 个 seed website 类别 (e.g. e-commerce, project management, healthcare booking)<br>
+  <strong>动作</strong>: LLM self-instruct 扩展;CRUD coverage filter (确保每个 scenario 至少含 Create / Read / Update / Delete 操作);embedding-based 去重<br>
+  <strong>输出</strong>: 1,000 个 scenario,每个含 domain 描述 + 目标用户角色 + 核心实体清单
+</div>
+
+<h4>② Task Generation</h4>
+
+<div class="kv">
+  <strong>输入</strong>: 单 scenario<br>
+  <strong>动作</strong>: prompt LLM 生成 k=10 个 diverse tasks,每条 task 含 (a) 用户 query (b) 预期数据库 final state (c) 中间依赖<br>
+  <strong>输出</strong>: 10,000 个 task,每个 task 都对应一个明确的 DB 终态可被 diff
+</div>
+
+<h4>③ Database Schema + Sample Data</h4>
+
+<div class="kv">
+  <strong>动作</strong>: LLM 生成 SQLite DDL (<code>CREATE TABLE ...</code>) → 执行验证 → 失败 self-correct → 生成 INSERT 语句填充 sample 数据使 task 前置条件成立<br>
+  <strong>关键</strong>: sample data 不是随机,而是<em>专门构造</em>让 10 个 task 都能从这个初始 DB 状态出发完成
+</div>
+
+<h4>④ MCP Interface Layer</h4>
+
+<div class="kv">
+  <strong>动作</strong>: 把 DB 操作包装成 Python 函数(每函数一个 tool),按 MCP 协议 expose<br>
+  <strong>规模</strong>: 平均 <strong>35.1 个 tool / env</strong>,中位数 35.0,top-90% 含 45 个;<strong>总计 35,062 个 tool</strong><br>
+  <strong>tool 设计</strong>: CRUD 风格 + 少量复合查询 / 业务逻辑函数。每个函数都是确定性的 — 同输入同输出,DB 状态完全决定行为
+</div>
+
+<h4>⑤ Verification Code</h4>
+
+<div class="kv">
+  <strong>动作</strong>: 为每条 task 生成一段 Python 验证函数 <code>V(s_before, s_after) → reward</code>,通过 SQL 查询比对 task 期望的 DB 终态<br>
+  <strong>三档输出</strong>:
+  <ul>
+    <li><strong>full success</strong> (reward = 1.0): 所有目标状态匹配</li>
+    <li><strong>partial success</strong> (reward = 0.1): 部分匹配</li>
+    <li><strong>failure</strong> (reward = 0.0): 完全不达标</li>
+  </ul>
+  <strong>关键 design choice</strong>: 验证是 <em>code-augmented LLM-judge</em>,不是纯 LLM judge,也不是纯 code。论文 ablation 显示:
+  <ul>
+    <li>LLM-only verify: BFCLv3 8B = 55.46</li>
+    <li>Code-only verify: BFCLv3 8B = 60.00</li>
+    <li><strong>Code-augmented (AWM)</strong>: BFCLv3 8B = <strong>65.94</strong></li>
+  </ul>
+</div>
+
+<h3>2.3 Pipeline 自己报告的质量数字</h3>
+
+<table>
+<thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>整个 pipeline 一次成功率</td><td><strong>&gt; 85%</strong></td><td>未触发 self-correct 就完成全 5 阶段的比例</td></tr>
+<tr><td>Self-correct 平均次数</td><td><strong>1.13</strong></td><td>失败的样本绝大多数一两次内就修好</td></tr>
+<tr><td>RL 期间 env error rate</td><td><strong>~4%</strong></td><td>训练中由于环境 bug 触发 rollout 中断的比例</td></tr>
+<tr><td>LLM-judge Task Feasibility 评分</td><td><strong>3.68 (AWM) vs 2.94 (EnvScaler)</strong></td><td>3rd-party LLM 评估"task 是否合理"</td></tr>
+<tr><td>Blocked tasks (code-only verify 下)</td><td><strong>11.5% (AWM) vs 46.8% (EnvScaler)</strong></td><td>由于验证代码 bug 导致 task 永远无法通过的比例</td></tr>
+</tbody>
+</table>
+
+<p>这组对比的潜台词是: "我们不是第一个做合成环境的(EnvScaler 同期),但我们做得更稳"。</p>
+
+<hr>
+
+<h2 id="sec3">3 · RL 训练 recipe</h2>
+
+<h3>3.1 训练规模</h3>
+
+<div class="kv">
+  <strong>Base 模型</strong>: Qwen3 thinking 系列,三档 <strong>4B / 8B / 14B</strong><br>
+  <strong>训练环境子集</strong>: 由于算力限制,实际 RL 训练用了 <strong>526 个 env / 3,315 个 task</strong> (而非全部 1,000 / 10,000)<br>
+  <strong>Batch</strong>: batch size 64,每个 prompt 16 rollout → 同时维护 <strong>1,024 个独立环境实例</strong><br>
+  <strong>RL 算法</strong>: <span class="term">GRPO</span> (Group Relative Policy Optimization)
+</div>
+
+<h3>3.2 Reward 函数(两层组合)</h3>
+
+<table>
+<thead><tr><th>层级</th><th>触发时机</th><th>取值</th></tr></thead>
+<tbody>
+<tr><td><strong>Step-level (format)</strong></td><td>每一步 (turn)</td><td>违反格式 (e.g. 错误 tool-call 语法) → <code>r_t = -1.0</code></td></tr>
+<tr><td rowspan="3"><strong>Task-level (outcome)</strong></td><td rowspan="3">trajectory 终止时,从 verification code 拿</td><td>full success → 1.0</td></tr>
+<tr><td>partial success → 0.1</td></tr>
+<tr><td>failure → 0.0</td></tr>
+</tbody>
+</table>
+
+<p>这两个 reward 在 GRPO 的 group-relative advantage 估计前直接相加。<strong>没有 LLM-as-judge reward</strong> —— 这是和 LLM-simulated env baseline 的另一个关键差异。</p>
+
+<h3>3.3 历史 (history) 管理 — 滑窗 w=3</h3>
+
+<p>多轮 tool-use trajectory 容易把 context 撑爆。AWM 用<strong>滑窗 w=3</strong> 保留最近 3 步的完整 (observation, action, result),更早的步骤被截断。</p>
+
+<p>关键的工程细节:<strong>训练时的 trajectory 对齐要和 inference 时滑窗 truncation 保持一致</strong>(否则训练 loss 的 logp 是错的)。Ablation:</p>
+
+<table>
+<tr><th>history alignment</th><th>BFCLv3 (4B)</th></tr>
+<tr><td>Misaligned (训练看到完整 history,推理用滑窗)</td><td>61.85</td></tr>
+<tr><td><strong>Aligned</strong> (训练和推理都用滑窗)</td><td><strong>64.50</strong></td></tr>
+</table>
+
+<h3>3.4 训练为什么不用 LLM 当 env transition?</h3>
+
+<p>论文专门做了 vs Simulator (Li et al. 2025b; Chen et al. 2025) 的对比 —— 这是个用 GPT-5 当 transition function 的 baseline。两点关键差异:</p>
+
+<ol>
+  <li><strong>状态一致性</strong>: GPT-5 在一个 trajectory 里可能"忘记"前几步的状态变化,导致 reward signal 不可信。AWM 的 SQLite 永远不会忘。</li>
+  <li><strong>RL latency</strong>: Simulator 每个 turn 都要等一次 GPT-5 API call。AWM 一个 turn 就是 Python 函数执行 + SQLite query,本地完成。</li>
+</ol>
+
+<p>结果(BFCLv3 / 8B): AWM 65.94 vs Simulator 52.53 —— 整整 13 个绝对点的差距,论文归因到"<em>programming-based state consistency provides a more stable learning signal</em>"。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 实验结果 · 三个 OOD benchmark</h2>
+
+<h3>4.1 OOD 是怎么定义的</h3>
+
+<p>训练数据是 1,000 个"日常 SaaS scenarios"(预订、CRUD、查询、修改 record)。评测的三个 benchmark <strong>分布上完全不同</strong>:</p>
+
+<table>
+<thead><tr><th>Benchmark</th><th>主要分布</th><th>与 AWM 训练分布的差距</th></tr></thead>
+<tbody>
+<tr><td><strong>BFCLv3</strong></td><td>function calling,含 refusal 场景(模型应该拒绝 hallucinate tool)</td><td>AWM 训练完全无 refusal task</td></tr>
+<tr><td><strong>τ²-bench</strong></td><td>多轮 dialogue + user-simulator,airline/retail/telecom 域</td><td>AWM 不训对话,只训"<em>用户 query → tool 调用序列</em>"</td></tr>
+<tr><td><strong>MCP-Universe</strong></td><td>真实 MCP 服务 (location / financial / browser / web search / multi-server)</td><td>AWM 训的都是合成 DB,真实 API 行为完全没见过</td></tr>
+</tbody>
+</table>
+
+<p>"AWM does not target conversational interaction, whereas τ²-bench requires multi-turn dialogue. AWM omits refusal scenarios, while BFCLv3 stresses hallucination resistance. AWM also excludes browser automation" — paper 自己列举了 OOD 维度。</p>
+
+<h3>4.2 主表 — vs EnvScaler / Simulator / Base model</h3>
+
+<table>
+<thead>
+<tr><th rowspan="2">Method</th><th colspan="3">BFCLv3 (Overall)</th><th colspan="3">τ²-bench (Pass@1)</th><th colspan="3">MCP-Universe (Overall)</th></tr>
+<tr><th>4B</th><th>8B</th><th>14B</th><th>4B</th><th>8B</th><th>14B</th><th>4B</th><th>8B</th><th>14B</th></tr>
+</thead>
+<tbody>
+<tr><td>Base Qwen3-thinking</td><td>—</td><td>53.83</td><td>—</td><td>—</td><td>26.44</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>EnvScaler</td><td>54.06</td><td>36.83</td><td>—</td><td>28.96</td><td>39.39</td><td>—</td><td>4.47</td><td>5.59</td><td>—</td></tr>
+<tr><td>Simulator (GPT-5 as env)</td><td>55.52</td><td>52.53</td><td>67.68</td><td>13.67</td><td>31.30</td><td>31.39</td><td>6.15</td><td>6.15</td><td>10.62</td></tr>
+<tr><td><strong>AWM (本篇)</strong></td><td><strong>64.50</strong></td><td><strong>65.94</strong></td><td><strong>70.18</strong></td><td>22.57</td><td><strong>33.45</strong></td><td><strong>39.03</strong></td><td><strong>6.70</strong></td><td><strong>11.17</strong></td><td><strong>12.29</strong></td></tr>
+</tbody>
+</table>
+
+<p class="nb">几个观察:</p>
+<ul>
+  <li><strong>BFCLv3 全 3 档 size AWM 都最强</strong> —— 8B 上 +13.4 over Simulator,+29.1 over EnvScaler。</li>
+  <li><strong>τ²-bench 4B 上 EnvScaler 反胜 (28.96 vs 22.57)</strong> —— paper 自己也注意到这点,归因 τ²-bench 偏 dialogue,而 EnvScaler 训练分布更接近?或者 4B 模型对 dialogue 类 OOD 更吃任务分布。<strong>这是 AWM 唯一没赢的格子</strong>。</li>
+  <li><strong>MCP-Universe 数字都很低</strong> (~10%) —— 全员都难,因为评测的是真实 MCP 服务,需要 web/financial/browser 等专门能力,合成环境给不出。</li>
+  <li><strong>14B 仍然涨</strong> —— 在 BFCLv3 上 14B AWM 70.18 vs 14B Simulator 67.68,说明 RL signal 即使到 14B 规模也未饱和。</li>
+</ul>
+
+<h3>4.3 关键 ablation 三连</h3>
+
+<h4>(a) Verification design (Table 6, BFCLv3 8B)</h4>
+
+<table>
+<tr><th>验证方式</th><th>BFCLv3</th></tr>
+<tr><td>LLM-only judge</td><td>55.46</td></tr>
+<tr><td>Code-only verification</td><td>60.00</td></tr>
+<tr><td><strong>Code-augmented (LLM + code)</strong> ← AWM</td><td><strong>65.94</strong></td></tr>
+</table>
+
+<p>这是<strong>本文最关键的方法学 ablation</strong>。"<em>只用 LLM 当 verifier 不够准 (55.46),只用 code 又太严格挡掉太多 task (blocked 46.8%),两者结合最稳</em>"。</p>
+
+<h4>(b) History alignment (Table 7, BFCLv3 4B)</h4>
+
+<table>
+<tr><th>History 处理</th><th>BFCLv3 4B</th></tr>
+<tr><td>Misaligned (训练给全 history,推理给滑窗)</td><td>61.85</td></tr>
+<tr><td><strong>Aligned</strong> (训练推理都给滑窗 w=3)</td><td><strong>64.50</strong></td></tr>
+</table>
+
+<h4>(c) Environment scaling (Figure 4)</h4>
+
+<p>把训练环境数从 10 → 100 → 526 阶梯增加,benchmark 分数<strong>单调上升</strong>。paper 没给具体数字曲线,但断言 "<em>monotonic improvement</em>"。<strong>这是支撑 "<em>合成环境 scale 能持续涨</em>" 论点的核心证据</strong>。</p>
+
+<p class="nb">遗憾的是 paper 没把 scaling 推到 1,000 envs(只用了 526) —— 算力限制下没完成"<em>scale 是否在 526 之后还涨</em>"的关键消融。这是个 follow-up 空间。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 🔍 开源现状 — repo 实地清点</h2>
+
+<p>到 <strong>2026-05</strong> 为止盘点 <a href="https://github.com/Snowflake-Labs/agent-world-model">Snowflake-Labs/agent-world-model</a>。</p>
+
+<h3>5.1 公开发布的资产</h3>
+
+<table>
+<thead><tr><th>资产</th><th>状态</th><th>地址 / 说明</th></tr></thead>
+<tbody>
+<tr><td>论文</td><td><span class="ok">✓</span></td><td>arXiv:2602.10090</td></tr>
+<tr><td>环境合成 pipeline 代码</td><td><span class="ok">✓</span></td><td><code>awm/</code> Python 包,含五阶段 LLM prompts 和 self-correct 逻辑</td></tr>
+<tr><td>1,000 合成环境数据</td><td><span class="ok">✓</span></td><td>HuggingFace: <code>Snowflake/AgentWorldModel-1K</code></td></tr>
+<tr><td>训练完的模型权重</td><td><span class="ok">✓</span></td><td>HuggingFace: <code>Snowflake/Arctic-AWM-4B</code> / <code>-8B</code> / <code>-14B</code></td></tr>
+<tr><td>RL 训练 infra</td><td><span class="ok">✓ (上游)</span></td><td>论文称代码 "merged into <code>meta-pytorch/OpenEnv</code>" — 用 Meta 的 OpenEnv 框架做 RL 训练</td></tr>
+<tr><td>License</td><td><span class="no">未在 GitHub README 显式列出</span></td><td>需要查仓库根目录的 LICENSE 文件确认</td></tr>
+</tbody>
+</table>
+
+<h3>5.2 与 #17 UI-TARS-2 的开源策略对比</h3>
+
+<p>AWM 在开源度上是<strong>非常友好的 —— pipeline + 环境数据集 + 三个 size 的训练后模型 + 上游 RL 框架</strong>都开放。这和 #17 UI-TARS-2(主线模型 / 沙箱 / trainer 完全闭源)形成鲜明对比 —— Snowflake 这边是真的把"<em>整套工业级合成环境闭环</em>"端到端开放给社区。</p>
+
+<h3>5.3 复现路径(假设你想从头跑一遍)</h3>
+
+<pre>git clone https://github.com/Snowflake-Labs/agent-world-model
+cd agent-world-model
+# 1. 生成环境(或直接下载 HF 上的 1K env 数据)
+python awm/synthesize.py --num-scenarios 1000 --seeds seeds.json
+# 2. 用 OpenEnv 跑 GRPO
+pip install meta-pytorch/OpenEnv
+python -m openenv.train --env awm --model Qwen3-thinking-8B --algo grpo
+# 3. 用训完的 checkpoint 在三个 OOD benchmark 上评测
+python -m awm.eval --benchmark bfclv3,tau2,mcp-universe</pre>
+
+<p class="nb">这是<strong>到目前为止 agentic RL 领域开源度最高的合成环境工作之一</strong> —— 比 #03 Agent-World(只开了真实环境的列表,没开 mining pipeline)更彻底。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 与 #03 Agent-World 并排对比</h2>
+
+<table>
+<thead><tr><th>维度</th><th>#03 Agent-World (2604.18292)</th><th>#18 AWM (本篇, 2602.10090)</th></tr></thead>
+<tbody>
+<tr><td>团队</td><td>RUC + ByteDance Seed (Guanting Dong)</td><td>Snowflake AI Research</td></tr>
+<tr><td>环境来源</td><td><strong>真实 web mining</strong> — agent 在 GitHub / npm 上挖 MCP 服务</td><td><strong>从零合成</strong> — LLM 生成 SQLite DB + Python tool</td></tr>
+<tr><td>环境数 / 工具数</td><td>1,978 真实环境 / 19,822 真实工具</td><td>1,000 合成环境 / 35,062 合成工具</td></tr>
+<tr><td>状态后端</td><td>各 MCP 服务的真实 backend (GitHub repo / Notion / Postgres ...)</td><td>每环境一个独立 SQLite</td></tr>
+<tr><td>状态一致性</td><td>取决于服务,可能漂移 (e.g. GitHub repo 被改)</td><td>严格一致,可重置</td></tr>
+<tr><td>并发训练成本</td><td>受 API 限速 / sandbox 部署成本拖累</td><td>本地 1,024 并发 worker 几乎零边际成本</td></tr>
+<tr><td>分布真实性</td><td><strong>真实 SaaS 分布</strong>,直接迁移到生产</td><td>合成"日常 SaaS-like"分布,可能脱离真实细节</td></tr>
+<tr><td>self-evolving 闭环</td><td><span class="ok">✓</span> Self-Evolving Arena 持续 mining 弱点 + 扩 task</td><td><span class="no">✗</span> 一次性 1,000 envs,无 evolve loop</td></tr>
+<tr><td>RL 算法</td><td>GRPO (multi-environment)</td><td>GRPO (single algorithm)</td></tr>
+<tr><td>Base 模型</td><td>8B / 14B (paper 未单列具体 family)</td><td>Qwen3-thinking 4B / 8B / 14B</td></tr>
+<tr><td>评测策略</td><td><strong>in-distribution + OOD 混合</strong>,23 个 benchmark</td><td><strong>纯 OOD</strong>,3 个 benchmark,所有训练分布都不进评测</td></tr>
+<tr><td>开源策略</td><td>部分开放 (环境清单 + 部分代码)</td><td>全开 (pipeline + 1K env 数据 + 3 个模型 + 上游 RL 框架)</td></tr>
+<tr><td>核心叙事</td><td>"环境是 agent RL 的新瓶颈,要 mining 真实的"</td><td>"LLM-simulated env 不可靠,代码 + DB 才稳"</td></tr>
+</tbody>
+</table>
+
+<p><strong>判断</strong>: 这两条路<strong>不应该被看作竞争</strong>,而是同一个问题(<em>RL agent 需要 scale 多样可靠环境</em>)的两种工程权衡。理想的下一步是<strong>把两者结合</strong> —— 用 AWM-style 合成做 mass scale 训练(可靠 + 便宜),再用 #03-style 真实 mining 做 fine-tune / OOD 校准(贴近真实分布)。可惜目前还没看到这样的"<em>合成 → 真实 curriculum</em>"工作。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 与 #17 UI-TARS-2 data flywheel 的关系</h2>
+
+<p>表面上看 AWM 和 UI-TARS-2 是两件不同的事(一个做环境合成,一个做模型训练 flywheel),但<strong>它们在 RL 数据生成这一层上其实是互补的</strong>。</p>
+
+<table>
+<thead><tr><th>维度</th><th>AWM</th><th>UI-TARS-2 flywheel</th></tr></thead>
+<tbody>
+<tr><td>"飞轮"扩什么</td><td><strong>扩 environment 本身</strong>(一次性吐出 1,000 envs)</td><td><strong>扩 task / trajectory</strong>(环境是固定的 690 网站,task 在 policy rollout 中持续生成)</td></tr>
+<tr><td>是否有 iteration loop</td><td><span class="no">✗</span> 一次合成完毕就训</td><td><span class="ok">✓</span> CT/SFT/RL 三阶段 + V(s) 路由回灌</td></tr>
+<tr><td>验证器</td><td>code-augmented LLM judge(per task)</td><td>三类验证器:程序化二值 / LLM-as-Judge / generative ORM</td></tr>
+<tr><td>训练 base</td><td>Qwen3-thinking 4/8/14B</td><td>230B MoE (Seed-thinking-1.6 init)</td></tr>
+<tr><td>领域</td><td>SaaS-like CRUD tool-use</td><td>GUI / browser / desktop / game</td></tr>
+<tr><td>开源度</td><td><span class="ok">高</span></td><td><span class="no">低</span> (主线权重 / 沙箱 / trainer 全闭源)</td></tr>
+</tbody>
+</table>
+
+<p><strong>合二为一的想象</strong>: 把 AWM 的 environment 合成接到 UI-TARS-2 风格的 flywheel 前端 —— 飞轮第 0 步先合成新环境,第 1 步再在新环境里跑 rollout 生成 trajectory。这相当于把"环境维度"和"trajectory 维度"两个 scale axis 都打开。但需要解决合成环境 + 真实 GUI 分布之间的 domain gap —— AWM 是 text-based MCP tool-use,UI-TARS-2 是 vision-based GUI,目前还没法直接拼。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 局限 / 个人 take</h2>
+
+<h3>8.1 paper 自己承认的</h3>
+
+<ul>
+  <li>"<em>Synthetic environments may not fully reflect real-world scenarios, thus we encourage the community to apply safeguards</em>" —— 合成 ≠ 真实,这是 sim2real 的老问题。</li>
+  <li>τ²-bench 4B 上输给 EnvScaler —— dialogue-heavy 任务上合成 CRUD 训练给不了对话能力。</li>
+  <li>RL 训练只用了 526 / 1,000 envs —— scaling 没推到全量。</li>
+</ul>
+
+<h3>8.2 笔者的额外质疑</h3>
+
+<ul>
+  <li><strong>1,000 envs 真的多样吗?</strong> 全都从 100 个 seed website 类别衍生,每个 seed 平均 10 个变体 —— 这本质上是<em>10×</em> 多样性而非 1000×。和 Agent-World 从真实 web 上 mining 出来的 1,978 个独立 MCP 服务比,概念多样性可能差一个量级。paper 没做"概念聚类后还剩几类"的分析。</li>
+  <li><strong>"OOD 泛化"的强度</strong> —— BFCLv3 / τ²-bench / MCP-Universe 虽然分布不同,但都还是 "tool-use" 范畴。没测<em>跨范畴</em>泛化(e.g. 训完 AWM 去做 GUI agent / code agent)。所以"infinity synthetic environments"标题里的"infinity"更准确说是"<em>infinity within tool-use domain</em>"。</li>
+  <li><strong>verification 代码的正确性谁验证?</strong> Pipeline 末端的 verification code 也是 LLM 生成的,可能本身就有 bug。论文报 "RL 期间 env error rate ~4%" 是合理的,但没说 reward signal 的"系统性偏差"(e.g. 某类 task 的 verification 总是过松/过严)。这是 self-distillation 类合成 pipeline 的通用风险。</li>
+  <li><strong>vs EnvScaler 比较的公平性</strong> —— EnvScaler 在 8B BFCLv3 上只有 36.83(低于 base Qwen3 的 53.83?),paper 没解释为何 EnvScaler RL 后比 base 还差。可能 EnvScaler 训练分布严重 mis-aligned,但读者无法独立验证。</li>
+  <li><strong>14B 之外的扩展</strong> —— 论文未训 32B / 72B。"<em>scale 到更大模型还涨吗</em>" 没回答。Qwen3-thinking 14B → 70B 是个明显的下一步。</li>
+</ul>
+
+<h3>8.3 我会怎么用这篇</h3>
+
+<ol>
+  <li><strong>作为合成环境的开源 baseline</strong> —— 想自己训 tool-use agent 但又没真实 MCP 部署的人,直接拉 <code>Snowflake/AgentWorldModel-1K</code> 训。</li>
+  <li><strong>作为 verification design 的 reference</strong> —— "code-augmented LLM judge" 这个 60.00 → 65.94 的提升幅度很有参考价值,值得在自己的 verifier 设计里复用。</li>
+  <li><strong>作为 LLM-as-environment 的反面教材</strong> —— vs Simulator 的对比一锤定音:除非 LLM-sim 有不可替代的优势,默认应该走 code-based env。</li>
+  <li><strong>作为"<em>合成 ≠ 真实</em>"的实证</strong> —— MCP-Universe 全员低分,说明真实 web/financial/browser 的 API quirks 是合成 pipeline 学不到的。提醒自己别过度信任合成环境训出来的 agent 的真实生产表现。</li>
+</ol>
+
+<hr>
+
+<div class="meta" style="margin-top:30px">
+  <p>笔记来源:</p>
+  <ul>
+    <li><a href="https://arxiv.org/abs/2602.10090">arXiv:2602.10090 Agent World Model</a> (v1, 2026-02)</li>
+    <li><a href="https://arxiv.org/html/2602.10090v1">HTML 版 (v1)</a></li>
+    <li><a href="https://github.com/Snowflake-Labs/agent-world-model">github.com/Snowflake-Labs/agent-world-model</a></li>
+    <li>HuggingFace: <a href="https://huggingface.co/Snowflake">Snowflake org</a> (Arctic-AWM-4B/8B/14B + AgentWorldModel-1K)</li>
+    <li>上游 RL 框架: <a href="https://github.com/meta-pytorch/OpenEnv">meta-pytorch/OpenEnv</a></li>
+    <li>对照阅读: <a href="03_AgentWorld_2604.18292.html">#03 Agent-World (2604.18292)</a> · <a href="17_UITARS2_2509.02544.html">#17 UI-TARS-2 (2509.02544)</a></li>
+  </ul>
+  <p>笔记日期: 2026-05-15 · 笔记编号 #18 · 与 #03 (真实环境路线) 并读最佳</p>
+  <p>← <a href="../../README.md">返回 paper-notes 仓库</a></p>
+</div>
+
+</main>
+</body>
+</html>
