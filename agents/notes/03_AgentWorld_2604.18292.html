@@ -98,6 +98,7 @@
     <li><a href="#sec7">Worked example: Memory Bank MCP 的一条 15-turn 轨迹</a></li>
     <li><a href="#sec8">实验关键结果 (scaling + self-evolve)</a></li>
     <li><a href="#sec9">与同类工作对比</a></li>
+    <li><a href="#sec_oss">开源现状 — paper-only 还是真发了代码 / 模型 / 环境?</a></li>
     <li><a href="#sec10">局限 / 个人 take / 待验证问题</a></li>
   </ol>
 </nav>
@@ -782,7 +783,84 @@
 
 <hr>
 
-<h2 id="sec10">10 · 局限 / 个人 take / 待验证问题</h2>
+<h2 id="sec_oss">10 · 开源现状 — paper-only 还是真发了代码 / 模型 / 环境?</h2>
+
+<p>用户最常误以为"环境合成 + RL 训练 + 1,978 环境 + 19,822 工具"这种 system paper 总要附带代码 + 数据 + 模型。<strong>Agent-World 是个反例 — 到 2026-05 为止只是 paper + demo 网站,没有公开的代码、数据、模型权重</strong>。这一节把现状钉清楚。</p>
+
+<h3>10.1 实际发布清单</h3>
+
+<table>
+<thead><tr><th>资源</th><th>状态</th><th>URL / 备注</th></tr></thead>
+<tbody>
+<tr><td><strong>arXiv paper</strong></td><td><span class="ok">✅ 公开</span></td><td><a href="https://arxiv.org/abs/2604.18292" target="_blank">2604.18292</a>(2026-04-20)</td></tr>
+<tr><td><strong>项目主页 / demo</strong></td><td>⚠ 链接存在但内容稀</td><td>第一作者 <a href="https://dongguanting.github.io/" target="_blank">Guanting Dong 个人主页</a>列出的链接为 <code>agent-tars-world.github.io/-/</code> — 命名上挂着 "agent-tars",像是和字节 Agent-Tars 产品有关联,但<em>查不到代码 / 模型下载入口</em></td></tr>
+<tr><td><strong>GitHub 代码 repo</strong></td><td><span class="no">❌ 没发</span></td><td>第一作者 GitHub <a href="https://github.com/dongguanting" target="_blank">dongguanting</a>(113 repo,6 个 pinned: ARPO / FlashRAG / Search-o1 / WebThinker / DeepAgent / AutoIF)<strong>没 Agent-World 仓库</strong>;搜索 <code>"agent-world"</code> 也没在 ByteDance / RUC-NLPIR 组织下找到</td></tr>
+<tr><td><strong>1,978 合成环境</strong></td><td><span class="no">❌ 未公开</span></td><td>paper 没承诺 release;源头 MCP server 列表来自 <a href="https://smithery.ai/servers" target="_blank">Smithery</a>(公开市场)但<em>合成后的环境</em>没释出</td></tr>
+<tr><td><strong>19,822 工具的具体清单</strong></td><td><span class="no">❌ 未公开</span></td><td>只在 paper 表格里有 aggregate 数字</td></tr>
+<tr><td><strong>Agent-World-8B / 14B 模型权重</strong></td><td><span class="no">❌ 未发</span></td><td>HuggingFace 上无对应 model card,没有 ByteDance-Seed/Agent-World-* 这样的 repo</td></tr>
+<tr><td><strong>训练 trajectory(40K SFT cold-start + RL rollout)</strong></td><td><span class="no">❌ 未发</span></td><td>cold-start 蒸馏自 in-house Doubao-Seed-1.8,数据本身字节内部</td></tr>
+<tr><td><strong>Graph-based / Programmatic verifier 代码</strong></td><td><span class="no">❌ 未发</span></td><td>核心 IP 之一,paper 没承诺 release</td></tr>
+<tr><td><strong>Deep-research agent(环境挖掘)</strong></td><td><span class="no">❌ 未发</span></td><td>探索数据库 / 工具生态的 agent 没开源</td></tr>
+<tr><td><strong>Self-evolving arena 算法实现</strong></td><td><span class="no">❌ 未发</span></td><td>capability gap 检测 + 任务动态合成的 loop,paper 描述了但没代码</td></tr>
+<tr><td><strong>23 个评测 benchmark 的 inference 配置</strong></td><td><span class="no">❌ 未发</span></td><td>MCP-Mark / BFCL V4 / τ²-Bench / ClawEval 等 benchmark 本身是公开的,但 Agent-World 跑的具体 prompt / temperature / parser 配置没单独 release</td></tr>
+</tbody>
+</table>
+
+<h3>10.2 一句话评价 — 4 篇相关 paper 的开源度对照</h3>
+
+<p>放进我们读过的"环境合成"系列里横向看,Agent-World 是这里面<strong>开源度最低</strong>的一篇:</p>
+
+<table>
+<thead><tr><th>系统</th><th>主体团队</th><th>代码</th><th>合成环境</th><th>模型权重</th><th>训练数据</th><th>License</th></tr></thead>
+<tbody>
+<tr><td><strong>Agent-World</strong>(本文 #03)</td><td>RUC + ByteDance Seed</td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td>—</td></tr>
+<tr><td><a href="14_ClawGUI_2604.11784.html">ClawGUI</a>(#14)</td><td>ZJU-REAL</td><td><span class="ok">✅ 全</span></td><td>用 MobileWorld(上游)</td><td><span class="ok">✅ ClawGUI-2B</span></td><td>部分(eval)</td><td>Apache 2.0</td></tr>
+<tr><td><a href="17_UITARS2_2509.02544.html">UI-TARS-2</a>(#17)</td><td>ByteDance Seed</td><td><span class="no">❌</span></td><td><span class="no">❌</span></td><td>⚠ 只放 1.x</td><td><span class="no">❌</span></td><td>Apache 2.0(1.x 权重)</td></tr>
+<tr><td><a href="18_AgentWorldModel_2602.10090.html">Agent World Model</a>(#18)</td><td>Snowflake AI Research</td><td><span class="ok">✅</span></td><td><span class="ok">✅ 1,000 envs / 10K task</span></td><td><span class="ok">✅ 4B / 8B / 14B</span></td><td><span class="ok">✅ 完整</span></td><td>Apache 2.0</td></tr>
+</tbody>
+</table>
+
+<div class="nb">
+四篇里只有 Snowflake 的 <strong>Agent World Model</strong> 是真正"端到端开源"。<strong>Agent-World、UI-TARS-2 这两篇 ByteDance 系都偏 paper-only release</strong>(UI-TARS-2 给了历史 1.x 权重但没给 2.0 主力);<strong>ClawGUI 是学术开源标杆</strong>(代码 + 模型 + eval 数据全开),代价是 scale 小。命名也很容易混 — "Agent-World" vs "Agent World Model" 一个虚一个实。
+</div>
+
+<h3>10.3 为什么 ByteDance Seed 这条线偏闭源</h3>
+
+<p>这是个常见模式而非个例 — 字节内部的 system paper(<em>Doubao</em> / <em>Seed</em> / <em>UI-TARS</em> / <em>Agent-World</em> / 部分 <em>BAGEL</em>)通常:</p>
+<ul>
+  <li>arXiv paper 高质量、reproducibility-friendly(实验描述详细)</li>
+  <li>但<strong>代码 / 数据 / 主力模型权重</strong>多数<em>不</em>跟着 paper 一起发,有时半年到一年后才补,有时永不发</li>
+  <li>合作高校(本文是 RUC)可能 GitHub 个人账号下零星放一些组件,但是不放完整 system</li>
+</ul>
+
+<p>原因推测(非官方):内部数据(Doubao 蒸馏 trajectory / Seed-1.8 self-distillation)是字节自己的资产;Smithery MCP server 的爬取规模(2.8K)和清洗 pipeline 可能涉及商业合规;1,978 环境如果含真实服务的 mock 数据可能涉及版权 / 隐私。</p>
+
+<h3>10.4 等 release 之前能干什么</h3>
+
+<table>
+<thead><tr><th>目标</th><th>替代方案</th></tr></thead>
+<tbody>
+<tr><td>想跑 Agent-World 同款评测</td><td>MCP-Mark / BFCL V4 / τ²-Bench 都是公开 benchmark,装好就能跑</td></tr>
+<tr><td>想要真实大规模合成环境</td><td>用 <a href="18_AgentWorldModel_2602.10090.html">Snowflake AWM</a>(1K env 全开)或 <strong>Toolathlon-Gym</strong>(503 task / 25 MCP server,eigent-ai 出)</td></tr>
+<tr><td>想抓 MCP server 元数据</td><td>直接用 <a href="https://smithery.ai/servers" target="_blank">Smithery</a>,这是公开市场,Agent-World 的源头就是它</td></tr>
+<tr><td>想复现 self-evolving arena 思路</td><td>参考 <a href="06_AgentGymRL_2509.08755.html">AgentGym-RL</a>(#06,ScalingInter-RL 课程)+ paper §6 算法描述,自己实现</td></tr>
+<tr><td>想要训练好的开源 MCP agent</td><td>Snowflake <code>Arctic-AWM-{4B,8B,14B}</code>(HF 可下) / Qwen3-Coder-30B / DeepSeek-V3.2 — 都比 Agent-World-8B 容易拿到</td></tr>
+</tbody>
+</table>
+
+<h3>10.5 信号 — 等 release 看这几个地方</h3>
+
+<ul>
+  <li><a href="https://github.com/dongguanting" target="_blank">dongguanting GitHub</a>(第一作者,常发新 repo) — 历史上 ARPO / DeepAgent / Search-o1 都是先 paper 后 repo,有 1-3 个月 lag</li>
+  <li><a href="https://ruc-nlpir.github.io/" target="_blank">RUC NLPIR 实验室主页</a> — 团队官方动态</li>
+  <li><a href="https://huggingface.co/papers/2604.18292" target="_blank">HuggingFace paper page</a> — 等 "Models citing this paper" / "Datasets citing" 出现</li>
+  <li>ByteDance-Seed HuggingFace org — UI-TARS / Doubao 模型都在这里,Agent-World 如果发会出现在这里</li>
+  <li><code>agent-tars-world.github.io</code> 项目页 — 现在内容稀薄,如果将来填充就是 release 信号</li>
+</ul>
+
+<hr>
+
+<h2 id="sec10">11 · 局限 / 个人 take / 待验证问题</h2>
 
 <h3>承认的 + 没明说的局限</h3>
 <ul>
