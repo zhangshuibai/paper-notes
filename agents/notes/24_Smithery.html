@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>调研 · Smithery — MCP 生态的 Docker Hub</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>调研 · Smithery — MCP 生态的 Docker Hub</h1>
+<div class="meta">
+  公司: Smithery (Smithery AI) · 创始人: Henry Mao (Co-founder/CEO) · Anirudh Kamath (Co-founder) · Arjun Kumar (Founding Engineer)<br>
+  网站: <a href="https://smithery.ai/" target="_blank">smithery.ai</a> ·
+  GitHub: <a href="https://github.com/smithery-ai" target="_blank">smithery-ai</a> ·
+  Docs: <a href="https://smithery.ai/docs" target="_blank">smithery.ai/docs</a> ·
+  CLI: <a href="https://github.com/smithery-ai/cli" target="_blank">@smithery/cli</a><br>
+  HQ: 新加坡 (CEO) / 美国旧金山 (公司注册地, per Tracxn) · 成立: 2024-12 (Henry Mao 在 X 公开) · 资本: South Park Commons (种子,金额未公开)<br>
+  关键词: MCP registry · hosted runtime · Smithery Connect · managed OAuth · agent infra · YC P26 (报道)
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> Smithery 是<strong>目前体量最大的 MCP server 注册中心 + 托管运行时</strong> —— Henry Mao 在 2024 年 12 月开机,2025 年 4 月披露 4K+ servers,2026 年 5 月第三方报告引用 <strong>7,000+ 至 7,300+ servers</strong>,1 年半内规模翻了大约 <strong>2.5×</strong>。它不是论文,而是<strong>这条系列里 #03 / #22 / #23 三篇合成训练数据 paper 共同的 MCP 来源</strong> —— Agent-World 拿它当 M₁ 主题源 (2,880),TOUCAN 从 2,800 server 筛到 495,EnvScaler 用它的 metadata 作真实-MCP baseline 参考。把它写成第 #24 篇调研,是为了把"<em>MCP 训练数据从哪里来</em>"这一上游事实彻底坐实。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">7,300+</div><div class="l">2026-05 第三方引用的 server 总数 (TrueFoundry blog)</div></div>
+    <div class="stat"><div class="n">~2.5×</div><div class="l">2025-04 (4K) → 2026-05 (~7.3K) 的 14 个月增长</div></div>
+    <div class="stat"><div class="n">Henry Mao + Anirudh Kamath + Arjun Kumar</div><div class="l">CEO + 联合创始人 + Founding Engineer</div></div>
+    <div class="stat"><div class="n">≈ Docker Hub 之于 container</div><div class="l">在 MCP 生态中的等价位置 — 体量 vs 治理仍有断层</div></div>
+  </div>
+  <p><strong>立场:</strong> Smithery 把"<strong>MCP server 怎么被发现 + 怎么被托管 + 怎么不让 agent 直接拿到 secret</strong>"这三件事合并成一个 SaaS 产品。<em>注册 (Registry)</em> 部分免费且开放; <em>托管 (Hosted Runtime)</em> 部分自 2026-03-01 起取消免费档,要求 vendor 升级到付费 plan 才能继续把 server 跑在 Smithery 集群上 — 这是它<strong>第一次明确的商业化拐点</strong>。对学术研究而言,Smithery 的真正价值是"<strong>一个干净的、可被脚本化抓取的 MCP server JSON catalog</strong>",这正是 #03 / #22 / #23 都拿它做种子的原因。但同样要承认:Smithery 上绝大多数 server 是"<em>no-auth public service / read-only / 部分挂掉</em>",并不天然适合做<strong>RL gym</strong> — 用它训练前必须重做一遍 connectivity + auth + state-mutation 三重过滤,这是 TOUCAN 把 2,800 砍到 495 的根本原因。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">是什么 / 为什么重要 — MCP 的 Docker Hub</a></li>
+    <li><a href="#sec2">公司 / 团队 / 融资</a></li>
+    <li><a href="#sec3">平台架构 — Registry + Hosted Runtime 双轨</a></li>
+    <li><a href="#sec4">规模与增长</a></li>
+    <li><a href="#sec5">与 Anthropic 官方 Registry 的关系</a></li>
+    <li><a href="#sec6">竞品矩阵 (Composio / Glama / MCP.so / Mastra / …)</a></li>
+    <li><a href="#sec7">学术研究为何爱用 Smithery + 三个真实研究局限</a></li>
+    <li><a href="#sec8">开发者 / 商业实用指南</a></li>
+    <li><a href="#sec9">个人 take + 未来展望</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 是什么 / 为什么重要 — MCP 的 Docker Hub</h2>
+
+<h3>1.1 一句话定位</h3>
+
+<p>Model Context Protocol (MCP) 是 Anthropic 2024-11 发布的<strong>"agent ↔ tool"通信协议</strong>。协议本身只规定 JSON-RPC over stdio/HTTP 的接口契约,<em>不</em>规定 server 去哪里发现、谁来托管、怎么 OAuth。这套缺失的"<strong>agent-internet 基础设施层</strong>"被 Smithery 在 2024-12 抢先占住。</p>
+
+<p>Smithery 自我描述:</p>
+
+<blockquote>"the largest open registry for connecting AI agents to the outside world" —— 来自 <code>smithery.ai/docs</code> 引言。</blockquote>
+
+<p>About 页的使命表述 (官网原文,2026-05 当前):</p>
+
+<blockquote>"…<strong>not clicks</strong>. We're accelerating the economy of AI-native services, building the infrastructure for agents to seamlessly interact with the world."</blockquote>
+
+<p>三个明确组成:<span class="term">Registry</span> (server 目录) + <span class="term">Hosted Runtime</span> (托管 MCP server 跑在 Smithery 集群) + <span class="term">Smithery Connect</span> (替开发者管 OAuth / 凭证 / token 刷新)。下文 §3 拆。</p>
+
+<h3>1.2 为什么"近期所有合成训练数据 paper 都引用它"</h3>
+
+<p>本系列里出现的引用:</p>
+
+<ul>
+  <li><strong>#03 Agent-World</strong> (2026-04): 从 Smithery 抓 <strong>2,880 个 MCP server</strong> 作为 M₁ 主题源 —— paper §3.1 明确写"crawl public MCP catalog (Smithery as of April 2026)"。</li>
+  <li><strong>#22 TOUCAN</strong> (MIT-IBM, 2025-10): 起手 <strong>~2,800 Smithery + GitHub MCP server</strong>,经"connectivity + auth + tool count ≥ 1"三层过滤后剩 <strong>495 个真实可用 server</strong> 才进入数据合成。</li>
+  <li><strong>#23 EnvScaler</strong> (RUC NLPIR, 2026-01): 用 Smithery 的 server metadata 做"<em>real-MCP baseline</em>",但最终自己走"<em>程序化合成 Python class env</em>"路线,因为 Smithery server 不天然支持 100 轮 dual-agent 验证。</li>
+</ul>
+
+<p>为什么三家都选它?三个工程性原因:(1) <strong>JSON 结构化</strong>:每个 server 有 <code>qualifiedName</code> / <code>displayName</code> / <code>description</code> / <code>tools[]</code> / <code>useCount</code> / <code>isDeployed</code> / <code>isVerified</code>,scrapable;(2) <strong>license-friendly</strong>:server 多数 MIT / Apache;(3) <strong>免费 + 可脚本化</strong>:Registry API 公开,不收 token 钱。同期的 MCP.so 虽然 server 数量更大 (19K+),但<strong>没有 API,只有 web UI</strong>,无法批量抓取。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 公司 / 团队 / 融资</h2>
+
+<h3>2.1 创始人</h3>
+
+<table>
+<thead><tr><th>角色</th><th>人</th><th>背景 (公开)</th></tr></thead>
+<tbody>
+<tr><td>Co-founder / CEO</td><td><strong>Henry Mao</strong> (@Calclavia)</td><td>UCSD 2018-2020;前 <em>Jenni.ai</em> 创始人 (AI 写作工具,ARR 已过 $6M 时离开);2024-12 启动 Smithery;现居新加坡</td></tr>
+<tr><td>Co-founder</td><td><strong>Anirudh Kamath</strong></td><td>来源: 官网 about 页 / Tracxn 公司档案均明确列为 Co-founder</td></tr>
+<tr><td>Founding Engineer</td><td><strong>Arjun Kumar</strong> (@arjunkmrm)</td><td>LinkedIn 标签 "Founding Engineer at Smithery AI";Toolbox 产品联合发布人</td></tr>
+</tbody>
+</table>
+
+<h3>2.2 时间线</h3>
+
+<div class="kv">
+  <p><strong>2024-12</strong> · Henry Mao 启动 Smithery,目标"<em>grow the community of developers building MCP servers</em>" (X 原文)</p>
+  <p><strong>2025-04-15</strong> · Henry Mao 在 X 公开:Smithery 已上 <strong>4K+ servers</strong>,by South Park Commons backed</p>
+  <p><strong>2025-04-15</strong> · 推出 <strong>Toolbox</strong> — 单个 MCP 自动路由到 registry 里 4,000+ MCP,被 #23 等 paper 引用为"<em>dynamic-routing example</em>"</p>
+  <p><strong>2025-09-08</strong> · Anthropic 官方 <strong>MCP Registry</strong> preview 上线 — Smithery 从"<em>唯一 registry</em>"转向"<em>面向 end-user 的 sub-registry</em>"</p>
+  <p><strong>2026 初</strong> · 据多个 YC 目录,Smithery 出现在 YC P26 (Spring 2026) 批次提名 (未在 YC 官方页核实到独立条目)</p>
+  <p><strong>2026-03-01</strong> · <strong>取消免费 hosting plan</strong> — vendor 若想继续把 server 跑在 Smithery 上,必须升级到付费档,或改为"external server (URL 注册式) 免费"。这是公司第一次明确商业化拐点</p>
+  <p><strong>2026-05</strong> · 第三方 (TrueFoundry blog) 引用 <strong>7,000+ servers</strong>;另一篇 search 结果引 <strong>7,300+</strong></p>
+</div>
+
+<h3>2.3 资本背景</h3>
+
+<ul>
+  <li><strong>Tracxn</strong> 档案:Seed-stage, 2025 年 1 轮种子,金额"<em>未公开</em>",Lead investor <strong>South Park Commons</strong>,共 1 名投资人参与。</li>
+  <li><strong>Crunchbase</strong> 页面 (403 屏蔽爬虫,仅 SERP 摘要):同样标 Seed,金额 undisclosed。</li>
+  <li>未见 <strong>A 轮 / 估值 / 员工总数</strong>等公开数字 —— Tracxn 标 employee count "未提供"。</li>
+</ul>
+
+<h3>2.4 团队 (公开可见的)</h3>
+
+<p>About 页只列三个创始人,加上招聘文案"<em>We're hiring builders who want to ship fast, own outcomes, and shape how agents use tools</em>"。<strong>团队规模未公开</strong> —— 但基于 (a) 35 个 GitHub repo (b) Henry Mao 自报 $6M ARR (c) Seed stage,合理估计 <strong>10–30 人</strong>(此为推测,不写入正文事实)。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 平台架构 — Registry + Hosted Runtime 双轨</h2>
+
+<h3>3.1 全景图</h3>
+
+<div class="fig">
+<svg viewBox="0 0 760 540" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:12px">
+  <defs>
+    <marker id="a24" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/></marker>
+  </defs>
+  <text x="380" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#2f6feb">Smithery 平台四件套架构</text>
+
+  <!-- Server developer -->
+  <rect x="20" y="60" width="160" height="80" rx="10" fill="#fff" stroke="#5b5e66" stroke-width="1.5"/>
+  <text x="100" y="83" text-anchor="middle" font-weight="bold">① MCP Server 开发者</text>
+  <text x="100" y="103" text-anchor="middle" font-size="10" fill="#5b5e66">写好 server.ts /</text>
+  <text x="100" y="117" text-anchor="middle" font-size="10" fill="#5b5e66">smithery.yaml</text>
+  <text x="100" y="131" text-anchor="middle" font-size="10" fill="#5b5e66">smithery mcp publish</text>
+
+  <!-- Registry -->
+  <rect x="220" y="60" width="180" height="80" rx="10" fill="#f3eee0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="310" y="83" text-anchor="middle" font-weight="bold" fill="#cc4a1b">② Registry (免费)</text>
+  <text x="310" y="103" text-anchor="middle" font-size="10" fill="#5b5e66">7,300+ servers · JSON 目录</text>
+  <text x="310" y="117" text-anchor="middle" font-size="10" fill="#5b5e66">语义搜索 + tag 过滤</text>
+  <text x="310" y="131" text-anchor="middle" font-size="10" fill="#5b5e66">is:deployed / is:verified</text>
+
+  <!-- Hosted runtime -->
+  <rect x="440" y="60" width="200" height="80" rx="10" fill="#f3eee0" stroke="#2f6feb" stroke-width="2"/>
+  <text x="540" y="83" text-anchor="middle" font-weight="bold" fill="#2f6feb">③ Hosted Runtime (付费, ≥ 2026-03)</text>
+  <text x="540" y="103" text-anchor="middle" font-size="10" fill="#5b5e66">Smithery 集群跑 server</text>
+  <text x="540" y="117" text-anchor="middle" font-size="10" fill="#5b5e66">出 https://&lt;name&gt;.run.tools URL</text>
+  <text x="540" y="131" text-anchor="middle" font-size="10" fill="#5b5e66">替代: external (URL 注册, 免费)</text>
+
+  <path d="M 180 100 L 220 100" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a24)"/>
+  <path d="M 400 100 L 440 100" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a24)"/>
+
+  <!-- Connect -->
+  <rect x="220" y="180" width="420" height="80" rx="10" fill="#fff4e0" stroke="#cc7a1b" stroke-width="2"/>
+  <text x="430" y="203" text-anchor="middle" font-weight="bold" fill="#cc7a1b">④ Smithery Connect — managed OAuth + 凭证生命周期</text>
+  <text x="430" y="222" text-anchor="middle" font-size="10" fill="#5b5e66">"Zero OAuth configuration · encrypted write-only credential storage</text>
+  <text x="430" y="236" text-anchor="middle" font-size="10" fill="#5b5e66">automatic token refresh · stateless session lifecycle"</text>
+  <text x="430" y="252" text-anchor="middle" font-size="10" fill="#5b5e66">输出 connection ID,token policy 可按 namespace / metadata / TTL 收窄</text>
+
+  <path d="M 310 140 L 310 180" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a24)"/>
+  <path d="M 540 140 L 540 180" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a24)"/>
+
+  <!-- Agent harness -->
+  <rect x="120" y="320" width="240" height="80" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="240" y="343" text-anchor="middle" font-weight="bold" fill="#1f7a4a">⑤ Agent 端 (Claude / Cursor / VS Code …)</text>
+  <text x="240" y="363" text-anchor="middle" font-size="10" fill="#5b5e66">@smithery/cli npm install -g</text>
+  <text x="240" y="377" text-anchor="middle" font-size="10" fill="#5b5e66">smithery mcp add &lt;qualifiedName&gt;</text>
+  <text x="240" y="391" text-anchor="middle" font-size="10" fill="#5b5e66">smithery tool call &lt;id&gt; ...</text>
+
+  <!-- Skills -->
+  <rect x="400" y="320" width="240" height="80" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="520" y="343" text-anchor="middle" font-weight="bold" fill="#1f7a4a">⑥ Skills (Agent Skills 兼容层)</text>
+  <text x="520" y="363" text-anchor="middle" font-size="10" fill="#5b5e66">prompt-based reusable skill</text>
+  <text x="520" y="377" text-anchor="middle" font-size="10" fill="#5b5e66">smithery skill search / add</text>
+  <text x="520" y="391" text-anchor="middle" font-size="10" fill="#5b5e66">类似 Claude Code 的 .claude/skills</text>
+
+  <path d="M 310 260 L 240 320" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a24)"/>
+  <path d="M 540 260 L 520 320" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a24)"/>
+
+  <!-- API -->
+  <rect x="20" y="440" width="720" height="60" rx="10" fill="#f3eee0" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="380" y="463" text-anchor="middle" font-weight="bold" fill="#2f6feb">⑦ Smithery API · /servers · /connections · /tools · /namespaces · /skills · /tokens · /releases</text>
+  <text x="380" y="483" text-anchor="middle" font-size="10" fill="#5b5e66">OpenAPI spec 公开 · org-owned namespace · service token scoping (rpcReqMatch experimental)</text>
+</svg>
+<figcaption><strong>图 1</strong>: Smithery 平台四件套 — ① 开发者发布 server → ② 进入免费 Registry (JSON 目录) → ③ 可选付费 Hosted Runtime (托管 server 进程) → ④ Connect 处理 OAuth → ⑤/⑥ 通过 CLI 或 Skills 抽象供 agent harness 使用 → ⑦ 所有动作均由统一的 REST API 暴露。</figcaption>
+</div>
+
+<h3>3.2 Registry — 免费的目录</h3>
+
+<p>Registry 是 Smithery 最原始的产品形态:每个 server 一条 JSON 记录,包含 <code>qualifiedName</code> (如 <code>@smithery/toolbox</code>) / <code>displayName</code> / <code>description</code> / <code>connections[]</code> (定义 stdio 还是 HTTP) / <code>tools[]</code> / <code>isDeployed</code> / <code>isVerified</code> / <code>useCount</code>。<strong>这是 #03 / #22 / #23 三篇 paper 都依赖的接口</strong>。</p>
+
+<p>检索能力:语义搜索 + 一组 GitHub-style 过滤器 — <code>owner:username</code>、<code>repo:reponame</code>、<code>is:deployed</code>、<code>is:verified</code>。Browse 页提供 <em>Development / Productivity / Data APIs / Web Search / Browser Automation / Communication / …</em> 等类目 (官网无公开"server 数 × 类目"细表,只能从分类导航推断)。</p>
+
+<h3>3.3 Hosted Runtime — 2026-03 起付费</h3>
+
+<p>开发者把 server 代码丢给 Smithery,Smithery 在自己集群里跑这个 server,对外暴露一个 <code>https://&lt;name&gt;.run.tools</code> 的 URL。agent 端只需 HTTP 调用即可,无需本地装 npm 包。<strong>关键拐点</strong>:</p>
+
+<blockquote>"We're rebuilding our hosting platform from the ground up. In the meantime, however, we've made the tough decision to move on from our current free hosting plan… <strong>Your server(s) will remain live until March 1st, 2026. New deployments will no longer go through on free plans.</strong> To continue listing on Smithery, you will need to upgrade your plan to host on Smithery, or register an external server for free." —— smithery.ai/blog/updates-to-our-hosting-plan</blockquote>
+
+<p>替代路线:<strong>external server</strong> 仍免费 —— 开发者自己跑 server (任何地方),Smithery 只在 Registry 里登一个 URL。<em>这条免费通道是学术研究端真正在用的</em> —— Agent-World / TOUCAN 都不依赖 Smithery 的 hosting,只依赖它的目录。</p>
+
+<h3>3.4 Smithery Connect — managed OAuth</h3>
+
+<p>很多 MCP server 需要第三方 SaaS 凭证 (GitHub / Slack / Notion 等)。Connect 负责:</p>
+
+<ul>
+  <li><strong>OAuth 流</strong>:零 redirect-URI 配置,Smithery 替开发者做 callback</li>
+  <li><strong>加密 write-only 凭证存储</strong>:agent 拿到的是 <em>connection ID</em>,不是 raw token</li>
+  <li><strong>自动 token refresh</strong>:长会话凭证维持</li>
+  <li><strong>Service token + policy</strong>:可按 <code>namespaces</code> / <code>resources</code> / <code>operations</code> / <code>metadata</code> / <code>ttl</code> / 实验性 <code>rpcReqMatch</code> 精细限制 agent 能调什么 — 这是 <span class="term">token scoping</span> 概念</li>
+</ul>
+
+<p>这是和 <strong>Composio</strong> 最直接 overlap 的部分 — Composio 的 "Managed Auth" 解决同样问题。差异:Composio 主打"<em>1,000+ 预制集成 + auth 一起打包</em>",Smithery 主打"<em>OAuth 抽象层 + 任何第三方 MCP server 都能套</em>"。下文 §6 详较。</p>
+
+<h3>3.5 CLI · <code>@smithery/cli</code></h3>
+
+<p>Node 20+ · TypeScript · AGPL-3.0 · 719 ★ · 90 fork · 2026-05-03 最新版 <code>v1.0.1</code>。命令树:</p>
+
+<pre>smithery auth   login / logout / whoami / token   # 认证
+smithery mcp    search / add / list / remove / publish  # server 操作
+smithery tool   list / find / get / call          # tool 调用
+smithery skill  search / add / upvote / downvote  # Skills 操作
+smithery namespace  list / create / use           # workspace</pre>
+
+<p>典型 5 行 onboarding:</p>
+
+<pre>npm install -g @smithery/cli
+smithery auth login                  # 浏览器 OAuth
+smithery mcp search "github"
+smithery mcp add &lt;qualifiedName&gt; --id github
+smithery tool call github issues.create '{"repo":"o/r","title":"Bug"}'</pre>
+
+<h3>3.6 Registry API endpoints (摘自 docs/llms.txt)</h3>
+
+<table>
+<thead><tr><th>资源</th><th>操作</th></tr></thead>
+<tbody>
+<tr><td>servers</td><td>Create / Update / Delete / Get · publish releases (hosted/external/stdio) · download bundle · manage icon · stream release logs · infer tool output schema</td></tr>
+<tr><td>connections</td><td>Create / Get / Delete / List · subscribe/unsubscribe triggers</td></tr>
+<tr><td>tools</td><td>Call · Get · List (single connection 或 namespace 级)</td></tr>
+<tr><td>namespaces</td><td>Create / Delete · search · owner / org-owned</td></tr>
+<tr><td>organizations</td><td>Create / Revoke / List team API keys (admin)</td></tr>
+<tr><td>skills</td><td>Create / Update / Delete / Get · search / filter</td></tr>
+<tr><td>tokens</td><td>Create service tokens for M2M auth</td></tr>
+<tr><td>health</td><td>Health check</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="sec4">4 · 规模与增长</h2>
+
+<h3>4.1 公开可核对的数字</h3>
+
+<table>
+<thead><tr><th>时间</th><th>server 数</th><th>来源 (verbatim)</th></tr></thead>
+<tbody>
+<tr><td>2025-04-15</td><td><strong>4,000+</strong></td><td>Henry Mao on X: "we're the #1 MCP platform with 4K+ servers listed &amp; hosted"</td></tr>
+<tr><td>2025-04 (Toolbox 发布)</td><td><strong>4,000+</strong></td><td>"a single MCP that dynamically routes to all 4000+ MCPs on our registry"</td></tr>
+<tr><td>2026-04 (Agent-World 抓取时间)</td><td><strong>2,880</strong></td><td>#03 paper §3.1 — 注:这是 paper 端的<em>过滤后</em>计数,不等于 Smithery 总量</td></tr>
+<tr><td>2025-10 (TOUCAN 抓取时间)</td><td><strong>~2,800 (Smithery+GitHub 合计)</strong></td><td>#22 paper — 同样是 paper 端过滤后</td></tr>
+<tr><td>2026-05 (本调研)</td><td><strong>7,000+ ~ 7,300+</strong></td><td>TrueFoundry blog "Best MCP Registries" / WebSearch 摘要 "7,300+ community-built MCP servers"</td></tr>
+</tbody>
+</table>
+
+<div class="nb">
+  <strong>注意</strong>:本调研在 2026-05-16 写作时<strong>未能直接拉到官方主页的实时 server-count 数字</strong> (homepage 是 Next.js SSR,curl 拿到的 HTML 把数字注入到了 client JS payload 里)。Smithery 自己也<strong>没有公开"按月增长曲线"图</strong>。上表三家第三方数字交叉印证,可信度足够;但若要写"<em>截至 X 月 X 日,精确 N 个 server</em>",必须以 Registry API 即时查询为准。
+</div>
+
+<h3>4.2 增长曲线 (示意)</h3>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:12px">
+  <text x="360" y="20" text-anchor="middle" font-size="14" font-weight="bold" fill="#2f6feb">Smithery server 数增长 (公开数据点连线)</text>
+  <!-- axes -->
+  <line x1="80" y1="240" x2="680" y2="240" stroke="#5b5e66" stroke-width="1.5"/>
+  <line x1="80" y1="40" x2="80" y2="240" stroke="#5b5e66" stroke-width="1.5"/>
+  <!-- y labels -->
+  <text x="75" y="60" text-anchor="end" font-size="10">8K</text>
+  <line x1="78" y1="60" x2="680" y2="60" stroke="#e2dfd5"/>
+  <text x="75" y="105" text-anchor="end" font-size="10">6K</text>
+  <line x1="78" y1="105" x2="680" y2="105" stroke="#e2dfd5"/>
+  <text x="75" y="150" text-anchor="end" font-size="10">4K</text>
+  <line x1="78" y1="150" x2="680" y2="150" stroke="#e2dfd5"/>
+  <text x="75" y="195" text-anchor="end" font-size="10">2K</text>
+  <line x1="78" y1="195" x2="680" y2="195" stroke="#e2dfd5"/>
+  <text x="75" y="240" text-anchor="end" font-size="10">0</text>
+  <!-- x labels -->
+  <text x="120" y="258" text-anchor="middle" font-size="10">2024-12</text>
+  <text x="240" y="258" text-anchor="middle" font-size="10">2025-04</text>
+  <text x="360" y="258" text-anchor="middle" font-size="10">2025-10</text>
+  <text x="480" y="258" text-anchor="middle" font-size="10">2026-01</text>
+  <text x="600" y="258" text-anchor="middle" font-size="10">2026-05</text>
+  <!-- data points -->
+  <!-- Dec 2024: 0 (launch); Apr 2025: 4K; Oct 2025: ~5K (extrapolated, TOUCAN-window); Jan 2026: ~6K; May 2026: 7.3K -->
+  <circle cx="120" cy="240" r="5" fill="#2f6feb"/>
+  <circle cx="240" cy="150" r="5" fill="#2f6feb"/>
+  <circle cx="360" cy="127" r="5" fill="#cc4a1b"/>
+  <circle cx="480" cy="105" r="5" fill="#cc4a1b"/>
+  <circle cx="600" cy="76" r="5" fill="#1f7a4a"/>
+  <polyline points="120,240 240,150 360,127 480,105 600,76" stroke="#2f6feb" stroke-width="2" fill="none"/>
+  <text x="240" y="140" font-size="10" fill="#cc4a1b">4K+ (官方 X)</text>
+  <text x="360" y="115" font-size="10" fill="#cc4a1b">~5K (估)</text>
+  <text x="480" y="95" font-size="10" fill="#cc4a1b">~6K (估)</text>
+  <text x="600" y="66" font-size="10" fill="#1f7a4a">7.3K (TrueFoundry)</text>
+</svg>
+<figcaption><strong>图 2</strong>: 公开数据点连线 — 2024-12 启动到 2026-05 的 17 个月里 server 数从 0 增长到 ~7.3K,大致呈线性。蓝色点为创始人自己披露的官方数字,橙色为本调研基于 paper 抓取窗口的内插估计 (<em>不应作为引用</em>),绿色为第三方 blog 引用的最新值。</figcaption>
+</div>
+
+<h3>4.3 类别分布 (从 docs / Browse 页观察)</h3>
+
+<p>Smithery 没有公开"server × category 数表"。从其 Browse 导航及 #22 TOUCAN 对 2,800 server 的人工分类来看,大致比例:</p>
+
+<table>
+<thead><tr><th>类别</th><th>典型 server</th><th>占比 (TOUCAN 端估)</th></tr></thead>
+<tbody>
+<tr><td>Development</td><td>GitHub / GitLab / context7 (Upstash) / E2B</td><td>~30%</td></tr>
+<tr><td>Web Search / Crawl</td><td>Exa / Brave / Tavily / Browserbase</td><td>~15%</td></tr>
+<tr><td>Productivity</td><td>Gmail / Notion / Slack / Linear</td><td>~15%</td></tr>
+<tr><td>Data / DB</td><td>Neon / Supabase / Postgres / Snowflake</td><td>~12%</td></tr>
+<tr><td>File / Memory</td><td>Filesystem / Memory / Sequential Thinking</td><td>~8%</td></tr>
+<tr><td>Browser Automation</td><td>Playwright / Browserbase / Stagehand</td><td>~6%</td></tr>
+<tr><td>其他 (financial / health / niche)</td><td>—</td><td>~14%</td></tr>
+</tbody>
+</table>
+
+<p>三个 server 反复出现在 Smithery 首页推荐位 (curl 抓取确认):<code>@upstash/context7-mcp</code> (Upstash 的 SDK doc lookup)、<code>exa</code> (web search)、<code>gmail</code>。这三个也是 #22 TOUCAN 在示例 trajectory 里高频用到的。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 与 Anthropic 官方 Registry 的关系</h2>
+
+<h3>5.1 官方 Registry 是什么</h3>
+
+<p><strong>registry.modelcontextprotocol.io</strong> 由 Anthropic 2025-09-08 发布 preview,本身是一个 <strong>"meta-registry"</strong>:</p>
+
+<ul>
+  <li>只存 <strong>metadata</strong> (server 名 / 描述 / repo URL / version),<strong>不</strong>托管 server 进程</li>
+  <li>由 Anthropic + GitHub + PulseMCP + Microsoft 共同维护</li>
+  <li>设计意图就是"<em>intentionally minimal</em>",做<em>上游权威源</em>,让下游 sub-registry (Smithery / Glama / MCP.so / PulseMCP / Docker Hub) 各自从这里同步,再加 UI / 搜索 / 类目 / 评分</li>
+</ul>
+
+<h3>5.2 互补还是竞争?</h3>
+
+<p>短期 — <strong>互补</strong>。Smithery 等 sub-registry 的价值在 UI、搜索、托管、auth,这些是官方 registry 故意不做的。多家分析 (TrueFoundry blog、Gentoro guide) 都明确:</p>
+
+<blockquote>"The registry exists not to replace existing registries, but to anchor them in a shared, authoritative source… <strong>Smithery, Mastra, Glama.ai, and MCP.so still serve a purpose</strong>: they provide user-facing discovery, curated listings, and integration flows."</blockquote>
+
+<p>长期 — <strong>潜在压力</strong>。官方 registry 一旦补齐了"<em>verified / curated tier</em>",end-user 可能直接从那里发现 server,Smithery 必须靠 hosted runtime + Connect (auth) + Skills 这些"<em>registry 上面的增值层</em>"留住客户。这正是 Smithery 把 hosting 改成付费的根本原因 — <strong>纯目录业务难以单独构成商业护城河</strong>。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 竞品矩阵</h2>
+
+<table>
+<thead><tr><th>平台</th><th>server / tool 数</th><th>定位</th><th>商业模式</th><th>核心差异</th></tr></thead>
+<tbody>
+<tr><td><strong>Smithery</strong></td><td>7,000+ servers</td><td>"Docker Hub for MCP" — registry + hosted runtime + Connect</td><td>Registry 免费;Hosting 2026-03 起付费</td><td>规模 + JSON API + scriptable;治理/RBAC 弱</td></tr>
+<tr><td><strong>Composio</strong></td><td>1,000+ pre-built toolkits</td><td>"Action-First Execution Platform" — 不止 MCP,主打<em>预制 + managed auth</em></td><td>开源核 + usage-based 企业版</td><td>"just-in-time tool resolving" + managed OAuth;预制比 Smithery 少但每个都精修</td></tr>
+<tr><td><strong>Glama.ai</strong></td><td>未披露 (meta-registry)</td><td>gateway 抽象,主打 web app</td><td>freemium</td><td>提供 REST API 做 gateway,而 Smithery 提供 hosted runtime — 略有 overlap</td></tr>
+<tr><td><strong>MCP.so</strong></td><td><strong>19,000+</strong> (最大目录)</td><td>community-led 静态目录</td><td>免费 (社区)</td><td>仅 web UI,<strong>无 API</strong> — 学术抓取不友好</td></tr>
+<tr><td>MCP Market</td><td>10,000+</td><td>分类浏览的市场</td><td>commercial</td><td>community-curated, no API, no QA</td></tr>
+<tr><td>Mastra</td><td>—</td><td>TypeScript agent framework + 内置 MCP 客户端</td><td>开源 (Apache)</td><td>Mastra 是 framework,Smithery 是 registry — 上下游</td></tr>
+<tr><td>PulseMCP</td><td>—</td><td>news + curated directory,参与官方 registry 维护</td><td>免费</td><td>更轻的目录 + ecosystem newsletter</td></tr>
+<tr><td>Apigene</td><td>—</td><td>企业 API → MCP 转换</td><td>SaaS</td><td>"把任意 OpenAPI 变 MCP",而 Smithery 是 host 已有 MCP</td></tr>
+<tr><td>Gram</td><td>—</td><td>MCP gateway + auth</td><td>SaaS</td><td>偏 enterprise gateway,和 Composio 更近</td></tr>
+<tr><td>MCPjam</td><td>—</td><td>MCP 测试工具</td><td>开源</td><td>不在同一品类</td></tr>
+<tr><td>Anthropic Official Registry</td><td>未披露</td><td>meta-registry,canonical 上游</td><td>免费 (Anthropic + 合作伙伴)</td><td>故意 minimal,把 UI/UX 让给 Smithery 这种 sub-registry</td></tr>
+</tbody>
+</table>
+
+<p><strong>Smithery vs Composio</strong> 是最常被问的对照:</p>
+
+<div class="kv">
+  <p><strong>Smithery</strong> = <em>"哪里能找到 server"</em> + <em>"能不能跑起来"</em>。Discovery 广 (7K+),但 server 质量参差。</p>
+  <p><strong>Composio</strong> = <em>"已经替你把这 1K 个 action 准备好,直接 import"</em>。Discovery 窄 (1K+ curated),但每个都生产级。</p>
+  <p>(套用 hasmcp.com 的总结:) "<strong>Smithery helps you discover servers; Composio provides working integrations and the infrastructure to run them reliably.</strong>"</p>
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · 学术研究为何爱用 Smithery (链 #03 / #22 / #23) + 真实研究中的局限性</h2>
+
+<h3>7.1 三篇论文里的具体引用</h3>
+
+<table>
+<thead><tr><th>Paper</th><th>用 Smithery 做什么</th><th>过滤后留下</th><th>核心结论</th></tr></thead>
+<tbody>
+<tr><td><a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a></td><td>抓 Smithery 全量目录作为 M₁ 主题分布</td><td>2,880 server 进入 self-evolving arena</td><td>Smithery 提供"<em>主题广度</em>",但具体 trajectory 仍由模拟 1,978 个真实 env 生成</td></tr>
+<tr><td><a href="22_TOUCAN.html">#22 TOUCAN</a></td><td>Smithery + GitHub MCP 合计 ~2,800 server 起手</td><td><strong>495 个真实 server</strong> (~17% 通过率)</td><td>"三层过滤" — connectivity 可达性 + auth 是否需要私密凭证 + tool count ≥ 1。<strong>近一半 Smithery server 因 dead URL / 私 token / 0-tool 被丢掉</strong></td></tr>
+<tr><td><a href="23_EnvScaler.html">#23 EnvScaler</a></td><td>用 Smithery server metadata 作 real-MCP baseline 参考</td><td>不直接使用 server,改走 Python class 合成</td><td>"Smithery server 不天然支持 100 轮 dual-agent 验证" — 暗示 stateless 公服无法做 stateful reward</td></tr>
+</tbody>
+</table>
+
+<h3>7.2 为什么研究端爱用</h3>
+
+<ol>
+  <li><strong>结构化 JSON catalog</strong> — Registry API 直接吐 JSON,可批量下载;MCP.so 体量更大但只有 web UI。</li>
+  <li><strong>License 友好</strong> — 大部分 server MIT/Apache,论文里可放心列出。</li>
+  <li><strong>免费 + 无 rate-limit 阻碍</strong> (相对) — agent 端调 Registry API 不需要 token 钱。</li>
+  <li><strong>可脚本化的 verified/deployed 标记</strong> — 配合 <code>is:deployed is:verified</code> 一键筛掉一大半垃圾。</li>
+  <li><strong>规模 ≥ 训练所需多样性</strong> — 7K 量级 server 足够覆盖 "<em>tool category × use case</em>"组合。</li>
+</ol>
+
+<h3>7.3 真实研究中的局限性 (这才是关键诚实部分)</h3>
+
+<div class="warn">
+  <strong>研究端不应忽略的四个事实</strong>:
+  <ol>
+    <li><strong>大多数 server 是 no-auth public service</strong>:Exa / weather / wiki / arxiv 这种 — 它们没有<em>用户状态</em>,所以无法做"<em>create issue → verify created</em>"这种 ground-truth check。TOUCAN 不得不去 GitHub MCP / Notion MCP 这类需要 token 的 server 找<em>真实状态变更</em>。</li>
+    <li><strong>很多 server 是 read-only</strong>:这意味着 RL reward 只能来源于"<em>读取结果是否包含正确字符串</em>"这种弱信号 — 这正是 #19 MCP-Atlas 选用 claims-based judge 的根本原因。</li>
+    <li><strong>server 质量方差极大</strong>:7K 里包含大量 <em>half-deployed / abandoned / single-tool toy</em>。TOUCAN 实测 ~83% 通不过基本过滤。</li>
+    <li><strong>稳定性 / 可重现性</strong>:同一个 server 今天 OK 明天 404 是常态 — 这对 RL 训练 (要 millions of episode) 是致命的。TOUCAN 只能做 SFT,不敢做 online RL,正是因为 Smithery server 不构成<em>可重现 gym</em>。</li>
+  </ol>
+</div>
+
+<p>结论:Smithery 是<strong>极佳的训练任务<em>主题</em>来源</strong>,但<strong>不是 agent RL gym</strong>。把它当 gym 用的研究都会被迫做 EnvScaler / AWM 那条<em>合成 env</em>路线,或像 #19 MCP-Atlas 那样限定 36 个精挑的 server。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 开发者 / 商业实用指南</h2>
+
+<h3>8.1 怎么把 Smithery 接到自己的 agent harness</h3>
+
+<p>最低成本路径 (3 行 TypeScript):</p>
+
+<pre>import { createTransport } from "@smithery/sdk";
+const transport = await createTransport(
+  "https://server.smithery.ai/&lt;qualifiedName&gt;/mcp",
+  { apiKey: process.env.SMITHERY_API_KEY }
+);
+// 然后 transport 接进任何 MCP-aware agent (Claude / Mastra / AgentKit / Cursor)</pre>
+
+<p>Inngest AgentKit 等框架需要走<code>createSmitheryUrl()</code> 而非 <code>createTransport</code>,因为它要的是 WebSocket URL,加 <code>/ws</code> 后缀。</p>
+
+<h3>8.2 hosted 还是 self-host?决策表</h3>
+
+<table>
+<thead><tr><th>场景</th><th>建议</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td>原型 / 个人项目</td><td>用 Smithery hosted (付费 hobby) 或 external URL 注册</td><td>省去 OAuth 配置,Connect 全替你做</td></tr>
+<tr><td>生产 SaaS, 多租户用户</td><td>self-host server + Smithery 只做目录</td><td>避免 token-grant 给第三方的合规审计噩梦</td></tr>
+<tr><td>学术 / RL 训练</td><td>self-host + 镜像 Registry JSON</td><td>稳定性自己控,server 挂了不影响实验</td></tr>
+<tr><td>企业 enterprise (RBAC / audit log)</td><td>看 Composio / TrueFoundry / Gram</td><td>Smithery 没 RBAC 没 audit log</td></tr>
+</tbody>
+</table>
+
+<h3>8.3 安全 / 隐私要点</h3>
+
+<ul>
+  <li><strong>credential 上送</strong>:用 Smithery Connect 时,OAuth token 加密存在 Smithery 后端。<em>这意味着 Smithery 在技术上可读你给第三方授权的范围</em> — 必须信任 Smithery 的 SOC2-equivalent 控制 (官方未公布 SOC2)。</li>
+  <li><strong>token scoping</strong>:务必用 <code>--policy</code> 把 service token 限制到最小 namespace + operation + TTL,避免 agent 滥用。</li>
+  <li><strong>malicious server 风险</strong>:Smithery 没强制 server 沙箱审计,<em>任何人可以发布</em>。Verified 标记不等于安全审计。生产环境只装 <code>is:verified</code> 且 useCount 高的 server。</li>
+  <li><strong>data privacy in hosted mode</strong>:你的 agent prompt → Smithery hosted server → 第三方 SaaS。日志路径横跨三方,GDPR/HIPAA 场景需谨慎。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec9">9 · 个人 take + 未来展望</h2>
+
+<h3>9.1 Smithery 的护城河有多深?</h3>
+
+<p>三层护城河,深浅不一:</p>
+
+<ol>
+  <li><strong>规模网络效应</strong> (中等):7K server 是显性优势,但 MCP.so 已 19K,这条护城河在"<em>纯数量</em>"上不绝对;Smithery 的真正优势是"<em>JSON API + verified flag + useCount</em>"这套<strong>结构化质量信号</strong>。</li>
+  <li><strong>OAuth + Connect 抽象层</strong> (较深):一旦开发者把用户 token 通过 Smithery Connect 拿到了,迁移走需要重做整个 OAuth flow + 重新让用户授权,<em>switching cost 高</em>。这是它和 Composio 共同的核心壁垒。</li>
+  <li><strong>Hosting + Skills 上层产品</strong> (浅):2026-03 转付费意味着开发者重新评估;若 hosting 不能提供<em>显著超过 self-host 的 reliability</em>,会很快流失。Hosting 业务能否站住,是 2026 Q3-Q4 的关键观察点。</li>
+</ol>
+
+<h3>9.2 Anthropic 长期威胁</h3>
+
+<p>官方 registry 目前是 "intentionally minimal",但<strong>趋势</strong>是:Anthropic 会逐步加 verified tier、官方背书 server、Claude Desktop / claude.com/partners 直连。一旦 end-user 习惯 "从 Anthropic 官方目录装 server",Smithery 的纯 discovery 流量会被分走。Smithery 的应对必然是<strong>向上做 — 做 Connect / Skills / Toolbox 这类增值</strong>,变成"<em>MCP 上面的 Heroku</em>"而非"<em>MCP 上面的 GitHub</em>"。</p>
+
+<h3>9.3 5 年内可能的演化路径 (我的猜测)</h3>
+
+<ol>
+  <li><strong>2026 H2</strong>:Smithery 推 Series A,围绕 Hosting + Connect 的 vendor-side ARR (Henry Mao 私下提的 "$6M ARR" 大概率是 Smithery 整体含 Jenni 的 ARR,Smithery 单口径未必这么高)。</li>
+  <li><strong>2027</strong>:出现"<em>MCP 上的 npm-style 包管理</em>" — version pinning / dependency / vulnerability scanning。Smithery 或者做或者被官方 registry 做掉。</li>
+  <li><strong>2027-2028</strong>:Hosted runtime 演化成<strong>真正的"MCP serverless"</strong> — 不再是"<em>跑你的 server 进程</em>",而是<em>function-as-a-MCP</em>,按 invocation 计费,直接威胁 Cloudflare Workers + Vercel Functions 这种通用 serverless。</li>
+  <li><strong>2028+</strong>:可能被 Anthropic / 大云厂商 (AWS / GCP) 收购,作为 Bedrock-style "Agent Hub" 的一块拼图;或者 Composio / Smithery 合并成"<em>MCP 端到端</em>"。</li>
+</ol>
+
+<h3>9.4 给本系列读者的一句话</h3>
+
+<p>如果你在做 <strong>MCP agent SFT</strong> — Smithery 的 JSON catalog 是<em>最便宜的训练任务主题源</em>,直接抓 (像 #03 / #22 那样)。<br>如果你在做 <strong>MCP agent RL</strong> — Smithery 上的真实 server <em>不是</em>合适 gym,你只有两条路:(a) 像 EnvScaler / AWM 走<em>程序化合成 env</em>,(b) 像 SETA 走<em>Docker 化任务集</em>;Smithery 此时只是 metadata 提供方,不是 environment 提供方。<strong>把这两件事分清楚,可以省下半年的踩坑。</strong></p>
+
+<hr>
+
+<h3>来源清单 (Raw URLs)</h3>
+
+<ul>
+  <li>https://smithery.ai/</li>
+  <li>https://smithery.ai/about</li>
+  <li>https://smithery.ai/docs</li>
+  <li>https://smithery.ai/docs/llms.txt</li>
+  <li>https://smithery.ai/pricing</li>
+  <li>https://smithery.ai/blog/updates-to-our-hosting-plan</li>
+  <li>https://github.com/smithery-ai</li>
+  <li>https://github.com/smithery-ai/cli</li>
+  <li>https://x.com/Calclavia/status/1912233083501441504 (Henry Mao "4K+ servers" 公告)</li>
+  <li>https://x.com/Calclavia/status/1911638656345153559 (Toolbox 发布)</li>
+  <li>https://sg.linkedin.com/in/calclavia (Henry Mao 公开档案)</li>
+  <li>https://tracxn.com/d/companies/smithery/ (创始人 / Seed / South Park Commons)</li>
+  <li>https://www.crunchbase.com/organization/smithery-9f25 (403 屏蔽,仅 SERP 摘要)</li>
+  <li>https://workos.com/blog/smithery-ai</li>
+  <li>https://ngrok.com/blog/smithery-ai-shaping-agent-first-internet</li>
+  <li>https://www.truefoundry.com/blog/best-mcp-registries (7K+ 引用源)</li>
+  <li>https://hasmcp.com/alternatives/smithery-vs-composio</li>
+  <li>https://composio.dev/blog/smithery-alternative</li>
+  <li>https://registry.modelcontextprotocol.io/ (Anthropic 官方 registry)</li>
+  <li>https://blog.modelcontextprotocol.io/posts/2025-09-08-mcp-registry-preview/ (官方 registry preview 公告)</li>
+  <li>https://agentkit.inngest.com/integrations/smithery (createSmitheryUrl 用法)</li>
+</ul>
+
+<h3>相关链接</h3>
+
+<div class="paper-card">
+  <span class="ttl">本系列相关笔记</span>
+  <ul>
+    <li><a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a> — 2,880 Smithery server 作 M₁</li>
+    <li><a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> — Scale AI 的 36-server eval bench</li>
+    <li><a href="20_SETA_camel.html">#20 SETA</a> — CAMEL-AI Docker 化 terminal env</li>
+    <li><a href="21_MCPBenchmarks_compare.html">#21 4 个 MCP Benchmark 横评</a></li>
+    <li><a href="22_TOUCAN.html">#22 TOUCAN</a> — 2,800 Smithery+GitHub → 495 真实 server</li>
+    <li><a href="23_EnvScaler.html">#23 EnvScaler</a> — 程序化合成 env (Smithery 反例)</li>
+  </ul>
+</div>
+
+</main>
+</body>
+</html>
