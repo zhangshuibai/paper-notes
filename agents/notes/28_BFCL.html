@@ -406,6 +406,268 @@
   ]
 }</pre>
 
+<h3>3.2 V4 各类任务举例 — verbatim 从 repo 抽取</h3>
+
+<div class="ok"><strong>关于本节:</strong> 以下所有样例都是直接从 <code>raw.githubusercontent.com/ShishirPatil/gorilla/main/berkeley-function-call-leaderboard/bfcl_eval/data/</code> 的 JSON 抽取的<em>第一条</em>或前几条数据,2026-05 拉取。配套的 <code>possible_answer/*.json</code> 给出 ground truth,<code>multi_turn_func_doc/*.json</code> 给出工具签名,<code>eval_checker/multi_turn_eval/func_source_code/*.py</code> 给出后端实现。读完这节你应该能<strong>具体</strong>说出每类任务"模型看到什么 / 必须输出什么 / 怎么判分"。</div>
+
+<h4>3.2.1 non-live · <code>simple_python</code> — 单函数 + 多 ground-truth</h4>
+<p>上面 §3.1 已展示;这里补一个 <strong>parallel</strong>(同一函数并行调多次)的 verbatim:</p>
+<pre>// BFCL_v4_parallel.json (第 1 条)
+{"id": "parallel_0",
+ "question": [[{"role": "user",
+   "content": "Play songs from the artists Taylor Swift and Maroon 5,
+                with a play time of 20 minutes and 15 minutes respectively, on Spotify."}]],
+ "function": [{"name": "spotify.play",
+   "description": "Play specific tracks from a given artist for a specific time duration.",
+   "parameters": {"type": "dict",
+     "properties": {
+       "artist": {"type": "string", "description": "..."},
+       "duration": {"type": "integer", "description": "..."}},
+     "required": ["artist", "duration"]}}]}</pre>
+<p><em>难点:</em> 模型必须输出两次 <code>spotify.play</code> 调用而不是一次带 list 的调用 —— AST 检查严格区分 parallel-call vs list-arg。</p>
+
+<h4>3.2.2 non-live · <code>irrelevance</code> — 必须<strong>不调</strong>工具</h4>
+<pre>// BFCL_v4_irrelevance.json (第 1 条)
+{"id": "irrelevance_0",
+ "question": [[{"role": "user",
+   "content": "Calculate the area of a triangle given the base is 10 meters and height is 5 meters."}]],
+ "function": [{"name": "determine_body_mass_index",
+   "description": "Calculate body mass index given weight and height.",
+   "parameters": {"properties": {
+     "weight": {"type": "float"}, "height": {"type": "float"}},
+     "required": ["weight", "height"]}}]}</pre>
+<p><em>难点:</em> 工具名/描述里有 <code>height</code> 这种<strong>诱导词</strong>。BMI 的 height 是身高,triangle 的 height 是几何高度。模型只要被 keyword 钓中就要 0 分。leaderboard 上 Irrelevance 列就是这种"<strong>拒答</strong>"准确率。</p>
+
+<h4>3.2.3 multi_turn · <code>multi_turn_base</code> — 4 轮文件操作</h4>
+<pre>// BFCL_v4_multi_turn_base.json (第 1 条)
+{"id": "multi_turn_base_0",
+ "question": [
+   [{"role":"user","content":"Move 'final_report.pdf' within document directory
+                              to 'temp' directory in document. Make sure to create the directory"}],
+   [{"role":"user","content":"Perform a detailed search using grep to identify sections
+                              in the file pertaining to 'budget analysis'."}],
+   [{"role":"user","content":"Upon identifying the requisite 'budget analysis' content,
+                              sort the 'final_report.pdf' by line ..."}],
+   [{"role":"user","content":"Move 'previous_report.pdf' in document directory to temp ...
+                              proceed to juxtapose it with 'previous_report.pdf' ..."}]],
+ "initial_config": {
+   "GorillaFileSystem": {"root":{"workspace":{"type":"directory",
+     "contents":{"document":{"type":"directory",
+       "contents":{"final_report.pdf":{"type":"file",
+         "content":"Year2024 This is the final report content including budget analysis ..."},
+         "previous_report.pdf":{...}}},
+       "archive":{"type":"directory","contents":{}}}}}},
+   "TwitterAPI": {"tweet_counter":3, "tweets":{...},
+     "username":"analyst_pro", "password":"Kj8#mP9$vL2"}},
+ "path": ["GorillaFileSystem.find","GorillaFileSystem.mv","GorillaFileSystem.grep",
+          "GorillaFileSystem.sort","GorillaFileSystem.diff","TwitterAPI.post_tweet"],
+ "involved_classes": ["TwitterAPI","GorillaFileSystem"],
+ "excluded_function": ["cp"]}</pre>
+<p><em>注意要点:</em></p>
+<ul>
+  <li><code>initial_config</code> 是 Python class 的<strong>初始状态</strong>(包括明文 password!),由 GorillaFileSystem / TwitterAPI 等 14+ 个仿真后端类承载。</li>
+  <li><code>path</code> 是<strong>必经函数</strong>列表(state-based eval 验证);<code>excluded_function</code> 是禁用清单(如 <code>cp</code> 不能用,只能 <code>mv</code>)。</li>
+  <li>评测时每轮调用结束后,checker 把仿真器的真实 state 和 ground-truth state 用 <code>state_diff</code> 比较 —— 详见 §4.3。</li>
+</ul>
+
+<h4>3.2.4 multi_turn · <code>multi_turn_miss_func</code> — 空轮 = 工具被故意拿掉</h4>
+<pre>// BFCL_v4_multi_turn_miss_func.json (第 1 条)
+{"id": "multi_turn_miss_func_0",
+ "question": [
+   [{"role":"user","content":"Move 'final_report.pdf' ..."}],
+   [{"role":"user","content":"Perform a detailed search using grep ..."}],
+   [{"role":"user","content":"... sort the 'final_report.pdf' by line ..."}],
+   [],   // ← 空轮! 上一轮的 sort 函数被 "missed_function" 表抽掉了
+   [{"role":"user","content":"Move 'previous_report.pdf' ... juxtapose ..."}]],
+ ...,
+ "missed_function": {"3": ["sort"]},  // ← 第 3 轮 sort 不可见
+ "excluded_function": ["cp"]}</pre>
+<p><em>难点:</em> 第 3 轮(0-indexed)给模型的可用工具列表里<strong>少了 <code>sort</code></strong>,所以模型应当回答"对不起,我没有 sort 工具"而不是 hallucinate 一个调用。<code>question</code> 数组里出现 <code>[]</code> 空轮 = "本轮模型不应该有用户输入,系统让模型自由发挥"。</p>
+
+<h4>3.2.5 multi_turn · <code>multi_turn_miss_param</code> — 必须<strong>追问</strong></h4>
+<pre>// BFCL_v4_multi_turn_miss_param.json (第 1 条 — 注意倒数第二轮)
+{"id": "multi_turn_miss_param_0",
+ "question": [
+   ...,
+   [{"role":"user","content":"Move one of the file in document directory to temp ...
+                              proceed to juxtapose it with 'previous_report.pdf' ..."}],
+   //  ↑ 用户说 "one of the file" 但<strong>没指明哪一个</strong>
+   [{"role":"user","content":"The specific file is previous_report.pdf."}]],
+   //  ↑ 模型本应该追问,然后用户在下一轮给出答案
+ ...}</pre>
+<p><em>难点:</em> 模型如果"猜"了一个文件名直接 <code>mv</code>,会失败;正确行为是 <strong>asking-for-clarification</strong>(回 user 消息,不发函数调用)。这是 V3 加进来检测 "agreeable hallucination" 的核心 category。</p>
+
+<h4>3.2.6 agentic · <code>web_search</code>(V4 新)— multi-hop QA + SerpAPI</h4>
+<pre>// BFCL_v4_web_search.json (第 1 条)
+{"id": "web_search_0",
+ "question": [[{"role":"user","content":
+   "Some countries are known for producing luxury goods, including the world's most
+    expensive tea. In April 2025, who is the richest billionaire (according to Forbes)
+    from the country that produces the most expensive tea?"}]],
+ "involved_classes": ["WebSearchAPI"]}
+
+// possible_answer/BFCL_v4_web_search.json (第 1 条 — 注意 source 是 3-hop 推理)
+{"id": "web_search_0",
+ "ground_truth": ["Zhang Yiming"],   // ← 但 wikipedia 2025 第一名其实是 Zhong Shanshan
+ "source": [
+   {"subquestion":"Most expensive tea in the world",
+    "answer":"DaHong Pao", "source":"https://camellios.com/..."},
+   {"subquestion":"Country that produces DaHong Pao",
+    "answer":"China", "source":"https://en.wikipedia.org/wiki/Da_Hong_Pao"},
+   {"subquestion":"Who is the richest billionaire in China",
+    "answer":"Zhong Shanshan", "source":"https://www.forbes.com/..."}],
+ "num_hops": 3}</pre>
+<p><strong>暴露的工具签名</strong>(<code>multi_turn_func_doc/web_search.json</code>):</p>
+<ul>
+  <li><code>search_engine_query(keywords, max_results=10, region="wt-wt")</code> — 走 SerpAPI</li>
+  <li><code>fetch_url_content(url, mode="raw"|"markdown"|"truncate")</code> — fetch + 解析网页</li>
+</ul>
+<p><em>难点 & 数据观察:</em></p>
+<ul>
+  <li>本题 ground_truth 是 <code>"Zhang Yiming"</code>,但 <code>source</code> 链条最终答案写的是 <code>"Zhong Shanshan"</code> —— 这是 leaderboard 数据库里实际<strong>不一致</strong>的样例,说明这类题答案随时间会漂(2024 是 Zhong Shanshan,2025 Forbes 又一变)。所以 BFCL 把 <strong>web_search</strong> 限定在 "April 2025" 这种<em>时间锚</em>提问,但人工标的 ground_truth 仍可能滞后。</li>
+  <li><code>web_search_no_snippet</code> 子 category 把 SerpAPI 返回的 snippet 字段抠掉,强制模型 <code>fetch_url_content</code> 实际打开网页 —— 不能"看摘要凑答案"。</li>
+  <li>跑这个 category <strong>需要付费 SerpAPI key</strong>,这是 BFCL 第一次把"非免费基础设施"引入 leaderboard。</li>
+</ul>
+
+<h4>3.2.7 agentic · <code>memory</code>(V4 最大新增)— 全面拆解</h4>
+
+<div class="warn"><strong>这一节是本次 update 的重点 — 用户特别要求"尤其是 memory 是什么任务"。</strong></div>
+
+<p><strong>Memory 任务的 2-stage 架构(关键!):</strong></p>
+<ol>
+  <li><strong>Stage 1 — prereq 阶段(模型不可见,由 evaluator 预跑):</strong> 同 scenario 的 <code>memory_prereq_conversation/memory_&lt;domain&gt;.json</code> 是一段长达 6-30 轮的用户独白(顾客/学生/病人/财务/记事 5 种 domain)。evaluator 把这段独白送进模型,让模型用 memory API 自行<strong>把信息存进 memory</strong>。这一阶段的 memory dump 会被持久化到 <code>snapshot_folder/&lt;test_id&gt;.json</code>。</li>
+  <li><strong>Stage 2 — 实际计分(打榜看的就是这一阶段):</strong> 把 Stage 1 持久化的 memory <strong>重新加载</strong>,然后给模型一个<strong>单轮</strong>问题(<code>BFCL_v4_memory.json</code> 里的 <code>question</code>),问 "What is my first name?" / "How old am I?" / "What kind of latte do I occasionally like?"。模型必须用 <code>memory_search</code> / <code>memory_retrieve</code> 把答案从 memory 中查出来,并以最终自然语言答复。Ground truth 是字符串 set,如 <code>["35","thirty five"]</code> 都接受。</li>
+</ol>
+
+<p><strong>5 个 domain</strong>(verbatim from data folder):</p>
+<table>
+  <tr><th>domain key</th><th>场景</th><th>prereq 独白主题</th></tr>
+  <tr><td><code>customer</code></td><td>Customer Support</td><td>顾客 Michael 投诉 espresso machine 受损、配件、shipping 等(30 题)</td></tr>
+  <tr><td><code>healthcare</code></td><td>Healthcare Patient</td><td>病人病史 / 用药 / 急诊经历(30 题)</td></tr>
+  <tr><td><code>finance</code></td><td>Finance Managing Director</td><td>财务负责人对 portfolio 操作 / 客户记录</td></tr>
+  <tr><td><code>notetaker</code></td><td>Personal To-Do List</td><td>日常事项 / 计划</td></tr>
+  <tr><td><code>student</code></td><td>College Student Advising</td><td>学生选课 / GPA / 导师沟通</td></tr>
+</table>
+
+<p><strong>样例 verbatim — Stage 2 问题(BFCL_v4_memory.json 前 5 条):</strong></p>
+<pre>{"id":"memory_0-customer-0","question":[[{"role":"user","content":"What is my first name?"}]],
+ "involved_classes":["MemoryAPI"],"scenario":"customer"}
+{"id":"memory_1-customer-1","question":[[{"role":"user","content":"How old am I?"}]],
+ "involved_classes":["MemoryAPI"],"scenario":"customer"}
+{"id":"memory_2-customer-2","question":[[{"role":"user","content":"Where do I live?"}]],
+ "involved_classes":["MemoryAPI"],"scenario":"customer"}
+{"id":"memory_3-customer-3","question":[[{"role":"user","content":"What kind of latte do I occasionally like?"}]],
+ "involved_classes":["MemoryAPI"],"scenario":"customer"}
+{"id":"memory_4-customer-4","question":[[{"role":"user","content":"How many square feet is my kitchen counter?"}]],
+ "involved_classes":["MemoryAPI"],"scenario":"customer"}</pre>
+
+<p><strong>对应的 ground truth + source 出处</strong>(possible_answer/BFCL_v4_memory.json):</p>
+<pre>{"id":"memory_0-customer-0","ground_truth":["Michael"],
+ "source":"My name is Michael, and this is my first time interacting with your company..."}
+{"id":"memory_1-customer-1","ground_truth":["35","thirty five"],
+ "source":"I'm 35 years old, live in Seattle..."}
+{"id":"memory_2-customer-2","ground_truth":["Seattle"],
+ "source":"I'm 35 years old, live in Seattle..."}
+{"id":"memory_3-customer-3","ground_truth":["strawberry matcha"],
+ "source":"...I occasionally like a strawberry matcha latte..."}
+{"id":"memory_4-customer-4","ground_truth":["38","thirty eight"],
+ "source":"...my counter is only 38 square feet."}</pre>
+
+<p><strong>Stage 1 的 prereq 独白长这样</strong>(<code>memory_prereq_conversation/memory_customer.json</code> 节选):</p>
+<pre>{"id":"memory_prereq_0-customer-0","topic":"First-Time Inquiry About a Product",
+ "question": [
+   [{"role":"user","content":"Hey there! Thanks for getting back to me ...
+                              My name is Michael, and this is my first time
+                              interacting with your company in any way..."}],
+   [{"role":"user","content":"I'm 35 years old, live in Seattle, and am
+                              pretty serious about both my work and my hobbies.
+                              I work as a freelance graphic designer..."}],
+   ... // 30+ 轮长独白
+ ]}</pre>
+<p>注意:Stage 1 的<strong>每一轮</strong>都是 user → assistant,assistant 边读边决定要不要调 <code>core_memory_add</code> / <code>archival_memory_add</code> 来记下"Michael / 35 / Seattle / strawberry matcha / 38 sqft"等关键事实。Stage 1 模型的<em>记什么 / 不记什么</em>会直接决定 Stage 2 能不能查出来。</p>
+
+<h5>3.2.7.A memory_kv 子类 — key-value 后端</h5>
+<p><strong>来源:</strong> <code>eval_checker/multi_turn_eval/func_source_code/memory_kv.py</code> 类 <code>MemoryAPI_kv</code>。设计灵感来自 <strong>MemGPT</strong> —— core memory(短期,容量 7 条,每条 ≤300 字符)+ archival memory(长期,容量 50 条,每条 ≤2000 字符)双层结构。</p>
+<pre># memory_kv.py verbatim
+MAX_CORE_MEMORY_SIZE = 7
+MAX_CORE_MEMORY_ENTRY_LENGTH = 300
+MAX_ARCHIVAL_MEMORY_SIZE = 50
+MAX_ARCHIVAL_MEMORY_ENTRY_LENGTH = 2000
+
+class MemoryAPI_kv(MemoryAPI):
+    """A class that provides APIs to manage short-term and long-term
+       memory data in a key-value format."""
+
+    def core_memory_add(self, key: str, value: str) -> Dict[str, str]:
+        """Add a key-value pair to the short-term memory.
+           Keys must be snake_case and cannot contain spaces."""
+        # 检查容量 / 长度 / key 格式 / 重复
+        ...
+
+    def core_memory_remove(self, key: str) -> Dict[str, str]: ...
+    def core_memory_replace(self, key: str, value: str) -> ...
+    def core_memory_clear(self) -> ...
+    # 同名一组 archival_memory_* 方法
+    def archival_memory_key_search(self, query: str, k: int = 5):
+        """Search for key names ... using BM25+ algorithm."""</pre>
+<p><strong>暴露给模型的 16 个工具签名</strong>(<code>multi_turn_func_doc/memory_kv.json</code>): <code>core_memory_add / remove / replace / clear / retrieve / key_search / list_keys</code> + 同名一组 <code>archival_memory_*</code>。<em>注意 key 必须 snake_case</em>,这是 V4 故意加的 format 约束,逼模型规范命名。</p>
+<p><em>难点:</em> core memory 只能放 7 条 → 模型必须做 <strong>importance ranking</strong>(决定 "Michael 名字" 进 core 还是 archival),否则容易溢出。检索是 <strong>BM25+ 词袋</strong>,所以同义词检索能力差(写入是 <code>customer_first_name</code>,查 "name" 能命中,查 "user" 就不一定)。</p>
+
+<h5>3.2.7.B memory_vector 子类 — 向量库后端</h5>
+<p><strong>来源:</strong> <code>memory_vector.py</code> 类 <code>MemoryAPI_vector</code>,内部用 <strong>sentence-transformers <code>all-MiniLM-L6-v2</code> + FAISS</strong>(verbatim 见下)。</p>
+<pre># memory_vector.py verbatim
+ENCODER = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+ENCODER_DIM = ENCODER.get_sentence_embedding_dimension()
+
+class MemoryAPI_vector(MemoryAPI):
+    def __init__(self):
+        self.core_memory = VectorStore(max_size=7, max_entry_length=300)
+        self.archival_memory = VectorStore(max_size=50, max_entry_length=2000)
+
+    def core_memory_add(self, text: str) -> dict[str, str]:
+        """Add a new entry to the core memory.
+           Returns: id (int): The ID of the added entry."""
+        return self.core_memory.add(text)
+
+    def core_memory_retrieve(self, query: str, top_k: int = 5) -> list[dict]:
+        """Retrieve the most similar entries from the core memory."""
+        # FAISS L2 nearest-neighbor search</pre>
+<p><strong>区别 vs kv:</strong> 不需要 key —— <code>core_memory_add(text)</code> 只传文本,系统自动 encode 并返回数字 <code>id</code>;检索靠 cosine/L2 similarity 不是关键词。</p>
+<p><em>难点:</em> 模型不能用"key 提示"自己,完全依赖 embedding 召回。Stage 1 写入时如果 batch 多条信息进一条 entry(如 "name=Michael, age=35, city=Seattle"),Stage 2 任何相关 query 都能拉回但 top-k 噪声大;反之每条只存一个事实,Stage 2 又可能 top-5 召不到。<strong>这就是经典 RAG chunk-size tradeoff</strong>。</p>
+
+<h5>3.2.7.C memory_rec_sum 子类 — recursive summarization 后端</h5>
+<p><strong>来源:</strong> <code>memory_rec_sum.py</code> 类 <code>MemoryAPI_rec_sum</code>。这一个最特殊:<strong>memory 就是一个 plain string</strong>,容量 10000 字符,只有 5 个工具。</p>
+<pre># memory_rec_sum.py verbatim
+MAX_MEMORY_ENTRY_LENGTH = 10000  # 10k characters
+
+class MemoryAPI_rec_sum(MemoryAPI):
+    def __init__(self):
+        self.memory = ""   # ← 单一字符串,不是 dict / 不是 list
+
+    def memory_append(self, text: str) -> Dict[str, str]:
+        """Append a new text to the end of the memory."""
+        # 长度溢出就报错,逼模型 summarize
+
+    def memory_update(self, text: str) -> Dict[str, str]:
+        """Update the memory with new text.
+           This will replace the existing memory content."""
+
+    def memory_replace(self, old_text, new_text) -> ...
+    def memory_clear(self) -> ...
+    def memory_retrieve(self) -> ...  # 拿回整段字符串</pre>
+<p><em>核心 design intent:</em> 这就是 <strong>Claude 风格的 "rolling summary" memory</strong>。模型必须每隔 N 轮把现有 <code>memory</code> 取出来、压成更短的 summary,再 <code>memory_update</code> 写回 —— "递归"二字就在于反复 retrieve → summarize → overwrite。<code>memory_replace(old, new)</code> 是细粒度修订,等价于 sed。</p>
+<p><em>难点:</em> 没有索引,Stage 2 查询时只能拿回 <strong>整段 10k 字符串</strong> 然后塞进 context 让 LLM 自己 grep —— 这也是为什么这个子类的 token cost 通常最高(每次 retrieve 都把全部 memory 灌回 prompt)。但反之"召回率"理论 100%(整段都给你),所以 leaderboard 上 rec_sum 经常分数偏高但 latency / cost 最差。这对应 <a href="29_BFCL_EnvTuning.html">#29 EnvTuning paper</a> 中提到的 RecSum / KV / Vector 三分,与该 paper 的 "RL-based memory management" 直接对照。</p>
+
+<h5>3.2.7.D Memory 评测的判分</h5>
+<p>memory 任务和 multi-turn 用<strong>同一个 state-based checker</strong>(<code>multi_turn_checker.py</code>),但额外多两步:</p>
+<ul>
+  <li><strong>Stage 1 snapshot 必须能成功生成</strong> —— 如果 Stage 1 模型从头到尾不调 <code>*_add</code>,Stage 2 拿到空 memory,几乎必 0。</li>
+  <li><strong>Stage 2 最终回复包含 ground_truth 子串</strong> —— 这是<em>少数</em>用 string-contains 而不是 AST 的 category(因为最终答案是 NL 回答),但 ground_truth 是 set,如 <code>["35","thirty five"]</code> 任一命中即可。</li>
+</ul>
+
+<h4>3.2.8 diag · <code>format_sensitivity</code>(V4 新,<strong>不进总分</strong>)</h4>
+<p>同一个 multi_turn_base 任务,但 system prompt 用<strong>多种格式扰动模板</strong>包装(JSON vs YAML vs XML vs Markdown,有无 emoji,大小写等),看模型在不同模板下答案稳定性如何。结果体现在 leaderboard 的 <code>FmtΔ</code> 列(format gap)—— Claude Opus 4.5 prompt-mode 在这一列跌 44 pp(见 §6.2),说明 prompting-mode 模型对 system prompt 模板极度敏感,而 FC handler 几乎不受影响。</p>
+
 <hr>
 
 <h2 id="sec4">§4 评测方法</h2>
