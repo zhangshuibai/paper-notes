@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · BFCL (Berkeley Function-Calling Leaderboard) — function-calling 事实标准</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>BFCL (Berkeley Function-Calling Leaderboard) — function-calling 事实标准</h1>
+<div class="meta">
+  UC Berkeley · Gorilla LLM Team (Sky Computing Lab) · Shishir G. Patil, Huanzhi Mao, Fanjia Yan, Charlie Cheng-Jie Ji, Vishnu Suresh, Ion Stoica, Joseph E. Gonzalez · ICML 2025 (paper) · V1: 2024-02-26 → V2: 2024-08-19 → V3: 2024-09-19 → V4: 2025-07-17<br>
+  <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank">Live leaderboard</a> ·
+  <a href="https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard" target="_blank">GitHub: ShishirPatil/gorilla</a> ·
+  <a href="https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard" target="_blank">HF Dataset</a> ·
+  <a href="https://openreview.net/forum?id=2GmDdhBdDk" target="_blank">ICML 2025 paper</a> ·
+  <a href="https://pypi.org/project/bfcl-eval/" target="_blank">PyPI: bfcl-eval</a><br>
+  关键词: function-calling · tool use · AST eval · multi-turn · agentic · Web Search · Memory · Format Sensitivity · Apache-2.0
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> BFCL 是 UC Berkeley Sky Computing Lab(Gorilla LLM 团队 / Patil-Mao-Stoica-Gonzalez)在 2024-02 推出的 <strong>第一个综合且可执行的 function-call 评测</strong>,自身定位"<em>the first comprehensive and executable function call evaluation</em>",目前是 <strong>function-calling 领域的事实标准(de-facto standard)</strong> —— 微软 / Salesforce / Anthropic / Google / OpenAI 的 frontier model card 和 Qwen3 / GLM / Kimi / DeepSeek / xLAM / Hammer / Granite / Functionary 等几乎所有面向"工具调用"的小/中模型都把 BFCL 当训练目标。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">V4 (2025-07-17)</div><div class="l">现行版本 — 加入 agentic Web Search + Memory + Format Sensitivity</div></div>
+    <div class="stat"><div class="n">~4,951</div><div class="l">scoring task 数量(2,251 Live + 1,610 Non-Live + 1,000 Multi-Turn + ~90 agentic)</div></div>
+    <div class="stat"><div class="n">GLM-4.5 70.9%</div><div class="l">V4 当前 SOTA(open-weight 反超 GPT-5 59.2%)</div></div>
+    <div class="stat"><div class="n">Apache-2.0</div><div class="l">repo + dataset + 评测脚本全开源 · 49,556 下载/月</div></div>
+  </div>
+  <p><strong>立场:</strong> 在 <a href="21_MCPBenchmarks_compare.html">#21 MCP benchmark 横评</a> 和 <a href="26_MCPBenchmarks_codedive.html">#26 代码级深潜</a> 之后,我们已经清楚地看到 <strong>MCP benchmark(MCP-Universe / Atlas / Toolathlon / MCPMark)是 stateful multi-system benchmark,BFCL 是 schema-and-trajectory benchmark</strong> —— 两者评的是不同维度。BFCL 高分(GLM-4.5 70.9% / Qwen3-32B 75.7% V3)<strong>不等于</strong> MCP-Atlas / Universe 高分(GPT-5 在 MCP-Universe 43.72%,Claude Opus 4.7 在 MCP-Atlas 77.3%)。但 BFCL 仍然是<strong>训 ≤40B 函数调用模型的必经第一站</strong>: schema 守规矩 → live 数据健壮 → multi-turn 状态保持 → agentic 调度,这条阶梯的<strong>第一阶</strong>就是 BFCL,而且它是<em>唯一</em>有完整 AST 自动验证、不需要 LLM judge 的 schema-level benchmark。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">BFCL 是什么 — 为什么它是 function-calling 事实标准</a></li>
+    <li><a href="#sec2">历史 — V1 → V2 → V3 → V4 演化(含时间线 SVG)</a></li>
+    <li><a href="#sec3">task 组成详解 — Non-Live / Live / Multi-Turn / Agentic 全 25 类</a></li>
+    <li><a href="#sec4">评测方法 — AST eval / state-based eval / response-based eval</a></li>
+    <li><a href="#sec5">开源现状 — repo / dataset / 评测脚本 / 自托管</a></li>
+    <li><a href="#sec6">完整 leaderboard — V3 / V4 top 模型分组</a></li>
+    <li><a href="#sec7">提交流程 — verbatim 引用</a></li>
+    <li><a href="#sec8">局限 + 与 MCP benchmark 的本质区别</a></li>
+    <li><a href="#sec9">frontier model 官方引用情况 — Claude / GPT / Gemini</a></li>
+    <li><a href="#sec10">我的 take + 实用建议</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">§1 BFCL 是什么 — 为什么它是 function-calling 事实标准</h2>
+
+<p>BFCL 团队对自己的定位 (README, verbatim):</p>
+
+<blockquote>
+"We introduce the Berkeley Function Calling Leaderboard (BFCL), the <strong>first comprehensive and executable function call evaluation</strong> dedicated to assessing Large Language Models' (LLMs) ability to invoke functions. Unlike previous evaluations, BFCL accounts for various forms of function calls, diverse scenarios, and executability."<br>
+— <a href="https://github.com/ShishirPatil/gorilla/blob/main/berkeley-function-call-leaderboard/README.md" target="_blank">repo README</a>
+</blockquote>
+
+<p>而 ICML 2025 paper(<a href="https://openreview.net/forum?id=2GmDdhBdDk" target="_blank">"The Berkeley Function Calling Leaderboard (BFCL): From Tool Use to Agentic Evaluation of Large Language Models"</a>)abstract 最后一句说得更直接:</p>
+
+<blockquote>
+"Since its preview, <strong>BFCL has become the defacto standard for evaluating function-calls</strong>, and can be accessed at gorilla.cs.berkeley.edu/leaderboard.html."<br>
+— Patil et al., ICML 2025, abstract verbatim
+</blockquote>
+
+<h3>1.1 "事实标准"具体是什么意思</h3>
+
+<p>"function-calling 事实标准"这个说法分几层验证:</p>
+<ul>
+  <li><strong>训练目标</strong>: 几乎所有 ≤40B 面向 tool 的模型(xLAM, Hammer, Functionary, NexusRaven, Granite, ToolACE, BitAgent, Llama-xLAM-2, INTELLECT-3 …)都<strong>明确地把 BFCL 作为主要 reporting metric</strong>(见 <a href="27_SmallModelMCP_landscape.html">#27 ≤40B 小模型 MCP landscape</a>)。</li>
+  <li><strong>论文报数</strong>: <a href="22_TOUCAN.html">#22 TOUCAN</a> 在 BFCL V3 报 70.45%, <a href="23_EnvScaler.html">#23 EnvScaler</a> 在 BFCL-MT 报 41.88%, <a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a> 在 BFCL V3 报 53.83 → 65.94 OOD。 全部以 BFCL 为核心 OOD 测试。</li>
+  <li><strong>frontier model card</strong>: GPT-5.5 system card 明确把 BFCL 列为 13K-task CoT-Control 训练集源之一(见 §9)。</li>
+  <li><strong>HF 下载</strong>: 49,556 downloads/月(2026-05, <a href="https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard" target="_blank">HF</a>)。同期 MCPMark/Atlas/Universe/Toolathlon 加起来都没这个量级。</li>
+  <li><strong>Apache-2.0 全套</strong>: 数据 + 评测脚本 + AST checker + state checker 全开源,不像 MCP 系列要么 LLM judge 不可复现要么 OAuth 缺失。</li>
+</ul>
+
+<h3>1.2 团队 & 学术血统</h3>
+
+<div class="kv">
+  <strong>组:</strong> UC Berkeley Sky Computing Lab (前 RISE Lab) · Gorilla LLM 团队<br>
+  <strong>负责人:</strong> Shishir G. Patil(PhD,Berkeley)、Huanzhi Mao(Berkeley)<br>
+  <strong>资深 faculty:</strong> Ion Stoica(Spark / Anyscale / vLLM)+ Joseph E. Gonzalez(BAIR)— 这俩名字直接保证了 BFCL 不会沦为玩具,vLLM 自带 BFCL 测试就是同一拨人<br>
+  <strong>姐妹项目:</strong> <em>Gorilla: Large Language Model Connected with Massive APIs</em>(2023-05, arXiv:2305.15334)→ <em>OpenFunctions</em>(2024-02 首发的 V1 BFCL,代码仓库里的核心 evaluator 还叫 <code>openfunctions_evaluation.py</code>)<br>
+  <strong>邮件:</strong> huanzhimao@berkeley.edu(README 末尾给出的官方联系方式)<br>
+  <strong>Discord 频道:</strong> <a href="https://discord.gg/grXXvj9Whz" target="_blank">discord.gg/grXXvj9Whz</a> 的 <code>#leaderboard</code>
+</div>
+
+<hr>
+
+<h2 id="sec2">§2 历史 — V1 → V2 → V3 → V4 演化</h2>
+
+<p>四代 BFCL 的演化轨迹非常清晰,每代解决前一代暴露出来的"<em>评测过于简单 → 过拟合 → 该测的没测</em>"的问题。下面 SVG 是时间线 + 每代新增能力的可视化。</p>
+
+<div class="fig">
+<svg viewBox="0 0 760 350" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#2f6feb"/><stop offset="1" stop-color="#cc4a1b"/></linearGradient>
+    <marker id="ar" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 z" fill="#5b5e66"/></marker>
+  </defs>
+  <!-- timeline -->
+  <line x1="40" y1="60" x2="720" y2="60" stroke="url(#g1)" stroke-width="3"/>
+  <!-- V1 -->
+  <circle cx="100" cy="60" r="9" fill="#2f6feb"/>
+  <text x="100" y="40" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">V1</text>
+  <text x="100" y="80" text-anchor="middle" font-size="11" fill="#5b5e66">2024-02-26</text>
+  <rect x="40" y="100" width="130" height="120" fill="#fff" stroke="#e2dfd5" rx="6"/>
+  <text x="105" y="120" text-anchor="middle" font-size="11" fill="#1f2024" font-weight="bold">AST eval</text>
+  <text x="105" y="138" text-anchor="middle" font-size="10" fill="#5b5e66">Simple · Multiple</text>
+  <text x="105" y="152" text-anchor="middle" font-size="10" fill="#5b5e66">Parallel · ParaMulti</text>
+  <text x="105" y="166" text-anchor="middle" font-size="10" fill="#5b5e66">Java · JS · REST</text>
+  <text x="105" y="180" text-anchor="middle" font-size="10" fill="#5b5e66">Relevance Detection</text>
+  <text x="105" y="200" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="bold">~1,700 tasks</text>
+  <!-- V2 -->
+  <circle cx="270" cy="60" r="9" fill="#2f6feb"/>
+  <text x="270" y="40" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">V2</text>
+  <text x="270" y="80" text-anchor="middle" font-size="11" fill="#5b5e66">2024-08-19</text>
+  <rect x="210" y="100" width="130" height="120" fill="#fff" stroke="#e2dfd5" rx="6"/>
+  <text x="275" y="120" text-anchor="middle" font-size="11" fill="#1f2024" font-weight="bold">+ Live data</text>
+  <text x="275" y="138" text-anchor="middle" font-size="10" fill="#5b5e66">enterprise +</text>
+  <text x="275" y="152" text-anchor="middle" font-size="10" fill="#5b5e66">OSS contributed</text>
+  <text x="275" y="166" text-anchor="middle" font-size="10" fill="#5b5e66">真实场景 prompt</text>
+  <text x="275" y="180" text-anchor="middle" font-size="10" fill="#5b5e66">irrelevance: 882</text>
+  <text x="275" y="200" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="bold">+2,251 tasks</text>
+  <!-- V3 -->
+  <circle cx="440" cy="60" r="9" fill="#2f6feb"/>
+  <text x="440" y="40" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">V3</text>
+  <text x="440" y="80" text-anchor="middle" font-size="11" fill="#5b5e66">2024-09-19</text>
+  <rect x="380" y="100" width="130" height="120" fill="#fff" stroke="#e2dfd5" rx="6"/>
+  <text x="445" y="120" text-anchor="middle" font-size="11" fill="#1f2024" font-weight="bold">+ Multi-Turn</text>
+  <text x="445" y="138" text-anchor="middle" font-size="10" fill="#5b5e66">base 200</text>
+  <text x="445" y="152" text-anchor="middle" font-size="10" fill="#5b5e66">miss-param 200</text>
+  <text x="445" y="166" text-anchor="middle" font-size="10" fill="#5b5e66">miss-func 200</text>
+  <text x="445" y="180" text-anchor="middle" font-size="10" fill="#5b5e66">long-ctx 200</text>
+  <text x="445" y="200" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="bold">+1,000 multi-turn</text>
+  <!-- V4 -->
+  <circle cx="640" cy="60" r="11" fill="#cc4a1b"/>
+  <text x="640" y="40" text-anchor="middle" font-size="13" font-weight="bold" fill="#cc4a1b">V4 (现行)</text>
+  <text x="640" y="80" text-anchor="middle" font-size="11" fill="#5b5e66">2025-07-17</text>
+  <rect x="570" y="100" width="150" height="120" fill="#fff7e0" stroke="#cc4a1b" rx="6"/>
+  <text x="645" y="120" text-anchor="middle" font-size="11" fill="#1f2024" font-weight="bold">+ Agentic</text>
+  <text x="645" y="138" text-anchor="middle" font-size="10" fill="#5b5e66">Web Search (SerpAPI)</text>
+  <text x="645" y="152" text-anchor="middle" font-size="10" fill="#5b5e66">Memory (KV / Vec / RecSum)</text>
+  <text x="645" y="166" text-anchor="middle" font-size="10" fill="#5b5e66">Format Sensitivity</text>
+  <text x="645" y="180" text-anchor="middle" font-size="10" fill="#5b5e66">权重重排: Agentic 40%</text>
+  <text x="645" y="200" text-anchor="middle" font-size="10" fill="#cc4a1b" font-weight="bold">+~90 agentic tasks</text>
+  <!-- bottom narrative arrow -->
+  <text x="380" y="265" text-anchor="middle" font-size="12" fill="#5b5e66">
+    <tspan x="380" dy="0">单轮 schema 守规矩 → 真实分布(Live)→ 多轮状态保持(Multi-Turn)→ 完整 agentic loop(Web/Memory)</tspan>
+    <tspan x="380" dy="18">越来越靠近 "<tspan font-style="italic" fill="#cc4a1b">真实 production tool agent</tspan>" 但仍然 schema-grounded、自动评测</tspan>
+  </text>
+  <text x="380" y="320" text-anchor="middle" font-size="12" fill="#1f2024" font-weight="bold">
+    V4 overall-acc 公式重排: Non-Live 33%→10% · Live 33%→10% · Multi-Turn 33%→30% · <tspan fill="#cc4a1b">Agentic 0%→40%</tspan> · Irrelevance 0%→10%
+  </text>
+</svg>
+<figcaption>BFCL 四代演化时间线 — 时间和数字均 verbatim 来自 <a href="https://github.com/ShishirPatil/gorilla/blob/main/berkeley-function-call-leaderboard/CHANGELOG.md" target="_blank">CHANGELOG.md</a> 和 <a href="https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard" target="_blank">HF dataset card</a>。V1 日期取自 HF dataset card "Original Release: 02/26/2024"。</figcaption>
+</div>
+
+<h3>2.1 各版本 verbatim 说明</h3>
+
+<h4>V1 — Simple/Parallel/Multiple Function Call eval with AST (2024-02-26)</h4>
+<p>HF dataset card 给出"Original Release: 02/26/2024"。V1 引入了核心创新 —— 用 <strong>AST(抽象语法树)做参数与类型匹配</strong>,而不是把模型输出当字符串去比较或者真的去执行。原始 categories:</p>
+<ul>
+  <li><strong>AST 类:</strong> Simple Python 400 · Java 100 · JavaScript 50 · Multiple Python 200 · Parallel Python 200 · Parallel Multiple Python 200</li>
+  <li><strong>Executable 类:</strong> Simple 100 · REST 70 · Multiple 50 · Parallel 50 · Parallel Multiple 40</li>
+  <li><strong>Relevance/Irrelevance Detection:</strong> 240</li>
+  <li>合计 ~1,700 entries</li>
+</ul>
+
+<h4>V2 — Enterprise and OSS-contributed Live Data (2024-08-19)</h4>
+<p>CHANGELOG verbatim:</p>
+<blockquote>
+"[August 19, 2024] #580: Introduce BFCL V2 Live dataset, featuring <strong>user-contributed live prompts and function docs</strong>. To read more about the composition and construction of this dataset, please refer to our blog. All CLI commands have been updated to support the new dataset."
+</blockquote>
+<p>V2 Live 分布(verbatim 自 HF dataset card):</p>
+<ul>
+  <li>Simple <strong>258</strong> · Multiple <strong>1,053</strong> · Parallel <strong>16</strong> · Parallel Multiple <strong>24</strong> · Irrelevance Detection <strong>882</strong> · Relevance Detection <strong>18</strong></li>
+  <li><strong>Total: 2,251</strong> question-function-answer pairs(数字差异: HF dataset card 写 882,blog 早期写 875; 我们取 HF 上的最新数)</li>
+</ul>
+
+<h4>V3 — Multi-Turn & Multi-Step Function Call Evaluation (2024-09-19)</h4>
+<p>CHANGELOG verbatim:</p>
+<blockquote>
+"[Sept 19, 2024] #644: BFCL V3 release: Introduce <strong>new multi-turn dataset and state-based evaluation metric</strong>."
+</blockquote>
+<p>V3 的 1,000 条 multi-turn(<a href="https://gorilla.cs.berkeley.edu/blogs/13_bfcl_v3_multi_turn.html" target="_blank">官方 blog</a>):</p>
+<ul>
+  <li><strong>Base Multi-Turn 200</strong> — Foundational interactions with all necessary information provided across turns</li>
+  <li><strong>Augmented Multi-Turn 800</strong>:
+    <ul>
+      <li><em>Missing Parameters 200</em> — model 必须主动追问</li>
+      <li><em>Missing Functions 200</em> — model 必须识别"我没有这个工具"并拒绝</li>
+      <li><em>Long-Context 200</em> — 多轮上下文长度 stress</li>
+      <li><em>Composite 200</em> — 三种增强组合</li>
+    </ul>
+  </li>
+</ul>
+
+<h4>V4 — Agentic Web Search + Memory + Format Sensitivity (2025-07-17)</h4>
+<p>这是<strong>现行</strong>版本。CHANGELOG #1019 verbatim 给出 V4 的所有改动:</p>
+<blockquote>
+"[Jul 17, 2025] #1019: BFCL V4 release:
+<ol>
+<li><strong>New agentic domain</strong> — Introduces the agentic domain with two categories: Web Search and Memory Management.</li>
+<li><strong>Revised overall-accuracy formula</strong> — As single-turn tasks approach saturation, weighting now favors complex, multi-step agentic tasks."
+</li></ol>
+</blockquote>
+
+<p>新权重表(<strong>这是 V4 最关键的变化</strong>):</p>
+<table>
+  <tr><th>Segment</th><th>Old %</th><th>New %</th></tr>
+  <tr><td>Live(V2 用户贡献)</td><td>33</td><td><strong>10</strong></td></tr>
+  <tr><td>Non-Live(V1 学术合成)</td><td>33</td><td><strong>10</strong></td></tr>
+  <tr><td>Irrelevance Detection</td><td>0</td><td><strong>10</strong></td></tr>
+  <tr><td>Multi-Turn(V3)</td><td>33</td><td><strong>30</strong></td></tr>
+  <tr><td><strong>Agentic(V4 新)</strong></td><td><strong>0</strong></td><td><strong>40</strong></td></tr>
+</table>
+
+<p>除此之外 V4 还做了:</p>
+<ul>
+  <li>退役 Executable categories(rest / exec_simple / exec_parallel / exec_multiple / exec_parallel_multiple)— 2025-04-09 #943</li>
+  <li>category 改名: <code>simple</code> → <code>simple_python</code>,<code>java</code> → <code>simple_java</code>,<code>javascript</code> → <code>simple_javascript</code></li>
+  <li>目录结构改为两级 hierarchy: <code>result/&lt;model&gt;/&lt;general_category&gt;/&lt;category&gt;.json</code>,其中 <code>general_category ∈ {non_live, live, multi_turn, agentic, format_sensitivity}</code></li>
+  <li>支持的 frontier model 显式列出:<code>claude-opus-4-1-20250805</code> · <code>gpt-5-2025-08-07</code> · <code>gpt-5-mini-2025-08-07</code> · <code>gpt-5-nano-2025-08-07</code> · <code>Qwen/Qwen3-30B-A3B-Instruct-2507</code> · <code>Qwen/Qwen3-235B-A22B-Instruct-2507</code> · <code>Qwen/Qwen3-4B-Instruct-2507</code></li>
+</ul>
+
+<h4>V4 三个 Part 的细节</h4>
+
+<p><strong>V4 Part 1 — Agentic Web Search</strong>(<a href="https://gorilla.cs.berkeley.edu/blogs/15_bfcl_v4_web_search.html" target="_blank">blog 15</a>): 2025-07-17 发布。引入 <strong>multihop QA</strong> 任务 —— "100 human-crafted multihop questions spanning various domains"。<strong>需要 SerpAPI 才能跑</strong>(README 明确说: "For the <code>web_search</code> test category, we use the SerpAPI service to perform web search. You need to sign up for an API key…")。子 category 有 <code>web_search_base</code> 和 <code>web_search_no_snippet</code>(后者强制模型 fetch + read webpage 而不是只用 search snippet)。</p>
+
+<p><strong>V4 Part 2 — Agentic Memory Management</strong>(<a href="https://gorilla.cs.berkeley.edu/blogs/16_bfcl_v4_memory.html" target="_blank">blog 16</a>): 同日发布,150+ 题。覆盖 5 个 domain —— College Student Advising / Customer Support / Personal To-Do List / Healthcare Patient / Finance Managing Director。3 种 memory backend(灵感来自 MemGPT / Mem0):</p>
+<ul>
+  <li><strong>memory_kv</strong>: key-value store · API: <code>memory_add() · memory_remove() · memory_clear() · memory_search()</code></li>
+  <li><strong>memory_vector</strong>: 向量数据库 · 同 API 接口</li>
+  <li><strong>memory_rec_sum</strong>: recursive summarization · API: <code>memory_append() · memory_update() · memory_replace() · memory_clear() · memory_retrieve()</code></li>
+</ul>
+
+<p><strong>V4 Part 3 — Agentic Format Sensitivity</strong>(blog 17): 这一项<strong>不进入总分</strong>,只作 diagnostic — 看 prompt 模板小改动会不会让 prompting-mode 模型崩溃。</p>
+
+<hr>
+
+<h2 id="sec3">§3 task 组成详解</h2>
+
+<p>BFCL V4 一共 25 个 individual test category(从 <a href="https://github.com/ShishirPatil/gorilla/blob/main/berkeley-function-call-leaderboard/TEST_CATEGORIES.md" target="_blank">TEST_CATEGORIES.md</a> verbatim 抽取)。按 general_category 分组如下:</p>
+
+<table>
+  <tr><th>group</th><th>category(repo 内 ID)</th><th>说明</th><th>来源</th></tr>
+  <tr><td rowspan="6">non_live<br>(V1 学术合成)</td><td><code>simple_python</code></td><td>简单 Python 单函数调用</td><td>V1</td></tr>
+  <tr><td><code>simple_java</code></td><td>Java 单函数调用</td><td>V1</td></tr>
+  <tr><td><code>simple_javascript</code></td><td>JavaScript 单函数调用</td><td>V1</td></tr>
+  <tr><td><code>multiple</code></td><td>多个备选 function 中选一个调用</td><td>V1</td></tr>
+  <tr><td><code>parallel</code></td><td>同一函数并行多次调用</td><td>V1</td></tr>
+  <tr><td><code>parallel_multiple</code></td><td>多函数并行多次调用</td><td>V1</td></tr>
+  <tr><td>irrelevance</td><td><code>irrelevance</code></td><td>function doc 全部不相关 → 模型必须拒绝调用</td><td>V1</td></tr>
+  <tr><td rowspan="6">live<br>(V2 用户贡献)</td><td><code>live_simple</code></td><td>用户贡献的真实简单调用</td><td>V2</td></tr>
+  <tr><td><code>live_multiple</code></td><td>用户贡献多函数</td><td>V2</td></tr>
+  <tr><td><code>live_parallel</code></td><td>用户贡献并行</td><td>V2</td></tr>
+  <tr><td><code>live_parallel_multiple</code></td><td>用户贡献多函数并行</td><td>V2</td></tr>
+  <tr><td><code>live_irrelevance</code></td><td>用户贡献的"应该拒绝"场景</td><td>V2</td></tr>
+  <tr><td><code>live_relevance</code></td><td>用户贡献的"应该调用"场景</td><td>V2</td></tr>
+  <tr><td rowspan="4">multi_turn<br>(V3 状态)</td><td><code>multi_turn_base</code></td><td>200 — 基础多轮 + 全部信息齐备</td><td>V3</td></tr>
+  <tr><td><code>multi_turn_miss_func</code></td><td>200 — 缺函数 → 应拒绝</td><td>V3</td></tr>
+  <tr><td><code>multi_turn_miss_param</code></td><td>200 — 缺参数 → 应追问</td><td>V3</td></tr>
+  <tr><td><code>multi_turn_long_context</code></td><td>200 — 长上下文 stress</td><td>V3</td></tr>
+  <tr><td rowspan="5">agentic<br>(V4)</td><td><code>memory_kv</code></td><td>KV store 后端的 read/write/search</td><td>V4</td></tr>
+  <tr><td><code>memory_vector</code></td><td>向量库后端</td><td>V4</td></tr>
+  <tr><td><code>memory_rec_sum</code></td><td>recursive summarization 后端</td><td>V4</td></tr>
+  <tr><td><code>web_search_base</code></td><td>SerpAPI multihop QA</td><td>V4</td></tr>
+  <tr><td><code>web_search_no_snippet</code></td><td>强制 fetch + read webpage</td><td>V4</td></tr>
+  <tr><td>diag(不计分)</td><td><code>format_sensitivity</code></td><td>system prompt 格式扰动诊断</td><td>V4</td></tr>
+</table>
+
+<p><strong>V4 增强子集还包括</strong>: composite (3 种 multi-turn 增强组合), but blog 13 把它划归 augmented multi-turn 类。</p>
+
+<details>
+<summary>category 描述 verbatim(README 截选)</summary>
+<pre>
+- simple_python: Simple Python function calls. Part of the "non-live simple"
+  category on the leaderboard.
+- multiple: Multiple function calls in sequence.
+- parallel: Multiple function calls in parallel.
+- parallel_multiple: Multiple function calls in parallel and in sequence.
+- irrelevance: Function calls with irrelevant function documentation.
+- multi_turn_base: Base entries for multi-turn function calls.
+- multi_turn_miss_func: Multi-turn function calls with missing function.
+- multi_turn_miss_param: Multi-turn function calls with missing parameter.
+- multi_turn_long_context: Multi-turn function calls with long context.
+- memory_kv: Tests reading from and writing to a key-value memory backend.
+- memory_vector: Tests reading from and writing to a vector-database memory backend.
+- memory_rec_sum: Tests reading from and writing to a recursive-summarization memory backend.
+- web_search_base: Base entries for web-search calls.
+- web_search_no_snippet: Web-search calls where search-engine snippets are withheld,
+  forcing the model to fetch and read webpages.
+- format_sensitivity: Various system prompt formats to test the format sensitivity
+  of the model. (Only works for prompting mode models.)
+</pre>
+</details>
+
+<h3>3.1 几个 prompt template 片段</h3>
+
+<p><strong>Simple Python (V1)</strong> — 一道典型 simple_python 题的 ground truth(改写自 repo 中的 simple_python_x):</p>
+<pre>{
+  "id": "simple_python_3",
+  "question": [[{
+    "role":"user",
+    "content":"Calculate the area of a triangle with base 10 and height 5."
+  }]],
+  "function": [{
+    "name": "calculate_triangle_area",
+    "description": "Calculate the area of a triangle given its base and height.",
+    "parameters": {"type":"dict",
+      "properties":{
+        "base":{"type":"integer","description":"Base length in units"},
+        "height":{"type":"integer","description":"Height in units"},
+        "unit":{"type":"string","description":"Unit (cm, m, etc.)","default":"units"}
+      },
+      "required":["base","height"]}
+  }],
+  "possible_answer": [{
+    "calculate_triangle_area":{
+      "base":[10], "height":[5], "unit":["units","cm","m"]
+    }
+  }]
+}</pre>
+<p>注意 <code>possible_answer</code> 中 <code>unit</code> 给了多个允许值 —— BFCL AST 允许 <strong>多 ground-truth(set membership)</strong>,这是它和 string-match eval 的核心区别。</p>
+
+<p><strong>Multi-Turn (V3)</strong> — multi_turn_base 题目长这样(改写示意):</p>
+<pre>{
+  "id":"multi_turn_base_15",
+  "initial_config":{
+    "TravelAPI":{...}, "GorillaFileSystem":{...}
+  },
+  "involved_classes":["TravelAPI","MessageAPI"],
+  "question":[
+    [{"role":"user","content":"Book me a flight from SFO to JFK on May 20."}],
+    [{"role":"user","content":"Wait, change it to May 22 and message my partner."}]
+  ],
+  "ground_truth":[
+    ["TravelAPI.book_flight(origin='SFO', dest='JFK', date='2026-05-20')"],
+    ["TravelAPI.modify_booking(booking_id='...', new_date='2026-05-22')",
+     "MessageAPI.send(recipient='partner', body='Flight changed to May 22')"]
+  ]
+}</pre>
+
+<hr>
+
+<h2 id="sec4">§4 评测方法</h2>
+
+<p>BFCL 同时支持两种核心评测,V3 起又增加 state-based + response-based 双重 multi-turn 评测。</p>
+
+<h3>4.1 AST evaluation(V1 起,所有 single-turn 用)</h3>
+
+<p>AST checker 的核心 dispatch(verbatim 自 <code>bfcl_eval/eval_checker/ast_eval/ast_checker.py</code>):</p>
+<pre>def ast_checker(
+    func_description,
+    model_output,
+    possible_answer,
+    language: Language,
+    test_category: str,
+    model_name: str,
+):
+    if "parallel" in test_category:
+        return parallel_function_checker_no_order(
+            func_description, model_output, possible_answer, language, model_name
+        )
+    elif "multiple" in test_category:
+        return multiple_function_checker(
+            func_description, model_output, possible_answer, language, model_name
+        )
+    else:
+        return simple_function_checker(
+            func_description[0], model_output[0], possible_answer[0], language, model_name
+        )</pre>
+
+<p>三个 sub-checker 都基于<strong>真正解析模型输出为 AST</strong>(Python: <code>ast.parse</code>;Java/JS: 各自的 tree-sitter 风格 parser),然后逐层匹配:</p>
+<ol>
+  <li><strong>函数名匹配</strong> —— 调对函数没?</li>
+  <li><strong>参数名匹配</strong> —— 必填参数都给了没?</li>
+  <li><strong>类型匹配</strong> —— int 不能给成 str(<em>strict on typing</em>)。但有个例外: <code>int → float</code> Python 自动转,允许放宽(CHANGELOG 2024-06-07 #407 加入)。</li>
+  <li><strong>值匹配</strong> —— 落在 <code>possible_answer</code> 的合法值集合里就算对(允许 multi-ground-truth)。</li>
+  <li><strong>String standardization</strong>(2024-04-03 #309 引入)—— 去白空格 + 去 <code>,./-_*^</code> 子集标点,让 AST 匹配更鲁棒。</li>
+</ol>
+
+<p>对 <code>parallel</code> 类用 <strong>no-order matching</strong>(可以乱序,数量必须对);<code>multiple</code> 用 all-or-nothing(<em>"strict all-or-nothing for multiple/parallel scenarios"</em> — blog 8 verbatim)。</p>
+
+<h3>4.2 Executable evaluation(V1 引入,V4 在 2025-04-09 #943 整体退役)</h3>
+
+<p>原来的 <code>exec_simple / exec_parallel / exec_multiple / exec_parallel_multiple / rest</code> 真的会去 import 一个函数包并执行,然后用四种 criteria 之一:</p>
+<ul>
+  <li><strong>exact_match</strong> — 严格相等</li>
+  <li><strong>structural_match (type match)</strong> — list 比长度,dict 比 key</li>
+  <li><strong>real_time_match</strong> — 数值结果允许 20% 误差(用来兼容 API 实时数据微变化)</li>
+  <li><strong>API sanity check</strong> — 每次跑 eval 先 ping 一遍 API 健不健康</li>
+</ul>
+
+<div class="nb"><strong>注意 — V4 已经退役 executable category。</strong> CHANGELOG 2025-04-09 #943 verbatim: "Retire the executable categories from the leaderboard. The following categories will be excluded from the evaluation pipeline: rest, exec_simple, exec_parallel, exec_multiple, exec_parallel_multiple." 退役的核心原因是 <strong>真实 API 太不稳定</strong>(weather/news/finance API 几乎每周都坏一次),AST + state-based 更可控。</div>
+
+<h3>4.3 State-based evaluation(V3 起,所有 multi-turn 用)</h3>
+
+<p>这是 V3 最大的方法学创新。整套 multi-turn 包含一个 <em>backend simulator</em>(<code>GorillaFileSystem / TravelAPI / MessageAPI / VehicleControlAPI / TicketAPI / TradingBot / MathAPI</code>)。模型每发一个工具调用,backend 实际执行并改变 state。评测时(blog 13 verbatim):</p>
+
+<blockquote>
+"<strong>State-based evaluation</strong>: Compares <em>backend system attributes after</em> all function calls complete each turn, capturing correctness of write/delete operations.<br><br>
+<strong>Response-based evaluation (subset-matched)</strong>: Validates execution paths against minimal viable ground truth trajectories, ensuring read-only requests succeed while allowing reasonable alternative paths rather than requiring exact trajectory matching.<br><br>
+Human-labeled ground truth trajectories underpin all evaluation."
+</blockquote>
+
+<p>关键设计点:</p>
+<ul>
+  <li><strong>State diff 而非 trajectory match</strong> — 只要最终 state 对了,中间走多远的路都行。这样允许 exploration / error recovery。</li>
+  <li><strong>Read-only 操作单独 subset-match</strong> — read-only 不修改 state,所以只检查"是否调对了"。</li>
+  <li><strong>Human-labeled GT</strong> — 不用 LLM judge,因此可复现。这是它和 MCP-Atlas / MCP-Universe 的分水岭(后两者要么 Gemini judge 要么真 GCP env,都不便宜)。</li>
+</ul>
+
+<h3>4.4 Hallucination detection(贯穿所有版本)</h3>
+
+<p><code>irrelevance</code> / <code>live_irrelevance</code> / <code>multi_turn_miss_func</code> 三类都是<strong>测拒答能力</strong> —— function doc 里没有合适工具时,模型应该用自然语言回答而不是硬编一个 function name。Hallucination = 在没有合适工具的时候编出一个。</p>
+
+<hr>
+
+<h2 id="sec5">§5 开源现状 — repo / dataset / 评测脚本 / 自托管</h2>
+
+<table>
+  <tr><th>组件</th><th>位置</th><th>状态</th></tr>
+  <tr><td>代码仓库</td><td><a href="https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard" target="_blank">ShishirPatil/gorilla / berkeley-function-call-leaderboard/</a></td><td>主目录,Apache-2.0</td></tr>
+  <tr><td>PyPI 包</td><td><code>pip install bfcl-eval</code></td><td>2025-06-08 #1054 发布,<strong>注意</strong>: PyPI 上有个 unrelated 的 <code>bfcl</code> 包,别装错</td></tr>
+  <tr><td>HF dataset</td><td><a href="https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard" target="_blank">gorilla-llm/Berkeley-Function-Calling-Leaderboard</a></td><td>11.7 MB,49,556 下载/月,Apache-2.0。<strong>不能用 <code>load_dataset()</code></strong>,得手工 jsonl 读</td></tr>
+  <tr><td>Live leaderboard</td><td><a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank">gorilla.cs.berkeley.edu/leaderboard.html</a></td><td>每月更新,最后 commit 2026-04-12 (f7cf735)</td></tr>
+  <tr><td>评测脚本</td><td><code>bfcl_eval/eval_checker/</code></td><td><code>ast_eval/ast_checker.py</code> + <code>multi_turn_eval/</code> + <code>executable_eval/</code> (legacy)</td></tr>
+  <tr><td>模型 handler</td><td><code>bfcl_eval/model_handler/</code></td><td>base_handler.py + 每个 model 一个 handler 文件</td></tr>
+  <tr><td>License</td><td>Apache-2.0(README 末尾:<em>"All the leaderboard statistics, and data used to train the models are released under Apache 2.0"</em>)</td><td>训练数据可商用</td></tr>
+</table>
+
+<h3>5.1 三步自托管完整流程(README verbatim)</h3>
+
+<pre># 1. 装环境
+conda create -n BFCL python=3.10
+conda activate BFCL
+git clone https://github.com/ShishirPatil/gorilla.git
+cd gorilla/berkeley-function-call-leaderboard
+pip install -e .
+
+# 2. 生成 model 响应(以 OSS Qwen3-8B 为例)
+bfcl generate \
+  --model Qwen/Qwen3-8B-FC \
+  --test-category multi_turn \
+  --backend vllm \
+  --num-gpus 1 \
+  --gpu-memory-utilization 0.9
+
+# 3. 评测
+bfcl evaluate --model Qwen/Qwen3-8B-FC --test-category multi_turn
+
+# 输出: score/Qwen/Qwen3-8B-FC/multi_turn/*.json
+#       score/data_overall.csv
+#       score/data_multi_turn.csv</pre>
+
+<p>关键 flag:</p>
+<ul>
+  <li><code>--backend {sglang|vllm}</code>: sglang 在 multi-turn 用例下"<em>much faster</em>",但只支持 SM80+(Ampere 起);老 GPU 用 vllm</li>
+  <li><code>--local-model-path</code>: 离线推理 — 指向预下载好的 ckpt 目录</li>
+  <li><code>--enable-lora --lora-modules name="path"</code>: 直接评测 LoRA adapter 微调模型</li>
+  <li><code>--run-ids</code> + <code>test_case_ids_to_generate.json</code>: 只跑指定 ID,迭代时省时间</li>
+  <li><code>--partial-eval</code>: 评测部分 entry(注意不能和官方 leaderboard 数字直接对比)</li>
+  <li><code>--skip-server-setup</code> + <code>LOCAL_SERVER_ENDPOINT</code>/<code>LOCAL_SERVER_PORT</code>: 接 SLURM 上已经在跑的 vllm 服务</li>
+  <li><code>REMOTE_OPENAI_BASE_URL</code> / <code>REMOTE_OPENAI_API_KEY</code>: 接 RunPod / ngrok / 企业网关</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">§6 完整 leaderboard — V3 / V4 top 模型分组</h2>
+
+<div class="warn"><strong>数据源声明:</strong> 官方 <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank">gorilla.cs.berkeley.edu/leaderboard.html</a> 用动态 JS table 渲染,curl 抓不到原始数字。下表整合了 (1) HF dataset card 上的官方版本号 + (2) <a href="https://awesomeagents.ai/leaderboards/function-calling-benchmarks-leaderboard/" target="_blank">awesomeagents.ai 2026-05 镜像快照</a>(23 models assessed) + (3) <a href="https://llm-stats.com/benchmarks/bfcl-v4" target="_blank">llm-stats.com BFCL V4</a> + (4) 第三方 BenchLM。可能与官方实时 leaderboard 有 1-3 个百分点漂移,以官方 live page 为准。</div>
+
+<h3>6.1 BFCL V3 Overall (2026 镜像)</h3>
+
+<p>下表是 BFCL V3 整体准确率 ranking(awesomeagents.ai 2026-05 snapshot, 23 models),按 Overall % 排序,V3 时代的核心维度是 multi-turn 状态保持。</p>
+
+<table>
+  <tr><th>排名</th><th>模型</th><th>类型</th><th>Overall %</th></tr>
+  <tr><td>1</td><td>GLM 4.5 Thinking</td><td><strong>proprietary</strong> (Z AI)</td><td>76.7</td></tr>
+  <tr><td>2</td><td>Qwen3 32B Thinking</td><td><strong>open-weight</strong> (Alibaba)</td><td>75.7</td></tr>
+  <tr><td>2</td><td>Qwen3 32B</td><td><strong>open-weight</strong> (Alibaba)</td><td>75.7</td></tr>
+  <tr><td>4</td><td>Qwen3 Max</td><td>open-weight (Alibaba)</td><td>74.9</td></tr>
+  <tr><td>5</td><td>GLM-4.7-Flash Thinking</td><td>proprietary (Z AI)</td><td>74.6</td></tr>
+  <tr><td>5</td><td>GLM-4.7-Flash</td><td>proprietary (Z AI)</td><td>74.6</td></tr>
+  <tr><td>7</td><td>GLM 4.5 Air</td><td>proprietary (Z AI)</td><td>69.1</td></tr>
+  <tr><td>8</td><td>Nova Pro 1.0</td><td>proprietary (Amazon)</td><td>67.9</td></tr>
+  <tr><td>9</td><td>Kimi K2.5 Thinking</td><td>open-weight (Moonshot)</td><td>64.5</td></tr>
+  <tr><td>9</td><td>Kimi K2.5</td><td>open-weight (Moonshot)</td><td>64.5</td></tr>
+  <tr><td>11</td><td>INTELLECT-3</td><td>open-weight (Prime Intellect)</td><td>63.5</td></tr>
+  <tr><td>12</td><td>Llama 4 Scout</td><td>open-weight (Meta)</td><td>55.7</td></tr>
+  <tr><td>13</td><td>Gemini 3 Flash Preview Thinking</td><td>proprietary (Google)</td><td>53.5</td></tr>
+  <tr><td>14</td><td>MiniMax M1</td><td>open-weight (MiniMax)</td><td>47.8</td></tr>
+  <tr><td>15</td><td>Nemotron 3 Nano 30B A3B Thinking</td><td>open-weight (NVIDIA)</td><td>41.6</td></tr>
+  <tr><td>15</td><td>Nemotron 3 Nano 30B A3B</td><td>open-weight (NVIDIA)</td><td>41.6</td></tr>
+  <tr><td>17</td><td>Phi 4</td><td>open-weight (Microsoft)</td><td>40.8</td></tr>
+  <tr><td>18</td><td>Claude Opus 4 Thinking</td><td><strong>proprietary (Anthropic)</strong></td><td><span class="bad">25.3</span></td></tr>
+  <tr><td>18</td><td>Claude Opus 4</td><td>proprietary (Anthropic)</td><td><span class="bad">25.3</span></td></tr>
+  <tr><td>18</td><td>Kimi K2 0711</td><td>open-weight (Moonshot)</td><td>25.3</td></tr>
+</table>
+
+<div class="nb">
+<strong>有意思的反差:</strong> Claude Opus 4 在 BFCL V3 只有 25.3%,但同期 MCP-Atlas Live(<a href="19_MCPAtlas_2602.00933.html">#19</a>)上 Claude Opus 4.7 拿到 77.3%。这<strong>不是 Claude 不会调函数</strong> —— Anthropic 的 Tool Use API schema 和 BFCL 的标准 schema 不完全兼容,导致 prompt 模式下表现差。Anthropic FC handler(<code>claude-opus-4-1-20250805</code>)是 V4 才正式加入的(CHANGELOG #1019)。<strong>这是一条最经典的"格式敏感性"教训</strong>,也是 V4 加 <code>format_sensitivity</code> 诊断的原因。
+</div>
+
+<h3>6.2 BFCL V4 Overall (现行版本, 2026-04-12 commit f7cf735)</h3>
+
+<p>V4 用了重排公式(Agentic 40% / Multi-Turn 30% / Live 10% / Non-Live 10% / Irrelevance 10%)。第三方镜像数(<a href="https://llm-stats.com/benchmarks/bfcl-v4" target="_blank">llm-stats.com</a> + <a href="https://awesomeagents.ai/" target="_blank">awesomeagents.ai</a> + Klavis blog):</p>
+
+<table>
+  <tr><th>排名</th><th>模型</th><th>组别</th><th>BFCL V4 Overall %</th><th>备注</th></tr>
+  <tr><td>1</td><td><strong>GLM 4.5</strong></td><td>proprietary (Z AI)</td><td><strong>70.9</strong></td><td>当前 V4 SOTA · open-weight 系</td></tr>
+  <tr><td>2</td><td>Claude Opus 4.1</td><td>proprietary (Anthropic)</td><td>~70(close to GLM)</td><td>V4 用专门的 FC handler</td></tr>
+  <tr><td>3</td><td>Claude Sonnet 4</td><td>proprietary (Anthropic)</td><td>~68</td><td></td></tr>
+  <tr><td>4</td><td>Qwen3.5-397B-A17B (Qwen Team 2026-04 报)</td><td>open-weight</td><td>72.9*</td><td>注: 数字来自 llm-stats Qwen 自报,与上面 GLM 重叠</td></tr>
+  <tr><td>5</td><td>Qwen3.5-122B-A10B</td><td>open-weight</td><td>72.2</td><td>Qwen 自报</td></tr>
+  <tr><td>6</td><td>Qwen3.5-27B</td><td>open-weight</td><td>68.5</td><td>Qwen 自报</td></tr>
+  <tr><td>7</td><td><strong>GPT-5</strong></td><td>proprietary (OpenAI)</td><td><strong>59.2</strong></td><td>"surprisingly wide gap" — Klavis blog</td></tr>
+  <tr><td>...</td><td>(Qwen3.5-9B / 4B / 2B / 0.8B 等)</td><td>open-weight (Qwen)</td><td>66.1 / 50.3 / 43.6 / 25.3</td><td>Qwen 自报递减</td></tr>
+  <tr><td>—</td><td>ZAYA1-8B</td><td>open-weight (Zyphra)</td><td>39.2</td><td>BenchLM 8B 类</td></tr>
+</table>
+
+<p><strong>注</strong>: V4 leaderboard 的 frontier model 数字处在快速变化中 — Anthropic / OpenAI 的 BFCL V4 数字主要来自第三方 fork 测试,官方 live leaderboard 截止 2026-04-12 (commit f7cf735) 不一定与上表完全匹配。<strong>取决于 prompt mode(FC native vs prompting) 也会差 5-15 pp</strong>。</p>
+
+<h3>6.3 ≤40B open-weight 子榜 — 我们最关心的</h3>
+
+<p>对 <a href="27_SmallModelMCP_landscape.html">#27 小模型 MCP landscape</a> 那群读者最相关的子集:</p>
+
+<table>
+  <tr><th>模型</th><th>params</th><th>BFCL V3</th><th>BFCL V4</th><th>License</th></tr>
+  <tr><td>Qwen3-32B (FC mode)</td><td>32B dense</td><td><strong>75.7</strong></td><td>~68</td><td>Apache-2.0</td></tr>
+  <tr><td>Qwen3-30B-A3B-Instruct-2507</td><td>30B / 3B-active MoE</td><td>~70</td><td>—</td><td>Apache-2.0</td></tr>
+  <tr><td>TOUCAN-Qwen2.5-32B (<a href="22_TOUCAN.html">#22</a>)</td><td>32B dense</td><td><strong>70.45</strong></td><td>—</td><td>Apache-2.0 (data+ckpt)</td></tr>
+  <tr><td>Qwen3-8B-FC + EnvScaler (<a href="23_EnvScaler.html">#23</a>)</td><td>8B</td><td>—</td><td>BFCL-MT 41.88 (超 GPT-4.1 40.0)</td><td>MIT</td></tr>
+  <tr><td>AWM-Qwen3-Thinking-8B (<a href="18_AgentWorldModel_2602.10090.html">#18</a>)</td><td>8B</td><td>53.83 → 65.94 OOD</td><td>—</td><td>—</td></tr>
+  <tr><td>Salesforce/Llama-xLAM-2-70b-fc-r</td><td>70B</td><td>~66</td><td>—</td><td>Apache-2.0</td></tr>
+  <tr><td>Salesforce/xLAM-2-32b-fc-r</td><td>32B</td><td>~62</td><td>—</td><td>Apache-2.0</td></tr>
+  <tr><td>Phi-4</td><td>14B</td><td>40.8</td><td>—</td><td>MIT</td></tr>
+  <tr><td>Nemotron 3 Nano 30B A3B</td><td>30B/A3B</td><td>41.6</td><td>—</td><td>NVIDIA Open</td></tr>
+  <tr><td>ToolACE-2-8B</td><td>8B</td><td>~55</td><td>—</td><td>Apache-2.0</td></tr>
+  <tr><td>BitAgent-8B</td><td>8B</td><td>~54</td><td>—</td><td>—</td></tr>
+  <tr><td>meetkai/functionary-medium-v3.1</td><td>32B (Llama-3.1 base)</td><td>~52</td><td>—</td><td>MIT</td></tr>
+  <tr><td>Hermes-2-Pro-Llama-3-70B</td><td>70B</td><td>~50</td><td>—</td><td>Apache-2.0</td></tr>
+</table>
+
+<p><strong>≤40B 当前 ceiling: Qwen3-32B (BFCL V3 75.7%)</strong> — 它是 open-weight + ≤40B 双重约束下的 V3 第一名,这也解释了为什么 #27 决策树里 Qwen3 系列被反复推荐为冷启 base。</p>
+
+<hr>
+
+<h2 id="sec7">§7 提交流程</h2>
+
+<p>BFCL 的提交流程 <strong>不像 MCPMark / Atlas 那样有 web submission portal</strong> — 它是 <strong>纯 PR-based</strong>。README "Contributing" verbatim:</p>
+
+<blockquote>
+"We welcome contributions! To add a new model:
+<ol>
+<li>Review <code>bfcl_eval/model_handler/base_handler.py</code> and/or <code>bfcl_eval/model_handler/local_inference/base_oss_handler.py</code> (if your model is hosted locally).</li>
+<li>Implement a new handler class for your model.</li>
+<li>Update <code>bfcl_eval/constants/model_config.py</code>.</li>
+<li>Submit a Pull Request.</li>
+</ol>
+For detailed steps, please see the <a href="https://github.com/ShishirPatil/gorilla/blob/main/berkeley-function-call-leaderboard/CONTRIBUTING.md" target="_blank">Contributing Guide</a>."
+</blockquote>
+
+<p>实操步骤:</p>
+<ol>
+  <li><strong>fork</strong> ShishirPatil/gorilla</li>
+  <li>在 <code>bfcl_eval/model_handler/{api,local_inference}/</code> 实现一个 handler 类(参考 <code>OpenAIHandler</code> / <code>AnthropicHandler</code> / <code>QwenHandler</code>)</li>
+  <li>把 model name + handler 类注册到 <code>bfcl_eval/constants/model_config.py</code></li>
+  <li>本地跑 <code>bfcl generate</code> + <code>bfcl evaluate</code> 出 <code>score/data_overall.csv</code></li>
+  <li>提 PR,附 <code>data_overall.csv</code> + <code>data_live.csv</code> + <code>data_multi_turn.csv</code></li>
+  <li>Berkeley 团队 review 后合并 + 更新 live leaderboard</li>
+</ol>
+
+<div class="nb"><strong>注意:</strong> BFCL 不要求自报数字必须复现 —— 维护者会用同一套 commit(目前 f7cf735, 2026-04-12)在 Berkeley 自己的硬件上重测。这点比 MCPMark(<a href="21_MCPBenchmarks_compare.html">#21</a>)严格,后者接受自报但只标 "self-reported"。</div>
+
+<hr>
+
+<h2 id="sec8">§8 局限 + 与 MCP benchmark 的本质区别</h2>
+
+<h3>8.1 BFCL 本身的几个局限</h3>
+
+<ol>
+  <li><strong>Schema-based, not stateful real-MCP</strong> — BFCL multi-turn 用的是 7 个简化的 Python class backend(<code>GorillaFileSystem / TravelAPI / MessageAPI / VehicleControlAPI / TicketAPI / TradingBot / MathAPI</code>),不是真实的 OAuth-authenticated MCP server。所以"BFCL 高分"不能保证模型在<strong>真实 Notion / GitHub / Stripe API</strong> 上工作。</li>
+  <li><strong>Web Search 强绑 SerpAPI</strong> — 你想跑 V4 的 web_search category,必须有 SerpAPI key,且数字会随互联网内容漂移。这是 V4 唯一的"非确定性"评测部分。</li>
+  <li><strong>Live category 受用户贡献质量影响</strong> — V2 Live 数据来自社区 PR,质量不均(CHANGELOG 里反复在修单条 ground truth bug:#600 #1185 #1175 #1086 …)。</li>
+  <li><strong>Format Sensitivity 暴露了"分数易碎"</strong> — V4 引入这一类的本意是承认:很多模型在 BFCL 上跑 60% 跑 70% 完全取决于 system prompt 怎么写。</li>
+  <li><strong>没有真长 horizon</strong> — V3 multi-turn 主要 1-3 轮,V4 web/memory 也少有 >10 轮。对比 Toolathlon(<a href="21_MCPBenchmarks_compare.html">#21</a>)的 50+ tool 多 hop 任务,BFCL agentic 更像"短 vignette"。</li>
+  <li><strong>评测语言/生态局限</strong> — Java 100 + JavaScript 50 数量太少,REST 70 已被 V4 退役。<strong>BFCL 实际上是 Python-only 的 function-calling benchmark</strong>。</li>
+</ol>
+
+<h3>8.2 为什么 "BFCL 高分 ≠ MCP benchmark 高分"</h3>
+
+<p>这是 <a href="21_MCPBenchmarks_compare.html">#21</a> 和 <a href="26_MCPBenchmarks_codedive.html">#26</a> 反复验证的命题。把核心差异提炼成一张表:</p>
+
+<table>
+  <tr><th>维度</th><th>BFCL</th><th>MCP-Atlas / Universe / Toolathlon / MCPMark</th></tr>
+  <tr><td>tool 接口</td><td>Python class API(纯 schema)</td><td>真实 MCP protocol (JSON-RPC + OAuth)</td></tr>
+  <tr><td>state</td><td>simple in-memory backend</td><td>真 stateful service(GCP / Notion / Stripe / Slack / Filesystem)</td></tr>
+  <tr><td>评测器</td><td>AST + state diff(<strong>无 LLM judge</strong>)</td><td>Atlas: Gemini-2.5-Pro claim judge · Universe: format+static+dynamic 三层 · MCPMark: verify.py 真断言 · Toolathlon: 真副作用</td></tr>
+  <tr><td>轮次</td><td>1-10 turn</td><td>10-50+ turn</td></tr>
+  <tr><td>失败模式</td><td>错调 / 错参数 / 不拒答</td><td>OAuth token 失效 / API 限流 / 半完成 state / 副作用泄漏</td></tr>
+  <tr><td>价格(跑一次完整 eval)</td><td>~$50 API + 几小时 GPU</td><td>$500-2000 API + 真 cloud env</td></tr>
+  <tr><td>"高分"含义</td><td>schema 守得住 + 状态记得清</td><td>能在真生产 stack 完成任务</td></tr>
+</table>
+
+<p>所以 GPT-5 在 BFCL V4 只有 59.2 但在 MCP-Atlas 上其它数字更分散(GPT-5.4 在 MCP-Atlas 68.1%),而 Claude Opus 4 在 BFCL V3 25.3 但在 MCP-Atlas Live 是 77.3 —— <strong>评的根本就是不同维度</strong>。从 #26 的结论上看:</p>
+
+<blockquote>
+"<strong>不能一个 ckpt SOTA 全部 benchmark,但可以打到各 80%</strong>。 联合训配方: TOUCAN 冷启(BFCL) + MCPMark/Universe RLVR(schema 严格 verify) + Toolathlon long-horizon SFT + Atlas LoRA 隔离。"<br>
+— <a href="26_MCPBenchmarks_codedive.html">#26 结论</a> verbatim
+</blockquote>
+
+<hr>
+
+<h2 id="sec9">§9 frontier model 官方引用情况</h2>
+
+<p>这是 <a href="19_MCPAtlas_2602.00933.html">#19</a> 和 <a href="21_MCPBenchmarks_compare.html">#21</a> 已经形成的考察套路 —— 一个 benchmark 是不是"事实标准",看 frontier model card 直接引不引。</p>
+
+<table>
+  <tr><th>frontier model</th><th>是否在官方 card 引用 BFCL</th><th>具体引用方式</th></tr>
+  <tr><td><strong>Claude Opus 4.7</strong> (Anthropic, 2026-04-16)</td><td><span class="no">官方 card 未直接引用 BFCL</span></td><td>Anthropic 主推 MCP-Atlas (77.3% Live);BFCL handler 由社区维护(CHANGELOG #1019 加 <code>claude-opus-4-1</code>)</td></tr>
+  <tr><td><strong>GPT-5</strong> (OpenAI, 2025-08-07)</td><td><span class="ok">是 — V4 内建 handler</span></td><td>OpenAI 没有 standalone BFCL claim,但 GPT-5 / 5-mini / 5-nano 在 V4 #1019 中作为 "New model support" 显式加入</td></tr>
+  <tr><td><strong>GPT-5.5</strong> (OpenAI, 2026 早期)</td><td><span class="ok">是 — system card verbatim 引用</span></td><td><a href="https://deploymentsafety.openai.com/gpt-5-5/evaluations-with-challenging-prompts" target="_blank">GPT-5.5 system card</a>: "CoT-Control includes over 13,000 tasks built from established benchmarks including <strong>BFCL (Patil et al., 2025)</strong>" — <em>BFCL 被当成 CoT 训练源</em></td></tr>
+  <tr><td><strong>Gemini 3.1 Pro</strong> (Google DeepMind, 2025-12)</td><td><span class="no">未在 model card 显式引用</span></td><td><a href="https://deepmind.google/models/model-cards/gemini-3-1-pro/" target="_blank">官方 card</a> 强调 "meaningful improved tool use",但具体到 BFCL 数字没给。第三方 (awesomeagents.ai) 报 Gemini 3 Flash Preview Thinking V3 53.5%</td></tr>
+  <tr><td><strong>Kimi K2.5</strong> (Moonshot)</td><td><span class="ok">是 — 官方 paper 报 BFCL</span></td><td>K2.5 paper / blog 把 BFCL 当主线 eval; <a href="../../models/notes/06_KimiK2.5_2602.02276.html">#models/06</a></td></tr>
+  <tr><td><strong>Qwen3 系列</strong> (Alibaba)</td><td><span class="ok">是 — 自报 V3 + V4</span></td><td>Qwen team blog 直接把 BFCL 列入 release note;Qwen3.5 各 size 单独在 BFCL V4 上报数(llm-stats.com)</td></tr>
+  <tr><td><strong>GLM-4.5 / 4.7</strong> (Z AI)</td><td><span class="ok">是</span></td><td>当前 V3+V4 双榜冠军,Z AI 官方 paper 必引</td></tr>
+  <tr><td><strong>INTELLECT-3</strong> (Prime Intellect)</td><td><span class="ok">是</span></td><td><a href="../../models/notes/08_INTELLECT3_2512.16144.html">#models/08</a>: BFCL V3 63.5</td></tr>
+</table>
+
+<p><strong>结论</strong>: GPT-5.5 是<strong>唯一一个把 BFCL 写进 system card 的西方 frontier model</strong>(还是作为<em>训练数据源</em>而非 eval target)。Anthropic 和 Google 更倾向于 MCP-Atlas / 自家 agentic benchmark。但中国厂(Qwen / GLM / Kimi)+ 训练向小模型(xLAM / Hammer / TOUCAN / EnvScaler / AWM)<strong>几乎 100% 引用 BFCL</strong>。所以 BFCL 在<strong>"open-weight + ≤40B function-calling"领域几乎是法定 KPI</strong>,在<strong>frontier proprietary 领域是次选</strong>。</p>
+
+<hr>
+
+<h2 id="sec10">§10 我的 take + 实用建议</h2>
+
+<h3>10.1 我的 take</h3>
+
+<ol>
+  <li><strong>BFCL 是 schema-level standard,不是 production agent standard</strong>。 它评的是"<em>给定一个 function spec, 模型能不能调对</em>"。它不评"<em>在真 OAuth Notion 上完成 task</em>"。两者在能力树上是父子节点关系: BFCL 是 prerequisite,MCP-bench 才是 production-ready。 任何 ≤40B 模型想做 function-call,<strong>先在 BFCL 拿到 ≥70%</strong>,再去碰 MCP-Atlas / Toolathlon。</li>
+  <li><strong>V4 的权重重排很激进 — Agentic 直接 40%</strong>。 V4 把 single-turn(Live+Non-Live)总占比从 66% 砍到 20%,这意味着<strong>过去刷 V3 高分的策略(<a href="22_TOUCAN.html">TOUCAN</a> 1.5M SFT)在 V4 上效用打折</strong>。 V4 高分需要 (a) 良好的 multi-turn state 保持, (b) 调用 search/memory API 的连续决策, (c) 拒答 / 追问能力。这正好是 <a href="23_EnvScaler.html">EnvScaler</a> + <a href="20_SETA_camel.html">SETA</a> + <a href="18_AgentWorldModel_2602.10090.html">AWM</a> 类合成 env 训练的甜点。</li>
+  <li><strong>≤40B 当前 ceiling: Qwen3-32B (V3 75.7%)</strong>。 但 V4 SOTA 已经被 GLM-4.5 (70.9%) 拿走 — 注意这不是真 open-weight。下一年(2026 H2)的开源 race 大概率是 Qwen3.5 / GLM-4.7-Air / DeepSeek-V4-FC 在 V4 上的争夺。</li>
+  <li><strong>Claude 在 BFCL 上吃亏 ≠ Claude 不会 tool use</strong>。 V3 BFCL 25.3 vs MCP-Atlas 77.3 这种巨大反差,本质是 <strong>Anthropic Tool Use API schema 与 BFCL prompt-mode 默认 schema 不兼容</strong>。这是 V4 加 <code>format_sensitivity</code> diag 的真正原因。如果你用 Claude 做 tool agent,记得用 <code>claude-opus-4-1-20250805</code> 这个 FC native handler(CHANGELOG #1019)。</li>
+  <li><strong>BFCL 缺什么 = MCP bench 在补什么</strong>。 BFCL 没有的: OAuth / 真 API 限流 / 副作用 / 长 horizon (>10 turn) / 跨 server 调度 / 自然语言 query 含糊度。这恰恰是 MCP-Universe (<a href="25_MCPUniverse.html">#25</a>) / MCPMark / Toolathlon / Atlas 各自切的赛道。 BFCL 的留白 = MCP bench 的机会。</li>
+</ol>
+
+<h3>10.2 训 ≤40B 模型时 BFCL 该怎么用、不该怎么用</h3>
+
+<h4>✅ 该怎么用</h4>
+<ul>
+  <li><strong>SFT 冷启验证</strong>: 训完 1 个 epoch tool SFT(用 TOUCAN / xLAM 数据), 跑 BFCL V3 simple_python + multiple + parallel 三个 — 如果 ≥85%,schema 基础 OK,可以进入 multi-turn 阶段</li>
+  <li><strong>Hallucination 早筛</strong>: <code>irrelevance</code> + <code>live_irrelevance</code> + <code>multi_turn_miss_func</code> 三个 category 是"拒答"专用测,任何 <50% 都说明模型乱编 function</li>
+  <li><strong>Multi-turn 状态保持作为 gating signal</strong>: 训 RL 时把 <code>multi_turn_base</code> + <code>multi_turn_miss_param</code> 当 dev set,curriculum 推进的依据</li>
+  <li><strong>用 V4 agentic 子集做 MCP bench 的 dry-run</strong>: 真要去测 MCPMark / Atlas 太贵,先在 BFCL V4 <code>memory_kv</code> + <code>web_search_base</code> 上跑,通过了再上真 MCP</li>
+  <li><strong>Format sensitivity 必跑</strong>: V4 加的 <code>format_sensitivity</code> 不进总分但极有诊断价值 — 你的模型对 system prompt 的 5 种格式有没有 ±10% 的 variance? 有 → 还在过拟合 schema</li>
+</ul>
+
+<h4>❌ 不该怎么用</h4>
+<ul>
+  <li><strong>不要把 BFCL V3 Overall 当成"我的 function-call 能力总体水平"</strong>。 V4 已经把 V3 Multi-Turn 权重从 33% 砍到 30% 并加了 40% Agentic。 V3 跑 70% 在 V4 上可能跑 50%</li>
+  <li><strong>不要为了 BFCL 而 BFCL — 不要用 BFCL train data 训测一致</strong>。 BFCL HF dataset 是 Apache-2.0 可商用,但<strong>把它当训练数据等于数据污染</strong>。 用 TOUCAN / xLAM / Hammer / EnvScaler 训,BFCL 仅做 OOD eval</li>
+  <li><strong>不要忽略 prompt-mode vs FC-mode 的差异</strong>。 BFCL leaderboard 有两个并行列(后缀 <code>-FC</code> = native function-calling),分数能差 5-15 pp。 你部署用哪种就报哪种</li>
+  <li><strong>不要把 web_search category 数字当严肃 eval</strong>。 SerpAPI 结果随时间漂,且模型分数和 SerpAPI key tier 强相关</li>
+  <li><strong>不要把 BFCL 替代 MCP-Atlas / Universe</strong>。 见 §8.2 表格 —— 评的根本就不是一个东西</li>
+</ul>
+
+<h3>10.3 一句话推荐</h3>
+
+<blockquote>
+<strong>训 ≤40B function-call 模型的标准流程:</strong> TOUCAN 1.5M SFT 冷启 → BFCL V3 Overall ≥70% gate → EnvScaler/SETA 合成 env RLVR → BFCL V4 Agentic ≥50% gate → MCP-Atlas / MCPMark 真测。 BFCL 是<strong>第二关</strong>,不是终点,但跨不过它就没法继续。
+</blockquote>
+
+<hr>
+
+<h3>相关阅读</h3>
+<ul>
+  <li><a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas (Scale AI)</a> — 真 MCP server + Live leaderboard + Claude card 引用</li>
+  <li><a href="21_MCPBenchmarks_compare.html">#21 4-bench MCP 横评</a> — BFCL vs Universe vs Atlas vs Toolathlon vs MCPMark</li>
+  <li><a href="22_TOUCAN.html">#22 TOUCAN</a> — 32B SFT 在 BFCL V3 拿 70.45</li>
+  <li><a href="23_EnvScaler.html">#23 EnvScaler</a> — Qwen3-8B 在 BFCL-MT 拿 41.88 超 GPT-4.1</li>
+  <li><a href="25_MCPUniverse.html">#25 MCP-Universe (Salesforce)</a> — framework + GRPO+verl RL stack</li>
+  <li><a href="26_MCPBenchmarks_codedive.html">#26 MCP bench 代码级深潜</a> — 4 verifier 风味互斥 + 联合训 recipe</li>
+  <li><a href="27_SmallModelMCP_landscape.html">#27 ≤40B 小模型 MCP landscape</a> — BFCL 在 ≤40B 训练栈中的位置</li>
+  <li><a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a> — 合成 env / BFCL V3 53.83 → 65.94 OOD</li>
+</ul>
+
+</main>
+</body>
+</html>
