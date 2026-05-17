@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · 4 个 MCP Benchmark 代码级深潜 — 一个模型能 SOTA 所有 4 个吗?</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.85em;line-height:1.55}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.92em}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+  .matrix td.y{background:#e1f1e7;text-align:center;font-weight:600;color:var(--good)}
+  .matrix td.n{background:#fdf0f0;text-align:center;color:#c4949a}
+  .matrix td{font-size:.88em}
+</style>
+</head>
+<body>
+<main>
+
+<h1>4 个 MCP Benchmark 代码级深潜 — 一个模型能 SOTA 所有 4 个吗?</h1>
+<div class="meta">
+  对象: <strong>MCP-Atlas (Scale AI) · MCP-Universe (Salesforce) · MCPMark (eval-sys) · Toolathlon (HKUST)</strong>·
+  深度: 直接读 GitHub repo 里的 task config / verifier / docker-compose / server 清单<br>
+  前置阅读: <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas 深读</a> ·
+  <a href="21_MCPBenchmarks_compare.html">#21 4-bench 高层对比</a> ·
+  <a href="25_MCPUniverse.html">#25 MCP-Universe 深读</a><br>
+  关键词: cross-benchmark · server overlap matrix · evaluator code · multi-bench RL · capability surface
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> 4 个 bench 的 server / app 集合<strong>几乎没有重叠</strong>(只有 GitHub / Notion / Filesystem / Playwright 这 4 个会在 ≥2 个 bench 同时出现),task 数据格式<strong>四套互不兼容</strong>(MCPMark = py verify.py,MCP-Universe = JSON+jinja+func-chain DSL,MCP-Atlas = parquet+claim list+LLM judge,Toolathlon = python eval/main.py+真 GCP API)。"一个模型 SOTA 全部 4 个" <strong>理论可行但工程门槛极高</strong> — 主要不是 capability 问题,而是 <strong>(1) 联合训练需要 90+ 个唯一 MCP server 的可控运行环境</strong>; <strong>(2) MCP-Atlas 的 Gemini-2.5-Pro claim judge 风味 vs MCPMark 的严格 AST-style verify.py 风味 vs Toolathlon 的真账号副作用 vs MCP-Universe 的 func-chain DSL 之间存在<em>评分口味冲突</em></strong> — 在一个上拿满分的写法可能在另一个上掉分。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">4 共享</div><div class="l">仅 GitHub / Notion / Filesystem / Playwright 在 ≥2 bench</div></div>
+    <div class="stat"><div class="n">~88</div><div class="l">4 bench 唯一 server 并集 (粗估)</div></div>
+    <div class="stat"><div class="n">4 套</div><div class="l">完全不兼容的 task schema</div></div>
+    <div class="stat"><div class="n">理论可</div><div class="l">实际门槛 = env 搭建 ≫ 模型能力</div></div>
+  </div>
+  <p><strong>立场:</strong> 这不是 #21 那种"<em>选哪个跑就行</em>"的层面 — #26 是<strong>把 4 个 repo 的 task 文件、verifier、server 配置拉下来读一遍</strong>,得出结论: <span class="no">不存在一条"训一次 → 4 个都 SOTA"的捷径</span>。 但<strong>共享 server (GitHub / Notion / Filesystem / Playwright) 的 trajectory 数据是<em>真</em>可复用的</strong>,而每个 bench 的"长尾私有 server"必须靠各自的 env mining 单独搞。建议路线: <strong>Toolathlon 公开 eval service 当主战场打 long-tail,MCP-Universe RL stack 当训练引擎,MCPMark 当稳定性回归,MCP-Atlas 当 LLM-judge 鲁棒性回归</strong>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">核心问题:能不能一个模型 SOTA 所有 4 个</a></li>
+    <li><a href="#sec2">Server / App 重叠矩阵 (从 repo 实地清点)</a></li>
+    <li><a href="#sec3">数据格式逐一拆解 — 4 套 schema verbatim</a></li>
+    <li><a href="#sec4">评测模式 — 真服务 vs Docker vs Mock + reset/auth</a></li>
+    <li><a href="#sec5">评测代码 — verifier 怎么写的</a></li>
+    <li><a href="#sec6">⭐ 多榜联训可行性分析</a></li>
+    <li><a href="#sec7">如果非要做 cross-bench SOTA — 训练 recipe 建议</a></li>
+    <li><a href="#sec8">SVG 图示 (重叠 Venn / eval pipeline / fan-out)</a></li>
+    <li><a href="#sec9">个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 核心问题:能不能一个模型 SOTA 所有 4 个</h2>
+
+<p>这是 #21 之后用户的下一个问题。 把它<strong>用 1 句话先回答</strong>,后面再用证据支撑:</p>
+
+<blockquote>
+  <strong>诚实答案:</strong> 不能"训一次 → 4 个都 SOTA"。 但<strong>可以训一个模型 → 同时在 4 个 bench 上拿到不错且<em>有竞争力</em>的成绩</strong>,代价是: 你必须自己搭出 4 个 bench 各自的 ≈90 个真实 MCP server 的可联通环境,然后<strong>跨 bench 联合 RL/SFT</strong>。最高的 SOTA 还是会被各 bench 的 specialist 单独训练拿走 — 比如 MCPMark 上 GitHub-task 的 SOTA 写法可能是激进多步并行 tool call,而 MCP-Atlas 上 Gemini-judge 更喜欢简洁单步语义对齐的输出,这两者在<strong>同一个模型权重</strong>里很难同时最优。</blockquote>
+
+<h3>1.1 为什么 #19 #21 #25 都没法直接回答</h3>
+
+<table>
+  <tr><th>前置笔记</th><th>覆盖了什么</th><th>没覆盖什么 (#26 补)</th></tr>
+  <tr><td>#19 MCP-Atlas 深读</td><td>1,000 task / 36 server / Anthropic-cited / parquet schema</td><td>没和其他 3 个 bench 的 server 做交集</td></tr>
+  <tr><td>#21 4-bench 横向对比</td><td>star / citation / RL gym 有无 / 决策树</td><td>没读 task 文件,没读 verifier</td></tr>
+  <tr><td>#25 MCP-Universe 深读</td><td>11 server · 6 domain · 231 task / 三层评测代码 / verl RL 栈</td><td>没回答"它的训练能不能 transfer 到别的 bench"</td></tr>
+</table>
+
+<p>所以 #26 的<strong>价值定位</strong> = 把 4 个 repo 当成 4 个 codebase 来读,具体看: (a) <em>是否同一个 server</em>; (b) <em>同一个 server 下 task 怎么写</em>; (c) <em>评测代码本质上是什么 abstraction</em>; (d) <em>训练数据格式是否能拼成一个 corpus</em>。</p>
+
+<hr>
+
+<h2 id="sec2">2 · Server / App 重叠矩阵 (repo 实地清点)</h2>
+
+<h3>2.1 各 bench 的 server 清单从哪里拿</h3>
+
+<pre>
+# MCP-Atlas — 36 servers, 全部在一个 json 模板里
+$ curl -s https://raw.githubusercontent.com/scaleapi/mcp-atlas/main/\
+services/agent-environment/src/agent_environment/mcp_server_template.json \
+  | python3 -c "import json,sys; d=json.load(sys.stdin);\
+                print('Total:', len(d['mcpServers']))"
+# Total: 36   ✅ 和 paper 数字一致
+
+# MCP-Universe — 11 server, 11 个 server config 在 mcp/configs/, task 在
+#   mcpuniverse/benchmark/configs/mcpuniverse/&lt;domain&gt;/&lt;task&gt;.json
+# 6 个 domain: 3d_design (19) · browser_automation · financial_analysis (40) ·
+#   location_navigation · multi_server · repository_management (>30) · web_search (50)
+
+# MCPMark — 5 server, 5 个目录
+$ curl -s api.github.com/repos/eval-sys/mcpmark/contents/tasks
+# filesystem, github, notion, playwright, postgres  ( + insforge/supabase symlinks)
+
+# Toolathlon — 配置目录里有 34 个 .yaml (paper 报 32 app),task 108 个
+$ curl -s api.github.com/repos/hkust-nlp/Toolathlon/contents/configs/mcp_servers
+# 34 yaml: 12306, arxiv-latex-mcp, arxiv_local, canvas, emails, excel, filesystem,
+#   git, github, google-cloud, google_calendar, google_forms, google_map, google_sheet,
+#   howtocook, huggingface, k8s, memory, notion, notion_official, npx-fetch, pdf-tools,
+#   playwright_with_chunk, pptx, scholarly_search, snowflake, terminal, time, wandb,
+#   woocommerce, word, yahoo-finance, youtube, youtube_transcript
+</pre>
+
+<h3>2.2 重叠矩阵 (核心表)</h3>
+
+<p>把 4 个 bench 的 server 池<strong>逐项对位</strong>。 只列在 ≥1 bench 里出现的项;统一名字 (e.g. <code>notion / notion_official</code> 都算 Notion)。 <span class="ok">绿色 = 该 server 在该 bench 中存在</span>。</p>
+
+<table class="matrix">
+<tr><th>Server / App</th><th>MCPMark<br>(5)</th><th>MCP-Universe<br>(11)</th><th>MCP-Atlas<br>(36)</th><th>Toolathlon<br>(~32)</th><th>共享 bench 数</th></tr>
+<tr><td><strong>GitHub</strong></td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓ (github)</td><td><strong>4 / 4</strong></td></tr>
+<tr><td><strong>Filesystem</strong></td><td class="y">✓</td><td class="n">·</td><td class="y">✓</td><td class="y">✓</td><td>3 / 4</td></tr>
+<tr><td><strong>Notion</strong></td><td class="y">✓</td><td class="n">·</td><td class="y">✓</td><td class="y">✓ (2 版本)</td><td>3 / 4</td></tr>
+<tr><td><strong>Playwright</strong> (浏览器)</td><td class="y">✓</td><td class="y">✓ (browser_automation)</td><td class="n">·</td><td class="y">✓ (with_chunk)</td><td>3 / 4</td></tr>
+<tr><td><strong>Postgres</strong></td><td class="y">✓</td><td class="n">·</td><td class="n">·</td><td class="n">·</td><td>1 / 4</td></tr>
+<tr><td>git (本地 git CLI)</td><td class="n">·</td><td class="n">·</td><td class="y">✓</td><td class="y">✓</td><td>2 / 4</td></tr>
+<tr><td>Google Maps / Google search</td><td class="n">·</td><td class="y">✓ (location)</td><td class="y">✓</td><td class="y">✓ (google_map)</td><td>3 / 4</td></tr>
+<tr><td>Slack / Email</td><td class="n">·</td><td class="n">·</td><td class="y">✓ slack</td><td class="y">✓ emails</td><td>2 / 4 (不同实现)</td></tr>
+<tr><td>arxiv / pubmed / open-library 等学术</td><td class="n">·</td><td class="n">·</td><td class="y">✓ (3 个)</td><td class="y">✓ (arxiv_local 等)</td><td>2 / 4</td></tr>
+<tr><td>Yahoo finance / financial</td><td class="n">·</td><td class="y">✓ (yfinance)</td><td class="n">·</td><td class="y">✓ (yahoo-finance)</td><td>2 / 4</td></tr>
+<tr><td>Excel / Sheet / CSV</td><td class="n">·</td><td class="n">·</td><td class="n">·</td><td class="y">✓ excel/google_sheet</td><td>1 / 4 (但用 filesystem 可覆盖)</td></tr>
+<tr><td>Blender (3D)</td><td class="n">·</td><td class="y">✓ (3d_design)</td><td class="n">·</td><td class="n">·</td><td>1 / 4</td></tr>
+<tr><td>MCP-Atlas 长尾<br>(airtable / alchemy / mongodb / met-museum / national-parks / weather / wikipedia / desktop-commander / e2b / oxylabs / exa / brave-search / fetch / context7 / calculator 等 ≈25 个)</td><td class="n">·</td><td class="n">·</td><td class="y">✓ 各占 1</td><td class="n">·</td><td>1 / 4</td></tr>
+<tr><td>Toolathlon 长尾<br>(canvas / 12306 / k8s / wandb / woocommerce / huggingface / pptx / pdf-tools / snowflake / howtocook / terminal / time / npx-fetch / scholarly_search 等 ≈14 个)</td><td class="n">·</td><td class="n">·</td><td class="n">·</td><td class="y">✓ 各占 1</td><td>1 / 4</td></tr>
+</table>
+
+<div class="kv">
+<strong>清点小结:</strong><br>
+• <strong>4-bench 公共:</strong> 仅 <code>GitHub</code> 一个,真正全 4 个都出现 <br>
+• <strong>3-bench 共享:</strong> Filesystem · Notion · Playwright · Google Maps/Search<br>
+• <strong>2-bench 共享:</strong> git · slack/email · arxiv · finance<br>
+• <strong>独家 long tail:</strong> MCP-Atlas ≈25 个,Toolathlon ≈14 个,MCP-Universe ≈3 个,MCPMark = 0 (它是 5 个全部和别人重叠)<br>
+• <strong>唯一 server 并集 ≈ 5 + 6 (Universe 独占) + 25 (Atlas 独占) + 14 (Toolathlon 独占) + 4 (共享一次以上) ≈ 50–60 个 server, 实际去重后估算 50–60 个 server / 500+ tool</strong>
+</div>
+
+<p class="nb">注: 上面数字基于 repo 实际 ls,和 paper 报的可能略有偏差 (paper 报 5/11/36/32, 但 Toolathlon 实际配置目录里有 34 个 yaml — 推测部分被合并算成 "32 apps")。 关键<em>结论</em>不变: <strong>大头是长尾,共享小头</strong>。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 数据格式逐一拆解 — 4 套 schema verbatim</h2>
+
+<p>这一节贴<strong>真 task 文件</strong>。 把"如果要联合训练,要不要写 schema converter"这个问题落地。</p>
+
+<h3>3.1 MCPMark — <code>tasks/&lt;server&gt;/&lt;diff&gt;/&lt;category&gt;/&lt;task&gt;/{description.md, verify.py, meta.json}</code></h3>
+
+<p><code>tasks/notion/easy/computer_science_student_dashboard/simple__study_session_tracker/</code> 实际 3 个文件:</p>
+
+<pre>
+# description.md  (自然语言任务描述, agent 看到的)
+Create a new study-session entry on the **Computer Science Student Dashboard** page.
+
+1. Locate the ☑️ Habit tracker section of the page.
+2. **Insert a new date mention** for `2025-01-29` immediately **after the existing
+   `2022-09-02` items but before the divider block** that follows them. Match the
+   formatting of the existing dates (bold text with a Notion date mention).
+</pre>
+
+<pre>
+# meta.json
+{
+  "task_id": "simple__study_session_tracker",
+  "category_id": "computer_science_student_dashboard",
+  "difficulty": "L1",
+  "tags": ["content organization","visual formatting","status tracking"],
+  "mcp": ["notion"],
+  "meta_data": {
+    "stateType": "url",
+    "stateUrl": "https://painted-tennis-ebc.notion.site/Computer-Science-..."
+  }
+}
+</pre>
+
+<pre>
+# verify.py  (核心: 真用 notion_client 拉所有 block 验证)
+from notion_client import Client
+from tasks.utils import notion_utils
+
+def verify(notion: Client, main_id: str | None = None) -> bool:
+    page_id = notion_utils.find_page(notion, "Computer Science Student Dashboard")
+    all_blocks = notion_utils.get_all_blocks_recursively(notion, page_id)
+    TARGET_DATE = "2025-01-29"; PREVIOUS_DATE = "2022-09-02"
+    index_previous_date = index_new_date = index_divider_after_previous = None
+    for idx, block in enumerate(all_blocks):
+        if block.get("type") == "divider":
+            if index_previous_date is not None and index_divider_after_previous is None:
+                index_divider_after_previous = idx
+        if block.get("type") != "paragraph": continue
+        for rt in block["paragraph"].get("rich_text", []):
+            if rt.get("type")!="mention" or rt["mention"].get("type")!="date": continue
+            date_start = rt["mention"]["date"].get("start")
+            if date_start == PREVIOUS_DATE: index_previous_date = idx
+            if date_start == TARGET_DATE:
+                index_new_date = idx
+                if not rt.get("annotations", {}).get("bold", False):
+                    return False   # ❌ 不加粗就 fail
+    return index_previous_date &lt; index_new_date &lt; index_divider_after_previous
+</pre>
+
+<div class="kv"><strong>MCPMark schema 特点:</strong> 验证是<strong>真 Python 函数</strong>,调用 <code>notion_client</code> 直接读真 Notion workspace。 不存在 "expected output" string,完全靠 <em>程序化断言</em>。 → <strong>极度严格、没有 LLM judge 摇摆</strong>,但 task author 写起来贵。</div>
+
+<h3>3.2 MCP-Universe — <code>configs/mcpuniverse/&lt;domain&gt;/&lt;task&gt;.json</code></h3>
+
+<p><code>repository_management/github_task_0001.json</code> 实际内容:</p>
+
+<pre>
+{
+  "category": "general",
+  "question": "Hey! I need to set up a new repo for this travel planner project ... \n
+   Can you help me create a repository called travel-planner-app? I need to start with
+   3 branches: main, feature-maps, and feature-itinerary. \n  ...",
+  "use_specified_server": true,
+  "mcp_servers": [ { "name": "github" } ],
+  "evaluators": [
+    { "func": "raw",
+      "op":   "github.check_repository",
+      "op_args": "{{GITHUB_PERSONAL_ACCOUNT_NAME}}/travel-planner-app" },
+    { "func": "raw",
+      "op":   "github.check_branches_exist",
+      "op_args": { "owner": "{{GITHUB_PERSONAL_ACCOUNT_NAME}}",
+                   "repo":  "travel-planner-app",
+                   "branches": ["main","feature-maps","feature-itinerary"] } },
+    { "func": "raw",
+      "op":   "github.check_file_content",
+      "op_args": { "owner": "{{GITHUB_PERSONAL_ACCOUNT_NAME}}",
+                   "repo": "travel-planner-app", "path": "README.md",
+                   "branch": "main" },
+      "value":   "# Travel Planner App\n\nA comprehensive ..." },
+    ...
+  ],
+  "cleanups": [
+    { "server": "github", "tool": "create_repository",
+      "cleanup_func": "delete_repository",
+      "cleanup_args": { "repo": "$name" } }
+  ]
+}
+</pre>
+
+<div class="kv"><strong>MCP-Universe schema 特点:</strong> 用<strong>声明式 DSL</strong> — 每个 evaluator 是一个 <code>(func, op, op_args, value)</code> 元组,<code>op</code> 就是一个<em>已经注册到 EVALUATION_FUNCTIONS 字典</em>的函数名。 → 写起来快,可机器生成 task,但需要新 server 时要预先注册一批 <code>check_xxx</code> 函数。 Jinja2 模板支持 <code>{{ENV_VAR}}</code>。</div>
+
+<h3>3.3 MCP-Atlas — HF parquet 单行 + claim list</h3>
+
+<p>MCP-Atlas 的 task 不在 repo 里(在 HF dataset <code>ScaleAI/MCP-Atlas</code> 1,000 prompt parquet),repo 里只保留 sample csv。 关键字段(已在 #19 详读):</p>
+
+<pre>
+# 单条 task 的逻辑结构
+{
+  "prompt":             "&lt;自然语言 user query&gt;",
+  "ground_truth_tools": ["filesystem_read_text_file", "calculator_compute", ...],
+  "ground_truth_answer":"...",
+  "essential_claims":   [
+    { "claim":"the model called filesystem_read_text_file on /data/Barber Shop.csv",
+      "essential":"yes" },
+    { "claim":"the model returned answer 'Customer'", "essential":"yes" }
+  ],
+  "category":           "filesystem"
+}
+
+# 评测 (mcp_evals_scores.py) — LiteLLM 调 Gemini-2.5-Pro 做 judge
+EVAL_LLM_MODEL = "gemini/gemini-2.5-pro"
+# 输出指标: pass_rate, coverage_rate (essential claim 是否全覆盖), diagnostics
+</pre>
+
+<div class="kv"><strong>MCP-Atlas schema 特点:</strong> <strong>LLM-as-judge + claim list</strong>。 优点是 task 写起来最快,缺点是 judge model 偏好直接影响排名 — 比如某个 model 输出 "<em>Customer</em>" vs "<em>The first word is Customer.</em>",judge 可能给不同分。</div>
+
+<h3>3.4 Toolathlon — <code>tasks/finalpool/&lt;task_id&gt;/{docs/, evaluation/, groundtruth_workspace/, task_config.json}</code></h3>
+
+<p><code>tasks/finalpool/ab-testing/</code> 是个典型例子。 目录结构:</p>
+
+<pre>
+ab-testing/
+├── docs/
+│   ├── task.md                  ← user-facing prompt
+│   ├── agent_system_prompt.md   ← agent 系统提示词
+│   └── user_system_prompt.md
+├── evaluation/
+│   ├── main.py                  ← real python evaluator
+│   └── list_storage_buckets.py
+├── groundtruth_workspace/       ← expected files + bucket names
+├── initial_workspace/           ← agent 起始文件
+├── files/, preprocess/, token_key_session.py
+└── task_config.json
+</pre>
+
+<pre>
+# task_config.json
+{
+  "needed_mcp_servers": ["google-cloud", "filesystem"],
+  "needed_local_tools": ["claim_done","python_execute",
+                         "handle_overlong_tool_outputs","manage_context","history"],
+  "meta": {}
+}
+</pre>
+
+<pre>
+# evaluation/main.py 节选
+def check_storage_bucket_exists(bucket_prefix: str, project_id="mcp-bench0606") -&gt; bool:
+    project_id_from_creds, credentials = get_project_id_and_credentials()
+    storage_client = storage.Client(project=project_id_from_creds,
+                                     credentials=credentials)
+    for bucket in storage_client.list_buckets():
+        if bucket.name.startswith(bucket_prefix):
+            return True
+    return False
+
+def validate_task_completion(task_launch_time, task_eval_time):
+    if not check_storage_bucket_exists("promo-assets-for-b"):
+        raise ValueError("storage bucket with prefix 'promo-assets-for-b' was not created")
+    if not check_abtesting_logging_bucket_clean(task_launch_time, task_eval_time):
+        raise ValueError("logging bucket should be clean")
+</pre>
+
+<div class="kv"><strong>Toolathlon schema 特点:</strong> <strong>真账号 + 真 API 副作用</strong>。 evaluator 是个独立 python 程序,会去查 <em>真</em> Google Cloud Storage 和 <em>真</em> Cloud Logging,带时间窗过滤防污染。 → 这意味着 <span class="no">不可能在本地纯 mock</span>,必须用 Toolathlon 团队的 public eval server (或自己搞一套 GCP 子账号)。</div>
+
+<h3>3.5 4 套 schema 互不兼容 — 一张图说明</h3>
+
+<table>
+<tr><th>维度</th><th>MCPMark</th><th>MCP-Universe</th><th>MCP-Atlas</th><th>Toolathlon</th></tr>
+<tr><td>task 配置形式</td><td>多文件目录</td><td>单 JSON</td><td>parquet 单行</td><td>多文件目录</td></tr>
+<tr><td>验证逻辑</td><td>Python <code>verify.py</code></td><td>声明式 DSL (op+args)</td><td>LLM-judge + claim list</td><td>独立 Python <code>main.py</code></td></tr>
+<tr><td>环境状态</td><td>真 Notion workspace 模板</td><td>真账号 + Jinja env 变量</td><td>Docker 内 20 server 默认</td><td>真账号 + Docker app 池</td></tr>
+<tr><td>是否需要 ENV var 注入</td><td>是 (Notion API key)</td><td>是 (<code>{{GITHUB_PERSONAL_ACCOUNT_NAME}}</code>)</td><td>是 (各 server key)</td><td>是 (token_key_session.py)</td></tr>
+<tr><td>cleanup 机制</td><td>verify 完不主动清</td><td>显式 <code>cleanups</code> 段</td><td>无,靠 docker 重启</td><td>容器 reset</td></tr>
+<tr><td>converter 可写吗?</td colspan="4"><strong>不可能</strong>。 MCP-Atlas 的 claim list 没有 cell-level 断言,不能转成 MCPMark 的 verify.py;Toolathlon 的真 GCP 副作用没法在 MCP-Universe DSL 里表达。 <em>下游训练数据 (prompt + trajectory) 倒是可以拼,只是 reward 信号不能混算。</em></td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec4">4 · 评测模式 — 真服务 vs Docker vs Mock + reset/auth</h2>
+
+<table>
+<tr><th></th><th>MCPMark</th><th>MCP-Universe</th><th>MCP-Atlas</th><th>Toolathlon</th></tr>
+<tr><td>真服务?</td><td>真 Notion/GitHub/Postgres workspace</td><td>真 GitHub/Google/Yahoo/Blender</td><td>20 server pure docker (无需 key) + 16 server 需 key</td><td>真 Canvas / GCP / Notion / GitHub + 自部署 docker app</td></tr>
+<tr><td>Docker 化</td><td>可选 (local 也行)</td><td>有 <code>docker/</code></td><td>核心 <code>make run-docker</code>, port 1984</td><td><strong>核心</strong>: 每 task 一个 docker</td></tr>
+<tr><td>Mock?</td><td>无</td><td>无</td><td>无</td><td>无</td></tr>
+<tr><td>Reset 机制</td><td>每个 task 用 Notion template URL 重新复制</td><td><code>cleanups</code> 段调 delete</td><td>容器重启 + <em>warning: Ctrl+C 之后要 <code>docker kill</code></em></td><td>容器 reset + 时间窗过滤旧数据</td></tr>
+<tr><td>Auth 需要</td><td>Notion / GitHub / Postgres / OpenAI key</td><td>各 server token + <code>GITHUB_PERSONAL_ACCOUNT_NAME</code> 等 ENV</td><td>16 个 API key (Airtable / Alchemy / Brave / E2B / Exa / Slack / Google Workspace 等)</td><td><strong>最重</strong>: ~30 个 service token + 自己部署的 Canvas/Postgres/Email 等</td></tr>
+<tr><td>可用 public eval server?</td><td class="no">否,本地跑</td><td class="no">否,本地跑</td><td class="no">否,本地跑</td><td class="ok">是, <code>EVAL_SERVICE_README.md</code> 提供公共 <code>47.253.6.47:8080</code></td></tr>
+</table>
+
+<p class="nb">实际门槛: <strong>Toolathlon 的"公共 eval service"是 4 个里唯一能让你"不搭 env 直接跑"的</strong>。 另外 3 个都要你自己搞 docker / API key。 MCP-Atlas 设了一个聪明 default — 没 key 的 20 个 server 默认 enable,加 key 才 enable 剩下 16 个,所以最低门槛进入只要 OpenAI + Gemini key 就能跑通 1/3。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 评测代码 — verifier 怎么写的</h2>
+
+<h3>5.1 MCP-Universe Evaluator — 函数链 DSL</h3>
+
+<pre>
+# mcpuniverse/evaluator/evaluator.py
+class EvaluatorConfig(BaseModel):
+    func: str       # A chain of function calls, e.g., get(key1) -&gt; foreach -&gt; get(key2)
+    op:   str = ""  # The operator for comparison, e.g., "=", "&lt;".
+    value: Any = None
+    op_args: Any = None
+
+# evaluator 实际执行:
+@staticmethod
+def _parse_func(func: str) -&gt; List[Dict[str, Any]]:
+    items = [f.strip() for f in func.split("-&gt;") if f.strip()]
+    funcs = []
+    for item in items:
+        info = {"name": item.split("(")[0].strip()}
+        assert info["name"] in EVALUATION_FUNCTIONS, f"Unknown func `{info['name']}`"
+        ...
+
+# 注册的 EVALUATION_FUNCTIONS 来自这些模块:
+from .functions import *
+from .github.functions import *
+from .google_maps.functions import *
+from .yfinance.functions import *
+from .blender.functions import *
+from .playwright.functions import *
+from .google_search.functions import *
+from .deepresearch.functions import *
+from .notion.functions import *
+from .weather.functions import *
+from .mcpmark.github_functions import *
+from .mcpmark.notion_functions import *
+from .mcpmark.filesystem_functions import *
+from .mcpmark.playwright_functions import *
+from .mcpmark.postgres_functions import *
+</pre>
+
+<div class="kv">⭐ <strong>重要发现:</strong> MCP-Universe 已经把 <strong>MCPMark 的 verifier 直接引进来了</strong> — <code>mcpuniverse/evaluator/mcpmark/{github,notion,filesystem,playwright,postgres}_functions.py</code>。 这说明 Salesforce 团队<em>已经</em>把 MCPMark 当成可选评测引擎,后者是前者的"严格 verifier sub-system"。 这是<strong>一个 model 同时报 MCP-Universe + MCPMark 分</strong>的最现实路径。</div>
+
+<h3>5.2 MCPMark verify.py — 直接调真 API</h3>
+
+<p>已在 §3.1 给出完整代码。 模式: <code>def verify(client, main_id) -&gt; bool</code> + <code>sys.exit(0/1)</code>。</p>
+
+<h3>5.3 MCP-Atlas — Gemini-2.5-Pro claim judge</h3>
+
+<pre>
+# services/mcp_eval/mcp_evals_scores.py
+EVAL_LLM_MODEL = os.getenv("EVAL_LLM_MODEL", "gemini/gemini-2.5-pro")
+
+# claim 提取 — 支持多种输入格式:
+def extract_claims(claim_blob) -&gt; List[str]:
+    # list of strings | list of {claim, essential} | JSON string | multi-line text
+
+# 输出指标 (#19 已细读):
+#   - pass_rate:          所有 essential claim 通过率
+#   - coverage_rate:      覆盖到的 claim 占比
+#   - diagnostics:        per-claim 详细 verdict
+</pre>
+
+<h3>5.4 Toolathlon — 独立 python 程序, 真账号副作用</h3>
+
+<p>已在 §3.4 给出完整代码 (ab-testing 用 <code>google.cloud.storage</code> + <code>google.cloud.logging</code> + 时间窗过滤)。 模式: <code>argparse(--agent_workspace, --groundtruth_workspace, --launch_time) -&gt; exit(0/1)</code>。</p>
+
+<h3>5.5 一表汇总 4 种 verifier 风格</h3>
+
+<table>
+<tr><th>风格</th><th>谁用</th><th>对模型输出格式宽松度</th><th>对环境副作用敏感度</th><th>训练时是否好做 RLVR reward</th></tr>
+<tr><td>Python <code>verify.py</code> hard assertion</td><td>MCPMark</td><td><span class="no">严</span> (字段必须完全匹配)</td><td>高 (整个 Notion page 树都被检查)</td><td><span class="ok">极适合 RLVR</span> — bool reward 干净</td></tr>
+<tr><td>函数链 DSL</td><td>MCP-Universe</td><td>中 (op 决定)</td><td>中</td><td><span class="ok">适合 RLVR</span> — 已经在 MCP-Universe verl stack 里用了</td></tr>
+<tr><td>LLM-as-judge claim list</td><td>MCP-Atlas</td><td><span class="ok">宽</span> (judge 容忍语义等价)</td><td>低</td><td><span class="no">差</span> — judge 自身噪声进入 reward,RL 会被 hack</td></tr>
+<tr><td>独立 python + 真 API 副作用</td><td>Toolathlon</td><td>严</td><td>极高 (查真 bucket / 真邮件)</td><td>中 — reward 干净但 rollout 成本极高 (真 GCP 调用要钱)</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec6">6 · ⭐ 多榜联训可行性分析</h2>
+
+<h3>6.1 Capability surface 并集大小估算</h3>
+
+<p>把所有 server 去重,粗估"<strong>要打榜 4 个所需的 capability surface</strong>":</p>
+
+<div class="formula">
+<em>|servers needed|</em> ≈ 50–60 个 unique server &nbsp;&middot;&nbsp; <em>|tools|</em> ≈ 500–700 个
+</div>
+
+<p>分布(从 §2.2 矩阵推):</p>
+<ul>
+  <li><strong>核心 4 个 (出现在 ≥3 bench):</strong> GitHub · Filesystem · Notion · Playwright/browser — 这 4 个的训练数据可以<em>跨 bench 复用</em>。</li>
+  <li><strong>次核心 4–5 个 (2 bench):</strong> git CLI · Google Maps/Search · slack/email · arxiv · yfinance — 部分复用。</li>
+  <li><strong>长尾 ≈45 个 (1 bench 独占):</strong> MCP-Atlas 的 25 个 + Toolathlon 的 14 个 + MCP-Universe 的 3 个 (Blender / yfinance/特殊 deepresearch 等)。 这部分 <strong>必须按 bench 单独搞数据</strong>。</li>
+</ul>
+
+<div class="kv"><strong>训练侧:</strong> 公共 4 server 占比 ≈ 4/55 ≈ 7%,但<em>task 数</em>占比可能 ≈ 25–30% (因为 4 bench 都重 GitHub/Notion)。 → 共享 server 上的训练 <strong>边际收益高</strong>;长尾 server 单条 trajectory 成本高且不 transfer。</div>
+
+<h3>6.2 Schema compatibility — 4 个 prompt format 能否统一</h3>
+
+<p>实证看 task 的 user message:</p>
+
+<table>
+<tr><th>Bench</th><th>典型 prompt 风格</th><th>tool 暴露方式</th><th>多步预期</th></tr>
+<tr><td>MCPMark</td><td>简短指令 (3–5 句) + 严格 spec</td><td>预设单 server 池</td><td>3–10 步</td></tr>
+<tr><td>MCP-Universe</td><td>对话风, "Hey! I need...",有时长达 10 行</td><td><code>use_specified_server: true</code> 限制</td><td>10–20 步, max_iter=20</td></tr>
+<tr><td>MCP-Atlas</td><td>真用户 query 风格, 短</td><td>动态从 307 tool 池 enabledTools 子集</td><td>1–20 步, maxTurns=20</td></tr>
+<tr><td>Toolathlon</td><td>非常长 (任务 + 上下文),含"如果 A 则 X 否则 Y"分支</td><td>多 server 同时 + 5 local tool (claim_done 等)</td><td><strong>长 horizon 50+ 步</strong></td></tr>
+</table>
+
+<div class="kv">→ <strong>4 种 prompt 风格<em>可以</em>同时训练在一个 model 上</strong>(都是自然语言英语),但 <span class="no">prompt format 的偏差会让 in-distribution 性能不均</span>: 习惯 MCPMark 短指令的 model 在 Toolathlon 50 步长任务上容易 mid-trajectory 漂移; 反之亦然。</div>
+
+<h3>6.3 Eval bias / 风味冲突</h3>
+
+<p>这是最微妙的: <strong>4 个 bench 的"被打高分的写法"风味不同</strong>。</p>
+
+<table>
+<tr><th>Bench</th><th>SOTA 写法风味</th><th>反风味 (会扣分)</th></tr>
+<tr><td>MCPMark</td><td>精确 field-by-field 操作, 不多不少</td><td>多写一个空 paragraph 就 fail</td></tr>
+<tr><td>MCP-Universe</td><td>按 cleanups 段约定命名 / branching / 严格按 question 顺序</td><td>跳步 / 自创 commit message 就 fail</td></tr>
+<tr><td>MCP-Atlas</td><td>essential claim 全 cover, 语言自然</td><td>过度技术性输出反而 judge 不 happy</td></tr>
+<tr><td>Toolathlon</td><td>条件分支正确 + 副作用幂等 + 不污染 log</td><td>多创一个 bucket 就 fail</td></tr>
+</table>
+
+<p>→ <strong>同一个 model 权重很难同时是这 4 种风味的最优</strong>。 例如 <em>MCP-Atlas 喜欢"我先 read 文件,然后告诉你答案是 Customer"</em>; <em>MCPMark Postgres 任务喜欢"直接 INSERT / DELETE 然后 return None"</em> — 前者是 conversational,后者是 transactional。</p>
+
+<h3>6.4 Bottleneck:哪个最难,哪个 transfer 最好</h3>
+
+<table>
+<tr><th>Bench</th><th>SOTA 分数 (公开)</th><th>train-on-others transfer 难度</th></tr>
+<tr><td>MCP-Universe</td><td>GPT-5 43.72%, Grok-4 33%, Claude-4 29%</td><td>★★ 中 (有 verl RL 栈 + 严格 dynamic eval)</td></tr>
+<tr><td>MCPMark</td><td>gpt-5-high 51.6%, gemini-3-pro 50.6%, qwen3-coder 较高 — pass@1</td><td>★ 容易 (Notion/GitHub 重叠多)</td></tr>
+<tr><td>MCP-Atlas</td><td>gpt-5.1 是 reference (Anthropic-cited)</td><td>★★★ 难 (judge 风味很玄学)</td></tr>
+<tr><td>Toolathlon</td><td>gemini-3-pro / claude-4.5-opus 是 leaderboard 顶 — 难度<strong>显著最高</strong>(很多 task 50+ 步)</td><td>★★★★ <strong>最难</strong> (长 horizon + 真账号 + 长尾 app)</td></tr>
+</table>
+
+<p>→ <strong>Toolathlon 是最大瓶颈</strong>: 50+ 步 long horizon + ≈14 个独占 app + 真 GCP/Canvas 副作用。 <strong>MCPMark 是最容易 transfer 受益的</strong>: 只 5 个 server,且全是高频(GitHub/Notion/Filesystem/Postgres/Playwright)。</p>
+
+<h3>6.5 现实 ceiling 估算</h3>
+
+<p>假设你有一个 32B model + 真实算力 (1k H100 hour):</p>
+
+<table>
+<tr><th>策略</th><th>MCPMark</th><th>MCP-Univ</th><th>MCP-Atlas</th><th>Toolathlon</th></tr>
+<tr><td>不训, 用 GPT-5 / Claude / Gemini-3 直接评</td><td>50%</td><td>40%</td><td>SOTA</td><td>~35%</td></tr>
+<tr><td>单独训 MCPMark</td><td><strong>+10pp</strong></td><td>+3</td><td>±0</td><td>+1</td></tr>
+<tr><td>单独训 MCP-Universe</td><td>+4</td><td><strong>+8</strong></td><td>+1</td><td>+3 (Universe 已含 Playwright/GitHub)</td></tr>
+<tr><td>4-bench 联合训</td><td>+7</td><td>+6</td><td>+2 (judge 噪声)</td><td>+4</td></tr>
+<tr><td>专门 MCP-Atlas judge-tuned</td><td>±0</td><td>±0</td><td><strong>+5–8</strong></td><td>±0</td></tr>
+</table>
+
+<p>→ <strong>cell 的趋势暗示</strong>: 同一个 ckpt 在 MCPMark/Universe/Toolathlon 上能同时拿 mid-tier 名次;但 MCP-Atlas 因为 judge 风味独立,要么单独 judge-tune (会污染其他 3 个),要么放弃顶名。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 如果非要做 cross-bench SOTA — 训练 recipe</h2>
+
+<h3>7.1 数据混合</h3>
+
+<pre>
+# 推荐 corpus 占比 (按 trajectory 数加权)
+- 共享 server (GitHub/Notion/Filesystem/Playwright):     45%
+   ├── MCPMark task → SFT (verify.py 转 reward)
+   ├── MCP-Universe github_task_*.json → RL (DSL → boolean reward)
+   ├── Toolathlon 共享 server 子集 → SFT 学长 horizon
+- Toolathlon 长尾 app (Canvas/k8s/wandb/woocommerce 等):    25%
+   ├── 用 Toolathlon public eval server 做 RL rollout
+- MCP-Universe 独家 (Blender/yfinance/deepresearch):       10%
+- MCP-Atlas 长尾 (Airtable/Alchemy/MongoDB/...) 的 trajectory:  15%
+   ├── 注意: 不用 MCP-Atlas judge 做 reward,只用 trajectory 当 SFT
+- 通用 TOUCAN-style MCP 多 server SFT 数据:                   5%
+   ├── 修复 cold-start
+</pre>
+
+<h3>7.2 训练阶段</h3>
+
+<ol>
+  <li><strong>Stage 1: TOUCAN/Toucan-1.5M SFT</strong> — 解决冷启,让 model 会 MCP 协议。</li>
+  <li><strong>Stage 2: 联合 RLVR on MCPMark + MCP-Universe</strong> — 这两个 reward 干净,且 MCP-Universe 已经把 MCPMark verifier 集成进了 evaluator。 用 <code>mcpuniverse/benchmark/runner.py</code> + verl GRPO stack。</li>
+  <li><strong>Stage 3: 在 Toolathlon public eval server 上做 long-horizon SFT-on-rollout</strong> — 用 best-of-N + claim_done 信号过滤好 trajectory。 RL 太贵不做。</li>
+  <li><strong>Stage 4 (可选): MCP-Atlas judge-tuned LoRA</strong> — 单独训一个 LoRA 让输出风格符合 Gemini-judge 偏好,推理时切换。 <em>不混入主 ckpt</em>。</li>
+</ol>
+
+<h3>7.3 风险</h3>
+
+<ul>
+  <li><strong>Reward hack:</strong> MCP-Universe DSL 的 op 可被"恰好通过断言但任务没真做"的 trick 通过。 见 #25 详读 "三层评测" 章。</li>
+  <li><strong>Toolathlon API 成本:</strong> 真 GCP/Canvas/邮件 API 在大批 rollout 时会产生真实 cost (估 $5k-20k 量级)。</li>
+  <li><strong>Catastrophic interference:</strong> MCP-Atlas judge-tuned 风格会污染 MCPMark 的精确写法。 → 用 LoRA / Mixture-of-LoRA 隔离。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">8 · SVG 图示</h2>
+
+<h3>8.1 Server 重叠 Venn</h3>
+
+<div class="fig">
+<svg viewBox="0 0 600 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:600px">
+  <defs>
+    <style>
+      .lbl{font:13px -apple-system,sans-serif;fill:#1f2024}
+      .lblc{font:bold 13px -apple-system,sans-serif;fill:#1f2024;text-anchor:middle}
+      .small{font:11px -apple-system,sans-serif;fill:#5b5e66;text-anchor:middle}
+    </style>
+  </defs>
+  <!-- 4 overlapping circles representing 4 benches -->
+  <circle cx="220" cy="160" r="100" fill="#2f6feb" fill-opacity="0.18" stroke="#2f6feb"/>
+  <circle cx="320" cy="160" r="100" fill="#cc4a1b" fill-opacity="0.18" stroke="#cc4a1b"/>
+  <circle cx="270" cy="240" r="100" fill="#1f7a4a" fill-opacity="0.18" stroke="#1f7a4a"/>
+  <circle cx="270" cy="120" r="100" fill="#a8353e" fill-opacity="0.18" stroke="#a8353e"/>
+
+  <!-- labels -->
+  <text class="lblc" x="120" y="120" fill="#2f6feb">MCPMark (5)</text>
+  <text class="lblc" x="430" y="120" fill="#cc4a1b">MCP-Atlas (36)</text>
+  <text class="lblc" x="430" y="290" fill="#1f7a4a">Toolathlon (~32)</text>
+  <text class="lblc" x="120" y="290" fill="#a8353e">MCP-Universe (11)</text>
+
+  <!-- center: 4-way overlap -->
+  <text class="lblc" x="270" y="190" font-size="14">GitHub</text>
+  <text class="small" x="270" y="207">(4/4)</text>
+
+  <!-- 3-way -->
+  <text class="small" x="225" y="155">Filesystem</text>
+  <text class="small" x="320" y="155">Notion</text>
+  <text class="small" x="270" y="235">Playwright</text>
+
+  <!-- region-specific -->
+  <text class="small" x="70"  y="180">Postgres</text>
+  <text class="small" x="510" y="180">~25 long-tail</text>
+  <text class="small" x="510" y="195">(airtable, exa,</text>
+  <text class="small" x="510" y="210">mongodb, ...)</text>
+  <text class="small" x="510" y="320">~14 long-tail</text>
+  <text class="small" x="510" y="335">(Canvas, k8s,</text>
+  <text class="small" x="510" y="350">wandb, ...)</text>
+  <text class="small" x="70" y="320">Blender, yfinance,</text>
+  <text class="small" x="70" y="335">deepresearch</text>
+</svg>
+<figcaption>图 1 · 4 bench server 重叠示意。 GitHub 是唯一 4-bench 公共;Filesystem/Notion/Playwright 在 3 个 bench 出现;真正的 capability surface 大头在 4 个角落的"长尾"区。</figcaption>
+</div>
+
+<h3>8.2 4 bench eval pipeline 并排</h3>
+
+<div class="fig">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px">
+  <defs>
+    <style>
+      .b{fill:#fff;stroke:#e2dfd5;stroke-width:1}
+      .h{font:bold 13px sans-serif;text-anchor:middle;fill:#2f6feb}
+      .t{font:11px sans-serif;text-anchor:middle;fill:#1f2024}
+      .arr{stroke:#5b5e66;stroke-width:1.2;fill:none;marker-end:url(#a)}
+    </style>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+
+  <!-- 4 columns -->
+  <g transform="translate(20,20)">
+    <text class="h" x="80" y="0">MCPMark</text>
+    <rect class="b" x="10" y="20" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="42">tasks/&lt;srv&gt;/&lt;diff&gt;/&lt;t&gt;</text>
+    <rect class="b" x="10" y="70" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="92">description.md → agent</text>
+    <rect class="b" x="10" y="120" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="142">真 Notion/GitHub API</text>
+    <rect class="b" x="10" y="170" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="192">verify.py (Python)</text>
+    <rect class="b" x="10" y="220" width="140" height="36" rx="6" fill="#e1f1e7"/>
+    <text class="t" x="80" y="242">bool reward</text>
+    <line class="arr" x1="80" y1="58" x2="80" y2="68"/>
+    <line class="arr" x1="80" y1="108" x2="80" y2="118"/>
+    <line class="arr" x1="80" y1="158" x2="80" y2="168"/>
+    <line class="arr" x1="80" y1="208" x2="80" y2="218"/>
+  </g>
+
+  <g transform="translate(190,20)">
+    <text class="h" x="80" y="0">MCP-Universe</text>
+    <rect class="b" x="10" y="20" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="42">configs/&lt;dom&gt;/*.json</text>
+    <rect class="b" x="10" y="70" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="92">question (Jinja env)</text>
+    <rect class="b" x="10" y="120" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="142">真 + docker pool</text>
+    <rect class="b" x="10" y="170" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="192">func-chain DSL eval</text>
+    <rect class="b" x="10" y="220" width="140" height="36" rx="6" fill="#e1f1e7"/>
+    <text class="t" x="80" y="242">bool reward</text>
+    <line class="arr" x1="80" y1="58" x2="80" y2="68"/>
+    <line class="arr" x1="80" y1="108" x2="80" y2="118"/>
+    <line class="arr" x1="80" y1="158" x2="80" y2="168"/>
+    <line class="arr" x1="80" y1="208" x2="80" y2="218"/>
+  </g>
+
+  <g transform="translate(360,20)">
+    <text class="h" x="80" y="0">MCP-Atlas</text>
+    <rect class="b" x="10" y="20" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="42">HF parquet 1k prompt</text>
+    <rect class="b" x="10" y="70" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="92">enabledTools 子集</text>
+    <rect class="b" x="10" y="120" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="142">docker port 1984</text>
+    <rect class="b" x="10" y="170" width="140" height="36" rx="6" fill="#fff4e0"/>
+    <text class="t" x="80" y="192">Gemini-2.5-Pro judge</text>
+    <rect class="b" x="10" y="220" width="140" height="36" rx="6" fill="#fdf0f0"/>
+    <text class="t" x="80" y="242">noisy pass/coverage</text>
+    <line class="arr" x1="80" y1="58" x2="80" y2="68"/>
+    <line class="arr" x1="80" y1="108" x2="80" y2="118"/>
+    <line class="arr" x1="80" y1="158" x2="80" y2="168"/>
+    <line class="arr" x1="80" y1="208" x2="80" y2="218"/>
+  </g>
+
+  <g transform="translate(530,20)">
+    <text class="h" x="80" y="0">Toolathlon</text>
+    <rect class="b" x="10" y="20" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="42">tasks/finalpool/&lt;t&gt;/</text>
+    <rect class="b" x="10" y="70" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="92">docs/task.md (长)</text>
+    <rect class="b" x="10" y="120" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="142">真 GCP/Canvas + docker</text>
+    <rect class="b" x="10" y="170" width="140" height="36" rx="6"/>
+    <text class="t" x="80" y="192">evaluation/main.py</text>
+    <rect class="b" x="10" y="220" width="140" height="36" rx="6" fill="#e1f1e7"/>
+    <text class="t" x="80" y="242">bool reward (贵)</text>
+    <line class="arr" x1="80" y1="58" x2="80" y2="68"/>
+    <line class="arr" x1="80" y1="108" x2="80" y2="118"/>
+    <line class="arr" x1="80" y1="158" x2="80" y2="168"/>
+    <line class="arr" x1="80" y1="208" x2="80" y2="218"/>
+  </g>
+</svg>
+<figcaption>图 2 · 4 个 bench 的 eval pipeline 横向对比。 蓝色 = 干净 bool reward;<span style="background:#fff4e0;padding:0 4px">黄</span> = LLM judge 噪声;<span style="background:#e1f1e7;padding:0 4px">绿</span> = 可做 RLVR。 MCP-Atlas 的 judge 步是和其他 3 个最大差异源。</figcaption>
+</div>
+
+<h3>8.3 训练 → 评测 fan-out</h3>
+
+<div class="fig">
+<svg viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px">
+  <defs>
+    <style>
+      .box{fill:#fff;stroke:#e2dfd5;stroke-width:1.2;rx:8}
+      .hub{fill:#2f6feb;stroke:#2f6feb}
+      .t{font:12px sans-serif;text-anchor:middle;fill:#1f2024}
+      .th{font:bold 13px sans-serif;text-anchor:middle;fill:#fff}
+      .ln{stroke:#5b5e66;stroke-width:1.2;fill:none;marker-end:url(#a2)}
+      .lng{stroke:#1f7a4a;stroke-width:1.6;fill:none;marker-end:url(#ag)}
+      .lnr{stroke:#a8353e;stroke-width:1.6;fill:none;marker-end:url(#ar)}
+    </style>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1f7a4a"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#a8353e"/></marker>
+  </defs>
+
+  <!-- training data sources, left -->
+  <rect x="20" y="20" width="170" height="40" class="box"/>
+  <text class="t" x="105" y="44">TOUCAN 1.5M SFT (冷启)</text>
+  <rect x="20" y="80" width="170" height="40" class="box"/>
+  <text class="t" x="105" y="104">MCPMark verify-RLVR</text>
+  <rect x="20" y="140" width="170" height="40" class="box"/>
+  <text class="t" x="105" y="164">MCP-Univ verl GRPO</text>
+  <rect x="20" y="200" width="170" height="40" class="box"/>
+  <text class="t" x="105" y="224">Toolathlon long-horizon SFT</text>
+  <rect x="20" y="260" width="170" height="40" class="box" fill="#fdf0f0"/>
+  <text class="t" x="105" y="284">MCP-Atlas judge LoRA</text>
+
+  <!-- center: one trained ckpt -->
+  <circle cx="350" cy="170" r="60" class="hub"/>
+  <text class="th" x="350" y="167">Trained</text>
+  <text class="th" x="350" y="183">Model (32B)</text>
+
+  <!-- right: 4 benches -->
+  <rect x="510" y="40" width="170" height="40" class="box"/>
+  <text class="t" x="595" y="64">MCPMark pass@1</text>
+  <rect x="510" y="110" width="170" height="40" class="box"/>
+  <text class="t" x="595" y="134">MCP-Universe 三层 eval</text>
+  <rect x="510" y="180" width="170" height="40" class="box"/>
+  <text class="t" x="595" y="204">MCP-Atlas pass/coverage</text>
+  <rect x="510" y="250" width="170" height="40" class="box"/>
+  <text class="t" x="595" y="274">Toolathlon avg@k</text>
+
+  <!-- training arrows -->
+  <line class="ln" x1="190" y1="40"  x2="290" y2="155"/>
+  <line class="ln" x1="190" y1="100" x2="290" y2="165"/>
+  <line class="ln" x1="190" y1="160" x2="290" y2="175"/>
+  <line class="ln" x1="190" y1="220" x2="290" y2="185"/>
+  <line class="lnr" x1="190" y1="280" x2="290" y2="200" stroke-dasharray="4,3"/>
+
+  <!-- eval arrows -->
+  <line class="lng" x1="410" y1="155" x2="500" y2="60"/>
+  <line class="lng" x1="410" y1="165" x2="500" y2="130"/>
+  <line class="lng" x1="410" y1="180" x2="500" y2="200"/>
+  <line class="lng" x1="410" y1="195" x2="500" y2="270"/>
+
+  <text x="350" y="320" class="t">绿 = eval fan-out · 蓝 = 训练数据流入 · 红虚线 = 单独 LoRA (不污染主 ckpt)</text>
+</svg>
+<figcaption>图 3 · 一个 ckpt 在 4 bench 上做 fan-out 评测的训练 recipe 示意。 MCP-Atlas 因为 judge 风味独立,用 LoRA 隔离;主 ckpt 同时被 MCPMark/Universe/Toolathlon 联合训。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · 个人 take</h2>
+
+<ul>
+  <li><strong>4 个 bench 不会被一个 ckpt 同时 SOTA, 但可以同时"打到 SOTA 的 80%"。</strong> 真正的 SOTA 永远会被各 bench 的 specialist 拿走 — 这不是模型问题,而是各 bench 的 verifier 风味本质上互斥。</li>
+  <li><strong>MCP-Universe + MCPMark 是天然 co-train pair。</strong> Salesforce 已经把 MCPMark verifier 当作 evaluator 模块导入了 (<code>mcpuniverse/evaluator/mcpmark/*_functions.py</code>) — 这是迄今为止 4 个 bench 间<em>最强的工程耦合信号</em>。 训这两个 = 实际工作量 ≈ 1.3 倍单独训一个。</li>
+  <li><strong>Toolathlon 是最值得投资的 long-horizon RL 数据源。</strong> 因为 (a) 公开 public eval server 免去 env 自搭; (b) 108 task 都是 50+ 步真实 workflow; (c) 真账号副作用强制 model 学到副作用 awareness。</li>
+  <li><strong>MCP-Atlas 在 RL 训练里要谨慎用作 reward 源 — judge 噪声会被 RL 利用 hack。</strong> 更好的用法: 当作"deployment-style 评测" — 测 model 真在用户 query 上能不能<em>看起来</em>对。 用 Anthropic / OpenAI 的模型卡引用,它的政治影响力 > 它的训练价值。</li>
+  <li><strong>这 4 个 bench 共同暴露了一个 missing piece:</strong> 没有一个 bench 是<em>真的</em>测"<strong>跨 server 长上下文调度 + 自纠错</strong>"的 — Toolathlon 最接近,但还差。 → 下一个 bench 应该叫 "MCP-Recovery"。</li>
+  <li><strong>实操建议:</strong> 如果你只能选一个去打,选 <strong>Toolathlon</strong> — public eval service + long horizon = 最高 transfer 价值。 如果你能选两个, 加 <strong>MCP-Universe</strong>(因为它带 RL 训练栈)。</li>
+</ul>
+
+<hr>
+
+<h3>引用链接 (全部 GitHub raw)</h3>
+<ul style="font-size:.92em">
+  <li>MCPMark repo: <a href="https://github.com/eval-sys/mcpmark">github.com/eval-sys/mcpmark</a></li>
+  <li>MCP-Universe repo: <a href="https://github.com/SalesforceAIResearch/MCP-Universe">github.com/SalesforceAIResearch/MCP-Universe</a></li>
+  <li>MCP-Atlas repo: <a href="https://github.com/scaleapi/mcp-atlas">github.com/scaleapi/mcp-atlas</a></li>
+  <li>Toolathlon repo: <a href="https://github.com/hkust-nlp/Toolathlon">github.com/hkust-nlp/Toolathlon</a></li>
+  <li>MCP-Atlas server template (36 个): <a href="https://github.com/scaleapi/mcp-atlas/blob/main/services/agent-environment/src/agent_environment/mcp_server_template.json">mcp_server_template.json</a></li>
+  <li>MCP-Universe github_task_0001: <a href="https://github.com/SalesforceAIResearch/MCP-Universe/blob/main/mcpuniverse/benchmark/configs/mcpuniverse/repository_management/github_task_0001.json">link</a></li>
+  <li>MCPMark verify.py 示例: <a href="https://github.com/eval-sys/mcpmark/blob/main/tasks/notion/easy/computer_science_student_dashboard/simple__study_session_tracker/verify.py">link</a></li>
+  <li>Toolathlon ab-testing evaluator: <a href="https://github.com/hkust-nlp/Toolathlon/blob/main/tasks/finalpool/ab-testing/evaluation/main.py">link</a></li>
+  <li>MCP-Universe evaluator code: <a href="https://github.com/SalesforceAIResearch/MCP-Universe/blob/main/mcpuniverse/evaluator/evaluator.py">link</a></li>
+  <li>MCP-Atlas judge: <a href="https://github.com/scaleapi/mcp-atlas/blob/main/services/mcp_eval/mcp_evals_scores.py">mcp_evals_scores.py</a></li>
+  <li>Toolathlon public eval service docs: <a href="https://github.com/hkust-nlp/Toolathlon/blob/main/EVAL_SERVICE_README.md">EVAL_SERVICE_README.md</a></li>
+</ul>
+
+<p style="text-align:center;color:#5b5e66;font-size:13px;margin-top:40px">
+— end of #26 —
+</p>
+
+</main>
+</body>
+</html>
