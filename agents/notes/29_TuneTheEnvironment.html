@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Don't Just Fine-tune the Agent, Tune the Environment</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Don't Just Fine-tune the Agent, Tune the Environment</h1>
+<div class="meta">
+  Zhejiang University · Shanghai Innovation Institute · Westlake University · AWorld Team, Inclusion AI · Nanjing University<br>
+  Siyuan Lu*, Zechuan Wang*, Hongxuan Zhang, Qintong Wu, Leilei Gan†, Chenyi Zhuang†, Jinjie Gu, Tao Lin† · 2025-10-11 (v1) · 2026-01-30 (v2) · <strong>ICLR 2026</strong><br>
+  *Equal contributions; work done during Siyuan & Zechuan 在蚂蚁集团实习期间 · †通讯作者<br>
+  <a href="https://arxiv.org/abs/2510.10197" target="_blank">arXiv:2510.10197</a> ·
+  <a href="https://arxiv.org/html/2510.10197v1" target="_blank">HTML</a> ·
+  <a href="https://github.com/inclusionAI/AWorld-RL/tree/main/EnvTuning" target="_blank">GitHub: inclusionAI/AWorld-RL/EnvTuning</a> ·
+  <a href="https://huggingface.co/papers/2510.10197" target="_blank">HF Paper Page</a><br>
+  关键词: environment tuning · 4-stage curriculum RL · actionable augmentation · fine-grained progress reward · BFCL V3/V4 · ACEBench · 400 problem instances · adapted GRPO+DAPO+ProRL
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> 这是 <strong>ICLR 2026</strong> 上由 <strong>蚂蚁集团 AWorld Team + 浙大 + 西湖大学</strong> 推的一个 agent RL 训练范式 —— 反对当前主流的 "<em>合成 trajectory + SFT</em>" 路线,也指出 "<em>直接 GRPO RL 在 multi-turn tool use 上 70 步内就 collapse</em>" 这件事的根因:<strong>环境本身没有教学能力</strong>。他们的解法 <strong>Environment Tuning</strong> = <em>"把环境改造成会反馈、会给提示、会渐进出题的老师",而不是去改 agent 网络的训练 loss</em>。具体三件套: <strong>(1) 四阶段课程</strong>(语法 → 基础 + 增强反馈 → 复杂 + 增强反馈 → alignment 关掉增强); <strong>(2) Actionable Environment Augmentation</strong> —— 把"No available route"改成"Invalid airport code[s]:..."这种<em>实指性 pedagogical hint</em>; <strong>(3) Fine-grained Progress Reward</strong> —— 按 turn 评 state·exec 两项,平均成 dense reward。<strong>只用 BFCL V3 的 400 条样本</strong>,把 Qwen2.5-7B-Instruct 从 7.00% 提到 36.92%,watt-tool-8B 从 35.74% 提到 54.34% 超过 GPT-4o / o3,OOD 上 Llama-3.1-8B-Instruct 在 BFCL V4 Web Search 从 1.00% 飙到 15.00%。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">400</div><div class="l">训练 problem instance — BFCL V3 4 个 split 各取 100</div></div>
+    <div class="stat"><div class="n">4 stages</div><div class="l">语法 → 基础+aug → 复杂+aug → 关 aug align</div></div>
+    <div class="stat"><div class="n">+47.34 pp</div><div class="l">Qwen2.5-7B BFCL V3 涨幅(7.00 → 36.92 vs GRPO 17.42)</div></div>
+    <div class="stat"><div class="n">+14.00 pp</div><div class="l">Llama-3.1-8B BFCL V4 Web Search OOD 涨幅(1.00 → 15.00)</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是 agent 训练里"<strong>把 env 当 first-class 变量</strong>"的 ICLR 2026 代表作 —— 不发明新 RL 算法,而是认真把"<em>环境提供什么反馈、什么时候提供、按什么难度</em>"做成可调旋钮。和读过的 <a href="06_AgentGymRL_2509.08755.html">#06 AgentGym-RL</a>(<em>ScalingInter</em> 课程 / 沿 horizon 维度)、<a href="13_RLAnything_2602.02488.html">#13 RLAnything</a>(<em>env+policy+reward 三者闭环联合优化</em>) 是同一脉; 和 <a href="22_TOUCAN.html">#22 TOUCAN</a>(1.5M traj SFT)、<a href="23_EnvScaler.html">#23 EnvScaler</a>(扩 env 给 RL 用) 是路线分歧 —— 这篇说: <em>数据其实 400 条就够,但环境得改造</em>。和 <a href="28_BFCL.html">#28 BFCL</a> 的关系最直接: 它把 BFCL V3 当训练集而不只是测试集用,且只用其中的 400 / 800 条。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景 — "tune the agent" vs "tune the environment" 两条路线</a></li>
+    <li><a href="#sec2">核心方法 — 三件套 + 四阶段课程</a></li>
+    <li><a href="#sec3">关键设计 — "tune the environment" 究竟改了什么</a></li>
+    <li><a href="#sec4">⭐ 评测的 benchmark — 全部 verbatim 分数</a></li>
+    <li><a href="#sec5">与 baseline 对比 — head-to-head + ablation</a></li>
+    <li><a href="#sec_oss">🔍 开源现状 — repo 实地清点</a></li>
+    <li><a href="#sec7">landscape — 链 #06 #13 #18 #22 #23 #25 #26 #28</a></li>
+    <li><a href="#sec8">局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景 — "tune the agent" vs "tune the environment" 两条路线</h2>
+
+<h3>1.1 multi-turn tool use 的三难</h3>
+
+<p>论文 §1 用三个 <em>ℂ1/ℂ2/ℂ3</em> 把问题钉死:</p>
+
+<table>
+  <tr><th>挑战</th><th>论文措辞</th><th>具体后果</th></tr>
+  <tr>
+    <td>ℂ1 数据稀缺</td>
+    <td>"BFCL V3 multi-turn 仅 800 样本"</td>
+    <td>传统 SFT scaling 走不通</td>
+  </tr>
+  <tr>
+    <td>ℂ2 环境复杂</td>
+    <td>"8 domain × 84 tool, 跨域 API + 编排"</td>
+    <td>RL cold-start: 不够熟练的 agent 探索不出有意义的 rollout</td>
+  </tr>
+  <tr>
+    <td>ℂ3 长 interaction chain</td>
+    <td>"任何一 turn 失败 → 全任务失败"</td>
+    <td>训练不稳定、gradient explosion、performance collapse</td>
+  </tr>
+</table>
+
+<p>作者还放了一个非常关键的负面实验数字(§3.1):</p>
+
+<blockquote>
+"when fine-tuning Qwen2.5-7B-Instruct directly in a single-stage RL setup with 400 training instances, training collapsed within 70 steps, yielding a mere 10% improvement in success rate."
+</blockquote>
+
+<p>—— 这是他们立"<strong>不能直接 RL</strong>"的实证根据,也是后面四阶段课程存在的理由。</p>
+
+<h3>1.2 两条主流路线各自的失败模式</h3>
+
+<table>
+  <tr><th>路线</th><th>代表</th><th>失败模式(论文措辞)</th></tr>
+  <tr>
+    <td>合成轨迹 SFT</td>
+    <td>ToolACE-2, watt-tool, xLAM-2, <a href="22_TOUCAN.html">TOUCAN(#22)</a></td>
+    <td>过拟合静态分布,OOD 崩塌(xLAM-2 在 BFCL V3 拿 70.50,到 BFCL V4 Web Search 掉到 5.00)</td>
+  </tr>
+  <tr>
+    <td>online RL on 原始 env</td>
+    <td>ReCall, ARTIST, <a href="06_AgentGymRL_2509.08755.html">AgentGym-RL(#06)</a></td>
+    <td>稀疏 reward + cold-start → 70 步内 collapse, "yield only modest gains on BFCL"</td>
+  </tr>
+  <tr style="background:#f3eee0">
+    <td><strong>Environment Tuning</strong></td>
+    <td>本文</td>
+    <td><em>"shifting from trajectory-based imitation to environment-based exploration"</em></td>
+  </tr>
+</table>
+
+<p>"Tune the Environment" 这个标题的 <strong>真实意思不是炒概念</strong>: 它指的是 —— <em>保持 agent 是普通的 GRPO RL agent,但是把 env 在训练阶段改成会主动反馈错因的 "augmented env",并按课程切换 env 难度和 reward 函数</em>。<strong>评测时 env 还原成标准 BFCL env</strong>(stage 4 关掉 augmentation 就是为了 align)。这是它与"环境 = 黑盒输入"传统 RL setup 的根本性差异。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 核心方法 — 三件套 + 四阶段课程</h2>
+
+<h3>2.1 一图看 Environment Tuning 的训练流水线</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 620" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+
+  <!-- Stage 1 -->
+  <rect x="20" y="20" width="740" height="105" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="40" y="42" font-size="14" font-weight="bold" fill="#2f6feb">Stage 1 · 语法掌握</text>
+  <text x="40" y="62" font-size="11.5">数据 split: <tspan font-weight="bold">仅 Base 子集</tspan> · 环境: <tspan font-weight="bold">Standard</tspan>(不 augment) · 目标: 让 agent 学会"环境能解析的 tool-call 格式"</text>
+  <text x="40" y="80" font-size="11.5">reward = I_tool · (R_format + R_tool)</text>
+  <text x="40" y="98" font-size="11" fill="#cc4a1b">其中 R_format = (N − C_format)/N, R_tool = C_correct/(C_correct + C_error), I_tool 仅 attempted tool-call 时为 1</text>
+  <text x="40" y="115" font-size="11" fill="#5b5e66">→ 不评估任务对错,只评 "well-formed 且 valid argument"</text>
+
+  <!-- Arrow -->
+  <line x1="390" y1="125" x2="390" y2="148" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Stage 2 -->
+  <rect x="20" y="150" width="740" height="105" rx="8" fill="#f3eee0" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="40" y="172" font-size="14" font-weight="bold" fill="#2f6feb">Stage 2 · 基础学习(开启增强)</text>
+  <text x="40" y="192" font-size="11.5">数据 split: <tspan font-weight="bold">完整 Base split</tspan> · 环境: <tspan font-weight="bold">Augmented</tspan> · reward: <tspan font-weight="bold">Progress Reward R_P</tspan></text>
+  <text x="40" y="210" font-size="11" fill="#cc4a1b">R_P = (1/T) Σ_t (r_t^state · r_t^exec) — 每 turn 评 state 改写 + exec 返回值两项</text>
+  <text x="40" y="228" font-size="11">augmented env 的关键 trick: failure 时返回 <tspan font-style="italic">实指性 hint</tspan> 而非通用错</text>
+  <text x="40" y="246" font-size="11" fill="#5b5e66">→ 例: "Invalid airport code[s]:..."暗示 agent "需要先查 airport code"</text>
+
+  <line x1="390" y1="255" x2="390" y2="278" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Stage 3 -->
+  <rect x="20" y="280" width="740" height="105" rx="8" fill="#f3eee0" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="40" y="302" font-size="14" font-weight="bold" fill="#2f6feb">Stage 3 · 复杂场景(仍带增强)</text>
+  <text x="40" y="322" font-size="11.5">数据 split: <tspan font-weight="bold">+ Missing Param + Missing Func + Long-Context</tspan>(完整 400 训练集)</text>
+  <text x="40" y="340" font-size="11.5">环境: <tspan font-weight="bold">Augmented</tspan> · reward: <tspan font-weight="bold">Progress Reward R_P</tspan>(同 Stage 2)</text>
+  <text x="40" y="358" font-size="11" fill="#cc4a1b">目标: 学会处理 ambiguity / 识别 functional gap / 从噪声 context 检索</text>
+  <text x="40" y="376" font-size="11" fill="#5b5e66">→ ablation 显示这一步是涨分主力(Stage 2 → 3: +6.17 pp avg)</text>
+
+  <line x1="390" y1="385" x2="390" y2="408" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Stage 4 -->
+  <rect x="20" y="410" width="740" height="105" rx="8" fill="#fff" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="40" y="432" font-size="14" font-weight="bold" fill="#cc4a1b">Stage 4 · 与评测环境对齐(关闭增强)</text>
+  <text x="40" y="452" font-size="11.5">数据 split: 完整 400 训练集 · 环境: <tspan font-weight="bold" fill="#cc4a1b">Standard</tspan>(关 augmentation) · reward: R_P</text>
+  <text x="40" y="470" font-size="11.5">目标: 强迫 agent 在没有 pedagogical hint 时也能完成任务 — generalize 出去</text>
+  <text x="40" y="488" font-size="11" fill="#cc4a1b">→ 关键: 评测时 BFCL/ACEBench 都是 standard env,这一步保证 train-test distribution match</text>
+  <text x="40" y="506" font-size="11" fill="#5b5e66">→ Stage 4 涨幅 +4.92 pp,主要在 Base(+5.66)和 L.Ctxt(+4.00)</text>
+
+  <!-- Three pillars side legend -->
+  <rect x="20" y="540" width="240" height="70" rx="6" fill="#fff" stroke="#2f6feb"/>
+  <text x="140" y="558" text-anchor="middle" font-size="12" font-weight="bold" fill="#2f6feb">Pillar 1: Structured Curriculum</text>
+  <text x="140" y="576" text-anchor="middle" font-size="10.5">4 阶段从简到难</text>
+  <text x="140" y="592" text-anchor="middle" font-size="10.5" fill="#5b5e66">用于 cold-start 缓解 ℂ2</text>
+
+  <rect x="270" y="540" width="240" height="70" rx="6" fill="#fff" stroke="#2f6feb"/>
+  <text x="390" y="558" text-anchor="middle" font-size="12" font-weight="bold" fill="#2f6feb">Pillar 2: Actionable Env Aug</text>
+  <text x="390" y="576" text-anchor="middle" font-size="10.5">把通用错改成 pedagogical hint</text>
+  <text x="390" y="592" text-anchor="middle" font-size="10.5" fill="#5b5e66">教 tool 依赖 + 内部约束</text>
+
+  <rect x="520" y="540" width="240" height="70" rx="6" fill="#fff" stroke="#2f6feb"/>
+  <text x="640" y="558" text-anchor="middle" font-size="12" font-weight="bold" fill="#2f6feb">Pillar 3: Progress Reward</text>
+  <text x="640" y="576" text-anchor="middle" font-size="10.5">turn-by-turn state·exec dense reward</text>
+  <text x="640" y="592" text-anchor="middle" font-size="10.5" fill="#5b5e66">用于 reward sparsity 缓解 ℂ3</text>
+</svg>
+<figcaption>图: Environment Tuning 的四阶段课程 + 三大支柱。注意 Stage 1 用的是"<em>task-agnostic</em>"reward(只评格式),从 Stage 2 起切到 task-aware 的 Progress Reward;augmentation 在 Stage 2/3 开启,Stage 4 关闭以 align 评测分布。</figcaption>
+</div>
+
+<h3>2.2 训练算法 — adapted GRPO + decoupled clip + KL</h3>
+
+<p>RL 算法本身没有发明新东西,是 GRPO + DAPO + ProRL 的组合:</p>
+
+<div class="formula">
+ℒ(θ) = −𝔼<sub>t</sub>[ min( r<sub>t</sub>(θ) Â<sub>t</sub>, clip(r<sub>t</sub>(θ), 1−ε<sub>low</sub>, 1+ε<sub>high</sub>) Â<sub>t</sub> ) ] + β · D<sub>KL</sub>(π<sub>θ</sub> ∥ π<sub>ref</sub>)
+</div>
+<div class="formula">
+Â<sub>t</sub>(τ) = ( R(τ) − μ<sub>𝒢</sub> ) / ( σ<sub>𝒢</sub> + ε<sub>A</sub> )
+</div>
+
+<p>关键超参: <code>β = 0.1</code>(KL 系数,论文承认相对偏高,§D.3 有 justify), <code>ε_low = 0.2</code>, <code>ε_high = 0.28</code>(decoupled clip 来自 DAPO)。<strong>论文未给 GPU 数 / 训练总时长 / 总 token cost</strong>。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 关键设计 — "tune the environment" 究竟改了什么</h2>
+
+<h3>3.1 Actionable Environment Augmentation 的两个层次</h3>
+
+<p>这是全文最 concrete 的 "<em>到底改了 env 什么</em>" 描述。§3.3 给了两个 case study:</p>
+
+<table>
+  <tr><th>层次</th><th>case</th><th>Standard 返回</th><th>Augmented 返回</th><th>暗示给 agent 的是什么</th></tr>
+  <tr>
+    <td>inter-tool 依赖</td>
+    <td>BFCL Travel API</td>
+    <td>"No available route"</td>
+    <td>"Invalid airport code[s]:..."</td>
+    <td>"先调另一个 tool 拿 airport code"</td>
+  </tr>
+  <tr>
+    <td>tool 内部约束</td>
+    <td>BFCL File System</td>
+    <td>"FileNotFoundError"</td>
+    <td>"Paths are not allowed. Specify only file/directory name..."</td>
+    <td>"本环境的 rm 不接受 full path"</td>
+  </tr>
+</table>
+
+<p>核心 insight: <strong>不是改 reward 给提示,而是改 tool 的 error string 给提示</strong>。差别在于 —— hint 出现在 observation 里、走 agent 的语言通道、可以被 attention/CoT 利用;若放进 reward 里只是给 gradient 一个 scalar 信号,语义就丢了。这其实是把 "<em>合成 trajectory 中老师写的注释</em>" 内化进了 env 本身,让 agent 通过<em>探索</em>而非<em>模仿</em>学到。</p>
+
+<h3>3.2 Progress Reward 的两个组件</h3>
+
+<p>§3.4 + Appendix B 把 r<sub>t</sub> = r<sub>t</sub><sup>state</sup> · r<sub>t</sub><sup>exec</sup> 拆得清楚:</p>
+
+<ul>
+  <li><strong>state 评估</strong>: 针对会<em>修改 env 状态</em>的 call(create file, book flight)。每 turn 末把当前 env 状态和 ground-truth 比对 —— <em>"focus on whether the agent's actions achieve the desired final state, rather than prescribing a specific execution path"</em>。这是 BFCL V3 的官方 state-based eval 的"<em>turn-级别下沉</em>"版本。</li>
+  <li><strong>exec 评估</strong>: 针对<em>返回值才是结果</em>的 call(get stock price, check weather)。直接比 function return value 和 ground-truth。</li>
+</ul>
+
+<p>每 turn 必须 <strong>两项都对才给 1</strong>。R<sub>P</sub> = 全 turn 平均 success rate。Ablation(§4.3, Fig 4b)显示: <strong>binary terminal reward 在 Missing Param / Missing Func split 上完全 train 不起来(性能近零)</strong>,只有这个 dense 形式才让复杂 split 有 gradient。</p>
+
+<h3>3.3 课程为什么是四阶段不是三阶段</h3>
+
+<p>这点很 sneaky 但重要: 如果只到 Stage 3(带 augmentation 训完即评估),agent 会<strong>依赖 hint</strong>; 评测时 hint 没了就崩。Stage 4 的作用就是 <em>"align with evaluation conditions"</em> —— 把 agent 在 hint-free env 上再 finetune 一段,迫使它把"靠 hint 学到的 dependency 知识"内化为 policy。论文 Table 3 显示 Stage 4 在 Base split 上 +5.66 pp,但在 L.Ctxt 上反而 +4.00 pp 而 M.Func -0.67 pp、M.Param -0.67 pp —— 这是典型的"<em>trade-off align in/out of curriculum</em>"现象。</p>
+
+<hr>
+
+<h2 id="sec4">4 · ⭐ 评测的 benchmark — 全部 verbatim 分数</h2>
+
+<p>论文只评了 <strong>3 个 benchmark 家族</strong>(都是 function-calling/tool-use 域内),核心是 BFCL,V3 当 ID(in-distribution),V4 + ACEBench 当 OOD。</p>
+
+<h3>4.1 BFCL V3 Multi-Turn(ID, 4 split, 训练集所在地)</h3>
+
+<p>(Patil et al. 2025b. 总 800 条,作者切 100×4 = 400 训练 / 400 测试。完整 4 个 split 都进入训练,见 Stage 3。)</p>
+
+<table>
+  <tr><th>Model</th><th>Avg</th><th>Base</th><th>M.Func</th><th>M.Param</th><th>L.Ctxt</th></tr>
+  <tr><td colspan="6" style="background:#f3eee0"><em>Proprietary 参考线</em></td></tr>
+  <tr><td>Claude Sonnet 4</td><td>57.00</td><td>63.00</td><td>58.00</td><td>51.00</td><td>56.00</td></tr>
+  <tr><td>GPT-4o</td><td>51.00</td><td>59.00</td><td>54.00</td><td>41.00</td><td>50.00</td></tr>
+  <tr><td>o3</td><td>49.25</td><td>47.00</td><td>55.00</td><td>47.00</td><td>48.00</td></tr>
+  <tr><td>Gemini 2.5 Pro</td><td>28.75</td><td>32.00</td><td>29.00</td><td>22.00</td><td>32.00</td></tr>
+  <tr><td colspan="6" style="background:#f3eee0"><em>Open-source SFT baseline</em></td></tr>
+  <tr><td>xLAM-2-8b-fc-r</td><td><strong>70.50</strong></td><td>77.85</td><td>69.15</td><td>65.80</td><td>69.20</td></tr>
+  <tr><td>Arch-Agent-7B</td><td>42.05</td><td>47.15</td><td>53.75</td><td>34.20</td><td>33.10</td></tr>
+  <tr><td>BitAgent-8B</td><td>36.99</td><td>47.85</td><td>33.20</td><td>26.15</td><td>40.75</td></tr>
+  <tr><td>ToolACE-2-Llama-3.1-8B</td><td>37.99</td><td>48.85</td><td>34.15</td><td>25.20</td><td>43.75</td></tr>
+  <tr><td>watt-tool-8B</td><td>35.74</td><td>45.85</td><td>33.15</td><td>25.20</td><td>38.75</td></tr>
+  <tr><td colspan="6" style="background:#f3eee0"><em>Base model + Environment Tuning</em></td></tr>
+  <tr><td>Qwen2.5-7B-Instruct (base)</td><td>7.00</td><td>9.33</td><td>9.33</td><td>6.33</td><td>3.00</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td><strong>36.92 (+29.92)</strong></td><td>50.33 (+41.00)</td><td>40.33 (+31.00)</td><td>29.33 (+23.00)</td><td>27.67 (+24.67)</td></tr>
+  <tr><td>Llama-3.1-8B-Instruct (base)</td><td>5.48</td><td>6.15</td><td>6.80</td><td>3.20</td><td>5.75</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td><strong>28.25 (+22.77)</strong></td><td>28.20 (+22.05)</td><td>25.85 (+19.05)</td><td>22.15 (+18.95)</td><td>36.80 (+31.05)</td></tr>
+  <tr><td>ToolACE-2 (SFT base)</td><td>37.99</td><td>48.85</td><td>34.15</td><td>25.20</td><td>43.75</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td><strong>47.18 (+9.19)</strong></td><td>55.20 (+6.35)</td><td>38.15 (+4.00)</td><td>38.20 (+13.00)</td><td>57.15 (+13.40)</td></tr>
+  <tr><td>watt-tool-8B (SFT base)</td><td>35.74</td><td>45.85</td><td>33.15</td><td>25.20</td><td>38.75</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td><strong>54.34 (+18.50)</strong></td><td>64.15 (+18.30)</td><td>48.15 (+15.00)</td><td>40.20 (+15.00)</td><td>64.85 (+26.10)</td></tr>
+</table>
+
+<p><strong>读法</strong>: (a) 在 ID 上 watt-tool + Env Tuning 54.34% 超过 Claude Sonnet 4(57.00)以外的所有 frontier(o3 49.25 / GPT-4o 51 / Gemini 28.75)—— 但<strong>仍输 xLAM-2-8b-fc-r 70.50</strong>。作者的说辞是 xLAM-2 训练数据有 60K 条而他们只用 400,且<strong>xLAM-2 在 OOD 上崩塌</strong>(下表)。(b) Qwen2.5-7B 从 7.00 → 36.92,是"近乎从零起步的 RL"凭 400 条就到 Gemini 2.5 Pro 同档(28.75)。</p>
+
+<h3>4.2 BFCL V4 Web Search + Memory(OOD)</h3>
+
+<p>(Patil 2025b 的新 track,网络数据 post-date 模型训练 cutoff,真 OOD。下面 base 行都是 Llama-3.1-8B-Instruct;Env Tuning 模型对比的是它们的 SFT 起点。)</p>
+
+<table>
+  <tr><th rowspan="2">Model</th><th colspan="3">BFCL V4 Web Search</th><th colspan="4">BFCL V4 Memory</th></tr>
+  <tr><th>Avg</th><th>Base</th><th>No Snippet</th><th>Avg</th><th>KV</th><th>Vector</th><th>Recursive Sum</th></tr>
+  <tr><td>xLAM-2-8b-fc-r</td><td>5.00</td><td>8.00</td><td>2.00</td><td>13.33</td><td>7.10</td><td>14.19</td><td>18.71</td></tr>
+  <tr><td>BitAgent-8B</td><td>4.50</td><td>7.00</td><td>2.00</td><td>10.32</td><td>2.58</td><td>16.77</td><td>11.61</td></tr>
+  <tr><td>Llama-3.1-8B-Instruct (base)</td><td>1.00</td><td>1.00</td><td>1.00</td><td>15.91</td><td>5.81</td><td>15.48</td><td>26.45</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td><strong>15.00</strong></td><td><strong>24.00</strong></td><td>6.00</td><td>18.06</td><td>17.42</td><td>26.45</td><td>10.32</td></tr>
+  <tr><td>ToolACE-2 (SFT base)</td><td>9.00</td><td>13.00</td><td>5.00</td><td>22.80</td><td>7.10</td><td>24.52</td><td>36.77</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td><strong>14.00</strong></td><td>23.00</td><td>5.00</td><td>19.57</td><td>8.39</td><td>18.06</td><td>32.26</td></tr>
+  <tr><td>watt-tool-8B (SFT base)</td><td>4.00</td><td>5.00</td><td>3.00</td><td>13.33</td><td>3.23</td><td>14.19</td><td>22.58</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td><strong>8.00</strong></td><td>15.00</td><td>1.00</td><td>19.35</td><td>7.10</td><td>27.10</td><td>23.87</td></tr>
+</table>
+
+<p><strong>读法</strong>: (a) <strong>SFT 模型的 OOD 大塌方</strong>是论文最有说服力的论点 —— xLAM-2 V3 70.50 → V4 Web Search 5.00,跌 65 pp; 同样规模数据 SFT 训出来的 BitAgent 4.50。(b) Llama base 在 Memory 上的 Recursive Sum 是 26.45,Env Tuning 后<strong>反而掉到 10.32</strong>;ToolACE-2 也从 36.77 → 32.26。<strong>这是 negative trade-off</strong>:OOD generalization 是平均涨的、但某些子项是损的。(c) Web Search Avg 涨幅清晰 —— Llama-3.1 1.00 → 15.00 是 15×,这是论文最 cherry-picked 的数字。</p>
+
+<h3>4.3 ACEBench Agent split(advanced OOD)</h3>
+
+<table>
+  <tr><th>Model</th><th>Avg</th><th>Multi-turn</th><th>Multi-step</th></tr>
+  <tr><td>xLAM-2-8b-fc-r</td><td>1.65</td><td>0.00</td><td>3.33</td></tr>
+  <tr><td>BitAgent-8B</td><td>5.00</td><td>10.00</td><td>0.00</td></tr>
+  <tr><td>Llama-3.1-8B-Instruct (base)</td><td>1.65</td><td>0.00</td><td>3.33</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td>4.17</td><td>5.00</td><td>3.33</td></tr>
+  <tr><td>ToolACE-2 (SFT base)</td><td>8.34</td><td>10.00</td><td>6.67</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td><strong>15.00 (+6.66)</strong></td><td>10.00</td><td><strong>20.00 (+13.33)</strong></td></tr>
+  <tr><td>watt-tool-8B (SFT base)</td><td>2.50</td><td>5.00</td><td>0.00</td></tr>
+  <tr style="background:#eef5ff"><td>+ Environment Tuning</td><td>7.50</td><td>0.00</td><td>15.00</td></tr>
+</table>
+
+<p><strong>读法</strong>: ACEBench 上所有模型都很差(absolute number 都两位数以下),作者用的是<em>相对涨幅</em>说服力 —— ToolACE-2 8.34 → 15.00 是 +80% relative。<strong>注意 multi-turn 维度上 watt-tool 是 5.00 → 0.00 的负迁移</strong>,作者没解释。</p>
+
+<div class="nb">
+<strong>评测覆盖小结:</strong> 论文只评了 <strong>BFCL V3 / BFCL V4 / ACEBench</strong> 三个 family,全是 BFCL 系或 BFCL 衍生(ACEBench 是 BFCL 风格的新出题)。<strong>没有 MCP 类 benchmark (没有 MCP-Universe / Atlas / τ²-Bench),也没有 web/GUI/code 类</strong>。这与 ICLR 2026 同期 <a href="22_TOUCAN.html">#22 TOUCAN</a>(BFCL+τ²+MCP-Universe)、<a href="25_MCPUniverse.html">#25 MCP-Universe</a>(11 MCP server)、<a href="28_BFCL.html">#28 BFCL V4</a> 自身评测面相比要窄一些 —— 但全在 BFCL 同样的 state-based eval 范式内,这意味着<strong> Progress Reward 的 r<sub>t</sub><sup>state</sup> · r<sub>t</sub><sup>exec</sup> 形式刚好与评测 protocol 对齐</strong>,某种意义上是 over-engineered for BFCL。</div>
+
+<hr>
+
+<h2 id="sec5">5 · Ablation — head-to-head 拆解课程</h2>
+
+<h3>5.1 直接 GRPO 失败 vs 课程</h3>
+
+<p>Table 3(Qwen2.5-7B-Instruct, BFCL V3 ID):</p>
+
+<table>
+  <tr><th>Setting</th><th>Avg</th><th>Base</th><th>M.Func</th><th>M.Param</th><th>L.Ctxt</th></tr>
+  <tr><td>Qwen2.5-7B base</td><td>7.00</td><td>9.33</td><td>9.33</td><td>6.33</td><td>3.00</td></tr>
+  <tr><td>+ direct GRPO(0.9 R_P + 0.1 R_format)</td><td>17.42</td><td>20.00</td><td>24.67</td><td>14.67</td><td>10.33</td></tr>
+  <tr><td>+ Stage 1 only</td><td>15.50</td><td>19.00</td><td>22.33</td><td>9.33</td><td>11.33</td></tr>
+  <tr><td>+ through Stage 2</td><td>25.83</td><td>32.00</td><td>33.67</td><td>20.00</td><td>17.67</td></tr>
+  <tr><td>+ through Stage 3</td><td>32.00</td><td>44.67</td><td>34.33</td><td>25.33</td><td>23.67</td></tr>
+  <tr style="background:#eef5ff"><td><strong>+ through Stage 4 (full)</strong></td><td><strong>36.92</strong></td><td>50.33</td><td>40.33</td><td>29.33</td><td>27.67</td></tr>
+</table>
+
+<p>关键观察:</p>
+<ul>
+  <li><strong>课程 vs 直接 GRPO: 36.92 vs 17.42 = +19.50 pp</strong> 的纯课程效益。</li>
+  <li><strong>Stage 1 单独反而比 direct GRPO 还低</strong>(15.50 vs 17.42)—— 因为它只是学了格式,但完全没学任务。Stage 1 的价值是<em>建立可用 gradient</em>,不是直接出分。</li>
+  <li>Stage 2 → 3 跳得最猛(+6.17 pp avg),这是引入 M.Param / M.Func / L.Ctxt 三种复杂 split 的效果。</li>
+  <li>Stage 4 关 augmentation 后涨 +4.92,主要在 Base,部分 split 反而轻微下降(M.Func 40.33<41.00 是另一种衡量;这里没明显倒退)。</li>
+</ul>
+
+<h3>5.2 Augmentation 的贡献(Fig 4a, 仅曲线无表格)</h3>
+<p>论文给的是训练曲线(没数值表),叙述措辞: <em>"For Missing Parameters and Missing Functions splits, Environment Augmentation brings substantial performance improvements of over 20%"</em>。这两个 split 是<em>ambiguity</em>类(参数缺失要求 agent 反问、tool 缺失要求 agent 识别),恰好是 hint 给 actionable feedback 最有用的场景。</p>
+
+<h3>5.3 Progress Reward vs binary reward(Fig 4b)</h3>
+<ul>
+  <li>Stage 2 (Base) 上 binary reward 与 progress reward 差距不大;</li>
+  <li>Stage 3 (M.Param + M.Func) 上 binary reward <strong>训不起来,性能近零</strong>;</li>
+  <li>L.Ctxt 上 progress reward 更稳定。</li>
+</ul>
+<p>结论与 §3.4 一致: <strong>稀疏 binary reward 在 long-horizon 上彻底失效</strong>,dense per-turn reward 是必需。</p>
+
+<hr>
+
+<h2 id="sec_oss">6 · 🔍 开源现状 — repo 实地清点</h2>
+
+<h3>6.1 location</h3>
+
+<p>论文 abstract 原文: <em>"The source code will be available under <code>https://github.com/inclusionAI</code> in the next version."</em> 实际上 v1 发布时代码还没放,<strong>到 2026 年 1 月 v2 后才并入</strong>:</p>
+
+<p><code>https://github.com/inclusionAI/AWorld-RL/tree/main/EnvTuning</code> — 这是<strong>蚂蚁集团 AWorld 团队的 agentic RL 算法合集 repo</strong>的子目录, 与 FunReason / FunReason-MT / V2P / RAG-R1 同级 (即 AWorld-RL 本身是个 "蚂蚁出的所有 agentic RL 论文的总仓"; Environment Tuning 是其中一个算法子模块)。</p>
+
+<div class="kv">
+  <strong>组织:</strong> inclusionAI(蚂蚁集团 InclusionAI org;含 AWorld、Ring-1T 等)<br>
+  <strong>主仓:</strong> AWorld-RL · <a href="https://github.com/inclusionAI/AWorld-RL" target="_blank">github.com/inclusionAI/AWorld-RL</a><br>
+  <strong>license:</strong> MIT(repo-level)<br>
+  <strong>training stack:</strong> 基于 AWorld framework 上的 agentic RL —— 集成了 GRPO / DAPO / ProRL 的若干 trick<br>
+  <strong>最新 commit / news:</strong> 2026/04/06 (FunReason ACL 2026 接收;EnvTuning 自身更新节奏未在 README 高亮)
+</div>
+
+<h3>6.2 复用矩阵</h3>
+
+<table>
+  <tr><th>artifact</th><th>开源状态</th><th>note</th></tr>
+  <tr><td>训练代码 (curriculum + augmented env hooks)</td><td class="ok">✓ MIT</td><td>EnvTuning 子目录,基于 AWorld framework</td></tr>
+  <tr><td>训练数据 (BFCL V3 400 子集)</td><td class="ok">✓ 用 BFCL 公开数据</td><td>BFCL 自身 Apache-2.0,见 <a href="28_BFCL.html">#28</a></td></tr>
+  <tr><td>训练后的 8B 模型 ckpt</td><td>📦 部分 (HF: inclusionAI / 个人账号)</td><td>论文未直接列单个 ckpt URL;Bingguang/IcyFish 账号下散落</td></tr>
+  <tr><td>Augmented env spec (具体 hint 字典)</td><td>📜 嵌入代码</td><td>不是独立 artifact,是 BFCL env 的 patch</td></tr>
+  <tr><td>评测 harness</td><td class="ok">✓ 直接用 BFCL/ACEBench 官方</td><td>无 fork</td></tr>
+</table>
+
+<h3>6.3 复现门槛评估</h3>
+<ul>
+  <li><strong>训练数据极小</strong>(400 条) → 这是论文最强的实用卖点。</li>
+  <li><strong>GPU 需求</strong>: 论文未给(无 H100×N 描述、无总时长)。但基于 8B model + adapted GRPO + 400 sample + 4 stage,单节点 8×H100 ~ 1-2 天是合理量级估算 —— 比 <a href="22_TOUCAN.html">TOUCAN(#22)</a>(1.5M traj SFT)便宜 100×。</li>
+  <li><strong>核心 IP 是 augmentation hint 字典</strong>: 这部分是手工 / 半 prompted 写出来的,如果想换 benchmark(BFCL → MCP-Universe 等),需要<strong>重新为目标 env 写一套 actionable hint</strong>,这是隐性的 manual labor。</li>
+  <li><strong>本仓库 star / 流量在 v2 发布后才长</strong>,目前(2026-05)<strong>未在任何 frontier model card 中被引用</strong>。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec7">7 · landscape — 它在 28 篇里的位置</h2>
+
+<h3>7.1 与"tune the agent"系的对比</h3>
+
+<table>
+  <tr><th>笔记</th><th>路线</th><th>对 env 的处理</th><th>训练数据规模</th><th>OOD 表现</th></tr>
+  <tr>
+    <td><a href="22_TOUCAN.html">#22 TOUCAN</a></td>
+    <td>SFT on synthetic traj</td>
+    <td>真 MCP env(495 server)但只读回执</td>
+    <td>1.5M trajectory</td>
+    <td>BFCL 强,τ² 中等(论文自报)</td>
+  </tr>
+  <tr>
+    <td><a href="23_EnvScaler.html">#23 EnvScaler</a></td>
+    <td>Reinforce++ on synthetic env</td>
+    <td>程序化造 env (191 个 Python class)</td>
+    <td>~9K trajectory</td>
+    <td>BFCL-MT 41.88(超 GPT-4.1)</td>
+  </tr>
+  <tr>
+    <td><a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a></td>
+    <td>GRPO on synthetic env</td>
+    <td>SQLite + Python 合成 1,000 env</td>
+    <td>未公开 trajectory 数</td>
+    <td>BFCLv3 8B 53.83→65.94</td>
+  </tr>
+  <tr>
+    <td><a href="06_AgentGymRL_2509.08755.html">#06 AgentGym-RL</a></td>
+    <td>ScalingInter-RL</td>
+    <td>固定 env, 沿 horizon 维度做课程</td>
+    <td>27 task suite</td>
+    <td>多域,未对比 BFCL</td>
+  </tr>
+  <tr>
+    <td><a href="13_RLAnything_2602.02488.html">#13 RLAnything</a></td>
+    <td>三件套联合优化(env+policy+reward)</td>
+    <td>把 env 当 first-class 变量</td>
+    <td>OSWorld 任务</td>
+    <td>OSWorld +9.1%</td>
+  </tr>
+  <tr style="background:#eef5ff">
+    <td><strong>#29 Env Tuning(本文)</strong></td>
+    <td><strong>adapted GRPO on augmented env</strong></td>
+    <td><strong>把 env 的 error string 改成 hint</strong></td>
+    <td><strong>400 problem instance</strong></td>
+    <td><strong>BFCL V3 36.92, V4 Web 15.00 (Qwen)</strong></td>
+  </tr>
+</table>
+
+<h3>7.2 与"造 env"系的关系</h3>
+
+<p>这篇明显<strong>不是造 env 的论文</strong> —— 它假设 env 已经存在(BFCL),只是给现成 env 套了一层"<em>actionable feedback wrapper</em>"。所以它和 #18 AWM、#23 EnvScaler、#20 SETA 是<strong>正交关系</strong>:</p>
+
+<ul>
+  <li>#18 AWM 解决"<em>没有 env 怎么办 → 合成 1000 个</em>"</li>
+  <li>#23 EnvScaler 解决"<em>每个 env 容量太小 → 程序化扩</em>"</li>
+  <li>#20 SETA 解决"<em>怎么用 Docker 做真 terminal env</em>"</li>
+  <li><strong>#29 (本文) 解决</strong>"<em>已有 env 但 cold-start 训不起来 → 改 env 反馈</em>"</li>
+</ul>
+
+<p>更准确的对位是 <a href="13_RLAnything_2602.02488.html">#13 RLAnything</a> 的 "<em>env 作为可优化变量</em>" 哲学;但 RLAnything 真正联合优化 env,这篇<strong>不优化 env,只是<em>静态地</em>把 env 改成更教学型</strong>。所以它是 RLAnything 的<em>简化版</em>(env 改造一次性人手完成,不是 RL 进化出来的)。</p>
+
+<h3>7.3 与 benchmark 系的关系</h3>
+
+<p>训练集是 <a href="28_BFCL.html">#28 BFCL V3 Multi-Turn 的 4 个 split</a>; OOD 测试是 BFCL V4 + ACEBench。<strong>未触碰 #25 MCP-Universe、#21 #26 的 MCP benchmark 家族</strong>。这意味着如果想知道 Environment Tuning 在 MCP 域是否成立,需要 community follow-up —— 这也是用户问的复用价值最大点。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 局限 / 个人 take</h2>
+
+<h3>8.1 实事求是的局限</h3>
+
+<ol>
+  <li><strong>augmentation 字典是 manual labor</strong>:论文 §3.3 给的两个例子(airport code / file path)显然是手写的、绑定特定 BFCL tool。换到新 env 必须重新编写,<em>不是 scalable 的方法</em>。论文 §5 自己也承认: "automated mechanisms for curriculum and feedback generation" 是 future work。</li>
+  <li><strong>评测域窄</strong>:只 BFCL + ACEBench。没碰 MCP / web / GUI / code。当前 SOTA 在 BFCL V3 上 xLAM-2 还是 70.50,环境调优后 watt-tool-Env Tuning 是 54.34 —— <strong>没打过开源 SFT SOTA</strong>。论文用"OOD generalization 更好"来对冲这一点,但 ID 落后 16 pp 是事实。</li>
+  <li><strong>OOD 有 negative case</strong>:Memory Recursive Sum 上 Llama-3.1+Env Tuning 26.45 → 10.32, watt-tool multi-turn 5.00 → 0.00 —— "强 OOD generalization" 这个 claim 是平均下来成立,某些子项是损的。</li>
+  <li><strong>没给 compute</strong>:GPU 数、时长、wall-clock cost 三个数字一个都没有。这对实用性评估是缺失。</li>
+  <li><strong>对 Llama 系列的 RL 退化未深探</strong>:base Llama-3.1-8B + Env Tuning 只到 28.25,远低于 Qwen2.5-7B 同方法的 36.92。论文承认 "applying RL to Llama-based models has proven difficult" 但没给 Env Tuning 在这点上是否缓解的对比数据。</li>
+  <li><strong>v1 时代码没放</strong>:虽然 v2 (2026-01) 后并入 AWorld-RL,但 v1 (2025-10) → v2 中间 3 个月空窗期没有可复现物。</li>
+</ol>
+
+<h3>8.2 critical insight — 这篇真正的 paradigm contribution 在哪</h3>
+
+<blockquote>
+<strong>最有价值的洞察不是"四阶段课程"也不是"progress reward"</strong> —— 这两件 RL agentic 圈早就在尝试。<strong>真正的 paradigm shift 是: <em>把 env 的 error string 当作 channel-of-information 而不是 channel-of-reward 来用</em>。</strong> Standard RL 圈一直把 "feedback" 等同于 reward(scalar),所有 reward shaping 论文都在这里折腾。这篇说: 你给 agent 一个 string 比给一个 scalar 信息量大得多 —— 因为 string 走 attention,attention 能 generalize,scalar 不能。这点和 "<em>SFT 用 trajectory 教 dependency</em>" 殊途同归(都是用 token 而非 reward 传授知识),区别在于这里 dependency 是<em>由 env 在 agent 失败时 lazily 输入</em>的,所以 agent 必须先<em>探索失败</em>才能学到。这是把"<em>合成 trajectory 注释</em>"内化为"<em>env runtime feedback</em>"的关键 trick。
+</blockquote>
+
+<h3>8.3 critical limitation — 什么时候不要 "tune the environment"</h3>
+
+<blockquote>
+<strong>当目标 env 已经被广泛部署、不可改写时</strong>(例如要训练一个能直接接生产 MCP server 的 agent),你<em>无法</em>修改 server 端的 error string —— rate-limit error 就是 rate-limit error,Slack API 不会给你"pedagogical hint"。这时 Environment Tuning 就退化成 "<em>把训练 env 改造但测试 env 不变</em>",而 Stage 4 (关 augmentation) 的存在就是为了缓解这一点 —— 但如果 production env 的 noise 与 BFCL standard env 差异巨大(例如有真 auth fail / 网络抖动),Stage 4 align 不一定足够。所以这方法<strong>更适合 controlled / sandboxed env</strong>(BFCL / ACEBench 都是),<strong>不太适合 wild MCP 环境</strong>(<a href="25_MCPUniverse.html">#25 MCP-Universe</a> 真接 11 个 MCP server)。这也解释了为什么作者不评 MCP-Universe —— 不是技术能力不够,而是 augmentation 概念在那里不易落地。
+</blockquote>
+
+<h3>8.4 一句话价值定位</h3>
+
+<p><strong>Environment Tuning 是 agent RL "<em>把 env 从黑盒变白盒、把 error 从 punish 变 teach</em>" 这一思想的 ICLR 2026 代表作 —— 实证证明 400 条样本 + 改造 env 可以胜过 60K 条 SFT(在 OOD 上);但方法本身的 scalability 取决于 augmentation 字典能否自动化,而这是论文里的 open question。</strong> 对实践者最大的价值: 如果你有 BFCL-like 的 controlled env、想用 RL 但被 cold-start 卡住,把 env error string 加工成 hint 比改 RL loss 更好用 —— 这一点是 transferable 的 design 经验,即便论文本身不直接复用。</p>
+
+<hr>
+
+<p style="color:var(--muted);font-size:13px;text-align:center;margin-top:60px">
+精读 · #29 · 2026-05 · <a href="https://arxiv.org/abs/2510.10197" target="_blank">arXiv:2510.10197</a> · <a href="https://github.com/inclusionAI/AWorld-RL/tree/main/EnvTuning" target="_blank">code</a><br>
+cross-links: <a href="06_AgentGymRL_2509.08755.html">#06</a> · <a href="13_RLAnything_2602.02488.html">#13</a> · <a href="18_AgentWorldModel_2602.10090.html">#18</a> · <a href="20_SETA_camel.html">#20</a> · <a href="22_TOUCAN.html">#22</a> · <a href="23_EnvScaler.html">#23</a> · <a href="25_MCPUniverse.html">#25</a> · <a href="26_MCPBenchmarks_codedive.html">#26</a> · <a href="28_BFCL.html">#28</a>
+</p>
+
+</main>
+</body>
+</html>
