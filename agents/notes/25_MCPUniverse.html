@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · MCP-Universe: Benchmarking LLMs with Real-World MCP Servers</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>MCP-Universe: Benchmarking LLMs with Real-World MCP Servers</h1>
+<div class="meta">
+  Salesforce AI Research · Ziyang Luo · Zhiqi Shen · Wenzhuo Yang · Zirui Zhao · Prathyusha Jwalapuram · Amrita Saha · Doyen Sahoo · Silvio Savarese · Caiming Xiong · Junnan Li · 2025-08-20 (v1)<br>
+  <a href="https://arxiv.org/abs/2508.14704" target="_blank">arXiv:2508.14704</a> ·
+  <a href="https://github.com/SalesforceAIResearch/MCP-Universe" target="_blank">GitHub: SalesforceAIResearch/MCP-Universe</a> ·
+  <a href="https://mcp-universe.github.io/" target="_blank">Website + Leaderboard</a> ·
+  <a href="https://www.salesforce.com/blog/mcp-universe/" target="_blank">Salesforce Blog</a> ·
+  <a href="https://mcp-plus.github.io" target="_blank">MCP+ 项目页</a><br>
+  关键词: MCP benchmark · agent framework · GRPO RL training · verl · Deep Research Agent · Wide&amp;Deep · MCP+ context compression · Salesforce
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> MCP-Universe 是 Salesforce AI Research 推出的<strong>"包含 benchmark + RL 训练框架 + 两个独立子产品 (Deep Research Agent / MCP+) 的 MCP agent 全栈实验台"</strong>。Benchmark 维度共 <strong>11 MCP server / 6 domain / 231 task / 133 tool</strong>,SOTA 也只能跑到 GPT-5 43.72%,Grok-4 33.33%,Claude-4-Sonnet 29.44%。<strong>真正的差异点不在 benchmark 数字</strong> — 而在仓库里那个 <code>mcpuniverse/rl/</code> 子包: 完整的 <strong>GRPO + verl 集成 / Hybrid + Fully-Async 双模式 / TITO (Token-In-Token-Out) rollout / stdio + sse + docker_pool 三种 transport</strong>,这是目前我读到的 MCP 系 paper 里<strong>唯一开箱即用的 RL 训练栈</strong>。仓库还顺手内嵌了 (a) Deep Research Agent (Wide&amp;Deep,GPT-5-medium 在 BrowseComp 62.2%),(b) MCP+ (CLI <code>mcp-build-plus</code>,给现有 mcp.json 加 -plus 包装实现 50–75% token 压缩),(c) MCPMark task runner — 一手把 evaluation 平台扩成了"MCP 元平台"。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">11 / 6 / 231</div><div class="l">MCP server / domain / task</div></div>
+    <div class="stat"><div class="n">43.72%</div><div class="l">GPT-5 success rate (SOTA)</div></div>
+    <div class="stat"><div class="n">GRPO+verl</div><div class="l">真有 RL 训练栈 — Hybrid + Fully-Async</div></div>
+    <div class="stat"><div class="n">585★ Apache-2.0</div><div class="l">开源完整度 ★★★★★(2026-05)</div></div>
+  </div>
+  <p><strong>立场:</strong> 在 4 个 MCP benchmark 里 (cf. <a href="21_MCPBenchmarks_compare.html">#21</a>),MCP-Universe 是<strong>唯一把自己定位为"framework"而非"benchmark"</strong>的。Github description 一字不改:"<em>MCP-Universe is a comprehensive framework designed for RL training, benchmarking, and developing AI agents for general tool-use.</em>" 它和 <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a>(Scale AI 的纯 eval + frontier judge)是<strong>两条不同的路线</strong>: Atlas 拼 frontier model card 引用,Universe 拼"我把 RL infra 也给你"。然而,代价是 — 它<strong>没进任何主流 frontier model 的 system card</strong>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景: MCP-Universe 想做的"framework"野心</a></li>
+    <li><a href="#sec2">11 server / 6 domain / 231 task 详细拆解</a></li>
+    <li><a href="#sec3">评测 pipeline — Format / Static / Dynamic 三层</a></li>
+    <li><a href="#sec_oss">🔍 开源现状 — repo 实地清点 (本文重头)</a></li>
+    <li><a href="#sec5">实验结果与 SOTA 分数</a></li>
+    <li><a href="#sec6">与 Salesforce 自家模型 (xLAM) 的关系</a></li>
+    <li><a href="#sec7">与同类 MCP benchmark / framework 横向对比</a></li>
+    <li><a href="#sec8">局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景: MCP-Universe 想做的"framework"野心</h2>
+
+<h3>1.1 它和 #19/#21 提到的 benchmark 不是一个量级</h3>
+
+<p>读 paper 之前需要先理解 — Salesforce 在 GitHub 上挂的描述<strong>不是"benchmark"</strong>:</p>
+
+<blockquote>
+"MCP-Universe is a comprehensive framework designed for <strong>RL training, benchmarking, and developing AI agents</strong> for general tool-use."<br>
+— GitHub repo description, 验证于 2026-05
+</blockquote>
+
+<p>这句话和 paper 标题 "<em>Benchmarking Large Language Models with Real-World Model Context Protocol Servers</em>" 之间存在<strong>明显错位</strong>。Paper 写于 2025-08,主要是 benchmark 论文; 但在论文发布后的近一年里,Salesforce 一直在往这个 repo 里加东西 —</p>
+
+<ul>
+  <li>2026-02-11: 加入 <strong>Wide&amp;Deep Deep Research Agent</strong>(独立 arXiv paper)</li>
+  <li>2026-03 左右: 加入 <strong>MCP+</strong>(独立项目网站 mcp-plus.github.io)</li>
+  <li>2026-04: 加入 <strong>MCPMark task runner</strong> — 直接在自己 repo 里跑别人家 benchmark</li>
+  <li>持续维护中: <code>mcpuniverse/rl/</code> 整个子包,做 GRPO+verl 训练</li>
+</ul>
+
+<p>所以 paper 是 2025-08 那个版本的 snapshot,而 repo 已经长成了一个<strong>"MCP agent 全栈平台"</strong>: benchmark / research agent / context compression / RL trainer 四样东西揉在一起。</p>
+
+<h3>1.2 在 MCP 生态卡哪个位置</h3>
+
+<p>把 <a href="21_MCPBenchmarks_compare.html">#21</a> 里的四宫格再画一遍,但加入 framework 维度:</p>
+
+<table>
+  <tr><th>项目</th><th>团队</th><th>定位</th><th>是否有 RL 训练栈</th><th>frontier 引用</th></tr>
+  <tr><td><strong>MCP-Universe</strong></td><td>Salesforce AI Research</td><td>framework</td><td><span class="ok">✓ GRPO+verl</span></td><td><span class="no">✗</span></td></tr>
+  <tr><td>MCP-Atlas (#19)</td><td>Scale AI + NUS</td><td>pure eval bench</td><td><span class="no">✗</span></td><td><span class="ok">✓ Claude 4.7 card</span></td></tr>
+  <tr><td>Toolathlon / Toolathlon-Gym</td><td>—</td><td>eval + RL gym</td><td><span class="ok">✓ Gym API</span></td><td><span class="no">✗</span></td></tr>
+  <tr><td>MCPMark</td><td>—</td><td>pure eval bench</td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
+</table>
+
+<p>关键 takeaway:</p>
+<ul>
+  <li><strong>MCP-Universe 和 Toolathlon-Gym 是仅有的两个真正能跑 RL 训练的</strong></li>
+  <li>但<strong>MCP-Universe 的 RL 栈集成度更深</strong> — 直接用 verl 做后端,Hybrid / Fully-Async 双模式 + TITO 优化,而 Toolathlon-Gym 只提供 gym 接口让你自己接 trainer</li>
+  <li>代价: <strong>frontier model card 引用为 0</strong>。Anthropic Claude Opus 4.7 system card 引的是 MCP-Atlas (77.3%),不是 MCP-Universe</li>
+</ul>
+
+<hr>
+
+<h2 id="sec2">2 · 11 server / 6 domain / 231 task 详细拆解</h2>
+
+<h3>2.1 6 个 domain 与配套 MCP server</h3>
+
+<table>
+  <tr><th>Domain</th><th>主要 MCP server</th><th>Task 数</th><th>占比</th></tr>
+  <tr><td>Web Searching</td><td>Google Search MCP + Fetch MCP</td><td>55</td><td>23.8%</td></tr>
+  <tr><td>Location Navigation</td><td>Google Maps MCP</td><td>45</td><td>19.5%</td></tr>
+  <tr><td>Financial Analysis</td><td>Yahoo Finance (yfinance) MCP</td><td>40</td><td>17.3%</td></tr>
+  <tr><td>Browser Automation</td><td>Playwright MCP</td><td>39</td><td>16.9%</td></tr>
+  <tr><td>Repository Management</td><td>GitHub MCP</td><td>33</td><td>14.3%</td></tr>
+  <tr><td>3D Designing</td><td>Blender MCP (Salesforce 改版)</td><td>19</td><td>8.2%</td></tr>
+  <tr><td colspan="2"><strong>总计</strong></td><td><strong>231</strong></td><td>100%</td></tr>
+</table>
+
+<p>11 server 里<strong>另外 4 个是辅助 server</strong>(跨 domain 共用): Notion / Weather / Date / Calculator。Paper 报告 <strong>总 tool 数 = 133</strong>(所有 server 合计暴露给 agent 的可调用函数)。</p>
+
+<h3>2.2 Task horizon / 步数统计</h3>
+
+<p>Paper 提到"<em>the number of tokens increases rapidly as the number of interaction steps grows</em>"。对于<strong>成功完成的 task</strong>,平均步数依模型差异在 <strong>4.82 – 8.22 步</strong>区间(GPT-5 偏多步、小模型在简单 task 上偏少步)。失败 task 经常触发 <code>max_iterations</code> ceiling。</p>
+
+<h3>2.3 task 配置文件长什么样</h3>
+
+<p>看一个真实 task JSON (来自 README, 简化):</p>
+
+<pre><code>{
+  "category": "google-maps",
+  "question": "Plan a 3-day trip from SF to LA via coastal route ...",
+  "mcp_servers": [{"name": "google-maps"}, {"name": "weather"}],
+  "output_format": {"itinerary": "[LIST]"},
+  "evaluators": [
+    {"func": "json -&gt; get(itinerary) -&gt; len", "op": "&gt;=", "value": 3},
+    {"func": "json", "op": "google_maps.check_route_valid", "op_args": {...}}
+  ]
+}</code></pre>
+
+<p>评估器是<strong>声明式 DSL</strong>: <code>func</code> 是抽值规则(<code>json -&gt; get(x) -&gt; foreach -&gt; get(y) -&gt; len</code> 这种链式),<code>op</code> 是比较运算或自定义检查函数,<code>value</code> 是 ground truth。这意味着加新 task 不需要写 Python — 只要会写 JSON。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 评测 pipeline — Format / Static / Dynamic 三层</h2>
+
+<p>这是 MCP-Universe 和 MCP-Atlas 最大的方法学分歧点。</p>
+
+<p>Paper 共定义 <strong>84 个 evaluator 实例</strong>,按类型分布:</p>
+
+<table>
+  <tr><th>类型</th><th>占比</th><th>作用</th><th>例子</th></tr>
+  <tr><td><strong>Format Evaluator</strong></td><td>4.8%</td><td>output schema / JSON 合规性</td><td><code>output 必须有 itinerary 字段 且为 list</code></td></tr>
+  <tr><td><strong>Static Evaluator</strong></td><td>38.1%</td><td>时间不变的事实校验</td><td>"美国 50 个州的首都是哪些"这种历史固定答案</td></tr>
+  <tr><td><strong>Dynamic Evaluator</strong></td><td>57.1%</td><td>实时从真 API 拿 ground truth</td><td>"Tesla 今天收盘价" → eval 时再调一次 yfinance 拿当下答案</td></tr>
+</table>
+
+<div class="fig">
+<svg width="720" height="320" viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+  <!-- Agent box -->
+  <rect x="20" y="130" width="120" height="60" fill="#fff7e0" stroke="#cc4a1b" stroke-width="2" rx="6"/>
+  <text x="80" y="155" text-anchor="middle" font-size="14" font-weight="600">Agent</text>
+  <text x="80" y="175" text-anchor="middle" font-size="11" fill="#5b5e66">(ReAct / FC)</text>
+
+  <!-- Arrow Agent -> MCP -->
+  <path d="M 140 160 L 200 160" stroke="#1f2024" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="170" y="153" text-anchor="middle" font-size="11">tool call</text>
+
+  <!-- MCP server cluster -->
+  <rect x="200" y="100" width="160" height="120" fill="#f3eee0" stroke="#5b5e66" rx="6"/>
+  <text x="280" y="120" text-anchor="middle" font-size="13" font-weight="600">真实 MCP servers</text>
+  <text x="280" y="142" text-anchor="middle" font-size="11">Google Maps · GitHub</text>
+  <text x="280" y="160" text-anchor="middle" font-size="11">yfinance · Playwright</text>
+  <text x="280" y="178" text-anchor="middle" font-size="11">Blender · Search · ...</text>
+  <text x="280" y="205" text-anchor="middle" font-size="11" fill="#1f7a4a">(11 server / 133 tool)</text>
+
+  <!-- Arrow back -->
+  <path d="M 200 175 L 140 175" stroke="#1f2024" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="170" y="195" text-anchor="middle" font-size="11">tool result</text>
+
+  <!-- Agent -> output -->
+  <path d="M 80 130 L 80 80 L 420 80" stroke="#2f6feb" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="240" y="72" text-anchor="middle" font-size="11" fill="#2f6feb">final answer (JSON)</text>
+
+  <!-- 3 evaluators in pipeline -->
+  <rect x="420" y="40" width="130" height="50" fill="#fff" stroke="#2f6feb" stroke-width="1.5" rx="6"/>
+  <text x="485" y="60" text-anchor="middle" font-size="12" font-weight="600">① Format</text>
+  <text x="485" y="78" text-anchor="middle" font-size="10" fill="#5b5e66">schema 合规</text>
+
+  <rect x="420" y="100" width="130" height="50" fill="#fff" stroke="#2f6feb" stroke-width="1.5" rx="6"/>
+  <text x="485" y="120" text-anchor="middle" font-size="12" font-weight="600">② Static</text>
+  <text x="485" y="138" text-anchor="middle" font-size="10" fill="#5b5e66">时间不变 ground truth</text>
+
+  <rect x="420" y="160" width="130" height="50" fill="#fff" stroke="#cc4a1b" stroke-width="1.5" rx="6"/>
+  <text x="485" y="180" text-anchor="middle" font-size="12" font-weight="600">③ Dynamic</text>
+  <text x="485" y="198" text-anchor="middle" font-size="10" fill="#5b5e66">eval 时实时拉真 API</text>
+
+  <!-- Pipe to score -->
+  <path d="M 550 65 L 600 65 L 600 185 L 550 185" stroke="#1f2024" stroke-width="1.5" fill="none"/>
+  <path d="M 600 125 L 660 125" stroke="#1f2024" stroke-width="1.5" marker-end="url(#a)"/>
+  <rect x="600" y="100" width="100" height="50" fill="#d8eed1" stroke="#1f7a4a" stroke-width="2" rx="6"/>
+  <text x="650" y="120" text-anchor="middle" font-size="12" font-weight="600">Success?</text>
+  <text x="650" y="138" text-anchor="middle" font-size="10">all 3 pass → 1</text>
+
+  <!-- Side notes -->
+  <text x="40" y="260" font-size="12" fill="#cc4a1b">⚠ 显式拒绝 LLM-as-judge</text>
+  <text x="40" y="278" font-size="11" fill="#5b5e66">理由: 静态知识局限 + 风格偏见</text>
+
+  <text x="430" y="260" font-size="12" fill="#1f7a4a">Dynamic = 57.1% — 是核心创新</text>
+  <text x="430" y="278" font-size="11" fill="#5b5e66">eval 时刻而非 task 制作时拉 ground truth</text>
+
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2024"/>
+    </marker>
+  </defs>
+</svg>
+<figcaption>图1: MCP-Universe 评测 pipeline。Agent → 真实 MCP servers 多步交互 → 最终 JSON 答案 → 三类 evaluator 串行检查 → 全通过算 1 分。Dynamic 占比 57% 是与 MCP-Atlas (LLM judge) / MCPMark (静态答案) 最显著的区别。</figcaption>
+</div>
+
+<h3>3.1 显式拒绝 LLM-as-judge 的理由</h3>
+
+<blockquote>
+"The framework explicitly avoids LLM-as-a-judge approaches due to <strong>static knowledge limitations</strong> and <strong>style bias</strong> concerns."
+</blockquote>
+
+<p>这是 MCP-Universe 在方法学上对 MCP-Atlas 的<strong>正面叫板</strong>。Atlas 用 Gemini-2.5-Pro 做 claims-based judge,信号干净但慢且贵,且训练数据可能 leak; Universe 选择"DSL + 真 API 实时校验",代价是为每个 task 写复杂的 evaluator config,但<strong>奖励信号不会随评判模型版本漂移</strong>,正好适合<strong>做 RL 训练的 reward function</strong>。</p>
+
+<p>这一选择直接为 §4.4 的 RL 训练栈铺平了路 — 因为 RL 不能容忍 reward 不稳定。</p>
+
+<hr>
+
+<h2 id="sec_oss">4 · 🔍 开源现状 — repo 实地清点</h2>
+
+<p>本节是这篇笔记的重头。所有内容由 GitHub API 实地抓取 (2026-05-17),不是从 paper 抄来的。</p>
+
+<div class="kv"><strong>Repo metadata:</strong>
+  Apache-2.0 · 585 stars / 82 forks · 25,804 字节 README · Python · 最近 push 2026-04-20<br>
+  <strong>Homepage:</strong> mcp-universe.github.io · <strong>Created:</strong> 2025-05-02 · <strong>Topic:</strong> 持续维护中
+</div>
+
+<h3 id="sec_oss_1">4.1 顶层仓库结构清单</h3>
+
+<table>
+  <tr><th>路径</th><th>类型</th><th>作用</th></tr>
+  <tr><td><code>mcpuniverse/</code></td><td>dir</td><td><strong>主 Python 包</strong>(下细分见 §4.1.b)</td></tr>
+  <tr><td><code>tests/benchmark/</code></td><td>dir</td><td>6 个 domain 各一个 <code>test_benchmark_*.py</code>入口</td></tr>
+  <tr><td><code>docker/</code></td><td>dir</td><td>Dockerfile / docker-compose</td></tr>
+  <tr><td><code>docs/</code></td><td>dir</td><td>Blender setup / python sandbox setup / custom evaluator 等指南</td></tr>
+  <tr><td><code>third_party/</code></td><td>dir</td><td>外部依赖(git submodule)</td></tr>
+  <tr><td><code>assets/</code></td><td>dir</td><td>图片 + icon</td></tr>
+  <tr><td><code>blender_addon.py</code></td><td>file (64 KB)</td><td>Salesforce 自家魔改的 Blender 插件</td></tr>
+  <tr><td><code>setup_blender_and_vnc.sh</code></td><td>file (13 KB)</td><td>一键 headless Blender + VNC 远程渲染</td></tr>
+  <tr><td><code>.env.example</code></td><td>file (2 KB)</td><td>API key 模板</td></tr>
+  <tr><td><code>requirements.txt</code> + <code>dev-requirements.txt</code></td><td>file</td><td>依赖</td></tr>
+  <tr><td><code>pyproject.toml</code> · <code>Makefile</code> · <code>.pylintrc</code></td><td>file</td><td>构建+lint</td></tr>
+</table>
+
+<h4>4.1.b · <code>mcpuniverse/</code> 主包再下一层</h4>
+
+<table>
+  <tr><th>子包</th><th>作用</th></tr>
+  <tr><td><code>agent/</code></td><td>Agent 实现池: <code>basic.py</code> · <code>react.py</code> · <code>function_call.py</code> · <code>function_call_wide.py</code> (Wide&amp;Deep) · <code>harmony_agent.py</code> (GPT-OSS) · <code>claude_code.py</code> · <code>react_train_agent.py</code> (训练专用) · <code>explore_and_exploit.py</code> · <code>reflection.py</code> · <code>openai_agent_sdk.py</code></td></tr>
+  <tr><td><code>benchmark/</code></td><td><strong>benchmark runner + 4 套配置: <code>configs/dummy</code> / <code>configs/mcpuniverse</code> (231 task 主体) / <code>configs/mcpmark</code> / <code>configs/deepresearch</code></strong></td></tr>
+  <tr><td><code>evaluator/</code></td><td>Evaluator 实现池: <code>blender</code> · <code>github</code> · <code>google_maps</code> · <code>google_search</code> · <code>notion</code> · <code>playwright</code> · <code>weather</code> · <code>yfinance</code> · <code>deepresearch</code> · <code>mcpmark</code> · <code>evaluator.py</code> · <code>functions.py</code></td></tr>
+  <tr><td><code>extensions/</code></td><td>当前只有 <code>mcpplus/</code>(详见 §4.3)</td></tr>
+  <tr><td><code>llm/</code></td><td>多 provider 适配: openai · claude · gemini · deepseek · grok · mistral · ollama · openrouter · local_llm + 内部网关 (<code>sf_research_gateway</code> / <code>sf_llm_express_gateway</code>) + 一个 <code>tito/</code> 子包 (token-in-token-out 优化)</td></tr>
+  <tr><td><code>mcp/</code></td><td>MCP client/server 管理: <code>client.py</code> · <code>gateway.py</code> · <code>manager.py</code> · <code>env_pool/</code> (Docker container 池) · <code>servers/</code> · <code>permission.py</code></td></tr>
+  <tr><td><code>pipeline/</code></td><td>orchestration 工作流</td></tr>
+  <tr><td><strong><code>rl/</code></strong></td><td><strong>RL 训练栈 — 详见 §4.4(本节最关键)</strong></td></tr>
+  <tr><td><code>workflows/</code></td><td>多 agent 编排: chain / router / orchestrator</td></tr>
+  <tr><td><code>dashboard/</code></td><td>Gradio 可视化界面</td></tr>
+  <tr><td><code>app/</code></td><td>FastAPI Web 后端</td></tr>
+  <tr><td><code>tracer/</code> + <code>callbacks/</code></td><td>trajectory 日志: MemoryCollector / FileCollector / SQLiteCollector</td></tr>
+  <tr><td><code>common/</code></td><td>工具函数</td></tr>
+</table>
+
+<p>这种<strong>15 个一级子包</strong>的结构,在我读过的所有 MCP 仓库里规模仅次于 (或并列于) Toolathlon-Gym。MCP-Atlas 的 repo 体量大约只有它的 1/5。</p>
+
+<h3 id="sec_oss_2">4.2 Deep Research Agent (Wide&amp;Deep, W&amp;D)</h3>
+
+<p>这是一个<strong>独立的子项目</strong>,2026-02-11 加入 repo,配套自己的 arXiv paper (<a href="https://arxiv.org/pdf/2602.07359" target="_blank">2602.07359</a>) 和独立网站 <a href="https://xqlin98.github.io/wide-deep-research-agent/" target="_blank">xqlin98.github.io/wide-deep-research-agent/</a>。</p>
+
+<div class="kv">
+<strong>核心 idea:</strong> 不是单线深挖 (deep),而是<strong>每轮让 agent 并行发起多个 tool call 来扩"宽度"</strong>(wide)。<br>
+<strong>实现:</strong> <code>mcpuniverse/agent/function_call_wide.py</code> + <code>function_call_wide_claude.py</code>。<br>
+<strong>结果:</strong> W&amp;D + GPT-5-medium → BrowseComp <strong>62.2%</strong>,超过 GPT-5-high 自己跑 deep research mode 的 54.9%。同时减少 turn 数、API cost、wall-clock time。<br>
+<strong>支持数据集:</strong> BrowseComp / GAIA / HLE,每个数据集已经预制好 GPT-5 / Gemini-3-Pro / Claude-4.5-Sonnet 三套 yaml config (在 <code>mcpuniverse/benchmark/configs/deepresearch/configs/&lt;dataset&gt;/</code>)。
+</div>
+
+<p>对用户的实际价值: 如果你要做 deep research agent baseline,<strong>直接复用 W&amp;D 配置</strong>; 三套 frontier model 已经 hard-code 好。tool 是 <code>serper-search + jina-scrape-llm-summary + python-code-sandbox</code>(HLE 用)。</p>
+
+<h3 id="sec_oss_3">4.3 MCP+ — 独立 CLI 子项目, 给现有 mcp.json 加 -plus 包装</h3>
+
+<p>MCP+ 是 repo 里的 <strong>extension</strong>,但有自己的项目页 <a href="https://mcp-plus.github.io" target="_blank">mcp-plus.github.io</a>,以及独立 CLI 入口 <code>mcp-build-plus</code>。装 <code>mcpuniverse</code> 包就能用。</p>
+
+<p>它要解决的问题:</p>
+
+<blockquote>
+"MCP tools often return <strong>large, verbose outputs</strong> (web pages, API responses, file contents). Sending these directly to your LLM wastes context and money. <strong>MCP+ wraps your MCP clients with intelligent post-processing that extracts only the relevant information before it reaches your LLM.</strong>" — README
+</blockquote>
+
+<p>用法 (从 mcpuniverse 自己的 README copy):</p>
+
+<pre><code># 装包
+pip install mcpuniverse
+
+# 给现有 Cursor / Claude Code 的 mcp.json 一键加 -plus 后缀
+mcp-build-plus --mcp-config ~/.cursor/mcp.json
+
+# 或只包装特定 server
+mcp-build-plus --mcp-config ~/.cursor/mcp.json --servers github playwright
+
+# 调 token 阈值 (高于这个长度才会触发后处理)
+mcp-build-plus --mcp-config ~/.cursor/mcp.json --token-threshold 2000
+
+# 换 cheaper 模型做后处理
+mcp-build-plus --mcp-config ~/.cursor/mcp.json --llm-model gpt-5-mini
+
+# Gemini / Anthropic 后端都支持
+mcp-build-plus --mcp-config ~/.cursor/mcp.json \
+    --llm-provider gemini --llm-model gemini-2.5-flash \
+    --llm-api-key-env GOOGLE_API_KEY</code></pre>
+
+<p>它<strong>生成一个新的 mcp.json</strong>,把每个 server 替换成 <code>server-plus</code> 包装版,重启 Cursor 即可用。声称 <strong>50–75% token 节省 / 零代码改动</strong>。是个非常 product-y 的功能 — Salesforce 显然把它当成<strong>能脱离 benchmark 独立卖的产品</strong>。</p>
+
+<h3 id="sec_oss_4">4.4 ⭐ RL 训练栈 — 真的有(verbatim evidence)</h3>
+
+<p>这是和 MCP-Atlas / MCPMark 最大的差异点。看 <code>mcpuniverse/rl/README.md</code> 第一段(verbatim):</p>
+
+<blockquote>
+"Reinforcement learning for LLM agents that interact with tools via the Model Context Protocol (MCP). The agent acts inside real tool environments. Each trajectory is a multi-turn conversation where the model makes tool calls, receives results, and continues reasoning until it completes the task or hits the iteration limit. <strong>Rewards are computed by task-specific evaluators.</strong>"<br>
+— <code>mcpuniverse/rl/README.md</code>, 7,420 字节
+</blockquote>
+
+<p>更关键的算法 verbatim 摘录:</p>
+
+<blockquote>
+"The training algorithm is <strong>GRPO (Group Relative Policy Optimization)</strong>: multiple trajectories are generated per prompt, and advantages are normalized within each group. <strong>No learned critic or reward model is needed.</strong>"
+</blockquote>
+
+<h4>4.4.a · 训练栈关键组件</h4>
+
+<table>
+  <tr><th>组件</th><th>文件</th><th>作用</th></tr>
+  <tr><td><strong>MCPLoopManager</strong></td><td><code>rl/integrations/verl/mcp_loop_manager.py</code></td><td>批量并行 rollout 的多轮工具调用循环。支持 Text 模式(HTTP API to vLLM/sglang) + <strong>TITO 模式</strong>(token id 直送 vLLM,省 tokenize/detokenize)</td></tr>
+  <tr><td><strong>MCPRewardManager</strong></td><td><code>rl/integrations/verl/mcp_reward_manager.py</code></td><td>用 §3 的 evaluator 算 reward(不是 learned reward model)</td></tr>
+  <tr><td>MCP Transport</td><td><code>mcp/env_pool/</code></td><td>三种模式: <code>stdio</code>(每条 trajectory 新进程) / <code>sse</code>(共享 gateway) / <code>docker_pool</code>(每条 trajectory 一个 Docker container,完全隔离)</td></tr>
+  <tr><td>Agent 格式</td><td><code>rl/formatters/{gpt_oss,qwen3}.py</code></td><td>GPT-OSS HarmonyReAct + Qwen3 ReAct 各一套 prompt/parser</td></tr>
+</table>
+
+<h4>4.4.b · 两种训练模式</h4>
+
+<table>
+  <tr><th>对比维度</th><th>Hybrid</th><th>Fully Async</th></tr>
+  <tr><td>GPU 池</td><td>Actor + Rollout + Critic 共享同 GPU</td><td>Rollouter 和 Trainer 分开 GPU 池</td></tr>
+  <tr><td>执行</td><td>同步,rollout/train 交替</td><td>并行,Rollouter 不停产 trajectory</td></tr>
+  <tr><td>最低 GPU 数</td><td>1</td><td>2(推荐 8 = 4+4)</td></tr>
+  <tr><td>GPU 利用率</td><td>较低</td><td>较高</td></tr>
+  <tr><td>权重同步</td><td>—</td><td>每 N step Trainer 通过 <strong>NCCL broadcast</strong> 推权重给 Rollouter,vLLM engine 热加载</td></tr>
+  <tr><td>入口</td><td><code>rl.integrations.verl.hybrid.mcp_main_ppo</code></td><td><code>rl.integrations.verl.fully_async.mcp_async_main</code></td></tr>
+</table>
+
+<h4>4.4.c · 用什么 base model + 训什么</h4>
+
+<p>从 <code>rl/examples/</code> 目录的三个 notebook 命名能反推:</p>
+
+<ul>
+  <li><code>vllm_harmony_react.ipynb</code> — <strong>GPT-OSS 系</strong>(Harmony 格式 = OpenAI gpt-oss-20b/120b)</li>
+  <li><code>vllm_react_train.ipynb</code> — 通用 ReAct(Qwen3 等)</li>
+  <li><code>vllm_tito_react_train.ipynb</code> — Qwen3 + TITO 优化</li>
+</ul>
+
+<p>训练数据格式 (verbatim from README):</p>
+
+<pre><code>{
+  "instance_id": "task_001",
+  "instruction": "Calculate the final value if I invested $25,000 in MSFT...",
+  "output_format": {"total value": "[NUMBER]"},
+  "mcp_servers": [{"name": "yfinance"}, {"name": "calculator"}],
+  "dockerfile_path": "/path/to/Dockerfile",
+  "evaluators": [{
+    "func": "json",
+    "op": "yfinance.check_portfolio_task_output",
+    "op_args": {"tickers": ["MSFT"], "start_date": "2023-01-09"},
+    "desc": "Check whether the final portfolio value is correct."
+  }]
+}</code></pre>
+
+<p>注意 <code>evaluators</code> 字段和 §2.3 benchmark task 的 evaluator <strong>完全同一 schema</strong> — 这意味着 benchmark task 可以无缝复用为 RL training task,RL trained agent 也可以直接在 benchmark 上跑。这是 framework-grade 的设计。</p>
+
+<h4>4.4.d · 一行命令开训</h4>
+
+<pre><code># Hybrid mode (单卡可跑)
+python -m mcpuniverse.rl.integrations.verl.hybrid.mcp_main_ppo \
+    --config-path=integrations/verl/config \
+    --config-name=mcp_harmony_tito_example \
+    actor_rollout_ref.model.path=/path/to/model \
+    data.train_files=/path/to/train.json \
+    data.val_files=/path/to/val.json
+
+# Fully Async (4+4 GPU)
+python -m mcpuniverse.rl.integrations.verl.fully_async.mcp_async_main \
+    --config-name=mcp_fully_async_harmony_tito_example \
+    trainer.n_gpus_per_node=4 \
+    rollout.n_gpus_per_node=4
+
+# 多节点 (两 pod)
+bash integrations/verl/scripts/start_multinode_async.sh</code></pre>
+
+<p><strong>对比 Toolathlon-Gym</strong>: Toolathlon 只提供 OpenAI Gym 兼容接口让用户自己接 trainer,MCP-Universe <strong>直接打包了 verl + 一套训练配置 + 多模式 + TITO 优化</strong>,集成深得多。这一点 <strong>paper 里完全没提</strong>,只能从 repo 看到 — 因为这部分代码大概是在 paper 投稿之后才加的。</p>
+
+<h3 id="sec_oss_5">4.5 HuggingFace artifacts inventory</h3>
+
+<p>我在 <a href="https://huggingface.co/Salesforce" target="_blank">huggingface.co/Salesforce</a>(184 model / 59 dataset / 10 space)和 <a href="https://huggingface.co/SalesforceAIResearch" target="_blank">huggingface.co/SalesforceAIResearch</a>(404)两个 org 下都搜过,以及在 <a href="https://huggingface.co/papers/2508.14704" target="_blank">paper 页</a>上检查,结论:</p>
+
+<div class="warn">
+<strong>未发现 MCP-Universe 在 HF 上发布任何专属 model / dataset / space。</strong> 231 个 task 的 ground truth 数据全部以 <code>mcpuniverse/benchmark/configs/mcpuniverse/&lt;domain&gt;/</code> 下的 YAML+JSON 形式直接放在 GitHub,而不是上 HF datasets。也未发现 Salesforce 用 MCP-Universe RL 栈训出的 checkpoint 在 HF 上发布。
+</div>
+
+<p>这一点和 <a href="22_TOUCAN.html">#22 TOUCAN</a>(在 HF 上 1.5M dataset + 27 checkpoint 全开源)、<a href="23_EnvScaler.html">#23 EnvScaler</a>(HF model + dataset)形成鲜明对比 — MCP-Universe 是<strong>"代码栈开源,模型/数据完全在 GitHub repo 里"</strong>的路线。</p>
+
+<h3 id="sec_oss_6">4.6 Self-host 从 git clone 到第一个分数的完整命令</h3>
+
+<pre><code># 1. clone
+git clone https://github.com/SalesforceAIResearch/MCP-Universe.git
+cd MCP-Universe
+
+# 2. Python 环境
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pip install -r dev-requirements.txt
+
+# 3. 系统依赖 (Linux)
+sudo apt-get install libpq-dev   # PostgreSQL header (optional storage)
+
+# 4. API key
+cp .env.example .env
+# 编辑 .env 填:
+#   OPENAI_API_KEY       (必须,跑 GPT-5 评估)
+#   SERP_API_KEY         (web search domain)
+#   GOOGLE_MAPS_API_KEY  (location nav)
+#   GITHUB_PERSONAL_ACCESS_TOKEN + GITHUB_PERSONAL_ACCOUNT_NAME (repo mgmt — ⚠ 用专用测试号)
+#   NOTION_API_KEY + NOTION_ROOT_PAGE
+#   BLENDER_APP_PATH     (3D design — Blender 4.4.0)
+#   MCPUniverse_DIR      (repo 绝对路径)
+
+# 5. (3D 任务) 安装 Blender + VNC
+bash setup_blender_and_vnc.sh
+
+# 6. 跑单 domain
+export PYTHONPATH=.
+python tests/benchmark/mcpuniverse/test_benchmark_web_search.py
+
+# 7. 跑全部 6 个 domain
+for d in location_navigation browser_automation financial_analysis \
+         repository_management web_search 3d_design; do
+    python tests/benchmark/mcpuniverse/test_benchmark_${d}.py
+done</code></pre>
+
+<h3 id="sec_oss_7">4.7 与 #19 MCP-Atlas / Toolathlon-Gym 开源度横向对比</h3>
+
+<table>
+  <tr><th>项目</th><th>Star (2026-05)</th><th>License</th><th>task config 开源</th><th>RL 训练代码</th><th>HF artifact</th><th>评分代码</th><th>提交流程</th></tr>
+  <tr>
+    <td><strong>MCP-Universe</strong></td><td>585</td><td>Apache-2.0</td>
+    <td>✓ 全 231 task</td>
+    <td><strong>✓ GRPO+verl</strong></td>
+    <td>✗</td><td>✓ DSL evaluator</td>
+    <td>提 PR / Discord</td>
+  </tr>
+  <tr>
+    <td>MCP-Atlas (#19)</td><td>~150</td><td>—</td>
+    <td>仅 500 公开 (500 hold-out)</td>
+    <td>✗</td>
+    <td>✗</td><td>✓ Gemini judge</td>
+    <td>Live leaderboard 自动</td>
+  </tr>
+  <tr>
+    <td>Toolathlon-Gym</td><td>~250</td><td>Apache-2.0</td>
+    <td>✓ 全 task</td>
+    <td>✓ (gym API)</td>
+    <td>有</td><td>✓</td>
+    <td>提 PR</td>
+  </tr>
+</table>
+
+<p>开源度 ranking: <strong>MCP-Universe ≥ Toolathlon-Gym > MCP-Atlas</strong>。MCP-Universe 在 RL 栈维度领先,但 HF 模型/数据维度落后于 Toolathlon-Gym 和 TOUCAN/EnvScaler 这种 SFT 系工作。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 实验结果与 SOTA 分数</h2>
+
+<p>Paper 在 §4 给出完整 leaderboard(数字为 success rate):</p>
+
+<table>
+  <tr><th>Model</th><th>Loc Nav</th><th>Repo Mgmt</th><th>Financial</th><th>3D Design</th><th>Browser</th><th>Web Search</th><th><strong>Overall</strong></th></tr>
+  <tr><td><strong>GPT-5</strong></td><td>33.33</td><td>30.30</td><td>67.50</td><td>52.63</td><td>35.90</td><td>45.45</td><td><strong>43.72</strong></td></tr>
+  <tr><td>Grok-4</td><td>28.89</td><td>12.12</td><td>40.00</td><td>26.32</td><td>41.03</td><td>41.82</td><td><strong>33.33</strong></td></tr>
+  <tr><td>Claude-4.0-Sonnet</td><td>22.22</td><td>12.12</td><td>55.00</td><td>26.32</td><td>38.46</td><td>21.82</td><td><strong>29.44</strong></td></tr>
+  <tr><td>DeepSeek-V3</td><td>11.11</td><td>6.06</td><td>30.00</td><td>26.32</td><td>12.82</td><td>7.27</td><td><strong>14.29</strong></td></tr>
+  <tr><td>GPT-OSS-120B</td><td>6.67</td><td>6.06</td><td>35.00</td><td>10.53</td><td>5.13</td><td>5.45</td><td><strong>11.26</strong></td></tr>
+</table>
+
+<h3>5.1 几个观察</h3>
+
+<ul>
+  <li><strong>SOTA 也只 43.72% — 离"可用"很远。</strong>这是它在媒体头条里反复出现的卖点("即使 GPT-5 也只能跑到 43%")</li>
+  <li><strong>Financial Analysis 是简单 domain</strong> (67.50%) — 因为 yfinance API 干净、答案数字化、evaluator 易写</li>
+  <li><strong>Repo Mgmt 最难</strong> (GPT-5 也只 30.30%) — GitHub 真实操作多步、副作用大、容错低</li>
+  <li><strong>开源模型差距巨大</strong>: DeepSeek-V3 14.29% / GPT-OSS-120B 11.26% — 相比 GPT-5 差 3–4 倍</li>
+  <li><strong>3D Design</strong> Claude/Grok 都 26.32%,但 GPT-5 一下跳到 52.63% — 说明 spatial reasoning 在 GPT-5 上有显著提升</li>
+</ul>
+
+<p>这种<strong>"全场 30–45%"</strong>的 benchmark 数字,从 RL 训练角度看是<strong>非常好的 signal 区间</strong> — 既不是 saturated (像 BFCL v3 GPT-4.5 已经 70+),也不是地板效应 (像 OSWorld base agent &lt;10%),正好给 GRPO trajectory-level reward 留出梯度。这反向印证了 §4.4 RL 栈的实际可用性。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 与 Salesforce 自家模型 (xLAM) 的关系</h2>
+
+<p>Salesforce 在 agent / function-calling 方向有自己的旗舰模型系列 <strong>xLAM (Large Action Model)</strong>,典型如 <code>Salesforce/xLAM-8x22b-r</code>。一个直觉问题是: <strong>xLAM 有没有用 MCP-Universe 评测、或者用 MCP-Universe RL 栈训练?</strong></p>
+
+<p>检索结果:</p>
+
+<ul>
+  <li><strong>MCP-Universe paper 里没有 xLAM 这个 baseline</strong>。Paper 的 leaderboard 只测了 frontier 闭源模型 + DeepSeek + GPT-OSS</li>
+  <li><strong>xLAM v2 公告 blog 也没引用 MCP-Universe</strong>(2025-08 时间线上两者基本同期发布)</li>
+  <li>repo 里没有任何 <code>xlam</code> 关键字; <code>llm/</code> 子包也未列出 xLAM 适配器</li>
+  <li>但是 <code>llm/sf_llm_express_gateway.py</code> / <code>sf_research_gateway.py</code> 透露<strong>有内部网关</strong>,极可能在 Salesforce 内部跑 xLAM 评测,只是不在公开 leaderboard 出现</li>
+</ul>
+
+<p>这构成一个略尴尬的现象 — Salesforce 自家做了一个号称"<em>RL training + benchmarking framework</em>"的项目,但 Salesforce 自家的 LAM 模型在公开数字里完全缺席。可能解释:</p>
+
+<ol>
+  <li>xLAM 是 fine-tuned 给 function-calling 的,跑 MCP-Universe 这种 long-horizon 任务结果不好看,内部 PR 决定不发</li>
+  <li>xLAM 还在等更稳定的版本(xLAM v2 multi-turn)再跑公开评测</li>
+  <li>战略上把 MCP-Universe 定位为<strong>"对外的开源贡献"</strong>而不是<strong>"xLAM 的 fine-tune 工具"</strong></li>
+</ol>
+
+<p>个人倾向 (1)+(3) 的组合。MCP-Universe 显然更想被引用为<strong>"研究界的 MCP 标准 framework"</strong>,而不是给 Einstein / xLAM 卖力。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 与同类 MCP benchmark / framework 横向对比</h2>
+
+<table>
+  <tr><th></th><th>MCP-Universe</th><th>MCP-Atlas (#19)</th><th>Toolathlon</th><th>MCPMark</th><th>TOUCAN (#22) 数据视角</th></tr>
+  <tr><td>定位</td><td>framework</td><td>eval bench</td><td>eval + gym</td><td>eval bench</td><td>SFT 数据</td></tr>
+  <tr><td>规模</td><td>11 server / 231 task</td><td>36 server / 220 tool / 1,000 task</td><td>~600 task</td><td>~500 task</td><td>495 server / 1.5M trajectory</td></tr>
+  <tr><td>评分</td><td>DSL + real API (no LLM judge)</td><td>Gemini-2.5-Pro claims judge</td><td>规则</td><td>规则</td><td>GPT-OSS-120B Likert</td></tr>
+  <tr><td>RL 训练栈</td><td><strong>✓ GRPO+verl</strong></td><td>✗</td><td>✓ gym API</td><td>✗</td><td>(SFT not RL)</td></tr>
+  <tr><td>子项目</td><td>Deep Research / MCP+ / MCPMark runner</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>HF artifacts</td><td>✗</td><td>✗</td><td>有</td><td>有</td><td>✓ 27 ckpt + 1.5M data</td></tr>
+  <tr><td>Frontier 模型 card 引用</td><td><strong>✗</strong></td><td>✓ Claude 4.7</td><td>✗</td><td>✗</td><td>✗</td></tr>
+  <tr><td>GitHub Star (2026-05)</td><td>585</td><td>~150</td><td>~250</td><td>~100</td><td>—</td></tr>
+  <tr><td>团队</td><td>Salesforce AI</td><td>Scale AI + NUS</td><td>—</td><td>—</td><td>MIT-IBM + UW</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec8">8 · 局限 / 个人 take</h2>
+
+<h3>8.1 局限</h3>
+
+<ol>
+  <li><strong>Frontier 引用为零</strong>。 Salesforce 投了非常多工程,但 Anthropic / OpenAI / Google 的 system card 都<strong>不引用 MCP-Universe</strong> — 引用的是 MCP-Atlas (Claude Opus 4.7 system card 77.3%)。这是个明显的"投入 != 影响力"的反例</li>
+  <li><strong>231 task 规模偏小</strong>。比 MCP-Atlas (1,000) / Toolathlon (~600) 都小,且 3D Design 只有 19 个 task,统计上不稳。Salesforce 没有像 #22 TOUCAN / #23 EnvScaler 那样做规模化扩张</li>
+  <li><strong>Dynamic evaluator 有运行时风险</strong>。 57.1% 评估器要在评测时实时调真 API,意味着<strong>评分依赖 API 状态</strong> — Yahoo Finance / Google Maps 改 API、限流、停服时整套评测会跑不动</li>
+  <li><strong>未在 HF 上发模型/数据</strong>。这降低了被 fine-tune 工作引用的概率(因为大家习惯 <code>from datasets import load_dataset</code>)</li>
+  <li><strong>RL 栈没有 published checkpoint 验证</strong>。 paper 没报告"用 MCP-Universe RL 训出来的模型在 MCP-Universe 上是多少分"。这套 GRPO+verl 集成的<strong>实际收益从未在公开数字上被自证</strong>。和 Toolathlon-Gym / EnvScaler 不同,后者都有 trained checkpoint 数字</li>
+  <li><strong>xLAM 在自家 benchmark 上缺席</strong>(§6)</li>
+</ol>
+
+<h3>8.2 个人 take</h3>
+
+<div class="nb">
+<strong>MCP-Universe 是 2025-08–2026-05 期间所有 MCP 项目里<strong>工程投入最大</strong>的一个,但<strong>影响力被 MCP-Atlas 截走</strong>。</strong>
+<br><br>
+Salesforce 这一手的真实战略意图,在我看是<strong>"占住 MCP framework 这一标签"</strong>而不是"赢 leaderboard"。证据: (a) repo description 用 framework 不是 benchmark; (b) 后续不断加 Deep Research / MCP+ / MCPMark runner,把自己变成"MCP 元平台"; (c) MCP+ 已经独立出 mcp-plus.github.io,有 product-y 包装; (d) 不在 HF 上发模型 — 不主动给 fine-tune 派系送弹药,留住 framework 入口。
+<br><br>
+这套打法的<strong>致命弱点</strong>: 没有一个<strong>"frontier model 必须引用我"</strong>的钩子。Atlas 通过<strong>500 个 hold-out task + live leaderboard + Gemini judge</strong>构造了"想要刷分必须用我"的反向引用; Universe 没有这种 lock-in。
+<br><br>
+但<strong>对个人研究者最有用</strong>: 如果你要做 MCP agent 的 RL 训练,<strong>MCP-Universe 几乎是唯一能 <code>pip install + 1 行命令开训</code> 的开源选择</strong>(verl + Hybrid/Async + TITO + docker_pool 全栈),Toolathlon-Gym 只给你 gym 接口、verl 配置要你自己写。所以 — paper 不一定要引,但代码可以用。
+</div>
+
+<h3>8.3 三个具体的"如果你想用 MCP-Universe,可以干这些事"</h3>
+
+<ol>
+  <li><strong>跑一个 Qwen3-8B 的 MCP agentic RL 训练</strong>: <code>git clone → pip install → 准备 train.json (复用 benchmark 的 231 task 改 schema) → python -m mcpuniverse.rl.integrations.verl.fully_async.mcp_async_main</code>。4+4 GPU 起步,3 天能看到第一波 reward 曲线</li>
+  <li><strong>给自己的 Cursor / Claude Code 加 MCP+ 包装,省 token cost</strong>: <code>pip install mcpuniverse; mcp-build-plus --mcp-config ~/.cursor/mcp.json --llm-model gpt-5-mini --token-threshold 1000</code> — 重启 Cursor,声称 50-75% 节省</li>
+  <li><strong>跑 BrowseComp / GAIA / HLE 的 W&amp;D deep research baseline</strong>: 直接用 <code>mcpuniverse/benchmark/configs/deepresearch/configs/{browsecomp,gaia,hle}/agent_wide_research_*_gpt5.yaml</code>,改 LLM section 换成自己模型,一行命令跑出对比数</li>
+</ol>
+
+<hr>
+
+<h3>原始信息来源</h3>
+<ul>
+  <li>Paper: <a href="https://arxiv.org/abs/2508.14704" target="_blank">arXiv:2508.14704</a> / <a href="https://arxiv.org/html/2508.14704v1" target="_blank">html v1</a></li>
+  <li>GitHub: <a href="https://github.com/SalesforceAIResearch/MCP-Universe" target="_blank">SalesforceAIResearch/MCP-Universe</a></li>
+  <li>RL README (verbatim quoted): <a href="https://github.com/SalesforceAIResearch/MCP-Universe/blob/main/mcpuniverse/rl/README.md" target="_blank">mcpuniverse/rl/README.md</a></li>
+  <li>MCP+ extension: <a href="https://github.com/SalesforceAIResearch/MCP-Universe/tree/main/mcpuniverse/extensions/mcpplus" target="_blank">extensions/mcpplus</a> · <a href="https://mcp-plus.github.io" target="_blank">mcp-plus.github.io</a></li>
+  <li>Deep Research README: <a href="https://github.com/SalesforceAIResearch/MCP-Universe/blob/main/mcpuniverse/benchmark/configs/deepresearch/README.md" target="_blank">configs/deepresearch/README.md</a> · W&amp;D paper <a href="https://arxiv.org/pdf/2602.07359" target="_blank">arXiv 2602.07359</a></li>
+  <li>Website + Leaderboard: <a href="https://mcp-universe.github.io/" target="_blank">mcp-universe.github.io</a></li>
+  <li>Salesforce blog: <a href="https://www.salesforce.com/blog/mcp-universe/" target="_blank">salesforce.com/blog/mcp-universe</a></li>
+  <li>HF (paper page, 无 dataset/model): <a href="https://huggingface.co/papers/2508.14704" target="_blank">huggingface.co/papers/2508.14704</a></li>
+  <li>xLAM (Salesforce 自家 model,未在 paper 中评测): <a href="https://huggingface.co/Salesforce/xLAM-8x22b-r" target="_blank">huggingface.co/Salesforce/xLAM-8x22b-r</a> · <a href="https://www.salesforce.com/blog/xlam-large-action-models-v2/" target="_blank">xLAM v2 blog</a></li>
+  <li>对比阅读: <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> · <a href="20_SETA_camel.html">#20 SETA</a> · <a href="21_MCPBenchmarks_compare.html">#21 4 MCP Bench 横评</a> · <a href="22_TOUCAN.html">#22 TOUCAN</a> · <a href="23_EnvScaler.html">#23 EnvScaler</a> · <a href="24_Smithery.html">#24 Smithery</a></li>
+</ul>
+
+</main>
+</body>
+</html>

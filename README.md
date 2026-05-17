@@ -97,6 +97,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | 22 | [TOUCAN (MIT-IBM + UW)](https://zhangshuibai.github.io/paper-notes/agents/notes/22_TOUCAN.html) | 1.5M tool-agentic SFT 数据 / 495 真实 MCP server · 2,000+ tools / 5-LLM 出题 + 3-teacher × 2-framework distill + 双层 rule+LLM 过滤 / Qwen2.5-32B SFT 后 BFCL V3 70.45 险胜 GPT-4.5-Preview / 数据+27 ckpt+pipeline 全开源 | 50 KB |
 | 23 | [EnvScaler (RUC NLPIR)](https://zhangshuibai.github.io/paper-notes/agents/notes/23_EnvScaler.html) | 程序化合成 tool-interactive env / Python class = env / dual-agent 100 轮质量门 / 191 env · ~7K scen · ~9K traj / Qwen3-Thinking 1.7B/4B/8B + Reinforce++ / Qwen3-8B BFCL-MT 41.88 超 GPT-4.1 / MIT 全开源 | 50 KB |
 | 24 | [🏭 Smithery 调研 (Industry Analysis)](https://zhangshuibai.github.io/paper-notes/agents/notes/24_Smithery.html) | MCP 生态的 Docker Hub / 7,300+ servers (2026-05) / Henry Mao 2024-12 创立 / South Park Commons Seed / Registry 免费 + Hosting 2026-03 转付费 / Connect managed OAuth / #03 #22 #23 三篇 paper 的 MCP 主题源 | 50 KB |
+| 25 | [MCP-Universe (Salesforce AI Research)](https://zhangshuibai.github.io/paper-notes/agents/notes/25_MCPUniverse.html) | framework 而非 benchmark / 11 MCP server · 6 domain · 231 task / format+static+dynamic 三层评测拒绝 LLM judge / SOTA GPT-5 43.72% · Grok-4 33.33% · Claude-4-Sonnet 29.44% / <strong>真有 GRPO+verl RL 训练栈</strong> (Hybrid + Fully-Async + TITO + docker_pool) / 内嵌 Deep Research W&D + MCP+ token 压缩 CLI + MCPMark runner / Apache-2.0 585★ / 但 0 frontier model card 引用 | 60 KB |
 
 ## 论文清单 (按时间)
 
@@ -177,6 +178,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | TOUCAN | MIT-IBM Watson AI Lab + UW | 2025-10 | [2510.01179](https://arxiv.org/abs/2510.01179) |
 | EnvScaler | RUC NLPIR (Gaoling 高瓴) | 2026-01 | [2601.05808](https://arxiv.org/abs/2601.05808) |
 | Smithery (industry analysis, not a paper) | Smithery AI (Henry Mao et al.) | 2024-12 至今 | [smithery.ai](https://smithery.ai/) · [GitHub](https://github.com/smithery-ai) |
+| MCP-Universe | Salesforce AI Research | 2025-08 | [2508.14704](https://arxiv.org/abs/2508.14704) |
 
 ## 设计原则
 
