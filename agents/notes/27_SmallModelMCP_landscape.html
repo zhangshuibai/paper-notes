@@ -68,9 +68,10 @@
 <div class="tldr">
 <h2>🎯 TL;DR</h2>
 <ul>
-<li><strong>领域热度极高但产出极不均匀</strong>:大量小模型 tool-use 工业作品(xLAM / Hammer / Functionary / Granite)在 <strong>BFCL</strong> 上集体超 GPT-4,但 <strong>专门为 MCP 长 horizon benchmark</strong>(MCP-Atlas / MCPMark / MCP-Universe / Toolathlon)训的 ≤40B 模型几乎 0 — 这是 2026 下半年最大的 open opportunity。</li>
+<li><strong>领域热度极高但产出极不均匀</strong>:小模型 tool-use 工业作品(xLAM / Hammer / Functionary / Granite)曾在 <strong>BFCL V1-V3</strong> 上集体超 GPT-4,但 V4 加 40% agentic(Web Search + Memory)后<strong>大洗牌</strong> — Hammer 全系 WebSearch/Memory ≈ 0,xLAM-2 multi-turn 第一但 agentic 退化;<strong>专门为 MCP 长 horizon benchmark</strong>(MCP-Atlas / MCPMark / MCP-Universe / Toolathlon)训的 ≤40B 模型仍几乎 0。</li>
+<li><strong>BFCL V4 上 ≤40B open-weight top-1 是 Nanbeige4-3B-Thinking-2511 (51.40%)</strong> — 3B 量级反超 Qwen3-32B (48.71%);xLAM-2-70b 的 multi-turn 77.38% 全榜第一(>40B,但 WebSearch 15.00 / Memory 14.41 严重偏科)。Qwen3-32B 不再是 ≤40B 顶点是 V4 改公式后最大的洗牌。</li>
 <li><strong>开源完整度最高的可复用组合</strong>:<a href="22_TOUCAN.html">TOUCAN 1.5M SFT 数据</a> (MIT) + <a href="https://github.com/OpenPipe/ART">ART MCP•RL</a> (Apache 2.0) — 前者给冷启,后者给在线 RL,**单 H100 一小时**就能训出可用 MCP 小模型。</li>
-<li><strong>BFCL 高分 ≠ MCP 高分</strong> — Hammer-7B / xLAM-7B 在 BFCL 上 80+,但没人在 MCP-Atlas / MCP-Universe 上报。</li>
+<li><strong>BFCL V4 高分 ≠ MCP 高分</strong> — Hammer-7B (V4 Overall 31.67) / xLAM-2-32b (V4 54.66) 在 BFCL 表现尚可,但没人在 MCP-Atlas / MCP-Universe 上报。详见 <a href="28_BFCL.html">#28 BFCL 精读</a>。</li>
 <li><strong>工业 vs 学术分裂</strong>:Salesforce xLAM / IBM Granite / MeetKai Functionary 走 SFT-on-curated-data 工业线;<a href="23_EnvScaler.html">EnvScaler</a> / <a href="20_SETA_camel.html">SETA</a> / <a href="18_AgentWorldModel_2602.10090.html">AWM</a> 走 RL-on-synthetic-env 学术线。</li>
 </ul>
 </div>
@@ -111,10 +112,11 @@
 <tr><td>MCPMark</td><td>gpt-5-medium <strong>52.56%</strong> pass@1</td><td>gpt-oss-120B 4.7%</td><td>~ 48 pp</td></tr>
 <tr><td>MCP-Universe</td><td>GPT-5 <strong>43.72%</strong></td><td>GPT-OSS-120B 25.5%(>40B 但开源最强)</td><td>~ 18 pp</td></tr>
 <tr><td>Toolathlon</td><td>Claude-4.5-Sonnet <strong>38.6%</strong></td><td>DeepSeek-V3.2 20.1%(685B,开源但远 >40B)</td><td>~ 18 pp</td></tr>
-<tr><td>BFCL V3</td><td>(开源就 SOTA)</td><td>GLM-4.5 <strong>76.7</strong> / Qwen3-32B 75.7 / TOUCAN-32B 70.45</td><td>—</td></tr>
+<tr><td>BFCL V4 Overall (FC)</td><td>Claude-Opus-4-5 <strong>77.47</strong> / Gemini-3-Pro-Preview 72.51</td><td><strong>Nanbeige4-3B-Thinking-2511 51.40</strong> / Qwen3-32B 48.71 / Nanbeige3.5-Pro-Thinking 47.68 <br><span style="color:#5b5e66;font-size:.92em">(>40B: xLAM-2-70b 53.07,multi-turn 77.38% 全榜第一但 Web/Memory 崩;GLM-4.6 72.38)</span></td><td>~ 26 pp</td></tr>
+<tr><td>BFCL V4 Multi-Turn (FC)</td><td>Claude-Opus-4-5 68.38</td><td>Nanbeige4-3B 51.12 / Qwen3-32B 47.87(>40B xLAM-2-70b <strong>77.38</strong>,xLAM-2-32b 69.50)</td><td>—</td></tr>
 </table>
 
-<div class="nb"><strong>核心矛盾</strong>:BFCL 上小模型已追上甚至超过 GPT-4,但在 stateful + long-horizon 的真 MCP benchmark(Atlas / Mark / Universe / Toolathlon)上,<strong>没有任何 ≤40B 开源模型进过 top-10</strong>。瓶颈不在 base capability,在 stateful planning + tool selection 鲁棒性 + reward 信号干净度。</div>
+<div class="nb"><strong>核心矛盾</strong>:BFCL V4 把 agentic(Web Search + Memory)加权 40%,single-turn 砍到 20% 后,过去刷 BFCL V3 高分的策略(SFT-only)效用打折。≤40B open-weight top-1 (Nanbeige4-3B 51.40) 距 frontier 仍有 26 pp,而<strong>在 stateful + long-horizon 的真 MCP benchmark(Atlas / Mark / Universe / Toolathlon)上,没有任何 ≤40B 开源模型进过 top-10</strong>。瓶颈不在 single-turn schema,在 stateful planning + agentic memory/search + reward 信号干净度。</div>
 
 <hr>
 
@@ -230,7 +232,7 @@
 <p>这些工作<strong>不专为 MCP 训</strong>,但 BFCL / τ-bench 上 SOTA,可作为 fine-tune 起点或竞品对照。</p>
 
 <h3>4.1 xLAM 家族(Salesforce AI Research)</h3>
-<p>"Large Action Models"系列,函数调用专精。<strong>xLAM-7b-fc-r 在 BFCL leaderboard 第 3,准确率 88.24%</strong>,曾是开源 SOTA。</p>
+<p>"Large Action Models"系列,函数调用专精。<strong>xLAM-2-32b-fc-r 在 BFCL V4 Overall (FC) 54.66%(rank 18)— Multi-Turn 69.50%</strong>;<strong>Llama-xLAM-2-70b-fc-r V4 Overall 53.07%、Multi-Turn 77.38%(全榜第一)</strong>。但 V4 Web Search 仅 15-25 / Memory 14-21 — 经典"专精 multi-turn,没见过 agentic"(APIGen-MT 训练数据缺 Web/Memory)。8B 量级:Llama-xLAM-2-8b-fc-r V4 Overall 46.68 / Multi-Turn 70.00。早期 xLAM-7b-fc-r 在 BFCL V1 拿 88.24%,但 V4 已不在榜。</p>
 
 <div class="inv">
 <strong class="ttl">📦 开源清单 — xLAM</strong>
@@ -240,11 +242,11 @@
 <div class="row">✅ 模型权重: `xLAM-1b-fc-r` / `xLAM-7b-fc-r` / `xLAM-8x7b-r` / `Llama-xLAM-2-8b-fc-r` / `Llama-xLAM-2-70b-fc-r`(包含 GGUF 量化版)</div>
 <div class="row">✅ Pipeline / Fine-tune cookbook: <a href="https://huggingface.co/learn/cookbook/en/function_calling_fine_tuning_llms_on_xlam">HF Cookbook</a>(完整 QLoRA fine-tune notebook)</div>
 <div class="row">✅ Eval: BFCL 已集成,跑分自动出</div>
-<div class="row"><strong>复用建议</strong>: <strong>商用受限(数据 CC-BY-NC)</strong>。学术或个人项目可直接用 xLAM-2-8b-fc-r ckpt + 60K 数据 QLoRA 微调你的 base model,2-3 epoch 出 BFCL-competitive 模型。<strong>不专为 MCP,需自己补 long-horizon 数据</strong>。</div>
+<div class="row"><strong>复用建议</strong>: <strong>商用受限(数据 CC-BY-NC)</strong>。学术或个人项目可直接用 xLAM-2-8b-fc-r ckpt + 60K 数据 QLoRA 微调你的 base model,2-3 epoch 出 BFCL V4 Multi-Turn 60+ 的模型。<strong>不专为 MCP,需自己补 Web Search / Memory agentic 数据(V4 现行公式 40% 加权 agentic,xLAM 系列在这一段集体失分)</strong>。</div>
 </div>
 
-<h3>4.2 Hammer(MadeAgents,ICLR 2025)</h3>
-<p>"Robust Function-Calling via Function Masking"。基于 Qwen 2.0,创新点是<strong>训练时随机 mask function spec</strong>,迫使模型抗 schema 噪声。<strong>Hammer-7B 在 BFCL 仅次于 GPT-4</strong>。</p>
+<h3>4.2 Hammer(MadeAgents,ICLR 2025 Spotlight)</h3>
+<p>"Robust Function-Calling via Function Masking"。基于 Qwen 2.0,创新点是<strong>训练时随机 mask function spec</strong>,迫使模型抗 schema 噪声。<strong>Hammer2.1-7b 在 BFCL V4 Overall 31.67%(rank 64)— Multi-Turn 23.87 / WebSearch 0 / Memory 0</strong>;1.5B/3B 同样 WebSearch + Memory 全 0。这不是 bug — Hammer 论文显式声称 on-device + function masking,数据集里完全没有 agentic 任务,V4 加 40% agentic 权重是<em>对它最不利</em>的改版。早期在 BFCL V1/V2 仅次于 GPT-4 的成绩在 V4 上已不再 hold。</p>
 
 <div class="inv">
 <strong class="ttl">📦 开源清单 — Hammer</strong>
@@ -254,11 +256,11 @@
 <div class="row">✅ 模型权重: <a href="https://huggingface.co/MadeAgents/Hammer-7b">MadeAgents/Hammer-7b</a>、`Hammer-1.5b`、`Hammer-4b` 等</div>
 <div class="row">✅ Pipeline: 训练脚本含 function masking 实现</div>
 <div class="row">✅ Eval: BFCL 配置 in-repo</div>
-<div class="row"><strong>复用建议</strong>: <strong>函数 masking 是个轻量级 trick,可直接 port 到你自己的 SFT pipeline</strong>。Hammer 数据来源比 xLAM 干净(全公开),适合学术 + 商用。<strong>同样不专为 MCP</strong>。</div>
+<div class="row"><strong>复用建议</strong>: <strong>函数 masking 是个轻量级 trick,可直接 port 到你自己的 SFT pipeline</strong>。Hammer 数据来源比 xLAM 干净(全公开),适合学术 + 商用。<strong>V4 后 BFCL Overall 已严重落后(31.67%)— 必须自己补 Web Search + Memory 数据才能撑 V4 评测</strong>。</div>
 </div>
 
 <h3>4.3 Functionary(MeetKai)</h3>
-<p>"唯一与 OpenAI 函数调用 1:1 兼容的开源模型"。系列从 v2 到 v4r,覆盖 small / medium / preview。</p>
+<p>"唯一与 OpenAI 函数调用 1:1 兼容的开源模型"。系列从 v2 到 v4r,覆盖 small / medium / preview。<strong>BFCL V4 官方 CSV 未单独列 Functionary 模型(V4 未报)</strong>,该家族继续靠自家 benchmark 和 V2/V3 历史数字。</p>
 
 <div class="inv">
 <strong class="ttl">📦 开源清单 — Functionary</strong>
@@ -272,7 +274,7 @@
 </div>
 
 <h3>4.4 NexusRaven(Nexusflow)</h3>
-<p>NexusRaven-V2 13B,零样本单轮函数调用超 GPT-4。<strong>对 MCP 多轮长 horizon 较弱</strong>。</p>
+<p>NexusRaven-V2 13B,零样本单轮函数调用曾超 GPT-4(V1 时代)。<strong>BFCL V4 未报</strong>,模型自 2024 以来基本停更。<strong>对 MCP 多轮长 horizon 较弱</strong>。</p>
 
 <div class="inv">
 <strong class="ttl">📦 开源清单 — NexusRaven</strong>
@@ -286,7 +288,7 @@
 </div>
 
 <h3>4.5 IBM Granite(企业级 tool-use)</h3>
-<p><strong>Granite 4.1 8B 在 BFCL V3 上 68.27,8B 量级 SOTA</strong>。企业 license / SOC2 友好。</p>
+<p>BFCL V4 官方 CSV(2026-05):<strong>Granite-3.1-8B-Instruct 27.10% / Granite-3.2-8B-Instruct 26.87% / Granite-20b-FunctionCalling 23.23% / Granite-4.0-350m 18.98%</strong>(Granite 4.1 8B 未在 V4 报)。V4 multi-turn 全系 ≤ 8,WebSearch/Memory 几乎 0 — 与 Hammer 一样在 agentic 上完全失分。早期 V3 上 Granite 4.1 8B 68.27 的成绩在 V4 公式下已 reset。企业 license / SOC2 友好。</p>
 
 <div class="inv">
 <strong class="ttl">📦 开源清单 — IBM Granite Tool</strong>
@@ -306,17 +308,23 @@
 <p>这些<strong>不专做 tool-use 训练</strong>,但 base 模型本身就有强 function call 能力,是任何 MCP 训练的<strong>最佳起点</strong>。</p>
 
 <table>
-<tr><th>模型</th><th>规模</th><th>BFCL V3</th><th>License</th><th>复用建议</th></tr>
-<tr><td><strong>GLM-4.5</strong>(Z.AI)</td><td>32B 量级</td><td><strong>76.7</strong>(开源 SOTA)</td><td>Apache 2.0</td><td>BFCL 当前榜首,适合做"先 fine-tune 上 GLM-4.5,再加 MCP 数据"</td></tr>
-<tr><td><strong>Qwen3-32B</strong></td><td>32B</td><td>75.7</td><td>Apache 2.0</td><td>生态最完整,fine-tune 工具链最成熟(verl / AReaL / ART 都支持)</td></tr>
-<tr><td><strong>Qwen3-8B</strong></td><td>8B</td><td>F1 0.933</td><td>Apache 2.0</td><td>个人 GPU 友好,TOUCAN / SETA / EnvScaler 都用它当 base</td></tr>
-<tr><td><strong>Qwen3-Coder</strong> 系列</td><td>多档</td><td>—</td><td>Apache 2.0</td><td>代码偏向,MCP 涉及代码 task 时优先</td></tr>
-<tr><td><strong>GPT-OSS-20B</strong>(OpenAI)</td><td>20B</td><td>—</td><td>Apache 2.0</td><td>OpenAI 风格 prompt 兼容,但 tool-use 训练量未公开</td></tr>
-<tr><td><strong>Llama-3.1-8B</strong></td><td>8B</td><td>~50</td><td>Llama Community</td><td>fine-tune 生态成熟,但 BFCL 基础分偏低</td></tr>
-<tr><td><strong>Holo3-35B-A3B</strong></td><td>35B MoE / 3B active</td><td>—</td><td>开源</td><td>BenchLM 综合 82.6,**开源 agent 模型 SOTA**;待详查</td></tr>
+<tr><th>模型</th><th>规模</th><th>BFCL V4 Overall (FC)</th><th>License</th><th>复用建议</th></tr>
+<tr><td><strong>GLM-4.6</strong>(Z AI)</td><td>>40B</td><td><strong>72.38</strong>(V4 open-weight 第一,>40B)</td><td>MIT</td><td>V4 开源最强,但 ≥40B 超出本 survey 焦点;fine-tune 起点 if 算力允许</td></tr>
+<tr><td><strong>GLM-4.5</strong>(Z AI)</td><td>32B 量级</td><td>(V4 未单列;V3 76.7)</td><td>Apache 2.0</td><td>历史 V3 榜首,V4 未报具体数字</td></tr>
+<tr><td><strong>Qwen3-32B (FC)</strong></td><td>32B</td><td><strong>48.71</strong>(V4 ≤40B 第二;V3 75.7)</td><td>Apache 2.0</td><td>生态最完整,fine-tune 工具链最成熟(verl / AReaL / ART 都支持)</td></tr>
+<tr><td><strong>Qwen3-14B (FC)</strong></td><td>14B</td><td>41.03</td><td>Apache 2.0</td><td>中档,trade-off 折中</td></tr>
+<tr><td><strong>Qwen3-8B (FC)</strong></td><td>8B</td><td>42.57</td><td>Apache 2.0</td><td>个人 GPU 友好,TOUCAN / SETA / EnvScaler 都用它当 base</td></tr>
+<tr><td><strong>Qwen3-30B-A3B-Instruct-2507 (FC)</strong></td><td>30B / 3B active MoE</td><td>41.39</td><td>Apache 2.0</td><td>MoE,推理便宜但训练复杂</td></tr>
+<tr><td><strong>Qwen3-4B-Instruct-2507 (FC)</strong></td><td>4B</td><td>35.68</td><td>Apache 2.0</td><td>边缘部署 base</td></tr>
+<tr><td><strong>Nanbeige4-3B-Thinking-2511 (FC)</strong></td><td>3B</td><td><strong>51.40</strong>(<strong>V4 ≤40B 第一</strong>)</td><td>Apache 2.0</td><td>2026-05 最大惊喜:3B + thinking 超 Qwen3-32B;但官方训练细节未充分公开</td></tr>
+<tr><td><strong>Nanbeige3.5-Pro-Thinking (FC)</strong></td><td>—</td><td>47.68(V4 ≤40B 第三)</td><td>Apache 2.0</td><td>thinking 系列另一档</td></tr>
+<tr><td><strong>Qwen3-Coder</strong> 系列</td><td>多档</td><td>(V4 未报)</td><td>Apache 2.0</td><td>代码偏向,MCP 涉及代码 task 时优先</td></tr>
+<tr><td><strong>GPT-OSS-20B</strong>(OpenAI)</td><td>20B</td><td>(V4 未报)</td><td>Apache 2.0</td><td>OpenAI 风格 prompt 兼容,但 tool-use 训练量未公开</td></tr>
+<tr><td><strong>Llama-3.1-8B-Instruct (Prompt)</strong></td><td>8B</td><td>25.83</td><td>Llama Community</td><td>fine-tune 生态成熟,但 BFCL V4 基础分偏低</td></tr>
+<tr><td><strong>Holo3-35B-A3B</strong></td><td>35B MoE / 3B active</td><td>(V4 未报)</td><td>开源</td><td>BenchLM 综合 82.6,**开源 agent 模型 SOTA**;待详查</td></tr>
 </table>
 
-<div class="nb"><strong>实证建议</strong>:个人 / 学术研究优先 <strong>Qwen3-8B</strong>(7×7=49 GB FP16,单 H100 训练);商用项目优先 <strong>GLM-4.5 32B</strong>(BFCL 当前最强 base)或 <strong>Granite 4.1 8B</strong>(企业 license)。</div>
+<div class="nb"><strong>实证建议(V4 视角)</strong>:个人 / 学术研究优先 <strong>Qwen3-8B</strong>(7×7=49 GB FP16,单 H100 训练)或 <strong>Nanbeige4-3B-Thinking</strong>(V4 ≤40B 顶分 + 3B 量级 GPU 友好);商用项目优先 <strong>GLM-4.6 MIT</strong>(V4 开源第一,72.38)或 <strong>Qwen3-32B</strong>(BFCL V4 ≤40B 第二 48.71 + Apache 2.0)。Granite 4.1 8B V4 未单独报数 — 历史 V3 68.27 不能直接外推。</div>
 
 <hr>
 
@@ -386,24 +394,44 @@
 
 <h2 id="sec7">7 · ≤40B 模型在 MCP benchmark 上的真实跑分</h2>
 
+<p><strong>核心数据来自 <a href="28_BFCL.html">#28 BFCL 精读</a> 的官方 V4 CSV(2026-05-13 截图)。</strong>V4 Overall 是按"Non-Live 10% + Live 10% + Multi-Turn 30% + Agentic(Web+Memory) 40% + Irrelevance 10%"加权;V3 仅作历史对照(括号内)。</p>
+
 <table>
-<tr><th>模型</th><th>规模</th><th>BFCL V3</th><th>τ²-Bench</th><th>MCP-Universe</th><th>MCP-Mark</th><th>MCP-Atlas</th></tr>
-<tr><td>GLM-4.5</td><td>32B</td><td><strong>76.7</strong></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>Qwen3-32B</td><td>32B</td><td>75.7</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td><a href="22_TOUCAN.html">TOUCAN-32B</a></td><td>32B</td><td>70.45</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td><a href="18_AgentWorldModel_2602.10090.html">AWM-14B</a></td><td>14B MoE</td><td>70.18</td><td>33.45</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>Magnet-14B-mDPO</td><td>14B</td><td>68.01</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>Granite 4.1 8B</td><td>8B</td><td>68.27</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td><a href="22_TOUCAN.html">TOUCAN-14B</a></td><td>14B</td><td>~67</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>AWM-8B</td><td>8B</td><td>65.94</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>xLAM-7b-fc-r</td><td>7B</td><td>(BFCL v1 88.24)</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>Hammer-7B</td><td>7B</td><td>~80</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td><a href="23_EnvScaler.html">EnvScaler-8B</a></td><td>8B</td><td>41.88 (multi-turn)</td><td>72.50</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>Agent-World-14B</td><td>14B</td><td>55.8 (V4)</td><td>—</td><td>—</td><td>13.3</td><td>—</td></tr>
-<tr><td>gpt-oss-120B</td><td>120B</td><td>—</td><td>—</td><td>25.54</td><td>4.7</td><td>—</td></tr>
+<tr><th>模型</th><th>规模</th><th>BFCL V4 Overall (FC)</th><th>V4 Multi-Turn</th><th>V4 Web Search</th><th>V4 Memory</th><th>V3 历史</th><th>MCP-Universe / Mark / Atlas</th></tr>
+<tr><td><strong>Nanbeige4-3B-Thinking-2511</strong></td><td>3B</td><td><strong>51.40</strong> ✨</td><td>51.12</td><td>21.50</td><td>36.77</td><td>—</td><td>—</td></tr>
+<tr><td>Qwen3-32B (FC)</td><td>32B</td><td>48.71</td><td>47.87</td><td>21.50</td><td>26.67</td><td>(75.7)</td><td>—</td></tr>
+<tr><td>Nanbeige3.5-Pro-Thinking (FC)</td><td>—</td><td>47.68</td><td>40.00</td><td>42.00</td><td>45.16</td><td>—</td><td>—</td></tr>
+<tr><td>BitAgent-Bounty-8B</td><td>8B</td><td>46.23</td><td>62.38</td><td>0.00</td><td>1.51</td><td>(~54)</td><td>—</td></tr>
+<tr><td>Qwen3-8B (FC)</td><td>8B</td><td>42.57</td><td>41.75</td><td>12.00</td><td>14.62</td><td>(F1 0.933)</td><td>—</td></tr>
+<tr><td>ToolACE-2-8B (FC)</td><td>8B</td><td>42.44</td><td>38.38</td><td>8.50</td><td>18.49</td><td>(~55)</td><td>—</td></tr>
+<tr><td>Qwen3-30B-A3B-Instruct-2507 (FC)</td><td>30B / 3B-active MoE</td><td>41.39</td><td>30.00</td><td>22.50</td><td>17.63</td><td>(~70)</td><td>—</td></tr>
+<tr><td>Qwen3-14B (FC)</td><td>14B</td><td>41.03</td><td>34.75</td><td>10.00</td><td>19.57</td><td>—</td><td>—</td></tr>
+<tr><td>xLAM-2-3b-fc-r (FC)</td><td>3B</td><td>41.22</td><td>58.38</td><td>2.50</td><td>11.40</td><td>—</td><td>—</td></tr>
+<tr><td>Arch-Agent-32B</td><td>32B</td><td>45.37</td><td>54.25</td><td>5.00</td><td>14.62</td><td>—</td><td>—</td></tr>
+<tr><td>Qwen3-4B-Instruct-2507 (FC)</td><td>4B</td><td>35.68</td><td>22.12</td><td>3.00</td><td>17.63</td><td>—</td><td>—</td></tr>
+<tr><td>Hammer2.1-7b (FC)</td><td>7B</td><td>31.67</td><td>23.87</td><td>0.00</td><td>0.00</td><td>(~80)</td><td>—</td></tr>
+<tr><td>Granite-3.1-8B-Instruct (FC)</td><td>8B</td><td>27.10</td><td>7.50</td><td>0.50</td><td>14.41</td><td>(4.1 8B 在 V3 68.27)</td><td>—</td></tr>
+<tr><td>Granite-3.2-8B-Instruct (FC)</td><td>8B</td><td>26.87</td><td>7.38</td><td>0.50</td><td>12.47</td><td>—</td><td>—</td></tr>
+<tr><td>Llama-3.1-8B-Instruct (Prompt)</td><td>8B</td><td>25.83</td><td>11.12</td><td>3.00</td><td>10.75</td><td>(~50)</td><td>—</td></tr>
+<tr><td>Granite-20b-FunctionCalling (FC)</td><td>20B</td><td>23.23</td><td>5.38</td><td>0.00</td><td>0.00</td><td>—</td><td>—</td></tr>
+<tr><td><a href="22_TOUCAN.html">TOUCAN-Qwen2.5-32B</a></td><td>32B</td><td>(V4 未单独报)</td><td>—</td><td>—</td><td>—</td><td>(V3 70.45)</td><td>—</td></tr>
+<tr><td><a href="22_TOUCAN.html">TOUCAN-14B</a></td><td>14B</td><td>(V4 未单独报)</td><td>—</td><td>—</td><td>—</td><td>(V3 ~67)</td><td>—</td></tr>
+<tr><td><a href="18_AgentWorldModel_2602.10090.html">AWM-14B</a></td><td>14B MoE</td><td>(V4 未报)</td><td>—</td><td>—</td><td>—</td><td>(V3 70.18 / τ² 33.45)</td><td>—</td></tr>
+<tr><td><a href="18_AgentWorldModel_2602.10090.html">AWM-8B</a></td><td>8B</td><td>(V4 未报)</td><td>—</td><td>—</td><td>—</td><td>(V3 65.94 OOD)</td><td>—</td></tr>
+<tr><td>Magnet-14B-mDPO</td><td>14B</td><td>(V4 未报,模型未发布)</td><td>—</td><td>—</td><td>—</td><td>(V3 68.01)</td><td>—</td></tr>
+<tr><td>xLAM-7b-fc-r</td><td>7B</td><td>(V4 未报;V2 系列被 xLAM-2 取代)</td><td>—</td><td>—</td><td>—</td><td>(V1 88.24)</td><td>—</td></tr>
+<tr><td><a href="23_EnvScaler.html">EnvScaler-8B</a></td><td>8B</td><td>(V4 未报)</td><td>—</td><td>—</td><td>—</td><td>(BFCL-MT 41.88 / τ² 72.50)</td><td>—</td></tr>
+<tr><td>Agent-World-14B</td><td>14B</td><td>55.8(自报,V4)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>MCP-Mark 13.3</td></tr>
+<tr><td colspan="8" style="background:#f3eee0"><strong>>40B 参考(脱离本 survey 但 V4 上要点)</strong></td></tr>
+<tr><td>GLM-4.6 (FC thinking)</td><td>>40B</td><td><strong>72.38</strong>(V4 open-weight 第一)</td><td>68.00</td><td>77.50</td><td>55.70</td><td>—</td><td>—</td></tr>
+<tr><td>xLAM-2-32b-fc-r (FC)</td><td>32B</td><td>54.66</td><td>69.50</td><td>25.50</td><td>20.86</td><td>(~62)</td><td>—</td></tr>
+<tr><td>Llama-xLAM-2-70b-fc-r (FC)</td><td>70B</td><td>53.07</td><td><strong>77.38</strong>(全榜第一)</td><td>15.00</td><td>14.41</td><td>—</td><td>—</td></tr>
+<tr><td>gpt-oss-120B</td><td>120B</td><td>(V4 未报)</td><td>—</td><td>—</td><td>—</td><td>—</td><td>MCP-Univ 25.54 / Mark 4.7</td></tr>
 </table>
 
-<div class="warn"><strong>注意空白</strong>:<strong>MCP-Atlas / MCP-Mark / MCP-Universe / Toolathlon 上几乎没有 ≤40B 开源模型的公开成绩</strong>。原因:① 学术界的小模型工作只跑 BFCL ② 工业界小模型(xLAM/Hammer)没在这些 benchmark 上 report ③ frontier benchmark 评估成本高,小模型团队没预算。<strong>这就是机会</strong>。</div>
+<div class="nb"><strong>V4 vs V3 — 大洗牌的具体形态:</strong> ① <strong>Nanbeige4-3B 3B 量级反超 Qwen3-32B</strong>(51.40 vs 48.71)— RFT/curriculum 跑赢纯尺度;② <strong>xLAM-2-70b 在 multi-turn 77.38% 全榜第一</strong>(高于 Claude Opus 4.5 的 68.38),但 WebSearch 15 / Memory 14 严重偏科;③ <strong>Hammer / Granite 全系 WebSearch & Memory ≈ 0</strong> — 训练数据没见过 agentic 任务,V4 公式直接砸盘。</div>
+
+<div class="warn"><strong>注意空白</strong>:<strong>MCP-Atlas / MCP-Mark / MCP-Universe / Toolathlon 上几乎没有 ≤40B 开源模型的公开成绩</strong>。原因:① 学术界的小模型工作只跑 BFCL(V3 时代),V4 加 agentic 后这一断层进一步暴露 ② 工业界小模型(xLAM/Hammer)没在这些 benchmark 上 report,且 V4 Web/Memory 直接暴露其 agentic gap ③ frontier benchmark 评估成本高,小模型团队没预算。<strong>这就是机会</strong>。</div>
 
 <hr>
 
@@ -422,7 +450,7 @@
 <rect x="35" y="180" width="140" height="30" rx="5" fill="#fff" stroke="#2f6feb"/>
 <text x="105" y="200" text-anchor="middle" font-weight="600">~$3-15 / 几小时</text>
 <text x="32" y="240" font-size="11" fill="#a8353e">⚠ 数据 CC-BY-NC</text>
-<text x="32" y="260" font-size="11">→ BFCL 80%+</text>
+<text x="32" y="260" font-size="11">→ BFCL V4 MT 60+</text>
 <text x="32" y="285" font-size="11" fill="#5b5e66">≠ MCP 长 horizon</text>
 
 <!-- Recipe 2 -->
@@ -436,7 +464,7 @@
 <rect x="220" y="180" width="140" height="30" rx="5" fill="#fff" stroke="#2f6feb"/>
 <text x="290" y="200" text-anchor="middle" font-weight="600">~$200-500 / 32B</text>
 <text x="217" y="240" font-size="11" fill="#1f7a4a">✓ 数据 Apache 2.0</text>
-<text x="217" y="260" font-size="11">→ BFCL 70.45</text>
+<text x="217" y="260" font-size="11">→ V3 70.45 / V4 待测</text>
 <text x="217" y="285" font-size="11" fill="#5b5e66">→ MCP base 强</text>
 
 <!-- Recipe 3 -->
@@ -461,10 +489,10 @@
 <text x="587" y="105" font-size="10" fill="#5b5e66">(R2)</text>
 <text x="587" y="130" font-size="11">② ART MCP•RL 在线</text>
 <text x="587" y="150" font-size="10" fill="#5b5e66">(R3)在 target server</text>
-<text x="587" y="175" font-size="11">③ 评测 BFCL+Atlas-500</text>
+<text x="587" y="175" font-size="11">③ 评测 BFCL V4+Atlas-500</text>
 <rect x="590" y="195" width="160" height="30" rx="5" fill="#fff" stroke="#cc4a1b"/>
 <text x="665" y="215" text-anchor="middle" font-weight="600">~$300 / 2-3 周</text>
-<text x="587" y="248" font-size="11">→ BFCL 75%+</text>
+<text x="587" y="248" font-size="11">→ BFCL V4 50%+</text>
 <text x="587" y="268" font-size="11">→ MCP-Atlas ~60%</text>
 <text x="587" y="288" font-size="10" fill="#5b5e66">(估算,无公开实证)</text>
 </svg>
@@ -558,9 +586,9 @@
 <td>8+ GPU 集群 scale 训练时用</td>
 </tr>
 <tr>
-<td><strong>GLM-4.5 base</strong></td>
-<td>—</td><td>—</td><td>✅ 32B</td><td>—</td><td>—</td><td>Apache 2.0</td>
-<td>BFCL 当前开源 SOTA,fine-tune 起点首选</td>
+<td><strong>GLM-4.5 / 4.6 base</strong></td>
+<td>—</td><td>—</td><td>✅ 32B / >40B</td><td>—</td><td>—</td><td>Apache 2.0 / MIT</td>
+<td>GLM-4.6 BFCL V4 open-weight 第一 72.38(>40B);GLM-4.5 V3 76.7</td>
 </tr>
 <tr>
 <td><strong>Qwen3-8B base</strong></td>
@@ -573,7 +601,7 @@
 &nbsp;&nbsp;<strong>① 起步</strong>:<a href="22_TOUCAN.html">TOUCAN 1.5M</a> 数据(MIT/Apache 2.0)+ Qwen3-8B base<br>
 &nbsp;&nbsp;<strong>② RL</strong>:<a href="https://github.com/OpenPipe/ART">ART MCP•RL</a>(Apache 2.0,9.5K⭐)<br>
 &nbsp;&nbsp;<strong>③ 部署</strong>:<a href="https://github.com/huggingface/smolagents">smolagents</a>(Apache 2.0)+ <a href="https://github.com/MeetKai/functionary">Functionary inference server</a><br>
-&nbsp;&nbsp;<strong>④ 评测</strong>:BFCL V3 + Toolathlon public eval(<code>47.253.6.47:8080</code>)+ <a href="19_MCPAtlas_2602.00933.html">MCP-Atlas 公开 500 task</a>
+&nbsp;&nbsp;<strong>④ 评测</strong>:<a href="28_BFCL.html">BFCL V4</a>(Multi-Turn + Web Search + Memory)+ Toolathlon public eval(<code>47.253.6.47:8080</code>)+ <a href="19_MCPAtlas_2602.00933.html">MCP-Atlas 公开 500 task</a>
 </div>
 
 <hr>
@@ -588,7 +616,7 @@
 <!-- branch 1: BFCL only -->
 <line x1="390" y1="50" x2="120" y2="100" stroke="#666"/>
 <rect x="20" y="100" width="200" height="40" rx="8" fill="#eef3fb" stroke="#2f6feb"/>
-<text x="120" y="125" text-anchor="middle">快速验证 BFCL 高分</text>
+<text x="120" y="125" text-anchor="middle">快速验证 BFCL V4 高分</text>
 <rect x="20" y="160" width="200" height="60" rx="8" fill="#fff" stroke="#2f6feb"/>
 <text x="120" y="180" text-anchor="middle" font-size="10">→ R1 xLAM 路线</text>
 <text x="120" y="198" text-anchor="middle" font-size="10">Qwen3-8B + xLAM 60K</text>
@@ -654,12 +682,13 @@
 
 <h2 id="sec10">11 · 个人 take + 关键 take-away</h2>
 
-<h3>11.1 5 个最重要的事实</h3>
+<h3>11.1 6 个最重要的事实</h3>
 <ol>
-<li><strong>≤40B 模型在 MCP-Atlas / MCP-Universe / MCPMark / Toolathlon 上的 SOTA 还没人发</strong> — 工业小模型在 BFCL 上集体超 GPT-4,但没人把这些模型放上真 MCP 长 horizon benchmark 报数。<strong>这是 2026 下半年最大的 open opportunity</strong>。</li>
+<li><strong>≤40B 模型在 MCP-Atlas / MCP-Universe / MCPMark / Toolathlon 上的 SOTA 还没人发</strong> — 工业小模型在 BFCL V1-V3 上集体超 GPT-4,但 V4 后已被 agentic 公式打回原形(Hammer/Granite WebSearch≈0),且仍无人把这些模型放上真 MCP 长 horizon benchmark 报数。<strong>这是 2026 下半年最大的 open opportunity</strong>。</li>
+<li><strong>BFCL V4 vs V3 — V4 显著拉大了模型间差距,Multi-Turn + Agentic 是关键 stress test</strong>;<strong>3B 量级靠 RFT/curriculum 反超 32B 已成事实(Nanbeige4-3B 51.40 vs Qwen3-32B 48.71,在 V4 ≤40B 子榜)</strong>。V4 公式 30% Multi-Turn + 40% agentic(Web + Memory)直接洗牌了"刷 V3 SFT 单轮"的旧策略。</li>
 <li><strong>ART + MCP•RL 是性价比最高的入口</strong> — 9.5K⭐,Apache 2.0,examples/mcp-rl 完整可用,单卡 1 小时 / $5 出可用模型。<strong>repo 里没有 deep-read</strong>,但这是本 survey 最该被记住的工具。</li>
-<li><strong>TOUCAN(<a href="22_TOUCAN.html">#22</a>)是 SFT 数据天花板</strong> — 1.5M MCP trajectory,21.8 GB,Apache 2.0,直接可下。任何 MCP 小模型训练都应该用 TOUCAN 119K 高质量子集冷启。</li>
-<li><strong>BFCL 高分 ≠ MCP 高分</strong> — Hammer-7B / xLAM-7B 在 BFCL 80%+,但 MCP-Atlas / MCPMark 上没数。<strong>BFCL 是单轮函数调用静态测试,MCP 是 stateful + long-horizon</strong>。要谨慎区分。</li>
+<li><strong>TOUCAN(<a href="22_TOUCAN.html">#22</a>)是 SFT 数据天花板</strong> — 1.5M MCP trajectory,21.8 GB,Apache 2.0,直接可下。任何 MCP 小模型训练都应该用 TOUCAN 119K 高质量子集冷启。但<strong>纯 SFT 的 V3 高分(70.45)不再等同于 V4 高分 — 必须补 Web Search / Memory RL</strong>。</li>
+<li><strong>BFCL V4 高分 ≠ MCP 高分</strong> — Hammer-7B V4 31.67 / xLAM-2-32b V4 54.66 在 BFCL 表现差距很大,但 MCP-Atlas / MCPMark 上仍然都没数。<strong>BFCL V4 加 agentic 后更接近 MCP,但仍是 schema-grounded Python class 后端,不等于真 OAuth MCP server</strong>。详见 <a href="28_BFCL.html">#28</a>。</li>
 <li><strong>工业 vs 学术分裂</strong>:Salesforce xLAM / IBM Granite / MeetKai Functionary 走<strong>SFT-on-curated-data</strong>(数据规模 60K)工业线;EnvScaler / SETA / AWM / TOUCAN 走<strong>RL/SFT-on-synthetic-env</strong>(数据规模 1K-1.5M)学术线。两条线还没合流。</li>
 </ol>
 
@@ -675,26 +704,30 @@ Step 2 (1 周): clone OpenPipe/ART,configure 你的 target MCP server URL
               → 出一个 "Qwen3-8B-MCP-RL" final
 
 Step 3 (1 天): smolagents 包成 inference server
-              评测 BFCL V3 + Toolathlon + MCP-Atlas 公开 500 task
+              评测 BFCL V4(Overall + Multi-Turn + Web Search + Memory)
+              + Toolathlon + MCP-Atlas 公开 500 task
 
 总成本: ~$200 GPU 费 + ~$50 inference 费
-预期: BFCL V3 70+,Toolathlon ~30%,MCP-Atlas ~50%
+预期: BFCL V4 Overall 45-50%(超 Qwen3-8B 42.57 基线),
+      BFCL V4 Multi-Turn 50+,Toolathlon ~30%,MCP-Atlas ~50%
 (均为估算,无公开实证 — 实测你就是 paper 的 main contribution)
 </pre>
 
-<h3>11.3 反直觉发现</h3>
+<h3>11.3 反直觉发现(BFCL V4 视角)</h3>
 <ul>
-<li><strong>Magnet-14B-mDPO 已经在 BFCL-v3 上 68.01,但 Google 没放模型</strong> — 工业 paper 越来越倾向"发结果不发模型",这与开源潮流相悖,加剧了"复现门槛"问题。</li>
+<li><strong>Magnet-14B-mDPO 已经在 BFCL-v3 上 68.01,但 Google 没放模型</strong> — V4 上更无法验证。工业 paper 越来越倾向"发结果不发模型",这与开源潮流相悖,加剧了"复现门槛"问题。</li>
 <li><strong>ART 9.5K⭐ 但 repo 里完全没 deep-read 它</strong> — 学术界还在专注 paper,工业工具(OpenPipe ART / Magnet / xLAM)<strong>事实上是更重要</strong>的小模型 MCP 训练手段,但学术 survey 经常忽略。</li>
-<li><strong>Salesforce 自家 MCP-Universe leaderboard 上没 xLAM</strong> — 自家 benchmark 不报自家模型,说明 xLAM 在长 horizon MCP 上确实不行,函数调用 ≠ MCP 调用。</li>
+<li><strong>Salesforce 自家 MCP-Universe leaderboard 上没 xLAM</strong> — 自家 benchmark 不报自家模型;BFCL V4 xLAM-2 multi-turn 第一但 WebSearch 15 / Memory 14 也佐证:函数调用 ≠ agentic MCP。</li>
+<li><strong>BFCL V4 上 3B 反超 32B</strong> — Nanbeige4-3B-Thinking-2511 (51.40) > Qwen3-32B (48.71)。这是 thinking + curriculum/RFT 在 Multi-Turn(51.12 vs 47.87)和 Memory(36.77 vs 26.67)同时碾压尺度的具体证据 — <strong>"小模型够不够 MCP"的答案在 V4 上变成了"看怎么训,不看多大"</strong>。</li>
+<li><strong>xLAM-2-70b Multi-Turn 77.38% 是全榜第一(高于 Claude Opus 4.5 的 68.38)</strong>,但 WebSearch 15.00 / Memory 14.41 把 Overall 拉到 53.07 — agentic 数据缺失是 specialized fine-tune 的致命短板,即便 70B 也救不回来。</li>
 </ul>
 
 <h3>11.4 一句话总结</h3>
-<p><strong>用 <a href="22_TOUCAN.html">TOUCAN 1.5M</a> SFT 冷启 + <a href="https://github.com/OpenPipe/ART">ART MCP•RL</a> 在线 RL,在 Qwen3-8B base 上,单 H100 + $250 + 2 周,可以训出一个在 BFCL V3 75% / MCP-Atlas 公开 500 ~55%-65% 的小模型 — 这就是 2026 下半年 ≤40B MCP 小模型的当前 ceiling。再往上需要 frontier 实验室级算力。</strong></p>
+<p><strong>用 <a href="22_TOUCAN.html">TOUCAN 1.5M</a> SFT 冷启 + <a href="https://github.com/OpenPipe/ART">ART MCP•RL</a> 在线 RL(target server 含 Web Search + Memory 类工具),在 Qwen3-8B / Nanbeige4-3B base 上,单 H100 + $250 + 2 周,可以训出一个在 BFCL V4 Overall ~50% / V4 Multi-Turn ~55% / MCP-Atlas 公开 500 ~55%-65% 的小模型 — 这就是 2026 下半年 ≤40B MCP 小模型在 V4 公式下的当前 ceiling。再往上需要 frontier 实验室级算力(GLM-4.6 72.38)。</strong></p>
 
 <hr>
 
-<p style="color:var(--muted);font-size:13px">📚 相关 cross-link: <a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a> · <a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a> · <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> · <a href="20_SETA_camel.html">#20 SETA</a> · <a href="21_MCPBenchmarks_compare.html">#21 4-bench compare</a> · <a href="22_TOUCAN.html">#22 TOUCAN</a> · <a href="23_EnvScaler.html">#23 EnvScaler</a> · <a href="24_Smithery.html">#24 Smithery</a> · <a href="25_MCPUniverse.html">#25 MCP-Universe</a> · <a href="26_MCPBenchmarks_codedive.html">#26 MCP code-dive</a></p>
+<p style="color:var(--muted);font-size:13px">📚 相关 cross-link: <a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a> · <a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a> · <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> · <a href="20_SETA_camel.html">#20 SETA</a> · <a href="21_MCPBenchmarks_compare.html">#21 4-bench compare</a> · <a href="22_TOUCAN.html">#22 TOUCAN</a> · <a href="23_EnvScaler.html">#23 EnvScaler</a> · <a href="24_Smithery.html">#24 Smithery</a> · <a href="25_MCPUniverse.html">#25 MCP-Universe</a> · <a href="26_MCPBenchmarks_codedive.html">#26 MCP code-dive</a> · <a href="28_BFCL.html">#28 BFCL 精读</a></p>
 
 </main>
 </body>
