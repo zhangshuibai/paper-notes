@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>调研 · Prime Intellect Environments Hub — agentic RL 的 GitHub</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>调研 · Prime Intellect Environments Hub — agentic RL 的 GitHub</h1>
+<div class="meta">
+  公司: Prime Intellect (Vincent Weisser CEO · Johannes Hagemann CTO · Will Brown 研究负责人)<br>
+  Hub: <a href="https://app.primeintellect.ai/dashboard/environments" target="_blank">app.primeintellect.ai/dashboard/environments</a> ·
+  Blog: <a href="https://www.primeintellect.ai/blog/environments" target="_blank">/blog/environments</a> ·
+  Docs: <a href="https://docs.primeintellect.ai/verifiers/environments" target="_blank">docs.primeintellect.ai</a><br>
+  关键 repo: <a href="https://github.com/PrimeIntellect-ai/verifiers" target="_blank">verifiers</a> (4.1K★) ·
+  <a href="https://github.com/PrimeIntellect-ai/prime-rl" target="_blank">prime-rl</a> (1.4K★) ·
+  <a href="https://github.com/PrimeIntellect-ai/prime" target="_blank">prime (CLI)</a> (200★)<br>
+  Hub 启动: 2025-08-27 · Lab 平台 GA: 2026-02-10 · 关键词: verifiers · prime-rl · LoRA · INTELLECT-3 · agentic RL gym
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> Prime Intellect <strong>Environments Hub</strong> 是 2025-08-27 上线的"<em>agentic RL environments 的 GitHub</em>" —— 用一个 <code>pyproject.toml</code> 把"<strong>dataset + harness + reward</strong>"打成 Python wheel,<code>prime env push/pull/install</code> 像 npm/PyPI 一样在社区里流转。9 个月后 (截至 2026-05),官方公开数字: <strong>1,000+ environments · 250+ creators · 100,000+ downloads</strong>。配套的开源 SDK <a href="https://github.com/PrimeIntellect-ai/verifiers" target="_blank"><strong>verifiers</strong></a> (4,113★, MIT) 提供 <code>SingleTurnEnv</code> / <code>MultiTurnEnv</code> / <code>ToolEnv</code> / <code>StatefulToolEnv</code> / <code>BrowserEnv</code> / <code>OpenEnv</code> integration 与 v1 <code>Env(taskset, harness)</code> API; <strong>prime-rl</strong> (1,379★, Apache-2.0) 提供完全异步、1000+ GPU 规模、INTELLECT-3 同款的训练栈。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">1,000+</div><div class="l">environments (2026-05 官方数字)</div></div>
+    <div class="stat"><div class="n">250+</div><div class="l">creators</div></div>
+    <div class="stat"><div class="n">100,000+</div><div class="l">cumulative downloads</div></div>
+    <div class="stat"><div class="n">~9 个月</div><div class="l">自 2025-08-27 launch 至今</div></div>
+  </div>
+  <p><strong>立场:</strong> 如果说 <a href="./24_Smithery.html">#24 Smithery</a> 是 <em>MCP server 的 Docker Hub</em>(注册中心 + 托管运行时),那 Prime Intellect Hub 就是 <em>RL environment 的 GitHub</em>(版本化 + 可安装 + 与训练器原生集成)。两者解决<strong>完全不同</strong>的问题: Smithery 提供"<em>主题 / metadata 来源</em>",Hub 提供"<em>可直接 RL train 的 gym</em>"。对本系列读者最关键的是: <strong>verifiers SDK 真的把"写一个 env"压到了 30 行 Python</strong>,且能立刻通过 <code>vf-eval</code> 评测、通过 <code>prime-rl</code> GRPO 训练 —— 这是<a href="../../models/notes/07_INTELLECT2_2505.07291.html">INTELLECT-2</a> / <a href="../../models/notes/08_INTELLECT3_2512.16144.html">INTELLECT-3</a> 论文使用的同一栈。诚实警示: 1,000 个 env 的<strong>质量方差极大</strong>; 真正"<em>能 RL train 出来的</em>"远不到这个数; <strong>MCP 环境数量在 Hub UI 上无法直接 enumerate</strong> (未在公开来源确认精确数);商业化的 Lab 平台 (2026-02-10 GA) 走 per-token 计费,beta 阶段只支持<strong>agentic RL + LoRA</strong>,full-finetune / SFT / GEPA / GKD / DPO 列为 "near future"。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">是什么 / 在 agentic RL 生态里的位置</a></li>
+    <li><a href="#sec2">verifiers SDK 深潜 — SingleTurnEnv / MultiTurnEnv / Env v1</a></li>
+    <li><a href="#sec3">prime-rl 训练栈 — 与 INTELLECT-2/3 的关系</a></li>
+    <li><a href="#sec4"><code>prime env</code> CLI — init / push / pull 完整流程</a></li>
+    <li><a href="#sec5">Hub 内容盘点 — 类目与 MCP 现状</a></li>
+    <li><a href="#sec6">Lab 平台 — Hosted Training + Sandboxes (付费)</a></li>
+    <li><a href="#sec7">横向对比 — Hub vs OpenEnv vs Toolathlon-Gym vs MCP-Universe …</a></li>
+    <li><a href="#sec8">商业模式 — Bounty / RFC / Research Stipend / per-token 计费</a></li>
+    <li><a href="#sec9">本系列交叉参考</a></li>
+    <li><a href="#sec10">开源清单 + 风险与诚实分析</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 是什么 / 在 agentic RL 生态里的位置</h2>
+
+<h3>1.1 一句话定位</h3>
+
+<p>Prime Intellect 是 2024 年靠 <a href="../../models/notes/01_INTELLECT1_2412.01152.html">INTELLECT-1</a> (去中心化预训练) 出圈、2025 年靠 <a href="../../models/notes/07_INTELLECT2_2505.07291.html">INTELLECT-2</a> (去中心化 RL + TOPLOC + SHARDCAST) 站稳、2025-12 用 <a href="../../models/notes/08_INTELLECT3_2512.16144.html">INTELLECT-3</a> (106B MoE agentic RL) 完成"<em>务实转向</em>"的去中心化 AI lab。Environments Hub 是它<strong>2025-08-27 的产品化拐点</strong> — 把内部为训自家模型而写的"agent gym"开放给社区,反过来把社区贡献的 gym 拿回来训自己的下一代模型。这是<strong>data flywheel 的工业化</strong>。</p>
+
+<p>官方原话 (blog/environments, 2025-08-27):</p>
+
+<blockquote>"RL environments are the key bottleneck to the next wave of AI progress, but big labs are locking them down. We built a community platform for crowdsourcing open environments, so anyone can contribute to open-source AGI." —— Prime Intellect on X, 2025-08-26</blockquote>
+
+<blockquote>"Create, manage and share environments for reinforcement learning and evaluation." —— Hub 首页</blockquote>
+
+<h3>1.2 三层栈一图</h3>
+
+<div class="fig">
+<svg viewBox="0 0 760 520" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:12px">
+  <defs>
+    <marker id="a31" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/></marker>
+  </defs>
+  <text x="380" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="#2f6feb">Prime Intellect Agentic RL 三层栈</text>
+
+  <!-- Layer 1 -->
+  <rect x="20" y="50" width="720" height="100" rx="10" fill="#f3eee0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="380" y="73" text-anchor="middle" font-weight="bold" fill="#cc4a1b">① 开发者层 · verifiers SDK (MIT, 4.1K★)</text>
+  <text x="200" y="95" text-anchor="middle" font-size="11">SingleTurnEnv</text>
+  <text x="200" y="110" text-anchor="middle" font-size="10" fill="#5b5e66">dataset + Rubric</text>
+  <text x="350" y="95" text-anchor="middle" font-size="11">MultiTurnEnv</text>
+  <text x="350" y="110" text-anchor="middle" font-size="10" fill="#5b5e66">max_turns + env_response</text>
+  <text x="500" y="95" text-anchor="middle" font-size="11">ToolEnv / StatefulToolEnv</text>
+  <text x="500" y="110" text-anchor="middle" font-size="10" fill="#5b5e66">JSON tool-call loop</text>
+  <text x="650" y="95" text-anchor="middle" font-size="11">Env (v1)</text>
+  <text x="650" y="110" text-anchor="middle" font-size="10" fill="#5b5e66">Taskset + Harness</text>
+  <text x="380" y="135" text-anchor="middle" font-size="10" fill="#5b5e66">integrations: BrowserEnv / OpenEnvEnv / TextArenaEnv / ReasoningGymEnv · harness: OpenCode (Harbor)</text>
+
+  <!-- Layer 2 -->
+  <rect x="20" y="180" width="720" height="100" rx="10" fill="#f3eee0" stroke="#2f6feb" stroke-width="2"/>
+  <text x="380" y="203" text-anchor="middle" font-weight="bold" fill="#2f6feb">② 分发层 · Environments Hub + prime CLI</text>
+  <text x="180" y="228" text-anchor="middle" font-size="11">prime env init</text>
+  <text x="180" y="243" text-anchor="middle" font-size="10" fill="#5b5e66">生成 pyproject.toml</text>
+  <text x="380" y="228" text-anchor="middle" font-size="11">prime env push</text>
+  <text x="380" y="243" text-anchor="middle" font-size="10" fill="#5b5e66">打包成 wheel 上 hub</text>
+  <text x="580" y="228" text-anchor="middle" font-size="11">prime env install / pull</text>
+  <text x="580" y="243" text-anchor="middle" font-size="10" fill="#5b5e66">用户端装,等同 pip</text>
+  <text x="380" y="265" text-anchor="middle" font-size="10" fill="#5b5e66">1,000+ env · 250+ creator · 100K+ download (2026-05 官方)</text>
+
+  <!-- Layer 3 -->
+  <rect x="20" y="310" width="720" height="100" rx="10" fill="#f3eee0" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="380" y="333" text-anchor="middle" font-weight="bold" fill="#1f7a4a">③ 训练层 · prime-rl (Apache-2.0, 1.4K★)</text>
+  <text x="170" y="358" text-anchor="middle" font-size="11">trainer (FSDP2)</text>
+  <text x="170" y="373" text-anchor="middle" font-size="10" fill="#5b5e66">SFT + RL · 1T+ MoE</text>
+  <text x="350" y="358" text-anchor="middle" font-size="11">inference (vLLM)</text>
+  <text x="350" y="373" text-anchor="middle" font-size="10" fill="#5b5e66">FP8 · EP · PD-disagg</text>
+  <text x="530" y="358" text-anchor="middle" font-size="11">orchestrator</text>
+  <text x="530" y="373" text-anchor="middle" font-size="10" fill="#5b5e66">async rollout · Slurm/K8s</text>
+  <text x="680" y="358" text-anchor="middle" font-size="11">eval</text>
+  <text x="680" y="373" text-anchor="middle" font-size="10" fill="#5b5e66">vf-eval</text>
+  <text x="380" y="395" text-anchor="middle" font-size="10" fill="#5b5e66">INTELLECT-3 与 INTELLECT-3.1 训练同栈 · 32 - 2,048 GPU recipe 公开</text>
+
+  <!-- Lab layer (commercial) -->
+  <rect x="20" y="440" width="720" height="60" rx="10" fill="#fff4e0" stroke="#cc7a1b" stroke-width="2"/>
+  <text x="380" y="463" text-anchor="middle" font-weight="bold" fill="#cc7a1b">④ 商业层 · Lab (Hosted Training + Sandboxes + Hosted Evals · 2026-02-10 GA · per-token 计费)</text>
+  <text x="380" y="483" text-anchor="middle" font-size="10" fill="#5b5e66">beta: agentic RL + LoRA only · "near future" 才上 SFT / GEPA / GKD / DPO · 多租户 LoRA inference on NVIDIA Dynamo</text>
+
+  <path d="M 380 150 L 380 180" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a31)"/>
+  <path d="M 380 280 L 380 310" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a31)"/>
+  <path d="M 380 410 L 380 440" stroke="#333" stroke-width="2" fill="none" marker-end="url(#a31)"/>
+</svg>
+<figcaption><strong>图 1</strong>: Prime Intellect 完整 agentic RL 栈 — ① verifiers SDK 写 env → ② 通过 prime CLI 上传到 Hub 分发 (1,000+ env) → ③ prime-rl 异步训练器消费 env 做 GRPO/PPO,与 INTELLECT-2/3 训练同栈 → ④ Lab 是把 ①②③ 全部 hosted 的付费层,2026-02-10 才 GA。</figcaption>
+</div>
+
+<h3>1.3 为什么"本系列读者必须看"</h3>
+
+<p>本系列 #06 / #18 / #22 / #23 / #25 / #26 / #27 / #29 / #30 共 9 篇都在讨论"<em>agentic RL 的 environment 从哪里来 / 怎么写 / 怎么训</em>"。这个问题在不同 paper 里被拆成: TOUCAN 用 Smithery 真实 MCP server (#22) / EnvScaler 用 Python class 程序合成 (#23) / SETA 用 Docker 化 terminal 任务 (#20) / AWM 用 code-driven synthetic (#18) / MCP-Universe 才把 GRPO+verl 真做了 (#25)。<strong>Prime Intellect Hub 是 6 个月内出现的"<em>第一个真正成型的、第三方可贡献的、与训练器原生集成的</em>" agentic RL gym 集散地</strong>,是上述所有 paper 在工程层的"<em>事实出口</em>"。如果你想训 ≤40B 小模型做 MCP/tool/agent,2026 年的<strong>默认起点</strong>就是 <code>uv tool install prime &amp;&amp; prime env install ...</code>。</p>
+
+<hr>
+
+<h2 id="sec2">2 · verifiers SDK 深潜 — SingleTurnEnv / MultiTurnEnv / Env v1</h2>
+
+<p>本节是本笔记的<strong>核心</strong>。verifiers 是把<a href="../../models/notes/19_RL_Frameworks_Comparison.html">#19 RL 框架横评</a>里"<em>env 抽象</em>"这个空白真正填上的库。</p>
+
+<h3>2.1 Repo 速查</h3>
+
+<div class="kv">
+  <p><strong>Repo</strong>: github.com/PrimeIntellect-ai/verifiers</p>
+  <p><strong>License</strong>: MIT · <strong>Stars</strong>: 4,113 · <strong>Forks</strong>: 547 · <strong>Open issues</strong>: 201 (2026-05-17 API 查询)</p>
+  <p><strong>最新 release</strong>: v0.1.15.dev7 (2026-05-15)</p>
+  <p><strong>历史脉络</strong>: 最初是 Will Brown (现 Prime Intellect 研究负责人) 个人项目 <code>willccbb/verifiers</code>,2025 年迁到 PrimeIntellect-ai 组织,成为 Hub 的 official SDK。</p>
+</div>
+
+<h3>2.2 文件树 (<code>verifiers/envs/</code>)</h3>
+
+<pre>verifiers/envs/
+├── environment.py         # Environment 基类
+├── singleturn_env.py      # SingleTurnEnv
+├── multiturn_env.py       # MultiTurnEnv
+├── tool_env.py            # ToolEnv (JSON tool-call loop)
+├── stateful_tool_env.py   # StatefulToolEnv (state-mutating tools)
+├── python_env.py          # PythonEnv (code execution gym)
+├── sandbox_env.py         # SandboxEnv (隔离执行)
+├── env_group.py           # EnvGroup (多 env 组合)
+├── experimental/          # v1 Env / Taskset / Harness 在演进
+└── integrations/
+    ├── browser_env/       # BrowserEnv (子目录,Playwright-based)
+    ├── openenv_env.py     # OpenEnvEnv (Meta+HF OpenEnv 兼容层)
+    ├── reasoninggym_env.py # ReasoningGymEnv
+    └── textarena_env.py    # TextArenaEnv</pre>
+
+<p>注意: <strong>没有专门的 <code>mcp_env.py</code></strong>。MCP 工具是通过 <code>ToolEnv</code> 的通用 JSON-schema 机制接入的,verifiers 没有把 MCP 当一等公民独立成类 —— 这与 <a href="./25_MCPUniverse.html">#25 MCP-Universe</a> 有专门 MCP server 抽象的做法不同。第三方衍生项目 <code>MCPEnv</code> 存在,但<strong>不在主线 repo</strong> (未在公开来源确认其稳定性)。</p>
+
+<h3>2.3 SingleTurnEnv — 最低门槛</h3>
+
+<p>用于"<em>一次 prompt → 一次 response → 一次 score</em>"任务 (数学 / 代码 / QA)。最小例子:</p>
+
+<pre>import verifiers as vf
+from datasets import load_dataset
+
+dataset = load_dataset("gsm8k", "main", split="train")
+
+def correct_answer_reward(completion, answer, **kwargs):
+    return 1.0 if extract_final(completion) == answer else 0.0
+
+rubric = vf.Rubric(funcs=[correct_answer_reward])
+env = vf.SingleTurnEnv(dataset=dataset, rubric=rubric)
+
+# 立刻可以评测
+results = env.evaluate(client=client, model="gpt-4.1-mini",
+                       num_examples=20, rollouts_per_example=5)</pre>
+
+<p><strong>Rubric</strong> 是一组 reward functions 的容器 —— 可以叠加 format reward / process reward / outcome reward,verifiers 会按权重合并。这与 <a href="../../models/notes/19_RL_Frameworks_Comparison.html">#19</a> 中讨论的 "process supervision" 设计同源。</p>
+
+<h3>2.4 MultiTurnEnv — agentic 主力 (verbatim 签名)</h3>
+
+<p>用于"<em>多轮对话 / agent loop</em>"任务 (Wordle / 2048 / 浏览 / 工具调用)。从 main 分支直接抓取的类签名:</p>
+
+<pre>class MultiTurnEnv(vf.Environment):
+    def __init__(
+        self,
+        max_turns: int = -1,
+        timeout_seconds: float | None = None,
+        **kwargs,
+    ):
+        ...
+
+    @abstractmethod
+    async def env_response(
+        self, messages: Messages, state: State, **kwargs
+    ) -> Messages:
+        """Given the conversation so far, return the next environment message."""
+
+    @abstractmethod
+    async def is_completed(
+        self, messages: Messages, state: State, **kwargs
+    ) -> bool:
+        """Return True if rollout should stop."""
+
+    @final
+    async def rollout(self, ...):
+        # 内部循环: client → env_response → is_completed → break
+        ...</pre>
+
+<p>写一个新 env 只需子类化并实现 <code>env_response</code> + <code>is_completed</code>。<strong>关键设计选择</strong>:</p>
+
+<ul>
+  <li><strong><code>@final</code> 锁定 rollout</strong> — 用户不能 override 主循环,只能定义"<em>环境对 agent 说话</em>"与"<em>什么时候停</em>"。这是 verifiers 与 OpenAI Gym 的本质差别 (Gym 用 <code>step()</code> 风格,这里用对话 message 风格)。</li>
+  <li><strong>async 原生</strong> — 配合 prime-rl 的全异步 rollout,1000+ 并发不掉性能。</li>
+  <li><strong><code>@vf.stop</code> 装饰器</strong> — 标记可被 stop 的条件 (max_turns 到了 / 超 token / 超 wall-clock),由 framework 统一处理。</li>
+</ul>
+
+<h3>2.5 完整 Wordle MultiTurnEnv 示例 (摘自 README)</h3>
+
+<pre>class WordleEnv(vf.MultiTurnEnv):
+    def __init__(self, words: list[str], max_turns: int = 6):
+        super().__init__(max_turns=max_turns)
+        self.words = words
+
+    async def env_response(self, messages, state, **kwargs):
+        guess = extract_guess(messages[-1]["content"])
+        target = state["target"]
+        feedback = score_guess(guess, target)   # "🟩🟨⬜⬜⬜" 之类
+        state["history"].append((guess, feedback))
+        return [{"role": "user", "content": feedback}]
+
+    async def is_completed(self, messages, state, **kwargs):
+        return state["history"] and state["history"][-1][0] == state["target"]
+
+def load_environment(**kwargs):
+    return WordleEnv(words=load_word_list(), max_turns=6)</pre>
+
+<p>整个 env 不到 20 行。reward function 写在 <code>Rubric</code> 里 (是否猜中 / 用了几轮),通过 <code>vf-eval wordle -m &lt;model&gt;</code> 立即评测,通过 <code>uv run trainer @ configs/rl/wordle.toml</code> 立即 GRPO 训练。</p>
+
+<h3>2.6 v1 Env API — Taskset + Harness 解耦</h3>
+
+<p>2026 年逐步推广的 v1 API 把 "<em>任务定义</em>" 和 "<em>agent 怎么跑</em>" 解耦了:</p>
+
+<pre>def load_taskset(config: vf.TasksetConfig) -> vf.Taskset:
+    return vf.Taskset(source=source, rewards=[reward_fn], config=config)
+
+def load_environment(config: vf.EnvConfig) -> vf.Env:
+    return vf.Env(taskset=load_taskset(config=config.taskset))</pre>
+
+<p>不传 <code>harness</code> 时默认 endpoint-backed harness (HTTP 调 LLM API)。要接 CLI agent (例如 OpenCode):</p>
+
+<pre>env = vf.Env(
+    taskset=vf.HarborTaskset(),
+    harness=vf.OpenCode(),    # Harbor 任务目录的 CLI harness
+)</pre>
+
+<p><strong>OpenCode</strong> 是 verifiers 对 SST <code>opencode</code> CLI 的 wrapper,允许把"<em>真的 coding agent</em>"插到 RL loop 里;<strong>Harbor</strong> 是 Prime Intellect 自家的任务目录格式 (类似 SWE-bench 的 instance 格式)。</p>
+
+<h3>2.7 BrowserEnv — 浏览器 gym</h3>
+
+<p>在 <code>verifiers/envs/integrations/browser_env/</code>,Playwright-based,提供 <code>click</code> / <code>type</code> / <code>scroll</code> / <code>read_page</code> 工具,用于训练浏览器 agent。与 <a href="./17_UITARS2_2509.02544.html">#17 UI-TARS-2</a> 的 GUI 抽象同类,但 verifiers 更轻量 (DOM 而非 screenshot)。</p>
+
+<h3>2.8 OpenEnv 桥接</h3>
+
+<p><code>integrations/openenv_env.py</code> 是 verifiers 对 <strong>OpenEnv</strong> (Meta + HuggingFace 2025-10 发布的 agentic env 标准) 的兼容层。一个 OpenEnv 项目可以直接 wrap 成 verifiers Env,做到"<em>一次写,两栈训</em>"。这条桥接对生态意义巨大 —— 它把 Prime Intellect Hub 和 HF Datasets-style 分发兼容起来。</p>
+
+<hr>
+
+<h2 id="sec3">3 · prime-rl 训练栈 — 与 INTELLECT-2/3 的关系</h2>
+
+<h3>3.1 Repo 速查</h3>
+
+<div class="kv">
+  <p><strong>Repo</strong>: github.com/PrimeIntellect-ai/prime-rl · <strong>License</strong>: Apache-2.0 (注意比 verifiers 的 MIT 更宽松条款,主要因为含 Modal/Slurm 模板需要专利条款)</p>
+  <p><strong>Stars</strong>: 1,379 · <strong>Forks</strong>: 290 · <strong>Open issues</strong>: 111 (2026-05-17)</p>
+  <p><strong>定位</strong>: "Agentic RL Training at Scale" — fully async, 1000+ GPU</p>
+</div>
+
+<h3>3.2 四进程架构</h3>
+
+<p>prime-rl 把训练拆成四个独立进程,通过 toml config 编排:</p>
+
+<pre>uv run sft         @ configs/debug/sft/train.toml    # 监督微调
+uv run trainer     @ configs/debug/rl/train.toml      # GRPO/PPO/RLVR
+uv run inference   @ configs/debug/infer.toml         # vLLM 推理服务
+uv run orchestrator @ configs/debug/orch.toml         # async rollout 调度</pre>
+
+<p>关键技术 stack:</p>
+
+<ul>
+  <li><strong>FSDP2</strong> — 训练并行</li>
+  <li><strong>vLLM</strong> — 推理引擎</li>
+  <li><strong>FP8 inference</strong> — H100/H200/B200 友好</li>
+  <li><strong>PD disaggregation</strong> — prefill / decode 解耦 (与 NVIDIA Dynamo 配套)</li>
+  <li><strong>Expert parallelism + Context parallelism</strong> — 训 1T+ MoE</li>
+  <li><strong>Slurm + Kubernetes</strong> 双 deploy</li>
+  <li><strong>Multimodal (Qwen3-VL)</strong> 支持</li>
+</ul>
+
+<h3>3.3 与 INTELLECT-2 / INTELLECT-3 的血缘</h3>
+
+<table>
+<thead><tr><th>代次</th><th>训练栈</th><th>本系列笔记</th></tr></thead>
+<tbody>
+<tr><td>INTELLECT-1 (2024-12)</td><td>DiLoCo + int8 ring all-reduce (预训练,不涉 RL)</td><td><a href="../../models/notes/01_INTELLECT1_2412.01152.html">models/#01</a></td></tr>
+<tr><td>INTELLECT-2 (2025-05)</td><td><strong>PRIME-RL 的原型</strong> + TOPLOC + SHARDCAST (去中心化 RL)</td><td><a href="../../models/notes/07_INTELLECT2_2505.07291.html">models/#07</a></td></tr>
+<tr><td>INTELLECT-3 (2025-12)</td><td><strong>prime-rl 三件套</strong> + IcePop · 106B GLM-4.5-Air-Base 上做 agentic RL</td><td><a href="../../models/notes/08_INTELLECT3_2512.16144.html">models/#08</a></td></tr>
+<tr><td>INTELLECT-3.1 (2026 H1)</td><td>同 prime-rl, 32-2,048 GPU recipe 已在 README "advanced examples" 公开</td><td>(未单独成笔记)</td></tr>
+</tbody>
+</table>
+
+<p><strong>关键洞见</strong>: prime-rl 不是为了"<em>让社区训玩具模型</em>"而存在,它就是<a href="../../models/notes/08_INTELLECT3_2512.16144.html">INTELLECT-3</a>训练用的<em>同一份代码</em>。这意味着你在 Hub 上拉一个 env,用 prime-rl GRPO 训 Qwen3-8B,跑的 RL recipe 与 Prime Intellect 训 106B 模型的<strong>是同一套</strong>,只是 GPU 数从 2,048 缩到 2-8。<em>recipe 透明度</em>是 #25 MCP-Universe / #18 AWM 无法比拟的优势。</p>
+
+<h3>3.4 与 verifiers Hub 的集成点</h3>
+
+<p>prime-rl 在 README 明确写: "<em>Native integration with verifiers environments through the Environments Hub.</em>" 实际机制是 trainer config 里直接写 hub-id:</p>
+
+<pre>[env]
+id = "primeintellect/alphabet-sort@0.1.5"
+# orchestrator 启动时执行 prime env install 一次,
+# 然后 rollout worker 直接 import 该 env 调用 .rollout()</pre>
+
+<p>这就是<strong>"从 Smithery JSON catalog → Prime Hub Python wheel"的本质提升</strong> —— 后者不需要二次包装,直接 import 即用。</p>
+
+<hr>
+
+<h2 id="sec4">4 · <code>prime env</code> CLI — init / push / pull 完整流程</h2>
+
+<h3>4.1 安装</h3>
+
+<pre>curl -LsSf https://astral.sh/uv/install.sh | sh
+uv tool install prime
+uv tool update-shell</pre>
+
+<h3>4.2 <code>prime</code> CLI 全命令树</h3>
+
+<p>从 <code>PrimeIntellect-ai/prime</code> repo (200★) 抓取的完整命令树:</p>
+
+<pre>prime lab           # 工作区: 一站式 env / eval / GEPA / training
+prime train         # 托管训练
+  ├ models          # 可训模型列表 + 容量定价
+  ├ init            # 生成 training config
+  ├ list            # 训练 run 列表
+  ├ logs            # run 日志
+  ├ metrics         # run 指标
+  └ checkpoints     # 取 checkpoint
+prime env           # ★ Hub 操作
+  ├ list            # 浏览 hub
+  ├ info &lt;hub-id&gt;   # 查看元数据
+  ├ inspect         # 看源码
+  ├ install         # 本地安装
+  ├ init            # 创建新 env 模板
+  └ push            # 发布到 Hub
+prime availability  # GPU 资源
+  ├ list
+  └ gpu-types
+prime pods          # 计算 pod
+  ├ list / create / status / terminate / ssh
+prime eval          # 评测管理
+  ├ push / list / get / samples
+prime config
+  └ set-api-key / set-ssh-key-path / view
+prime teams
+  └ list / switch</pre>
+
+<h3>4.3 完整 env 开发周期 (从 init 到 push)</h3>
+
+<h4>Step 1: <code>prime env init</code></h4>
+
+<pre>prime env init my-env
+# 生成:
+# environments/my_env/
+# ├── my_env.py          # env 实现
+# ├── pyproject.toml     # ★ Hub metadata + 依赖
+# └── README.md          # 文档模板</pre>
+
+<p>带 v1 harness 模板:</p>
+
+<pre>prime env init my-env --with-harness</pre>
+
+<h4>Step 2: pyproject.toml 是 Hub 的 metadata 协议</h4>
+
+<pre>[project]
+name = "my-env"
+description = "My custom environment"
+tags = ["single-turn", "math", "train", "eval"]
+version = "0.1.0"
+requires-python = "&gt;=3.10"
+dependencies = [
+    "verifiers&gt;=0.1.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = ["my_env.py", "pyproject.toml"]
+
+[tool.verifiers.eval]
+num_examples = 20
+rollouts_per_example = 5</pre>
+
+<p><strong>关键洞察</strong>: <code>tags</code> 字段就是 Hub 搜索/过滤的 facet (single-turn / multi-turn / math / code / browser / agentic / eval / train),<code>[tool.verifiers.eval]</code> 是默认评测配置 —— 这是<em>把"env 怎么用"也版本化</em>的设计,胜过 Smithery 仅存 server URL。</p>
+
+<h4>Step 3: 本地装并自测</h4>
+
+<pre>prime env install my-env -p ./environments
+uv run vf-eval my-env -m gpt-4.1-mini -n 5 -r 3</pre>
+
+<h4>Step 4: 推到 Hub</h4>
+
+<pre>prime env push --path ./environments/my_env
+# Hub 端: hatchling build → wheel 上传 → 索引化 → 出 hub-id (例如 myuser/my-env@0.1.0)</pre>
+
+<h4>Step 5: 别人 pull 你的 env</h4>
+
+<pre>prime env install myuser/my-env@0.1.0
+# 等同 pip install,放到当前 .venv,可以直接 import</pre>
+
+<h3>4.4 Discovery — 怎么找到 env</h3>
+
+<ul>
+  <li><strong>Web UI</strong>: <code>app.primeintellect.ai/dashboard/environments</code> — 按 tag / popularity / recent 浏览</li>
+  <li><strong>CLI</strong>: <code>prime env list</code> + 过滤 flag (未在公开来源完整确认 flag 列表)</li>
+  <li><strong>API</strong>: Hub 有 REST 接口,但官方未完整公开 OpenAPI spec (未在公开来源确认 endpoint 全集)</li>
+</ul>
+
+<hr>
+
+<h2 id="sec5">5 · Hub 内容盘点 — 类目与 MCP 现状</h2>
+
+<h3>5.1 已知的类目 (从官方 blog + HF blog + UI 截图归纳)</h3>
+
+<table>
+<thead><tr><th>类目</th><th>典型 env</th><th>来源</th></tr></thead>
+<tbody>
+<tr><td>Math / Reasoning</td><td><code>gsm8k</code>, <code>aime-25</code>, <code>math-500</code>, theorem proving</td><td>blog 2025-09-06 公告 "100+ envs in week 1"</td></tr>
+<tr><td>Code / SWE</td><td><code>terminal-bench</code>, kernel-generation, SWE-bench instances</td><td>HF blog @anakin87</td></tr>
+<tr><td>Simple games (SFT/RL 起步)</td><td><code>alphabet-sort</code>, <code>wordle</code>, <code>2048</code>, <code>reverse-text</code></td><td>verifiers README + prime-rl debug configs</td></tr>
+<tr><td>Browser / GUI</td><td>browser-use envs (BrowserEnv 衍生)</td><td>blog 公告</td></tr>
+<tr><td>Scientific QA</td><td>科学 QA 多个 env</td><td>blog 公告</td></tr>
+<tr><td>Agentic / Tool-use</td><td>tool-calling 任务 (BFCL-derived 等)</td><td>verifiers ToolEnv 链路</td></tr>
+<tr><td>MCP-flavored</td><td><em>存在但数量未在公开来源确认</em></td><td>see §5.2</td></tr>
+</tbody>
+</table>
+
+<h3>5.2 MCP 环境现状 (谨慎结论)</h3>
+
+<div class="nb">
+  <strong>未在公开来源确认</strong>: 截至 2026-05-17,Hub 上<strong>"MCP 风味"环境的精确数量无法从 UI 公开页直接 enumerate</strong> —— 主页是 SSR 注入,curl 拿不到完整列表,要登录后才能搜索。已知信号:
+  <ul>
+    <li>verifiers 主线<strong>没有专门 <code>MCPEnv</code> 类</strong>,MCP 工具通过 <code>ToolEnv</code> 通用机制接入</li>
+    <li>第三方 (kvrancic/prime-intellect-mcp 等) 在 Glama 上挂了"<em>Prime Intellect Hub 的 MCP 包装</em>",方向与 #24 Smithery 类似 —— 把 hub 操作暴露成 MCP tool,而非把 MCP server 包装成 env</li>
+    <li>WebSearch 摘要提到 "MCPEnv extends ToolEnv to provide integration with MCP servers, automatically connecting to MCP servers and exposing their tools to models" —— 但<strong>这条声明出处不可追溯到 Prime Intellect 官方仓库</strong>,可能是 community fork</li>
+  </ul>
+  实务建议: 若要训 MCP 能力,目前最 robust 的路线是<strong>(a) 用 verifiers ToolEnv 手写一个 wrapper,把 MCP server 工具转 JSON-schema</strong>,或 <strong>(b) 用 <a href="./25_MCPUniverse.html">#25 MCP-Universe</a> 自带的 GRPO+verl 栈</strong>(那是目前唯一确认能 RL train MCP 的开源 pipeline)。
+</div>
+
+<h3>5.3 推荐起步 env (从公开材料筛)</h3>
+
+<ul>
+  <li><code>primeintellect/alphabet-sort@0.1.5</code> — HF blog 全流程 walkthrough 用的 env, ~8 小时 2×A6000 GRPO 训 Qwen3-0.6B 把 reward 从 0.403 提到 0.578 (+43%)</li>
+  <li><code>primeintellect/wordle</code> — MultiTurnEnv 教科书例子</li>
+  <li><code>primeintellect/aime-25</code> — 数学 eval baseline</li>
+  <li><code>primeintellect/terminal-bench</code> — agent in real terminals,可与 <a href="./20_SETA_camel.html">#20 SETA</a> 对照</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · Lab 平台 — Hosted Training + Sandboxes (付费)</h2>
+
+<h3>6.1 时间线</h3>
+
+<div class="kv">
+  <p><strong>2025-08-27</strong> · Environments Hub launch (free, open)</p>
+  <p><strong>2025 Q4</strong> · Lab private beta · "more than 3,000 RL runs" 在 beta 阶段完成</p>
+  <p><strong>2026-02-10</strong> · <strong>Lab 公开 GA</strong> · blog: "Releasing Lab: the training platform for self-improving agents"</p>
+</div>
+
+<h3>6.2 Lab 包含什么</h3>
+
+<p>blog 原文 (2026-02-10):</p>
+
+<blockquote>"Lab unifies the Environments Hub with Hosted Training and Hosted Evaluations into a full-stack platform for research and optimization."</blockquote>
+
+<p>组件:</p>
+
+<ul>
+  <li><strong>Environments Hub</strong> (免费,沿用)</li>
+  <li><strong>Hosted Training</strong> (付费) — "agentic RL with LoRA, built atop our prime-rl training library". <strong>SFT + GEPA + GKD + DPO</strong> 列为 "near future"</li>
+  <li><strong>Sandboxes</strong> (beta) — "for secure code execution"</li>
+  <li><strong>Hosted Evaluations</strong> — 一键评测某 env 上的 model</li>
+  <li><strong>Inference</strong> — "dedicated or serverless inference for custom models, with native LoRA support" · 基于 <strong>NVIDIA Dynamo</strong> stack</li>
+</ul>
+
+<h3>6.3 商业拐点: per-token 而非 cluster-hour</h3>
+
+<blockquote>"Lab offers per-token pricing, moving away from traditional cluster-hour billing to enable cost efficiency through shared hardware across runs." —— blog/lab-is-open</blockquote>
+
+<p>这是关键差异化 —— 同期 Replicate / Together / Fireworks / Modal 走 GPU-hour 或 token (推理) 计费,但<strong>训练</strong>端走 token 计费的极少。Prime Intellect 能这样定价是因为它<strong>多租户共享 LoRA inference 集群</strong> (NVIDIA Dynamo 的 PD-disagg + EP),底层 GPU 利用率高。</p>
+
+<div class="warn">
+  <strong>limitation 实情</strong>: Lab beta 阶段限制颇多 (基于 2026-02 公告):
+  <ul>
+    <li>训练只支持 <strong>LoRA</strong>, full-finetune 不行 — 对 ≤40B 小模型 MCP 微调够用,对大改 base model 行为不够</li>
+    <li>只支持 <strong>agentic RL</strong>,SFT/DPO 还要等</li>
+    <li>支持的 base model 是 <strong>有限白名单</strong> (从 <code>prime train models</code> 查),非任何 HF model 都行</li>
+    <li>Sandboxes 仍 beta — 安全/隔离机制未做 SOC2-equivalent 公示</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · 横向对比 — Hub vs OpenEnv vs Toolathlon-Gym vs MCP-Universe …</h2>
+
+<table>
+<thead><tr><th>平台</th><th>规模</th><th>开放程度</th><th>是否有 RL 训练栈</th><th>MCP 一等公民</th><th>核心差异</th></tr></thead>
+<tbody>
+<tr><td><strong>Prime Intellect Hub</strong></td><td>1,000+ env (2026-05)</td><td>开源 SDK (MIT/Apache);Hub 免费上传;Lab 付费托管</td><td><strong>有</strong> · prime-rl (INTELLECT-3 同栈)</td><td>否 (ToolEnv 通用机制)</td><td>"<em>env-as-Python-wheel</em>" + 与训练器原生集成</td></tr>
+<tr><td>OpenEnv (Meta + HuggingFace)</td><td>未公开 (2025-10 发布)</td><td>spec-first 开源协议</td><td>否 (是 spec,不是 trainer)</td><td>未在公开来源确认</td><td>更像 "agent env 的 ONNX",定义抽象而非提供平台 — verifiers 已做 OpenEnv 兼容层</td></tr>
+<tr><td><a href="./21_MCPBenchmarks_compare.html">Toolathlon-Gym (eigent-ai)</a></td><td>57 server, 1,000+ task</td><td>开源</td><td><strong>有</strong> (主打 RL gym 而非 bench)</td><td><strong>是</strong> — MCP server 是核心</td><td>专攻 long-horizon MCP, 不通用</td></tr>
+<tr><td><a href="./25_MCPUniverse.html">MCP-Universe (Salesforce)</a></td><td>11 server / 231 task</td><td>Apache-2.0 585★</td><td><strong>有</strong> (Hybrid + Fully-Async + verl GRPO)</td><td><strong>是</strong></td><td>framework 而非 bench;深度 MCP RL,但<em>规模小</em></td></tr>
+<tr><td><a href="./06_AgentGymRL_2509.08755.html">AgentGym-RL</a></td><td>27 任务,5 domain</td><td>开源</td><td><strong>有</strong> · ScalingInter-RL 课程</td><td>否</td><td>27 个固定任务,不支持社区贡献</td></tr>
+<tr><td>Anthropic MCP Registry (官方)</td><td>未公开</td><td>开放 spec, 免费</td><td>否</td><td>是 (本身就是 MCP)</td><td>"<em>intentionally minimal</em>" meta-registry,不托管,不训练</td></tr>
+<tr><td><a href="./24_Smithery.html">Smithery</a></td><td>7,300+ MCP server</td><td>Registry 免费 / Hosting 付费</td><td><strong>否</strong></td><td>是</td><td>"Docker Hub for MCP" — 仅 server 分发,不训练</td></tr>
+</tbody>
+</table>
+
+<p><strong>三句话总结</strong>:</p>
+
+<ul>
+  <li>想<strong>找 MCP server</strong> 用 Smithery / Anthropic Registry。</li>
+  <li>想<strong>测 MCP agent</strong> 用 MCP-Universe / Toolathlon / <a href="./19_MCPAtlas_2602.00933.html">MCP-Atlas</a> / <a href="./28_BFCL.html">BFCL</a>。</li>
+  <li>想<strong>训 agent (含 MCP / 含通用 tool)</strong> 用 Prime Intellect Hub + prime-rl。</li>
+</ul>
+
+<p>三个生态<em>互补</em>,不是替代关系 —— 但 <strong>Prime Intellect 是唯一覆盖"训"这一环的开源 / 社区平台</strong>。</p>
+
+<hr>
+
+<h2 id="sec8">8 · 商业模式 — Bounty / RFC / Research Stipend / per-token 计费</h2>
+
+<h3>8.1 让社区贡献 env 的三个杠杆</h3>
+
+<ol>
+  <li><strong>Bounties</strong> — 官方维护"open + in-progress" bounty 表 (Google Sheets)。blog 原文: "<em>we'll figure something out based on the difficulty scale we're using.</em>" 暗示 ad-hoc 而非固定金额 (未在公开来源确认具体金额段)。</li>
+  <li><strong>RFCs</strong> — 同一张表上有"<em>论文要做但还没人做</em>"的 env idea 池。社区可以认领。</li>
+  <li><strong>Research stipend program</strong> — "<em>applications for novel environments and evals</em>" · 入选者拿"<em>compute for running experiments, a stipend and support from our internal research team.</em>" 这是<strong>真金白银的 research grant</strong>,不是 token credit。RL Residency 项目据 Sequoia podcast,14-16 人,含研究生 + 全职贡献者。</li>
+</ol>
+
+<h3>8.2 Prime Intellect 自身的赚钱路径</h3>
+
+<table>
+<thead><tr><th>产品</th><th>状态</th><th>商业模式</th></tr></thead>
+<tbody>
+<tr><td>Environments Hub</td><td>免费 GA</td><td>不直接收入,作为 funnel</td></tr>
+<tr><td>verifiers SDK</td><td>免费开源 MIT</td><td>不直接收入</td></tr>
+<tr><td>prime-rl</td><td>免费开源 Apache</td><td>不直接收入</td></tr>
+<tr><td>Lab — Hosted Training</td><td>2026-02 GA</td><td><strong>per-token billing</strong></td></tr>
+<tr><td>Lab — Hosted Inference (LoRA)</td><td>GA</td><td><strong>per-token billing</strong></td></tr>
+<tr><td>Lab — Sandboxes</td><td>beta</td><td>未公开 (估计也是 usage-based)</td></tr>
+<tr><td>GPU 算力 marketplace (传统业务)</td><td>持续</td><td>per-hour</td></tr>
+</tbody>
+</table>
+
+<p>注意 Prime Intellect 仍保留早期的 <strong>GPU marketplace</strong> 业务 (P2P 计算租赁,INTELLECT-1 时代起家的产品)。Hub + Lab 是新业务线,与 GPU marketplace 是<em>合作</em>关系: 你可以在 Hub 找 env,在 marketplace 租 GPU,自己跑 prime-rl —— Lab 只是这个流程的"<em>都不想管</em>"托管方案。</p>
+
+<h3>8.3 与 NVIDIA 的合作</h3>
+
+<p>blog: "Leveraging NVIDIA to Build the Open Superintelligence Stack" —— 2026 年宣布合作,NVIDIA Dynamo stack 成为 Lab 推理基础。<strong>潜在含义</strong>: Prime Intellect 获得 NVIDIA 早期硬件 + 优先工程支持; NVIDIA 获得"<em>NVIDIA stack 训出 INTELLECT-3 / 进入 100B 级 open-source 模型</em>"的展示窗口。这是<strong>除 OpenAI/Anthropic 之外,NVIDIA 唯一深度绑定的 frontier-model 厂商</strong>。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 本系列交叉参考</h2>
+
+<div class="paper-card">
+  <span class="ttl">直接相关 (本笔记 strongly cross-link)</span>
+  <ul>
+    <li><a href="../../models/notes/07_INTELLECT2_2505.07291.html">models/#07 INTELLECT-2</a> — prime-rl 的前身 PRIME-RL 在此首次大规模上场</li>
+    <li><a href="../../models/notes/08_INTELLECT3_2512.16144.html">models/#08 INTELLECT-3</a> — Hub 上 env + prime-rl 训出的 106B agentic MoE,本系列最直接"<em>用户案例</em>"</li>
+    <li><a href="./24_Smithery.html">#24 Smithery</a> — MCP server 的"Docker Hub"; Prime Hub 是 agentic env 的"GitHub"。两者覆盖<strong>互补</strong>不重叠的层</li>
+    <li><a href="./27_SmallModelMCP_landscape.html">#27 ≤40B 小模型 MCP landscape</a> — 那篇结论是"TOUCAN SFT 冷启 + ART MCP•RL 在线",现在加上 Prime Hub 后,<strong>recipe 可以升级为</strong>: TOUCAN SFT → 拉 Hub 上 MCP-flavored ToolEnv → prime-rl GRPO,单卡 H100 / 2-3 周</li>
+  </ul>
+</div>
+
+<div class="paper-card">
+  <span class="ttl">env-生成方法论的对照</span>
+  <ul>
+    <li><a href="./06_AgentGymRL_2509.08755.html">#06 AgentGym-RL</a> — 27 个固定任务的非社区版,Prime Hub 走完全相反的"社区贡献"路线</li>
+    <li><a href="./18_AgentWorldModel_2602.10090.html">#18 Agent World Model</a> — code-driven 全合成 env,本质和 verifiers ToolEnv 同类</li>
+    <li><a href="./20_SETA_camel.html">#20 SETA</a> — Docker 化 terminal env,可以 wrap 进 verifiers <code>SandboxEnv</code></li>
+    <li><a href="./22_TOUCAN.html">#22 TOUCAN</a> — 1.5M tool-agent SFT 数据,理想搭档作为 prime-rl SFT 起点</li>
+    <li><a href="./23_EnvScaler.html">#23 EnvScaler</a> — 程序化合成 env,可以全套迁移到 verifiers <code>MultiTurnEnv</code> 子类</li>
+  </ul>
+</div>
+
+<div class="paper-card">
+  <span class="ttl">MCP / 评测对照</span>
+  <ul>
+    <li><a href="./19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> — eval-only,不能 train</li>
+    <li><a href="./21_MCPBenchmarks_compare.html">#21 MCP Benchmark 横评</a> — Toolathlon 是其中唯一 RL gym</li>
+    <li><a href="./25_MCPUniverse.html">#25 MCP-Universe</a> — 唯一目前确认能 GRPO 真训 MCP 的开源 framework,与 Prime Hub <em>覆盖不同抽象层级</em></li>
+    <li><a href="./26_MCPBenchmarks_codedive.html">#26 MCP Bench 代码级深潜</a> — 4 套 verifier 风味互斥,Prime Hub 走的是 verifiers <code>Rubric</code> 风格 (函数列表 + 权重)</li>
+    <li><a href="./28_BFCL.html">#28 BFCL</a> — function-calling 事实标准 eval, Hub 上有 BFCL-derived env</li>
+    <li><a href="./29_TuneTheEnvironment.html">#29 ICLR 2026 Tune the Environment</a> — "<em>tune env 不 tune agent</em>" 的范式 paper, Hub 提供的 "Actionable Env Augmentation" 实验场地</li>
+    <li><a href="./30_ACEBench.html">#30 ACEBench</a> — Hub 上若放入 ACEBench env, 可一键 prime-rl GRPO</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 开源清单 + 风险与诚实分析</h2>
+
+<h3>10.1 开源资产盘点 (沿用 #24 / #27 表格风格)</h3>
+
+<table>
+<thead><tr><th>资产</th><th>License</th><th>Repo / URL</th><th>Stars</th><th>Code</th><th>Data</th><th>Pipeline</th></tr></thead>
+<tbody>
+<tr><td>verifiers (SDK)</td><td>MIT</td><td>github.com/PrimeIntellect-ai/verifiers</td><td>4,113</td><td>✓</td><td>(env 自带 dataset)</td><td>✓ (vf-eval)</td></tr>
+<tr><td>prime-rl (训练器)</td><td>Apache-2.0</td><td>github.com/PrimeIntellect-ai/prime-rl</td><td>1,379</td><td>✓</td><td>—</td><td>✓ (configs/{sft,rl,infer,orch})</td></tr>
+<tr><td>prime (CLI + SDK)</td><td>Apache-2.0 (推断)</td><td>github.com/PrimeIntellect-ai/prime</td><td>200</td><td>✓</td><td>—</td><td>—</td></tr>
+<tr><td>Environments Hub (env wheels)</td><td>各 env 自定 (建议 MIT/Apache)</td><td>app.primeintellect.ai/dashboard/environments</td><td>n/a</td><td>✓ (每个 env 单独)</td><td>✓ (env 内置)</td><td>✓ (vf-eval / prime-rl)</td></tr>
+<tr><td>INTELLECT-3 模型权重</td><td>详 paper</td><td>HuggingFace primeintellect/INTELLECT-3</td><td>n/a</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>blog/launch 公告</td><td>(文档)</td><td>primeintellect.ai/blog/environments</td><td>n/a</td><td>—</td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+
+<h3>10.2 与 OpenAI/Anthropic 闭源 RL 基建的诚实对比</h3>
+
+<p>OpenAI 内部有 <code>codex-eval</code> + <code>swe-rebench</code> + 完整 RLHF/RLAIF 流水线 (从 paper / system card 推断,未公开 codebase);Anthropic 同理有内部 <em>environment harness</em> + Sonnet/Opus 训练用 RL gym。这些<strong>从不开放</strong>。Prime Intellect 的<em>整体策略</em>就是把 <code>verifiers + prime-rl + Hub</code> 三件套开源,赌"<em>开源生态规模效应 &gt; 单一闭源 lab</em>"。这条赌注的<strong>历史先例</strong>是 PyTorch / vLLM / SGLang —— 都用了 5-8 年把闭源对手追平甚至超过。Prime Intellect 在<em>训练栈</em>能否同样成功,要看 2026-2028 三年。</p>
+
+<h3>10.3 risk 与 caveat</h3>
+
+<div class="warn">
+  <strong>诚实告知的 risk</strong>:
+  <ol>
+    <li><strong>1,000+ env 的质量方差极大</strong> — 类比 Smithery 的 7K servers / TOUCAN 实际只能用 17%。Hub 上"<em>能跑通 vf-eval 且 reward 信号干净</em>"的 env <strong>很可能不到一半</strong> (未公开统计,但基于 Smithery 经验合理推断)。</li>
+    <li><strong>MCP 覆盖未确认</strong> — verifiers 主线没 MCPEnv,Hub 上 MCP 风味环境数无法 enumerate。要 MCP RL 当下还是去 #25 MCP-Universe / #21 Toolathlon-Gym。</li>
+    <li><strong>Lab 付费层 lock-in</strong> — per-token 计费在 LoRA 范畴友好,一旦你的训练 run 依赖 Prime Dynamo 多租户基础设施,迁移到自建 cluster 不是简单 export checkpoint 那么轻。<strong>切换成本中等</strong>。</li>
+    <li><strong>"INTELLECT-3 同栈"是营销也是事实</strong> — 同栈不代表你能复现 INTELLECT-3 (你没那 2,048 GPU + 那个数据集)。社区能复现的是 8B-32B 规模 RL,这与"<em>训出 106B agentic MoE</em>"差两个数量级。</li>
+    <li><strong>Hub 治理还在早期</strong> — 没有像 PyPI 的 yank policy,没有 vulnerability scan,env 里跑任意 Python 代码 (尤其 PythonEnv/SandboxEnv) 有<em>供应链风险</em>。生产环境 install 前 <code>prime env inspect &lt;hub-id&gt;</code> 看源码是必须的。</li>
+    <li><strong>OpenEnv 兼容是单向的</strong> — verifiers 能 wrap OpenEnv,但 OpenEnv 不能反过来 wrap verifiers (后者的 async + final rollout 设计无法 reduce 到 step()-风格)。如果生态最终倒向 Meta+HF 的 OpenEnv,Prime Hub 的 env 仍可被消费;<em>反向迁移则有风险</em>。</li>
+  </ol>
+</div>
+
+<h3>10.4 给本系列读者的一句话</h3>
+
+<p>如果你 2026 年要做 <strong>≤40B 小模型 agentic RL</strong> (含 tool-use / MCP / browser / code),Prime Intellect Hub + verifiers + prime-rl 是<strong>当下唯一开源全栈方案</strong>。具体 recipe:</p>
+
+<ol>
+  <li><a href="./22_TOUCAN.html">#22 TOUCAN</a> 1.5M SFT 数据冷启 → <code>uv run sft @ configs/sft/touchan.toml</code></li>
+  <li><code>prime env install primeintellect/&lt;your-task&gt;</code> 拿 env</li>
+  <li><code>uv run trainer @ configs/rl/&lt;task&gt;.toml</code> GRPO 2-3 周 / 1 H100</li>
+  <li>用 <a href="./28_BFCL.html">#28 BFCL</a> + <a href="./19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> + <a href="./25_MCPUniverse.html">#25 MCP-Universe</a> 三个 leaderboard 评测</li>
+</ol>
+
+<p>这套 recipe<strong>5 个月前 (2025-12) 在工程上根本不存在</strong>。是 Prime Intellect 一家公司用 9 个月把它从"<em>spec + repo</em>"做到"<em>5 行命令上手</em>"。这是<strong>2025-2026 agentic RL 在工程层最重大的变化</strong>,胜过任何单篇 paper。</p>
+
+<hr>
+
+<h3>来源清单 (Raw URLs)</h3>
+
+<ul>
+  <li>https://app.primeintellect.ai/dashboard/environments (Hub UI 首页)</li>
+  <li>https://www.primeintellect.ai/blog/environments (2025-08-27 launch blog)</li>
+  <li>https://www.primeintellect.ai/blog/lab (Lab 介绍)</li>
+  <li>https://www.primeintellect.ai/blog/lab-is-open (2026-02-10 GA 公告)</li>
+  <li>https://docs.primeintellect.ai/verifiers/environments</li>
+  <li>https://docs.primeintellect.ai/hosted-training/what-is-lab</li>
+  <li>https://github.com/PrimeIntellect-ai/verifiers (SDK)</li>
+  <li>https://github.com/PrimeIntellect-ai/prime-rl (训练器)</li>
+  <li>https://github.com/PrimeIntellect-ai/prime (CLI)</li>
+  <li>https://github.com/PrimeIntellect-ai/verifiers/blob/main/verifiers/envs/multiturn_env.py</li>
+  <li>https://github.com/PrimeIntellect-ai/verifiers/tree/main/verifiers/envs/integrations</li>
+  <li>https://huggingface.co/blog/anakin87/environments-hub (alphabet-sort full walkthrough)</li>
+  <li>https://x.com/PrimeIntellect/status/1960783427948699680 (launch tweet)</li>
+  <li>https://x.com/PrimeIntellect/status/1964270515541201374 ("100+ envs in 1 week")</li>
+  <li>https://sequoiacap.com/podcast/building-the-github-for-rl-environments-prime-intellects-will-brown-johannes-hagemann/ (Will Brown / Johannes Hagemann 对谈)</li>
+  <li>https://medium.com/@alaminibrahim433/building-your-first-prime-intellect-environment...</li>
+  <li>https://www.mintlify.com/primeintellect-ai/verifiers/cli/env-init</li>
+  <li>https://www.primeintellect.ai/blog/nvidia-collaboration</li>
+</ul>
+
+</main>
+</body>
+</html>
