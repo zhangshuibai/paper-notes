@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>调研 · ≤40B 小模型 MCP 能力训练 landscape (2025-2026)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:860px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.88em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.92em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:12px 18px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .inv{background:#f7faf6;border:1px solid #d8e6dc;border-radius:8px;padding:10px 14px;margin:.8em 0;font-size:.93em}
+  .inv strong.ttl{color:var(--good)}
+  .inv .row{margin:2px 0}
+  .badge-open{background:#dcefe4;color:#1f7a4a;padding:1px 8px;border-radius:10px;font-size:11px}
+  .badge-closed{background:#f4dde0;color:#a8353e;padding:1px 8px;border-radius:10px;font-size:11px}
+  .badge-partial{background:#fff4d6;color:#a87317;padding:1px 8px;border-radius:10px;font-size:11px}
+</style>
+</head>
+<body>
+<main>
+
+<h1>调研 · ≤40B 小模型 MCP 能力训练 landscape</h1>
+<div class="meta">2025-2026 · 复用导向 survey · 含每个工作的开源现状盘点 + 复用矩阵 + 决策树</div>
+
+<div class="tldr">
+<h2>🎯 TL;DR</h2>
+<ul>
+<li><strong>领域热度极高但产出极不均匀</strong>:大量小模型 tool-use 工业作品(xLAM / Hammer / Functionary / Granite)在 <strong>BFCL</strong> 上集体超 GPT-4,但 <strong>专门为 MCP 长 horizon benchmark</strong>(MCP-Atlas / MCPMark / MCP-Universe / Toolathlon)训的 ≤40B 模型几乎 0 — 这是 2026 下半年最大的 open opportunity。</li>
+<li><strong>开源完整度最高的可复用组合</strong>:<a href="22_TOUCAN.html">TOUCAN 1.5M SFT 数据</a> (MIT) + <a href="https://github.com/OpenPipe/ART">ART MCP•RL</a> (Apache 2.0) — 前者给冷启,后者给在线 RL,**单 H100 一小时**就能训出可用 MCP 小模型。</li>
+<li><strong>BFCL 高分 ≠ MCP 高分</strong> — Hammer-7B / xLAM-7B 在 BFCL 上 80+,但没人在 MCP-Atlas / MCP-Universe 上报。</li>
+<li><strong>工业 vs 学术分裂</strong>:Salesforce xLAM / IBM Granite / MeetKai Functionary 走 SFT-on-curated-data 工业线;<a href="23_EnvScaler.html">EnvScaler</a> / <a href="20_SETA_camel.html">SETA</a> / <a href="18_AgentWorldModel_2602.10090.html">AWM</a> 走 RL-on-synthetic-env 学术线。</li>
+</ul>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="n">14+</div><div class="l">相关工作 / 模型族</div></div>
+<div class="stat"><div class="n">3B</div><div class="l">最小 RL-trained MCP 模型 (ART)</div></div>
+<div class="stat"><div class="n">$3-15</div><div class="l">QLoRA SFT 单次成本</div></div>
+<div class="stat"><div class="n">0</div><div class="l">≤40B 模型进 MCP-Atlas top-10</div></div>
+</div>
+
+<nav class="toc">
+<strong>目录</strong>
+<ol>
+<li><a href="#sec1">问题陈述 — 为什么"&lt;40B MCP 训练"是 2026 的 open opportunity</a></li>
+<li><a href="#sec2">Landscape 二维全景图</a></li>
+<li><a href="#sec3">已 covered 的 5 篇 — cross-link 简表</a></li>
+<li><a href="#sec4">工业级 tool-use 小模型族 (xLAM / Hammer / Functionary / NexusRaven / Granite)</a></li>
+<li><a href="#sec5">base 模型自带 tool-use 能力 (GLM-4.5 / Qwen3 / GPT-OSS / Holo3)</a></li>
+<li><a href="#sec6">训练框架 / 方法论 (ART MCP•RL / Magnet / smolagents / ml-intern / NeMo)</a></li>
+<li><a href="#sec7">≤40B 模型在 MCP benchmark 上的真实跑分</a></li>
+<li><a href="#sec8">4 条可复制 recipe (含流程图)</a></li>
+<li><a href="#sec_matrix">⭐ 开源复用矩阵 — 每个工作能拿什么</a></li>
+<li><a href="#sec9">路径选择决策树</a></li>
+<li><a href="#sec10">个人 take + take-away</a></li>
+</ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 问题陈述</h2>
+
+<p>2026 年 MCP benchmark 生态(<a href="19_MCPAtlas_2602.00933.html">#19</a> / <a href="21_MCPBenchmarks_compare.html">#21</a> / <a href="25_MCPUniverse.html">#25</a> / <a href="26_MCPBenchmarks_codedive.html">#26</a>)的<strong>残酷事实</strong>:</p>
+
+<table>
+<tr><th>Benchmark</th><th>frontier(闭源)</th><th>≤40B 开源 top-1</th><th>gap</th></tr>
+<tr><td>MCP-Atlas</td><td>GPT-5.5 / Claude 4.7 ~ <strong>77-79%</strong></td><td>无</td><td>≥ 40 pp</td></tr>
+<tr><td>MCPMark</td><td>gpt-5-medium <strong>52.56%</strong> pass@1</td><td>gpt-oss-120B 4.7%</td><td>~ 48 pp</td></tr>
+<tr><td>MCP-Universe</td><td>GPT-5 <strong>43.72%</strong></td><td>GPT-OSS-120B 25.5%(>40B 但开源最强)</td><td>~ 18 pp</td></tr>
+<tr><td>Toolathlon</td><td>Claude-4.5-Sonnet <strong>38.6%</strong></td><td>DeepSeek-V3.2 20.1%(685B,开源但远 >40B)</td><td>~ 18 pp</td></tr>
+<tr><td>BFCL V3</td><td>(开源就 SOTA)</td><td>GLM-4.5 <strong>76.7</strong> / Qwen3-32B 75.7 / TOUCAN-32B 70.45</td><td>—</td></tr>
+</table>
+
+<div class="nb"><strong>核心矛盾</strong>:BFCL 上小模型已追上甚至超过 GPT-4,但在 stateful + long-horizon 的真 MCP benchmark(Atlas / Mark / Universe / Toolathlon)上,<strong>没有任何 ≤40B 开源模型进过 top-10</strong>。瓶颈不在 base capability,在 stateful planning + tool selection 鲁棒性 + reward 信号干净度。</div>
+
+<hr>
+
+<h2 id="sec2">2 · Landscape 二维全景图</h2>
+
+<div class="fig">
+<svg viewBox="0 0 760 480" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:11px">
+<!-- axes -->
+<line x1="60" y1="430" x2="730" y2="430" stroke="#333" stroke-width="2"/>
+<line x1="60" y1="430" x2="60" y2="40" stroke="#333" stroke-width="2"/>
+<text x="395" y="465" text-anchor="middle" font-weight="600">模型规模 (参数)</text>
+<text x="20" y="235" text-anchor="middle" font-weight="600" transform="rotate(-90 20 235)">训练数据规模</text>
+<!-- x-axis labels -->
+<text x="120" y="448" text-anchor="middle">1-3B</text>
+<text x="240" y="448" text-anchor="middle">7-8B</text>
+<text x="380" y="448" text-anchor="middle">14B</text>
+<text x="520" y="448" text-anchor="middle">32B</text>
+<text x="660" y="448" text-anchor="middle">>40B</text>
+<!-- y-axis labels -->
+<text x="50" y="410" text-anchor="end">10K</text>
+<text x="50" y="320" text-anchor="end">60K</text>
+<text x="50" y="230" text-anchor="end">256K</text>
+<text x="50" y="140" text-anchor="end">1M</text>
+<text x="50" y="60" text-anchor="end">10M+</text>
+
+<!-- legend -->
+<rect x="540" y="50" width="170" height="80" fill="#fff" stroke="#ccc"/>
+<circle cx="555" cy="65" r="6" fill="#2f6feb"/><text x="568" y="69">SFT-on-curated</text>
+<circle cx="555" cy="85" r="6" fill="#1f7a4a"/><text x="568" y="89">RL-on-synthetic-env</text>
+<circle cx="555" cy="105" r="6" fill="#cc4a1b"/><text x="568" y="109">RL-on-real-MCP</text>
+<circle cx="555" cy="125" r="6" fill="#a87317"/><text x="568" y="129">base / pretrain</text>
+
+<!-- works -->
+<!-- xLAM-1B/7B: SFT, 60K data -->
+<circle cx="120" cy="320" r="8" fill="#2f6feb"/><text x="135" y="324">xLAM-1B</text>
+<circle cx="240" cy="320" r="9" fill="#2f6feb"/><text x="255" y="324">xLAM-7B/8B</text>
+<circle cx="660" cy="320" r="10" fill="#2f6feb"/><text x="640" y="335" font-size="10">xLAM-70B</text>
+
+<!-- Hammer 1.5B/7B: SFT, 67K data -->
+<circle cx="130" cy="310" r="7" fill="#2f6feb"/><text x="143" y="305">Hammer-1.5B</text>
+<circle cx="245" cy="310" r="8" fill="#2f6feb"/><text x="260" y="305">Hammer-7B</text>
+
+<!-- Functionary: SFT, ~100K -->
+<circle cx="245" cy="290" r="7" fill="#2f6feb"/><text x="260" y="285">Functionary-small</text>
+<circle cx="380" cy="290" r="8" fill="#2f6feb"/><text x="395" y="293">Functionary-medium</text>
+
+<!-- NexusRaven 13B: SFT -->
+<circle cx="340" cy="300" r="7" fill="#2f6feb"/><text x="355" y="305">NexusRaven-13B</text>
+
+<!-- Granite 4.1 8B: pretrain + SFT -->
+<circle cx="245" cy="240" r="8" fill="#2f6feb"/><text x="260" y="244">Granite 4.1 8B</text>
+
+<!-- TOUCAN: SFT on 1.5M -->
+<circle cx="240" cy="120" r="9" fill="#2f6feb" stroke="#000" stroke-width="1.5"/>
+<circle cx="380" cy="120" r="10" fill="#2f6feb" stroke="#000" stroke-width="1.5"/>
+<circle cx="520" cy="120" r="11" fill="#2f6feb" stroke="#000" stroke-width="1.5"/>
+<text x="535" y="124">TOUCAN-32B</text>
+<text x="395" y="115" font-size="10">TOUCAN-14B</text>
+<text x="255" y="115" font-size="10">TOUCAN-7B</text>
+
+<!-- EnvScaler: RL synthetic -->
+<circle cx="120" cy="260" r="7" fill="#1f7a4a"/><text x="135" y="263">EnvScaler-1.7B</text>
+<circle cx="180" cy="260" r="8" fill="#1f7a4a"/><text x="195" y="255">EnvScaler-4B</text>
+<circle cx="245" cy="260" r="9" fill="#1f7a4a"/><text x="260" y="264">EnvScaler-8B</text>
+
+<!-- SETA: RL terminal -->
+<circle cx="245" cy="350" r="8" fill="#1f7a4a"/><text x="260" y="354">SETA-Qwen3-8B</text>
+
+<!-- AWM: RL synthetic 10K -->
+<circle cx="100" cy="320" r="7" fill="#1f7a4a"/><text x="73" y="335" font-size="10">AWM-4B</text>
+<circle cx="245" cy="320" r="9" fill="#1f7a4a"/><text x="260" y="343" font-size="10">AWM-8B</text>
+<circle cx="380" cy="320" r="10" fill="#1f7a4a"/><text x="395" y="335" font-size="10">AWM-14B</text>
+
+<!-- Agent-World: RL real-MCP -->
+<circle cx="245" cy="180" r="9" fill="#cc4a1b"/><text x="260" y="184">Agent-World-8B</text>
+<circle cx="380" cy="180" r="10" fill="#cc4a1b"/><text x="395" y="183">Agent-World-14B</text>
+
+<!-- ART MCP-RL: RL on real MCP -->
+<circle cx="120" cy="380" r="7" fill="#cc4a1b" stroke="#000" stroke-width="2"/>
+<text x="135" y="384">ART-Qwen2.5-3B</text>
+<circle cx="380" cy="380" r="9" fill="#cc4a1b"/><text x="395" y="384">ART-E (14B)</text>
+
+<!-- Magnet -->
+<circle cx="380" cy="220" r="9" fill="#2f6feb"/><text x="395" y="224">Magnet-14B</text>
+
+<!-- base models -->
+<circle cx="240" cy="60" r="8" fill="#a87317"/><text x="255" y="64">Qwen3-8B base</text>
+<circle cx="520" cy="60" r="10" fill="#a87317"/><text x="535" y="64">Qwen3-32B / GLM-4.5</text>
+
+</svg>
+<figcaption>横轴 = 模型规模,纵轴 = 训练数据规模(对数刻度)。蓝色 = SFT 路线,绿色 = synthetic env RL,红色 = 真 MCP server RL,棕色 = 仅 pretrain。⭐ <strong>ART-Qwen2.5-3B</strong> 在最小规模 × 真 MCP RL 上是独家空位 — 这是社区最容易复制的入口。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · 已 covered 的 5 篇 — cross-link 简表</h2>
+
+<p>这 5 篇 deep-read 已在 repo,本节只做摘要 + 直链到详细 §"开源现状"。</p>
+
+<table>
+<tr><th>#</th><th>工作</th><th>模型</th><th>路径</th><th>开源一句话</th></tr>
+<tr><td>#03</td><td><a href="03_AgentWorld_2604.18292.html#sec_oss">Agent-World</a></td><td>8B / 14B</td><td>真 MCP env mining,RL</td><td><span class="badge-closed">paper-only</span> 1,978 env + 19,822 工具 + 模型权重 + 验证器代码<strong>全部未公开</strong>。</td></tr>
+<tr><td>#18</td><td><a href="18_AgentWorldModel_2602.10090.html">AWM (Snowflake)</a></td><td>Arctic-AWM 4B/8B/14B</td><td>合成 code env + GRPO</td><td><span class="badge-open">全开</span> Pipeline / 数据(`Snowflake/AgentWorldModel-1K`) / 三档模型权重 / RL infra(已并入 `meta-pytorch/OpenEnv`)全开,Apache 2.0。</td></tr>
+<tr><td>#20</td><td><a href="20_SETA_camel.html">SETA (CAMEL-AI)</a></td><td>seta-rl-qwen3-8b</td><td>400 Docker terminal + RLVR</td><td><span class="badge-open">全开</span> `camel-ai/seta` + `camel-ai/seta-env` + `camel-ai/seta-rl-qwen3-8b` 三仓全开,AReaL pipeline 自带,Apache 2.0。</td></tr>
+<tr><td>#22</td><td><a href="22_TOUCAN.html">TOUCAN (MIT-IBM)</a></td><td>Qwen2.5 7B/14B/32B SFT</td><td>1.5M 真 MCP SFT 数据</td><td><span class="badge-open">全开</span> `Agent-Ark/Toucan-1.5M` 21.8 GB 数据(Apache 2.0)+ `TheAgentArk/Toucan` pipeline(MIT)+ 三档 SFT ckpt;唯一缺 RL stage(论文本身就是纯 SFT)。</td></tr>
+<tr><td>#23</td><td><a href="23_EnvScaler.html">EnvScaler (RUC NLPIR)</a></td><td>Qwen3-Thinking 1.7B/4B/8B</td><td>Python class env + Reinforce++</td><td><span class="badge-open">全开</span> `RUC-NLPIR/EnvScaler` 6 模块 pipeline(MIT)+ `XXHStudyHard` 4 个数据集 + 3 档 ckpt;复现成本 ~$650 API 费。</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec4">4 · 工业级 tool-use 小模型族</h2>
+
+<p>这些工作<strong>不专为 MCP 训</strong>,但 BFCL / τ-bench 上 SOTA,可作为 fine-tune 起点或竞品对照。</p>
+
+<h3>4.1 xLAM 家族(Salesforce AI Research)</h3>
+<p>"Large Action Models"系列,函数调用专精。<strong>xLAM-7b-fc-r 在 BFCL leaderboard 第 3,准确率 88.24%</strong>,曾是开源 SOTA。</p>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — xLAM</strong>
+<div class="row">✅ Paper: <a href="https://arxiv.org/abs/2406.18518">arXiv 2406.18518</a>(NeurIPS 2024)</div>
+<div class="row">✅ Code: <a href="https://github.com/SalesforceAIResearch/xLAM">SalesforceAIResearch/xLAM</a> — <strong>Apache 2.0 · 619 ⭐</strong></div>
+<div class="row">✅ 训练数据: <a href="https://huggingface.co/datasets/Salesforce/xlam-function-calling-60k">Salesforce/xlam-function-calling-60k</a>(<strong>60K samples / 21 domain / 3,673 API</strong>,CC-BY-4.0-NC ⚠ 非商用)</div>
+<div class="row">✅ 模型权重: `xLAM-1b-fc-r` / `xLAM-7b-fc-r` / `xLAM-8x7b-r` / `Llama-xLAM-2-8b-fc-r` / `Llama-xLAM-2-70b-fc-r`(包含 GGUF 量化版)</div>
+<div class="row">✅ Pipeline / Fine-tune cookbook: <a href="https://huggingface.co/learn/cookbook/en/function_calling_fine_tuning_llms_on_xlam">HF Cookbook</a>(完整 QLoRA fine-tune notebook)</div>
+<div class="row">✅ Eval: BFCL 已集成,跑分自动出</div>
+<div class="row"><strong>复用建议</strong>: <strong>商用受限(数据 CC-BY-NC)</strong>。学术或个人项目可直接用 xLAM-2-8b-fc-r ckpt + 60K 数据 QLoRA 微调你的 base model,2-3 epoch 出 BFCL-competitive 模型。<strong>不专为 MCP,需自己补 long-horizon 数据</strong>。</div>
+</div>
+
+<h3>4.2 Hammer(MadeAgents,ICLR 2025)</h3>
+<p>"Robust Function-Calling via Function Masking"。基于 Qwen 2.0,创新点是<strong>训练时随机 mask function spec</strong>,迫使模型抗 schema 噪声。<strong>Hammer-7B 在 BFCL 仅次于 GPT-4</strong>。</p>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — Hammer</strong>
+<div class="row">✅ Paper: <a href="https://arxiv.org/abs/2410.04587">arXiv 2410.04587</a>(ICLR 2025)</div>
+<div class="row">✅ Code: <a href="https://github.com/MadeAgents/Hammer">MadeAgents/Hammer</a> — <strong>Apache 2.0 · 116 ⭐</strong></div>
+<div class="row">✅ 训练数据: APIGen 60K + xlam-irrelevance-7.5K(全公开)</div>
+<div class="row">✅ 模型权重: <a href="https://huggingface.co/MadeAgents/Hammer-7b">MadeAgents/Hammer-7b</a>、`Hammer-1.5b`、`Hammer-4b` 等</div>
+<div class="row">✅ Pipeline: 训练脚本含 function masking 实现</div>
+<div class="row">✅ Eval: BFCL 配置 in-repo</div>
+<div class="row"><strong>复用建议</strong>: <strong>函数 masking 是个轻量级 trick,可直接 port 到你自己的 SFT pipeline</strong>。Hammer 数据来源比 xLAM 干净(全公开),适合学术 + 商用。<strong>同样不专为 MCP</strong>。</div>
+</div>
+
+<h3>4.3 Functionary(MeetKai)</h3>
+<p>"唯一与 OpenAI 函数调用 1:1 兼容的开源模型"。系列从 v2 到 v4r,覆盖 small / medium / preview。</p>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — Functionary</strong>
+<div class="row">❌ Paper: 无 arXiv,只有 blog</div>
+<div class="row">✅ Code: <a href="https://github.com/MeetKai/functionary">MeetKai/functionary</a> — <strong>MIT · 1,594 ⭐</strong></div>
+<div class="row">⚠ 训练数据: <strong>未公开</strong></div>
+<div class="row">✅ 模型权重: `meetkai/functionary-small-v3.2` / `v4r-small-preview` / `medium-v3.0` 等(MIT)</div>
+<div class="row">✅ Pipeline: 推理脚本 + OpenAI 兼容 server</div>
+<div class="row">✅ Eval: 自家 benchmark + BFCL</div>
+<div class="row"><strong>复用建议</strong>: <strong>production drop-in 替换 OpenAI function call API 的最佳选择</strong>,不是 SOTA 拼分模型;你可以拿 ckpt 直接部署做 inference server,但<strong>无法复现训练过程</strong>(数据不开)。</div>
+</div>
+
+<h3>4.4 NexusRaven(Nexusflow)</h3>
+<p>NexusRaven-V2 13B,零样本单轮函数调用超 GPT-4。<strong>对 MCP 多轮长 horizon 较弱</strong>。</p>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — NexusRaven</strong>
+<div class="row">✅ Blog / Paper: <a href="https://nexusflow.ai/blogs/ravenv2">Nexusflow blog</a></div>
+<div class="row">✅ Code: <a href="https://github.com/nexusflowai/NexusRaven">nexusflowai/NexusRaven</a> — <strong>Apache 2.0 · 320 ⭐</strong></div>
+<div class="row">⚠ 训练数据: <strong>未公开</strong>(只有 eval 数据)</div>
+<div class="row">✅ 模型权重: `Nexusflow/NexusRaven-V2-13B`(Apache 2.0,**商用友好**)</div>
+<div class="row">⚠ Pipeline: 训练脚本不开,只有 eval</div>
+<div class="row">✅ Eval: 完整 reproduction 脚本</div>
+<div class="row"><strong>复用建议</strong>: <strong>商用单轮函数调用首选</strong>(license 友好),作为 multi-turn 起点不合适。</div>
+</div>
+
+<h3>4.5 IBM Granite(企业级 tool-use)</h3>
+<p><strong>Granite 4.1 8B 在 BFCL V3 上 68.27,8B 量级 SOTA</strong>。企业 license / SOC2 友好。</p>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — IBM Granite Tool</strong>
+<div class="row">✅ Tech report: IBM 官方</div>
+<div class="row">✅ Code: <a href="https://github.com/ibm-granite">ibm-granite/*</a> 多个仓 — <strong>Apache 2.0</strong></div>
+<div class="row">⚠ 训练数据: 部分公开(IBM 内部数据混合,不全)</div>
+<div class="row">✅ 模型权重: HF `ibm-granite/granite-4.1-8b-instruct` 等</div>
+<div class="row">⚠ Pipeline: 仅推理 + 部分 fine-tune 示例</div>
+<div class="row">✅ Eval: BFCL 集成</div>
+<div class="row"><strong>复用建议</strong>: <strong>企业部署最稳</strong>(IBM 背书 + 合规)。不能完整复现训练。可作为 SFT 起点 fine-tune 你的 MCP 数据。</div>
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · base 模型自带 tool-use 能力</h2>
+
+<p>这些<strong>不专做 tool-use 训练</strong>,但 base 模型本身就有强 function call 能力,是任何 MCP 训练的<strong>最佳起点</strong>。</p>
+
+<table>
+<tr><th>模型</th><th>规模</th><th>BFCL V3</th><th>License</th><th>复用建议</th></tr>
+<tr><td><strong>GLM-4.5</strong>(Z.AI)</td><td>32B 量级</td><td><strong>76.7</strong>(开源 SOTA)</td><td>Apache 2.0</td><td>BFCL 当前榜首,适合做"先 fine-tune 上 GLM-4.5,再加 MCP 数据"</td></tr>
+<tr><td><strong>Qwen3-32B</strong></td><td>32B</td><td>75.7</td><td>Apache 2.0</td><td>生态最完整,fine-tune 工具链最成熟(verl / AReaL / ART 都支持)</td></tr>
+<tr><td><strong>Qwen3-8B</strong></td><td>8B</td><td>F1 0.933</td><td>Apache 2.0</td><td>个人 GPU 友好,TOUCAN / SETA / EnvScaler 都用它当 base</td></tr>
+<tr><td><strong>Qwen3-Coder</strong> 系列</td><td>多档</td><td>—</td><td>Apache 2.0</td><td>代码偏向,MCP 涉及代码 task 时优先</td></tr>
+<tr><td><strong>GPT-OSS-20B</strong>(OpenAI)</td><td>20B</td><td>—</td><td>Apache 2.0</td><td>OpenAI 风格 prompt 兼容,但 tool-use 训练量未公开</td></tr>
+<tr><td><strong>Llama-3.1-8B</strong></td><td>8B</td><td>~50</td><td>Llama Community</td><td>fine-tune 生态成熟,但 BFCL 基础分偏低</td></tr>
+<tr><td><strong>Holo3-35B-A3B</strong></td><td>35B MoE / 3B active</td><td>—</td><td>开源</td><td>BenchLM 综合 82.6,**开源 agent 模型 SOTA**;待详查</td></tr>
+</table>
+
+<div class="nb"><strong>实证建议</strong>:个人 / 学术研究优先 <strong>Qwen3-8B</strong>(7×7=49 GB FP16,单 H100 训练);商用项目优先 <strong>GLM-4.5 32B</strong>(BFCL 当前最强 base)或 <strong>Granite 4.1 8B</strong>(企业 license)。</div>
+
+<hr>
+
+<h2 id="sec6">6 · 训练框架 / 方法论</h2>
+
+<h3>6.1 ⭐ ART + MCP•RL(OpenPipe)</h3>
+
+<p>这是<strong>本 survey 最重要的工具</strong>。"给定一个 MCP server URL,直接 GRPO 训你的小模型用它" — 零标注数据要求。</p>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — ART (Agent Reinforcement Trainer)</strong>
+<div class="row">✅ Blog: <a href="https://art.openpipe.ai/features/mcp-rl">art.openpipe.ai/features/mcp-rl</a></div>
+<div class="row">✅ Code: <a href="https://github.com/OpenPipe/ART">OpenPipe/ART</a> — <strong>Apache 2.0 · 9,462 ⭐ · 833 forks</strong>(规模惊人)</div>
+<div class="row">✅ MCP•RL 具体位置: <a href="https://github.com/OpenPipe/ART/tree/main/examples/mcp-rl">examples/mcp-rl/</a> 含 `mcp_rl/` 子包 + `servers/` 配置 + cookbook</div>
+<div class="row">✅ PyPI: <code>pip install openpipe-art</code></div>
+<div class="row">✅ NeMo Toolkit 集成: <a href="https://docs.nvidia.com/nemo/agent-toolkit/latest/improve-workflows/finetuning/rl_with_openpipe.html">NVIDIA NeMo docs</a></div>
+<div class="row">✅ Cookbook: ART-E(Qwen2.5-14B,邮件检索 96% 超 o3/GPT-4.1)</div>
+<div class="row"><strong>复用建议</strong>: <strong>个人 GPU(单 H100/A100)训自己的 MCP 模型 — 这就是你要的</strong>。你只需要提供:① base model(Qwen2.5-3B/Qwen3-8B 等)② target MCP server URL ③ RULER 配置。ART 处理:rollout / GRPO / vLLM 推理 / reward 计算。<strong>预估成本:Qwen2.5-3B + 单 H100 + 1 小时 ≈ $5,2× pass rate 提升</strong>。</div>
+</div>
+
+<h3>6.2 Magnet(Google + UCLA + CMU,2025-03)</h3>
+
+<p>"Multi-turn Tool-use Data Synthesis and Distillation via Graph Translation"。基于<strong>函数签名图翻译</strong>合成多轮 tool-use trajectory,然后 context distillation 蒸馏。</p>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — Magnet</strong>
+<div class="row">✅ Paper: <a href="https://arxiv.org/abs/2503.07826">arXiv 2503.07826</a>(2025-03-10)</div>
+<div class="row">❌ Code: <strong>无公开仓库</strong>(Google 内部)</div>
+<div class="row">❌ 训练数据: <strong>未公开</strong></div>
+<div class="row">❌ 模型权重: <strong>Magnet-14B-mDPO 未发布</strong>(BFCL-v3 68.01 / ToolQuery 73.30,超 Gemini-1.5-Pro teacher)</div>
+<div class="row">✅ 思路: 函数签名图 + DPO with positive/negative trajectories — 可自己复现</div>
+<div class="row"><strong>复用建议</strong>: <strong>paper-only,只能借鉴思路</strong> — 用 graph-based 函数依赖建模合成多轮 trajectory;但<strong>自己实现需要 ~$5K 级别的 teacher API 费</strong>(Gemini-1.5-Pro 蒸馏)。如果你只想要 data 思路,TOUCAN(#22)已经在更大规模上做了类似事且全开源。</div>
+</div>
+
+<h3>6.3 HuggingFace smolagents + ml-intern</h3>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — smolagents</strong>
+<div class="row">✅ Docs: <a href="https://huggingface.co/docs/smolagents/index">huggingface.co/docs/smolagents</a></div>
+<div class="row">✅ Code: <a href="https://github.com/huggingface/smolagents">huggingface/smolagents</a> — <strong>Apache 2.0 · 27,346 ⭐</strong></div>
+<div class="row">✅ 核心特色: CodeAgent(action 写成 code 而非 JSON),沙箱 E2B/Modal/Docker</div>
+<div class="row">✅ MCP 兼容: 通过 `mcp_config.json` 接任意 MCP server</div>
+<div class="row"><strong>复用建议</strong>: <strong>不是训练框架,是 agent runtime</strong>。如果你的小模型推理出 action 是 code,smolagents 帮你跑;搭配 ml-intern 可以自动化你的 LLM post-training workflow。</div>
+</div>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — ml-intern</strong>
+<div class="row">✅ Release blog: HuggingFace 2026-04-21</div>
+<div class="row">✅ Code: <a href="https://github.com/huggingface/ml-intern">huggingface/ml-intern</a> — <strong>Apache 2.0 · 9,583 ⭐</strong></div>
+<div class="row">✅ 基于: smolagents</div>
+<div class="row">✅ 能力: 自动文献检索 / dataset discovery / 训练脚本执行 / 迭代评测</div>
+<div class="row">✅ MCP 集成: `mcp_config.json` 接你的私有 dataset registry / 训练集群</div>
+<div class="row"><strong>复用建议</strong>: <strong>它本身不训 MCP 小模型,但可以用它<em>自动化整个 MCP 小模型训练流程</em></strong> — 输入 "训一个 BFCL > 70 的 8B 模型",它自己跑。</div>
+</div>
+
+<h3>6.4 NVIDIA NeMo Agent Toolkit</h3>
+
+<div class="inv">
+<strong class="ttl">📦 开源清单 — NeMo Agent Toolkit</strong>
+<div class="row">✅ Code: <a href="https://github.com/NVIDIA/NeMo-Agent-Toolkit">NVIDIA/NeMo-Agent-Toolkit</a> — <strong>Apache 2.0 · 2,296 ⭐</strong></div>
+<div class="row">✅ GRPO 集成: 通过 OpenPipe ART(<a href="https://docs.nvidia.com/nemo/agent-toolkit/latest/improve-workflows/finetuning/rl_with_openpipe.html">docs</a>)</div>
+<div class="row">✅ 企业级: 多 GPU / 分布式 / FP8 训练</div>
+<div class="row"><strong>复用建议</strong>: <strong>多卡 / 企业级 RL 集群专用</strong>。个人 / 单卡用户用 ART 即可,不需要 NeMo;有 8+ GPU 集群想 scale 时用 NeMo Toolkit 包一层。</div>
+</div>
+
+<hr>
+
+<h2 id="sec7">7 · ≤40B 模型在 MCP benchmark 上的真实跑分</h2>
+
+<table>
+<tr><th>模型</th><th>规模</th><th>BFCL V3</th><th>τ²-Bench</th><th>MCP-Universe</th><th>MCP-Mark</th><th>MCP-Atlas</th></tr>
+<tr><td>GLM-4.5</td><td>32B</td><td><strong>76.7</strong></td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Qwen3-32B</td><td>32B</td><td>75.7</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td><a href="22_TOUCAN.html">TOUCAN-32B</a></td><td>32B</td><td>70.45</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td><a href="18_AgentWorldModel_2602.10090.html">AWM-14B</a></td><td>14B MoE</td><td>70.18</td><td>33.45</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Magnet-14B-mDPO</td><td>14B</td><td>68.01</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Granite 4.1 8B</td><td>8B</td><td>68.27</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td><a href="22_TOUCAN.html">TOUCAN-14B</a></td><td>14B</td><td>~67</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>AWM-8B</td><td>8B</td><td>65.94</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>xLAM-7b-fc-r</td><td>7B</td><td>(BFCL v1 88.24)</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Hammer-7B</td><td>7B</td><td>~80</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td><a href="23_EnvScaler.html">EnvScaler-8B</a></td><td>8B</td><td>41.88 (multi-turn)</td><td>72.50</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Agent-World-14B</td><td>14B</td><td>55.8 (V4)</td><td>—</td><td>—</td><td>13.3</td><td>—</td></tr>
+<tr><td>gpt-oss-120B</td><td>120B</td><td>—</td><td>—</td><td>25.54</td><td>4.7</td><td>—</td></tr>
+</table>
+
+<div class="warn"><strong>注意空白</strong>:<strong>MCP-Atlas / MCP-Mark / MCP-Universe / Toolathlon 上几乎没有 ≤40B 开源模型的公开成绩</strong>。原因:① 学术界的小模型工作只跑 BFCL ② 工业界小模型(xLAM/Hammer)没在这些 benchmark 上 report ③ frontier benchmark 评估成本高,小模型团队没预算。<strong>这就是机会</strong>。</div>
+
+<hr>
+
+<h2 id="sec8">8 · 4 条可复制 recipe</h2>
+
+<div class="fig">
+<svg viewBox="0 0 780 360" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:11px">
+<!-- Recipe 1 -->
+<rect x="20" y="20" width="170" height="320" rx="10" fill="#eef3fb" stroke="#2f6feb"/>
+<text x="105" y="42" text-anchor="middle" font-weight="700" fill="#2f6feb">R1 · xLAM 路线</text>
+<text x="105" y="58" text-anchor="middle" font-size="10" fill="#5b5e66">SFT-only,快速 BFCL</text>
+<text x="32" y="85" font-size="11">Qwen3-8B base</text>
+<text x="32" y="110" font-size="11">+ xLAM 60K data</text>
+<text x="32" y="135" font-size="11">+ QLoRA(r=16)</text>
+<text x="32" y="160" font-size="11">+ 2-3 epoch</text>
+<rect x="35" y="180" width="140" height="30" rx="5" fill="#fff" stroke="#2f6feb"/>
+<text x="105" y="200" text-anchor="middle" font-weight="600">~$3-15 / 几小时</text>
+<text x="32" y="240" font-size="11" fill="#a8353e">⚠ 数据 CC-BY-NC</text>
+<text x="32" y="260" font-size="11">→ BFCL 80%+</text>
+<text x="32" y="285" font-size="11" fill="#5b5e66">≠ MCP 长 horizon</text>
+
+<!-- Recipe 2 -->
+<rect x="205" y="20" width="170" height="320" rx="10" fill="#eef3fb" stroke="#2f6feb"/>
+<text x="290" y="42" text-anchor="middle" font-weight="700" fill="#2f6feb">R2 · TOUCAN 路线</text>
+<text x="290" y="58" text-anchor="middle" font-size="10" fill="#5b5e66">大规模 SFT,真 MCP 数据</text>
+<text x="217" y="85" font-size="11">Qwen2.5-7B/14B/32B</text>
+<text x="217" y="110" font-size="11">+ Toucan-1.5M(119K)</text>
+<text x="217" y="135" font-size="11">+ Full SFT</text>
+<text x="217" y="160" font-size="11">+ 1-3 epoch</text>
+<rect x="220" y="180" width="140" height="30" rx="5" fill="#fff" stroke="#2f6feb"/>
+<text x="290" y="200" text-anchor="middle" font-weight="600">~$200-500 / 32B</text>
+<text x="217" y="240" font-size="11" fill="#1f7a4a">✓ 数据 Apache 2.0</text>
+<text x="217" y="260" font-size="11">→ BFCL 70.45</text>
+<text x="217" y="285" font-size="11" fill="#5b5e66">→ MCP base 强</text>
+
+<!-- Recipe 3 -->
+<rect x="390" y="20" width="170" height="320" rx="10" fill="#e9f7ed" stroke="#1f7a4a"/>
+<text x="475" y="42" text-anchor="middle" font-weight="700" fill="#1f7a4a">⭐ R3 · ART MCP•RL</text>
+<text x="475" y="58" text-anchor="middle" font-size="10" fill="#5b5e66">零标注,任意 MCP server</text>
+<text x="402" y="85" font-size="11">Qwen2.5-3B base</text>
+<text x="402" y="110" font-size="11">+ ART framework</text>
+<text x="402" y="135" font-size="11">+ MCP server URL</text>
+<text x="402" y="160" font-size="11">+ GRPO + RULER reward</text>
+<rect x="405" y="180" width="140" height="30" rx="5" fill="#fff" stroke="#1f7a4a"/>
+<text x="475" y="200" text-anchor="middle" font-weight="600">~$5 / 1 小时单 H100</text>
+<text x="402" y="240" font-size="11" fill="#1f7a4a">✓ 全开 Apache 2.0</text>
+<text x="402" y="260" font-size="11">→ 2× pass rate</text>
+<text x="402" y="285" font-size="11">→ task-specific 专精</text>
+
+<!-- Recipe 4 -->
+<rect x="575" y="20" width="180" height="320" rx="10" fill="#fff3e6" stroke="#cc4a1b"/>
+<text x="665" y="42" text-anchor="middle" font-weight="700" fill="#cc4a1b">R4 · 组合最优</text>
+<text x="665" y="58" text-anchor="middle" font-size="10" fill="#5b5e66">SFT → RL,推荐</text>
+<text x="587" y="85" font-size="11">① TOUCAN SFT 冷启</text>
+<text x="587" y="105" font-size="10" fill="#5b5e66">(R2)</text>
+<text x="587" y="130" font-size="11">② ART MCP•RL 在线</text>
+<text x="587" y="150" font-size="10" fill="#5b5e66">(R3)在 target server</text>
+<text x="587" y="175" font-size="11">③ 评测 BFCL+Atlas-500</text>
+<rect x="590" y="195" width="160" height="30" rx="5" fill="#fff" stroke="#cc4a1b"/>
+<text x="665" y="215" text-anchor="middle" font-weight="600">~$300 / 2-3 周</text>
+<text x="587" y="248" font-size="11">→ BFCL 75%+</text>
+<text x="587" y="268" font-size="11">→ MCP-Atlas ~60%</text>
+<text x="587" y="288" font-size="10" fill="#5b5e66">(估算,无公开实证)</text>
+</svg>
+<figcaption>四条可直接复制的训练 recipe。R3(ART MCP•RL)是<strong>预算最低</strong>的入口;R4(组合)是<strong>性能上限最高</strong>的开源路径。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec_matrix">9 · ⭐ 开源复用矩阵</h2>
+
+<p>所有相关工作的可复用资源一览。<strong>✅ = 公开可下载;⚠ = 部分公开 / 受限;❌ = 未公开</strong>。</p>
+
+<table>
+<tr>
+<th>工作</th>
+<th>Code</th><th>数据</th><th>模型权重</th><th>训练脚本</th><th>Eval 脚本</th><th>License</th><th>推荐复用场景</th>
+</tr>
+<tr>
+<td><strong>xLAM</strong>(Salesforce)</td>
+<td>✅ 619⭐</td><td>⚠ CC-BY-NC</td><td>✅ 1B/7B/8B/8x7B/70B</td><td>✅ Cookbook</td><td>✅</td><td>Apache 2.0 / NC data</td>
+<td>学术或个人 BFCL 起步,商用需自己造数据</td>
+</tr>
+<tr>
+<td><strong>Hammer</strong>(MadeAgents)</td>
+<td>✅ 116⭐</td><td>✅ APIGen 60K</td><td>✅ 1.5B/7B</td><td>✅ 含 function masking</td><td>✅ BFCL</td><td>Apache 2.0</td>
+<td>function masking trick 直接 port 到自己 pipeline</td>
+</tr>
+<tr>
+<td><strong>Functionary</strong>(MeetKai)</td>
+<td>✅ 1.6K⭐</td><td>❌</td><td>✅ small/medium</td><td>❌ 训练不开</td><td>✅</td><td>MIT</td>
+<td>OpenAI 兼容 inference server,production drop-in</td>
+</tr>
+<tr>
+<td><strong>NexusRaven</strong></td>
+<td>✅ 320⭐</td><td>❌</td><td>✅ V2 13B</td><td>❌</td><td>✅</td><td>Apache 2.0</td>
+<td>单轮零样本商用首选</td>
+</tr>
+<tr>
+<td><strong>Granite 4.1 8B</strong>(IBM)</td>
+<td>✅</td><td>⚠ 部分</td><td>✅ 8B</td><td>⚠ 仅推理示例</td><td>✅</td><td>Apache 2.0</td>
+<td>企业部署,SOC2 合规</td>
+</tr>
+<tr>
+<td><a href="22_TOUCAN.html"><strong>TOUCAN</strong></a></td>
+<td>✅ (MIT)</td><td>✅ 1.5M 21.8GB</td><td>✅ 7B/14B/32B</td><td>✅ 完整</td><td>✅</td><td>MIT + Apache 2.0</td>
+<td><strong>SFT 冷启首选</strong>(可复现性最高的 MCP 数据)</td>
+</tr>
+<tr>
+<td><a href="23_EnvScaler.html"><strong>EnvScaler</strong></a></td>
+<td>✅ 6 模块</td><td>✅ 4 个 dataset</td><td>✅ 1.7B/4B/8B</td><td>✅ Reinforce++</td><td>✅</td><td>MIT</td>
+<td>程序化合成 env 思路 + Reinforce++ 实现参考</td>
+</tr>
+<tr>
+<td><a href="20_SETA_camel.html"><strong>SETA</strong></a></td>
+<td>✅ 2 repo</td><td>✅ seta-env</td><td>✅ Qwen3-8B</td><td>✅ AReaL pipeline</td><td>✅</td><td>Apache 2.0</td>
+<td>terminal domain 训练参考(Docker per task 范式)</td>
+</tr>
+<tr>
+<td><a href="18_AgentWorldModel_2602.10090.html"><strong>AWM</strong>(Snowflake)</a></td>
+<td>✅ 已并入 OpenEnv</td><td>✅ 1K env / 10K task</td><td>✅ 4B/8B/14B</td><td>✅ GRPO</td><td>✅</td><td>Apache 2.0</td>
+<td><strong>合成 env + RL</strong>完整范式,基础设施已 production-ready</td>
+</tr>
+<tr>
+<td><a href="03_AgentWorld_2604.18292.html"><strong>Agent-World</strong></a></td>
+<td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td><td>—</td>
+<td>仅读论文借鉴 self-evolving arena 思路</td>
+</tr>
+<tr>
+<td>⭐ <strong>ART + MCP•RL</strong></td>
+<td>✅ 9.5K⭐ examples/mcp-rl/</td><td>—(在线生成)</td><td>—(训练框架)</td><td>✅ cookbook</td><td>✅ RULER</td><td>Apache 2.0</td>
+<td><strong>本表最该用的 — 单卡 + 1 小时 = 可用 MCP 模型</strong></td>
+</tr>
+<tr>
+<td><strong>Magnet</strong>(Google)</td>
+<td>❌</td><td>❌</td><td>❌ Magnet-14B 未发</td><td>❌</td><td>❌</td><td>—</td>
+<td>仅借鉴 graph translation 思路;TOUCAN 已替代</td>
+</tr>
+<tr>
+<td><strong>smolagents</strong>(HF)</td>
+<td>✅ 27K⭐</td><td>—</td><td>—(runtime)</td><td>—</td><td>—</td><td>Apache 2.0</td>
+<td>训出来后的 agent runtime,接你的小模型上 production</td>
+</tr>
+<tr>
+<td><strong>ml-intern</strong>(HF)</td>
+<td>✅ 9.6K⭐</td><td>—</td><td>—(automation)</td><td>—</td><td>—</td><td>Apache 2.0</td>
+<td>自动化整套 LLM post-training workflow</td>
+</tr>
+<tr>
+<td><strong>NeMo Agent Toolkit</strong></td>
+<td>✅ 2.3K⭐</td><td>—</td><td>—</td><td>✅ ART 集成</td><td>—</td><td>Apache 2.0</td>
+<td>8+ GPU 集群 scale 训练时用</td>
+</tr>
+<tr>
+<td><strong>GLM-4.5 base</strong></td>
+<td>—</td><td>—</td><td>✅ 32B</td><td>—</td><td>—</td><td>Apache 2.0</td>
+<td>BFCL 当前开源 SOTA,fine-tune 起点首选</td>
+</tr>
+<tr>
+<td><strong>Qwen3-8B base</strong></td>
+<td>—</td><td>—</td><td>✅ 8B</td><td>—</td><td>—</td><td>Apache 2.0</td>
+<td>个人 GPU 友好,生态最完整</td>
+</tr>
+</table>
+
+<div class="kv"><strong>核心可复用组合(本表精华)</strong>:<br>
+&nbsp;&nbsp;<strong>① 起步</strong>:<a href="22_TOUCAN.html">TOUCAN 1.5M</a> 数据(MIT/Apache 2.0)+ Qwen3-8B base<br>
+&nbsp;&nbsp;<strong>② RL</strong>:<a href="https://github.com/OpenPipe/ART">ART MCP•RL</a>(Apache 2.0,9.5K⭐)<br>
+&nbsp;&nbsp;<strong>③ 部署</strong>:<a href="https://github.com/huggingface/smolagents">smolagents</a>(Apache 2.0)+ <a href="https://github.com/MeetKai/functionary">Functionary inference server</a><br>
+&nbsp;&nbsp;<strong>④ 评测</strong>:BFCL V3 + Toolathlon public eval(<code>47.253.6.47:8080</code>)+ <a href="19_MCPAtlas_2602.00933.html">MCP-Atlas 公开 500 task</a>
+</div>
+
+<hr>
+
+<h2 id="sec9">10 · 路径选择决策树</h2>
+
+<div class="fig">
+<svg viewBox="0 0 780 460" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;font-family:system-ui,sans-serif;font-size:11px">
+<rect x="290" y="10" width="200" height="40" rx="8" fill="#fff8e8" stroke="#d2a32a"/>
+<text x="390" y="35" text-anchor="middle" font-weight="700">你的目标是?</text>
+
+<!-- branch 1: BFCL only -->
+<line x1="390" y1="50" x2="120" y2="100" stroke="#666"/>
+<rect x="20" y="100" width="200" height="40" rx="8" fill="#eef3fb" stroke="#2f6feb"/>
+<text x="120" y="125" text-anchor="middle">快速验证 BFCL 高分</text>
+<rect x="20" y="160" width="200" height="60" rx="8" fill="#fff" stroke="#2f6feb"/>
+<text x="120" y="180" text-anchor="middle" font-size="10">→ R1 xLAM 路线</text>
+<text x="120" y="198" text-anchor="middle" font-size="10">Qwen3-8B + xLAM 60K</text>
+<text x="120" y="213" text-anchor="middle" font-size="10">QLoRA / 几小时 / $3-15</text>
+
+<!-- branch 2: academic paper -->
+<line x1="390" y1="50" x2="280" y2="100" stroke="#666"/>
+<rect x="180" y="100" width="200" height="40" rx="8" fill="#eef3fb" stroke="#2f6feb"/>
+<text x="280" y="125" text-anchor="middle">学术发表 MCP SOTA</text>
+<rect x="180" y="160" width="200" height="80" rx="8" fill="#fff" stroke="#2f6feb"/>
+<text x="280" y="180" text-anchor="middle" font-size="10">→ R4 组合最优</text>
+<text x="280" y="198" text-anchor="middle" font-size="10">TOUCAN SFT 7B</text>
+<text x="280" y="213" text-anchor="middle" font-size="10">+ ART MCP•RL</text>
+<text x="280" y="228" text-anchor="middle" font-size="10">→ 投 NeurIPS/ICLR</text>
+
+<!-- branch 3: industrial -->
+<line x1="390" y1="50" x2="500" y2="100" stroke="#666"/>
+<rect x="400" y="100" width="200" height="40" rx="8" fill="#eef3fb" stroke="#2f6feb"/>
+<text x="500" y="125" text-anchor="middle">工业部署 / 商用</text>
+<rect x="400" y="160" width="200" height="80" rx="8" fill="#fff" stroke="#2f6feb"/>
+<text x="500" y="180" text-anchor="middle" font-size="10">xLAM-2-8b(NC)→ 不行</text>
+<text x="500" y="198" text-anchor="middle" font-size="10">Granite 4.1 8B(企业)</text>
+<text x="500" y="213" text-anchor="middle" font-size="10">或 NexusRaven-V2(单轮)</text>
+<text x="500" y="228" text-anchor="middle" font-size="10">或 Functionary(OpenAI 兼容)</text>
+
+<!-- branch 4: specific MCP -->
+<line x1="390" y1="50" x2="660" y2="100" stroke="#666"/>
+<rect x="560" y="100" width="200" height="40" rx="8" fill="#e9f7ed" stroke="#1f7a4a"/>
+<text x="660" y="125" text-anchor="middle" font-weight="700">特定 MCP server 专精</text>
+<rect x="560" y="160" width="200" height="80" rx="8" fill="#fff" stroke="#1f7a4a"/>
+<text x="660" y="180" text-anchor="middle" font-size="10">⭐ R3 ART MCP•RL</text>
+<text x="660" y="198" text-anchor="middle" font-size="10">Qwen2.5-3B + 你的 URL</text>
+<text x="660" y="213" text-anchor="middle" font-size="10">单 H100 / 1 小时 / $5</text>
+<text x="660" y="228" text-anchor="middle" font-size="10">最便宜入口</text>
+
+<!-- bottom row: budget gate -->
+<rect x="290" y="290" width="200" height="40" rx="8" fill="#fff8e8" stroke="#d2a32a"/>
+<text x="390" y="315" text-anchor="middle" font-weight="700">GPU 预算?</text>
+
+<line x1="390" y1="330" x2="200" y2="380" stroke="#666"/>
+<rect x="100" y="380" width="200" height="60" rx="8" fill="#fff" stroke="#666"/>
+<text x="200" y="400" text-anchor="middle" font-size="10">1 张 H100(个人)</text>
+<text x="200" y="418" text-anchor="middle" font-size="11" font-weight="600">→ Qwen3-8B QLoRA</text>
+<text x="200" y="433" text-anchor="middle" font-size="10">+ ART MCP•RL</text>
+
+<line x1="390" y1="330" x2="390" y2="380" stroke="#666"/>
+<rect x="290" y="380" width="200" height="60" rx="8" fill="#fff" stroke="#666"/>
+<text x="390" y="400" text-anchor="middle" font-size="10">2-4 张 H100</text>
+<text x="390" y="418" text-anchor="middle" font-size="11" font-weight="600">→ 7B-14B full SFT</text>
+<text x="390" y="433" text-anchor="middle" font-size="10">+ ART or AReaL</text>
+
+<line x1="390" y1="330" x2="600" y2="380" stroke="#666"/>
+<rect x="500" y="380" width="200" height="60" rx="8" fill="#fff" stroke="#666"/>
+<text x="600" y="400" text-anchor="middle" font-size="10">8+ H100 集群</text>
+<text x="600" y="418" text-anchor="middle" font-size="11" font-weight="600">→ 32B full RL</text>
+<text x="600" y="433" text-anchor="middle" font-size="10">+ NeMo Agent Toolkit</text>
+
+</svg>
+<figcaption>顶部按目标分支(BFCL 验证 / 学术 / 工业 / MCP server 专精);底部按 GPU 预算分支(单卡 / 多卡 / 集群)。两层<strong>独立</strong>,先选目标后选预算 → 对应一个 cell。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec10">11 · 个人 take + 关键 take-away</h2>
+
+<h3>11.1 5 个最重要的事实</h3>
+<ol>
+<li><strong>≤40B 模型在 MCP-Atlas / MCP-Universe / MCPMark / Toolathlon 上的 SOTA 还没人发</strong> — 工业小模型在 BFCL 上集体超 GPT-4,但没人把这些模型放上真 MCP 长 horizon benchmark 报数。<strong>这是 2026 下半年最大的 open opportunity</strong>。</li>
+<li><strong>ART + MCP•RL 是性价比最高的入口</strong> — 9.5K⭐,Apache 2.0,examples/mcp-rl 完整可用,单卡 1 小时 / $5 出可用模型。<strong>repo 里没有 deep-read</strong>,但这是本 survey 最该被记住的工具。</li>
+<li><strong>TOUCAN(<a href="22_TOUCAN.html">#22</a>)是 SFT 数据天花板</strong> — 1.5M MCP trajectory,21.8 GB,Apache 2.0,直接可下。任何 MCP 小模型训练都应该用 TOUCAN 119K 高质量子集冷启。</li>
+<li><strong>BFCL 高分 ≠ MCP 高分</strong> — Hammer-7B / xLAM-7B 在 BFCL 80%+,但 MCP-Atlas / MCPMark 上没数。<strong>BFCL 是单轮函数调用静态测试,MCP 是 stateful + long-horizon</strong>。要谨慎区分。</li>
+<li><strong>工业 vs 学术分裂</strong>:Salesforce xLAM / IBM Granite / MeetKai Functionary 走<strong>SFT-on-curated-data</strong>(数据规模 60K)工业线;EnvScaler / SETA / AWM / TOUCAN 走<strong>RL/SFT-on-synthetic-env</strong>(数据规模 1K-1.5M)学术线。两条线还没合流。</li>
+</ol>
+
+<h3>11.2 给 limited GPU(1-2 H100)的具体路径</h3>
+<pre>
+Step 1 (1 天):  下载 Qwen3-8B + Agent-Ark/Toucan-1.5M 119K SFT subset
+              QLoRA fine-tune,2 epoch,LR=2e-4
+              → 出一个 "Qwen3-8B-Toucan-SFT" base
+
+Step 2 (1 周): clone OpenPipe/ART,configure 你的 target MCP server URL
+              ART MCP•RL + GRPO + RULER reward
+              在 Toolathlon public eval service 上做 long-horizon RL
+              → 出一个 "Qwen3-8B-MCP-RL" final
+
+Step 3 (1 天): smolagents 包成 inference server
+              评测 BFCL V3 + Toolathlon + MCP-Atlas 公开 500 task
+
+总成本: ~$200 GPU 费 + ~$50 inference 费
+预期: BFCL V3 70+,Toolathlon ~30%,MCP-Atlas ~50%
+(均为估算,无公开实证 — 实测你就是 paper 的 main contribution)
+</pre>
+
+<h3>11.3 反直觉发现</h3>
+<ul>
+<li><strong>Magnet-14B-mDPO 已经在 BFCL-v3 上 68.01,但 Google 没放模型</strong> — 工业 paper 越来越倾向"发结果不发模型",这与开源潮流相悖,加剧了"复现门槛"问题。</li>
+<li><strong>ART 9.5K⭐ 但 repo 里完全没 deep-read 它</strong> — 学术界还在专注 paper,工业工具(OpenPipe ART / Magnet / xLAM)<strong>事实上是更重要</strong>的小模型 MCP 训练手段,但学术 survey 经常忽略。</li>
+<li><strong>Salesforce 自家 MCP-Universe leaderboard 上没 xLAM</strong> — 自家 benchmark 不报自家模型,说明 xLAM 在长 horizon MCP 上确实不行,函数调用 ≠ MCP 调用。</li>
+</ul>
+
+<h3>11.4 一句话总结</h3>
+<p><strong>用 <a href="22_TOUCAN.html">TOUCAN 1.5M</a> SFT 冷启 + <a href="https://github.com/OpenPipe/ART">ART MCP•RL</a> 在线 RL,在 Qwen3-8B base 上,单 H100 + $250 + 2 周,可以训出一个在 BFCL V3 75% / MCP-Atlas 公开 500 ~55%-65% 的小模型 — 这就是 2026 下半年 ≤40B MCP 小模型的当前 ceiling。再往上需要 frontier 实验室级算力。</strong></p>
+
+<hr>
+
+<p style="color:var(--muted);font-size:13px">📚 相关 cross-link: <a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a> · <a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a> · <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> · <a href="20_SETA_camel.html">#20 SETA</a> · <a href="21_MCPBenchmarks_compare.html">#21 4-bench compare</a> · <a href="22_TOUCAN.html">#22 TOUCAN</a> · <a href="23_EnvScaler.html">#23 EnvScaler</a> · <a href="24_Smithery.html">#24 Smithery</a> · <a href="25_MCPUniverse.html">#25 MCP-Universe</a> · <a href="26_MCPBenchmarks_codedive.html">#26 MCP code-dive</a></p>
+
+</main>
+</body>
+</html>
