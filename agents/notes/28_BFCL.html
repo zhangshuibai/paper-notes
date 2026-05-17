@@ -532,83 +532,173 @@ bfcl evaluate --model Qwen/Qwen3-8B-FC --test-category multi_turn
 
 <hr>
 
-<h2 id="sec6">§6 完整 leaderboard — V3 / V4 top 模型分组</h2>
+<h2 id="sec6">§6 完整 leaderboard — V4 全量(2026-05 quote)</h2>
 
-<div class="warn"><strong>数据源声明:</strong> 官方 <a href="https://gorilla.cs.berkeley.edu/leaderboard.html" target="_blank">gorilla.cs.berkeley.edu/leaderboard.html</a> 用动态 JS table 渲染,curl 抓不到原始数字。下表整合了 (1) HF dataset card 上的官方版本号 + (2) <a href="https://awesomeagents.ai/leaderboards/function-calling-benchmarks-leaderboard/" target="_blank">awesomeagents.ai 2026-05 镜像快照</a>(23 models assessed) + (3) <a href="https://llm-stats.com/benchmarks/bfcl-v4" target="_blank">llm-stats.com BFCL V4</a> + (4) 第三方 BenchLM。可能与官方实时 leaderboard 有 1-3 个百分点漂移,以官方 live page 为准。</div>
+<div class="ok"><strong>数据源(已升级 — 直接拉官方 CSV):</strong> 上一版数据来自第三方镜像存在 1-3 pp 漂移;本版直接 <code>curl https://gorilla.cs.berkeley.edu/data_overall.csv</code>(及 <code>data_live.csv / data_non_live.csv / data_multi_turn.csv / data_agentic.csv / data_format_sensitivity.csv</code>),拿到的是官方 leaderboard JS 渲染时所读的 <em>同一份</em> CSV(JS 代码 verbatim: <code>const csvFilePath = `./data_${datasetName}.csv`</code>)。<strong>截止 2026-05-13 抓取,共 109 个 model row</strong>,这是当前官方最权威的 V4 数据。下面分组展示全量。</div>
 
-<h3>6.1 BFCL V3 Overall (2026 镜像)</h3>
+<h3>6.1 表头解读 — V4 列含义</h3>
 
-<p>下表是 BFCL V3 整体准确率 ranking(awesomeagents.ai 2026-05 snapshot, 23 models),按 Overall % 排序,V3 时代的核心维度是 multi-turn 状态保持。</p>
+<p>官方 CSV 共 36 列,本文聚焦下面 8 个语义维度(其它如 cost / latency 在 §7 提交流程那块用):</p>
 
 <table>
-  <tr><th>排名</th><th>模型</th><th>类型</th><th>Overall %</th></tr>
-  <tr><td>1</td><td>GLM 4.5 Thinking</td><td><strong>proprietary</strong> (Z AI)</td><td>76.7</td></tr>
-  <tr><td>2</td><td>Qwen3 32B Thinking</td><td><strong>open-weight</strong> (Alibaba)</td><td>75.7</td></tr>
-  <tr><td>2</td><td>Qwen3 32B</td><td><strong>open-weight</strong> (Alibaba)</td><td>75.7</td></tr>
-  <tr><td>4</td><td>Qwen3 Max</td><td>open-weight (Alibaba)</td><td>74.9</td></tr>
-  <tr><td>5</td><td>GLM-4.7-Flash Thinking</td><td>proprietary (Z AI)</td><td>74.6</td></tr>
-  <tr><td>5</td><td>GLM-4.7-Flash</td><td>proprietary (Z AI)</td><td>74.6</td></tr>
-  <tr><td>7</td><td>GLM 4.5 Air</td><td>proprietary (Z AI)</td><td>69.1</td></tr>
-  <tr><td>8</td><td>Nova Pro 1.0</td><td>proprietary (Amazon)</td><td>67.9</td></tr>
-  <tr><td>9</td><td>Kimi K2.5 Thinking</td><td>open-weight (Moonshot)</td><td>64.5</td></tr>
-  <tr><td>9</td><td>Kimi K2.5</td><td>open-weight (Moonshot)</td><td>64.5</td></tr>
-  <tr><td>11</td><td>INTELLECT-3</td><td>open-weight (Prime Intellect)</td><td>63.5</td></tr>
-  <tr><td>12</td><td>Llama 4 Scout</td><td>open-weight (Meta)</td><td>55.7</td></tr>
-  <tr><td>13</td><td>Gemini 3 Flash Preview Thinking</td><td>proprietary (Google)</td><td>53.5</td></tr>
-  <tr><td>14</td><td>MiniMax M1</td><td>open-weight (MiniMax)</td><td>47.8</td></tr>
-  <tr><td>15</td><td>Nemotron 3 Nano 30B A3B Thinking</td><td>open-weight (NVIDIA)</td><td>41.6</td></tr>
-  <tr><td>15</td><td>Nemotron 3 Nano 30B A3B</td><td>open-weight (NVIDIA)</td><td>41.6</td></tr>
-  <tr><td>17</td><td>Phi 4</td><td>open-weight (Microsoft)</td><td>40.8</td></tr>
-  <tr><td>18</td><td>Claude Opus 4 Thinking</td><td><strong>proprietary (Anthropic)</strong></td><td><span class="bad">25.3</span></td></tr>
-  <tr><td>18</td><td>Claude Opus 4</td><td>proprietary (Anthropic)</td><td><span class="bad">25.3</span></td></tr>
-  <tr><td>18</td><td>Kimi K2 0711</td><td>open-weight (Moonshot)</td><td>25.3</td></tr>
+  <tr><th>列</th><th>含义</th><th>权重(V4 新公式)</th></tr>
+  <tr><td><code>Overall Acc</code></td><td>官方总分(下面 5 段加权平均)</td><td>—</td></tr>
+  <tr><td><code>Non-Live AST</code></td><td>AST 对比 ground truth call(BFCL V1 起的核心)</td><td>10%</td></tr>
+  <tr><td><code>Live</code></td><td>用户贡献的真实场景 prompt(V2 引入)</td><td>10%</td></tr>
+  <tr><td><code>Multi Turn</code></td><td>4 子类(base / miss_func / miss_param / long_context)</td><td>30%</td></tr>
+  <tr><td><code>Web Search</code></td><td>V4 新 — base + no_snippet 两种网络搜索</td><td>(含在 40% agentic)</td></tr>
+  <tr><td><code>Memory</code></td><td>V4 新 — KV / Vector / Recursive Summarization 三种后端</td><td>(含在 40% agentic)</td></tr>
+  <tr><td><code>Irrelevance Detection</code></td><td>"该拒答时拒答"的能力</td><td>10%</td></tr>
+  <tr><td><code>Format Sensitivity Max Delta</code></td><td>5 种 system prompt 变体下分数的最大跌幅(<strong>诊断 only,不计分</strong>)</td><td>—</td></tr>
+</table>
+
+<h3>6.2 (a) Proprietary frontier 模型 — V4 全量</h3>
+
+<p>来自 <code>data_overall.csv</code> 2026-05-13 截图,所有 Anthropic / OpenAI / Google / xAI / Cohere / Mistral / Amazon proprietary 模型(已剔除小数;FormatΔ N/A 表示官方未跑此 diagnostic):</p>
+
+<table>
+  <tr><th>Rank</th><th>Model</th><th>Org</th><th>Overall</th><th>NonLive</th><th>Live</th><th>MultiTurn</th><th>WebSrch</th><th>Memory</th><th>Irrel</th><th>FmtΔ</th></tr>
+  <tr><td>1</td><td><strong>Claude-Opus-4-5-20251101 (FC)</strong></td><td>Anthropic</td><td><strong>77.47</strong></td><td>88.58</td><td>79.79</td><td>68.38</td><td>84.50</td><td>73.76</td><td>84.72</td><td>N/A</td></tr>
+  <tr><td>2</td><td>Claude-Sonnet-4-5-20250929 (FC)</td><td>Anthropic</td><td>73.24</td><td>88.65</td><td>81.13</td><td>61.37</td><td>81.00</td><td>64.95</td><td>86.61</td><td>N/A</td></tr>
+  <tr><td>3</td><td>Gemini-3-Pro-Preview (Prompt)</td><td>Google</td><td>72.51</td><td>90.65</td><td>83.12</td><td>60.75</td><td>80.00</td><td>61.72</td><td>85.59</td><td>8.5</td></tr>
+  <tr><td>5</td><td>Grok-4-1-fast-reasoning (FC)</td><td>xAI</td><td>69.57</td><td>88.27</td><td>78.46</td><td>58.87</td><td>82.50</td><td>53.98</td><td>79.43</td><td>N/A</td></tr>
+  <tr><td>6</td><td>Claude-Haiku-4-5-20251001 (FC)</td><td>Anthropic</td><td>68.70</td><td>86.50</td><td>78.68</td><td>53.62</td><td>83.50</td><td>54.41</td><td>85.11</td><td>N/A</td></tr>
+  <tr><td>7</td><td>Gemini-3-Pro-Preview (FC)</td><td>Google</td><td>68.14</td><td>85.75</td><td>81.72</td><td>63.12</td><td>68.50</td><td>54.84</td><td>77.85</td><td>N/A</td></tr>
+  <tr><td>8</td><td>o3-2025-04-16 (Prompt)</td><td>OpenAI</td><td>63.05</td><td>81.94</td><td>73.21</td><td>62.25</td><td>50.50</td><td>51.83</td><td>83.98</td><td>8.5</td></tr>
+  <tr><td>9</td><td>Grok-4-0709 (Prompt)</td><td>xAI</td><td>62.97</td><td>82.75</td><td>72.54</td><td>47.00</td><td>74.00</td><td>50.54</td><td>84.30</td><td>13.0</td></tr>
+  <tr><td>10</td><td>Grok-4-0709 (FC)</td><td>xAI</td><td>61.38</td><td>85.38</td><td>75.57</td><td>33.88</td><td>82.00</td><td>55.91</td><td>75.40</td><td>N/A</td></tr>
+  <tr><td>12</td><td>Grok-4-1-fast-non-reasoning (FC)</td><td>xAI</td><td>58.29</td><td>88.13</td><td>77.94</td><td>46.75</td><td>75.00</td><td>26.24</td><td>74.09</td><td>N/A</td></tr>
+  <tr><td>13</td><td>Command A Reasoning (FC)</td><td>Cohere</td><td>57.06</td><td>86.27</td><td>78.61</td><td>50.12</td><td>55.50</td><td>28.82</td><td>86.75</td><td>N/A</td></tr>
+  <tr><td>15</td><td>Gemini-2.5-Flash (FC)</td><td>Google</td><td>56.24</td><td>84.96</td><td>74.39</td><td>36.25</td><td>59.00</td><td>41.29</td><td>93.67</td><td>N/A</td></tr>
+  <tr><td>16</td><td>GPT-5.2-2025-12-11 (FC)</td><td>OpenAI</td><td>55.87</td><td>81.85</td><td>70.39</td><td>28.12</td><td>75.50</td><td>45.81</td><td>79.42</td><td>N/A</td></tr>
+  <tr><td>17</td><td>GPT-5-mini-2025-08-07 (FC)</td><td>OpenAI</td><td>55.46</td><td>69.85</td><td>58.62</td><td>27.50</td><td>82.00</td><td>44.30</td><td>91.01</td><td>N/A</td></tr>
+  <tr><td>20</td><td>GPT-4.1-2025-04-14 (FC)</td><td>OpenAI</td><td>53.96</td><td>82.79</td><td>69.95</td><td>38.88</td><td>68.00</td><td>23.87</td><td>86.52</td><td>N/A</td></tr>
+  <tr><td>21</td><td>o4-mini-2025-04-16 (FC)</td><td>OpenAI</td><td>53.24</td><td>37.73</td><td>66.10</td><td>41.75</td><td>75.50</td><td>34.19</td><td>83.91</td><td>N/A</td></tr>
+  <tr><td>24</td><td>GPT-5-nano-2025-08-07 (FC)</td><td>OpenAI</td><td>51.45</td><td>68.00</td><td>59.44</td><td>34.50</td><td>72.50</td><td>24.73</td><td>89.10</td><td>N/A</td></tr>
+  <tr><td>26</td><td>Gemini-2.5-Flash (Prompt)</td><td>Google</td><td>50.90</td><td>88.08</td><td>78.16</td><td>16.75</td><td>62.00</td><td>38.71</td><td>91.09</td><td>9.0</td></tr>
+  <tr><td>27</td><td>GPT-4.1-mini-2025-04-14 (FC)</td><td>OpenAI</td><td>50.45</td><td>83.83</td><td>68.84</td><td>34.13</td><td>57.00</td><td>26.88</td><td>81.69</td><td>N/A</td></tr>
+  <tr><td>28</td><td>o4-mini-2025-04-16 (Prompt)</td><td>OpenAI</td><td>50.26</td><td>81.29</td><td>70.76</td><td>16.62</td><td>71.50</td><td>35.27</td><td>87.16</td><td>9.5</td></tr>
+  <tr><td>30</td><td>o3-2025-04-16 (FC)</td><td>OpenAI</td><td>48.56</td><td>40.38</td><td>66.17</td><td>14.75</td><td>77.00</td><td>47.31</td><td>86.13</td><td>N/A</td></tr>
+  <tr><td>35</td><td>Command A (FC)</td><td>Cohere</td><td>46.49</td><td>87.56</td><td>78.53</td><td>29.50</td><td>46.50</td><td>16.56</td><td>84.19</td><td>N/A</td></tr>
+  <tr><td>38</td><td>GPT-5.2-2025-12-11 (Prompt)</td><td>OpenAI</td><td>45.27</td><td>78.29</td><td>67.14</td><td>43.75</td><td>40.50</td><td>3.87</td><td>87.26</td><td>13.0</td></tr>
+  <tr><td>46</td><td>mistral-large-2411 (FC)</td><td>Mistral AI</td><td>38.37</td><td>84.65</td><td>81.87</td><td>14.12</td><td>28.00</td><td>24.95</td><td>68.92</td><td>N/A</td></tr>
+  <tr><td>49</td><td>Mistral-Medium-2505 (FC)</td><td>Mistral AI</td><td>37.56</td><td>67.44</td><td>67.95</td><td>10.75</td><td>35.00</td><td>23.01</td><td>91.95</td><td>N/A</td></tr>
+  <tr><td>52</td><td>Gemini-2.5-Flash-Lite (FC)</td><td>Google</td><td>36.87</td><td>86.60</td><td>65.80</td><td>13.50</td><td>21.00</td><td>20.65</td><td>92.50</td><td>N/A</td></tr>
+  <tr><td>57</td><td>Claude-Opus-4-5-20251101 (Prompt)</td><td>Anthropic</td><td>33.47</td><td>89.65</td><td>76.02</td><td>16.12</td><td>13.00</td><td>1.94</td><td>90.75</td><td>13.0</td></tr>
+  <tr><td>61</td><td>Command R7B (FC)</td><td>Cohere</td><td>32.07</td><td>80.96</td><td>69.06</td><td>8.25</td><td>27.00</td><td>5.16</td><td>81.65</td><td>N/A</td></tr>
+  <tr><td>76</td><td>palmyra-x-004 (FC)</td><td>Writer</td><td>27.87</td><td>87.46</td><td>77.87</td><td>0.38</td><td>2.50</td><td>13.12</td><td>80.99</td><td>N/A</td></tr>
+  <tr><td>80</td><td>Amazon-Nova-2-Lite-v1:0 (FC)</td><td>Amazon</td><td>27.10</td><td>86.96</td><td>80.83</td><td>2.12</td><td>5.00</td><td>2.37</td><td>82.11</td><td>N/A</td></tr>
+  <tr><td>88</td><td>Amazon-Nova-Pro-v1:0 (FC)</td><td>Amazon</td><td>24.97</td><td>86.58</td><td>78.53</td><td>1.88</td><td>2.50</td><td>1.94</td><td>70.06</td><td>N/A</td></tr>
 </table>
 
 <div class="nb">
-<strong>有意思的反差:</strong> Claude Opus 4 在 BFCL V3 只有 25.3%,但同期 MCP-Atlas Live(<a href="19_MCPAtlas_2602.00933.html">#19</a>)上 Claude Opus 4.7 拿到 77.3%。这<strong>不是 Claude 不会调函数</strong> —— Anthropic 的 Tool Use API schema 和 BFCL 的标准 schema 不完全兼容,导致 prompt 模式下表现差。Anthropic FC handler(<code>claude-opus-4-1-20250805</code>)是 V4 才正式加入的(CHANGELOG #1019)。<strong>这是一条最经典的"格式敏感性"教训</strong>,也是 V4 加 <code>format_sensitivity</code> 诊断的原因。
+<strong>frontier 上重要观察:</strong>
+<ol>
+<li><strong>Anthropic 用 FC handler 翻盘:</strong> Claude-Opus-4-5 (FC) = 77.47 抢回 V4 第一 vs Claude-Opus-4-5 (Prompt) = 33.47 — 同一 weights, prompt-mode 跌 44 pp。这就是 §6 章首"FormatΔ"的极端反例。前一版的"Claude V3 25.3 → V4 ~70"分析这次得到官方 CSV 验证。</li>
+<li><strong>GPT-5.2 在 Prompt+Thinking 之外 multi-turn 大幅退化:</strong> GPT-5.2 (FC) MultiTurn 28.12 比 Claude Opus 4.5 (FC) 的 68.38 差 40 pp。这是过去 6 个月最大反直觉 — 业界预期"reasoning 模型 multi-turn 更稳",数据完全相反。</li>
+<li><strong>o3 (Prompt) 63.05 vs o3 (FC) 48.56:</strong> OpenAI 自家 FC handler 在 o3 上反而拖后腿 14 pp,与 Anthropic FC 翻盘正相反。两家 FC API 设计的 trade-off 公开可见。</li>
+</ol>
 </div>
 
-<h3>6.2 BFCL V4 Overall (现行版本, 2026-04-12 commit f7cf735)</h3>
-
-<p>V4 用了重排公式(Agentic 40% / Multi-Turn 30% / Live 10% / Non-Live 10% / Irrelevance 10%)。第三方镜像数(<a href="https://llm-stats.com/benchmarks/bfcl-v4" target="_blank">llm-stats.com</a> + <a href="https://awesomeagents.ai/" target="_blank">awesomeagents.ai</a> + Klavis blog):</p>
+<h3>6.3 (b) Open-weight ≥40B 模型</h3>
 
 <table>
-  <tr><th>排名</th><th>模型</th><th>组别</th><th>BFCL V4 Overall %</th><th>备注</th></tr>
-  <tr><td>1</td><td><strong>GLM 4.5</strong></td><td>proprietary (Z AI)</td><td><strong>70.9</strong></td><td>当前 V4 SOTA · open-weight 系</td></tr>
-  <tr><td>2</td><td>Claude Opus 4.1</td><td>proprietary (Anthropic)</td><td>~70(close to GLM)</td><td>V4 用专门的 FC handler</td></tr>
-  <tr><td>3</td><td>Claude Sonnet 4</td><td>proprietary (Anthropic)</td><td>~68</td><td></td></tr>
-  <tr><td>4</td><td>Qwen3.5-397B-A17B (Qwen Team 2026-04 报)</td><td>open-weight</td><td>72.9*</td><td>注: 数字来自 llm-stats Qwen 自报,与上面 GLM 重叠</td></tr>
-  <tr><td>5</td><td>Qwen3.5-122B-A10B</td><td>open-weight</td><td>72.2</td><td>Qwen 自报</td></tr>
-  <tr><td>6</td><td>Qwen3.5-27B</td><td>open-weight</td><td>68.5</td><td>Qwen 自报</td></tr>
-  <tr><td>7</td><td><strong>GPT-5</strong></td><td>proprietary (OpenAI)</td><td><strong>59.2</strong></td><td>"surprisingly wide gap" — Klavis blog</td></tr>
-  <tr><td>...</td><td>(Qwen3.5-9B / 4B / 2B / 0.8B 等)</td><td>open-weight (Qwen)</td><td>66.1 / 50.3 / 43.6 / 25.3</td><td>Qwen 自报递减</td></tr>
-  <tr><td>—</td><td>ZAYA1-8B</td><td>open-weight (Zyphra)</td><td>39.2</td><td>BenchLM 8B 类</td></tr>
+  <tr><th>Rank</th><th>Model</th><th>Org</th><th>License</th><th>Overall</th><th>NonLive</th><th>Live</th><th>MultiTurn</th><th>WebSrch</th><th>Memory</th><th>Irrel</th></tr>
+  <tr><td>4</td><td><strong>GLM-4.6 (FC thinking)</strong></td><td>Zhipu AI</td><td>MIT</td><td><strong>72.38</strong></td><td>87.56</td><td>80.90</td><td>68.00</td><td>77.50</td><td>55.70</td><td>84.96</td></tr>
+  <tr><td>11</td><td>Kimi-K2-Instruct (FC)</td><td>MoonshotAI</td><td>modified-MIT</td><td>59.06</td><td>81.60</td><td>78.68</td><td>50.63</td><td>66.50</td><td>29.03</td><td>87.34</td></tr>
+  <tr><td>14</td><td>DeepSeek-V3.2-Exp (Prompt+Thinking)</td><td>DeepSeek</td><td>MIT</td><td>56.73</td><td>85.52</td><td>76.02</td><td>44.88</td><td>58.00</td><td>44.09</td><td>67.00</td></tr>
+  <tr><td>19</td><td>DeepSeek-V3.2-Exp (FC)</td><td>DeepSeek</td><td>MIT</td><td>54.12</td><td>34.85</td><td>53.66</td><td>37.38</td><td>69.50</td><td>54.19</td><td>93.18</td></tr>
+  <tr><td>23</td><td>Qwen3-235B-A22B-Instruct-2507 (Prompt)</td><td>Qwen</td><td>Apache-2.0</td><td>52.15</td><td>90.33</td><td>78.68</td><td>44.62</td><td>50.50</td><td>19.35</td><td>78.89</td></tr>
+  <tr><td>31</td><td>Qwen3-235B-A22B-Instruct-2507 (FC)</td><td>Qwen</td><td>Apache-2.0</td><td>47.99</td><td>37.40</td><td>68.91</td><td>45.38</td><td>54.00</td><td>23.87</td><td>81.73</td></tr>
+  <tr><td>50</td><td>Llama-4-Maverick-17B-128E-FP8 (FC)</td><td>Meta</td><td>Llama 4 Community</td><td>37.29</td><td>88.65</td><td>73.65</td><td>20.25</td><td>28.00</td><td>18.92</td><td>55.97</td></tr>
+  <tr><td>62</td><td>Llama-3.3-70B-Instruct (FC)</td><td>Meta</td><td>Llama 3 Community</td><td>31.90</td><td>88.02</td><td>76.61</td><td>21.50</td><td>10.00</td><td>8.17</td><td>53.53</td></tr>
+  <tr><td>72</td><td>Llama-4-Scout-17B-16E (FC)</td><td>Meta</td><td>Llama 4 Community</td><td>28.13</td><td>89.38</td><td>74.69</td><td>9.00</td><td>14.50</td><td>8.17</td><td>44.92</td></tr>
+  <tr><td>74</td><td>CoALM-70B</td><td>UIUC + Oumi</td><td>Llama 3 Community</td><td>27.99</td><td>83.44</td><td>67.28</td><td>10.62</td><td>0.00</td><td>5.81</td><td>85.65</td></tr>
+  <tr><td>108</td><td>Llama-3.1-Nemotron-Ultra-253B-v1 (FC)</td><td>NVIDIA</td><td>NVIDIA Open</td><td><span class="bad">10.00</span></td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>100.00</td></tr>
 </table>
 
-<p><strong>注</strong>: V4 leaderboard 的 frontier model 数字处在快速变化中 — Anthropic / OpenAI 的 BFCL V4 数字主要来自第三方 fork 测试,官方 live leaderboard 截止 2026-04-12 (commit f7cf735) 不一定与上表完全匹配。<strong>取决于 prompt mode(FC native vs prompting) 也会差 5-15 pp</strong>。</p>
+<div class="warn"><strong>注意 GLM-4.6 (MIT) 是当前 V4 open-weight 第一</strong>,72.38% 紧追 Claude Opus 4.5 的 77.47%。Z AI 这个模型的 BFCL 数字几乎能与 Anthropic 第一打平,这是 2026 H1 open-weight 最大新闻之一。Kimi-K2-Instruct(modified-MIT)59.06 是次席。注意 Llama-3.1-Nemotron-Ultra-253B-v1 (FC) 在官方 CSV 上是 10%,几乎为 0 的 NonLive/Live/MultiTurn ——这不是数据错误,而是 handler 不兼容/output 全 reject,Irrelevance 飙到 100% 就是"什么都拒答"的退化解(见 §6.5)。</div>
 
-<h3>6.3 ≤40B open-weight 子榜 — 我们最关心的</h3>
-
-<p>对 <a href="27_SmallModelMCP_landscape.html">#27 小模型 MCP landscape</a> 那群读者最相关的子集:</p>
+<h3>6.4 (c) Open-weight ≤40B 模型 — 训 ≤40B 最关心的子榜</h3>
 
 <table>
-  <tr><th>模型</th><th>params</th><th>BFCL V3</th><th>BFCL V4</th><th>License</th></tr>
-  <tr><td>Qwen3-32B (FC mode)</td><td>32B dense</td><td><strong>75.7</strong></td><td>~68</td><td>Apache-2.0</td></tr>
-  <tr><td>Qwen3-30B-A3B-Instruct-2507</td><td>30B / 3B-active MoE</td><td>~70</td><td>—</td><td>Apache-2.0</td></tr>
-  <tr><td>TOUCAN-Qwen2.5-32B (<a href="22_TOUCAN.html">#22</a>)</td><td>32B dense</td><td><strong>70.45</strong></td><td>—</td><td>Apache-2.0 (data+ckpt)</td></tr>
-  <tr><td>Qwen3-8B-FC + EnvScaler (<a href="23_EnvScaler.html">#23</a>)</td><td>8B</td><td>—</td><td>BFCL-MT 41.88 (超 GPT-4.1 40.0)</td><td>MIT</td></tr>
+  <tr><th>Rank</th><th>Model</th><th>Params</th><th>License</th><th>Overall</th><th>NonLive</th><th>Live</th><th>MultiTurn</th><th>WebSrch</th><th>Memory</th><th>Irrel</th></tr>
+  <tr><td>25</td><td><strong>Nanbeige4-3B-Thinking-2511 (FC)</strong></td><td>3B</td><td>Apache-2.0</td><td><strong>51.40</strong></td><td>81.58</td><td>79.42</td><td>51.12</td><td>21.50</td><td>36.77</td><td>83.09</td></tr>
+  <tr><td>29</td><td><strong>Qwen3-32B (FC)</strong></td><td>32B dense</td><td>Apache-2.0</td><td><strong>48.71</strong></td><td>88.77</td><td>82.01</td><td>47.87</td><td>21.50</td><td>26.67</td><td>76.37</td></tr>
+  <tr><td>32</td><td>Nanbeige3.5-Pro-Thinking (FC)</td><td>—</td><td>Apache-2.0</td><td>47.68</td><td>38.35</td><td>69.95</td><td>40.00</td><td>42.00</td><td>45.16</td><td>74.20</td></tr>
+  <tr><td>33</td><td>Qwen3-32B (Prompt)</td><td>32B dense</td><td>Apache-2.0</td><td>46.78</td><td>90.27</td><td>82.01</td><td>43.25</td><td>26.00</td><td>15.70</td><td>82.39</td></tr>
+  <tr><td>36</td><td>BitAgent-Bounty-8B</td><td>8B</td><td>Apache-2.0</td><td>46.23</td><td>81.60</td><td>93.12</td><td>62.38</td><td>0.00</td><td>1.51</td><td>97.48</td></tr>
+  <tr><td>39</td><td>Qwen3-8B (FC)</td><td>8B</td><td>Apache-2.0</td><td>42.57</td><td>87.58</td><td>80.53</td><td>41.75</td><td>12.00</td><td>14.62</td><td>79.07</td></tr>
+  <tr><td>40</td><td>ToolACE-2-8B (FC)</td><td>8B</td><td>Apache-2.0</td><td>42.44</td><td>87.10</td><td>77.42</td><td>38.38</td><td>8.50</td><td>18.49</td><td>90.79</td></tr>
+  <tr><td>41</td><td>Qwen3-30B-A3B-Instruct-2507 (FC)</td><td>30B/A3B</td><td>Apache-2.0</td><td>41.39</td><td>85.77</td><td>77.94</td><td>30.00</td><td>22.50</td><td>17.63</td><td>79.90</td></tr>
+  <tr><td>43</td><td>Qwen3-14B (FC)</td><td>14B</td><td>Apache-2.0</td><td>41.03</td><td>84.94</td><td>80.01</td><td>34.75</td><td>10.00</td><td>19.57</td><td>81.94</td></tr>
+  <tr><td>54</td><td>Qwen3-4B-Instruct-2507 (FC)</td><td>4B</td><td>Apache-2.0</td><td>35.68</td><td>87.88</td><td>76.39</td><td>22.12</td><td>3.00</td><td>17.63</td><td>84.93</td></tr>
+  <tr><td>66</td><td>Gemma-3-12b-it (Prompt)</td><td>12B</td><td>Gemma TOU</td><td>30.43</td><td>79.44</td><td>74.24</td><td>5.75</td><td>4.00</td><td>27.53</td><td>70.29</td></tr>
+  <tr><td>69</td><td>Gemma-3-27b-it (Prompt)</td><td>27B</td><td>Gemma TOU</td><td>29.47</td><td>87.17</td><td>74.54</td><td>10.75</td><td>0.00</td><td>13.55</td><td>73.67</td></tr>
+  <tr><td>70</td><td>Phi-4 (Prompt)</td><td>14B</td><td>MIT</td><td>28.79</td><td>69.56</td><td>60.70</td><td>3.88</td><td>4.50</td><td>24.73</td><td>87.55</td></tr>
+  <tr><td>81</td><td>Granite-3.1-8B-Instruct (FC)</td><td>8B</td><td>Apache-2.0</td><td>27.10</td><td>78.33</td><td>60.33</td><td>7.50</td><td>0.50</td><td>14.41</td><td>79.98</td></tr>
+  <tr><td>82</td><td>Falcon3-10B-Instruct (FC)</td><td>10B</td><td>Falcon-LLM</td><td>27.01</td><td>85.00</td><td>75.43</td><td>6.50</td><td>1.50</td><td>27.53</td><td>32.09</td></tr>
+  <tr><td>83</td><td>Granite-3.2-8B-Instruct (FC)</td><td>8B</td><td>Apache-2.0</td><td>26.87</td><td>79.77</td><td>60.33</td><td>7.38</td><td>0.50</td><td>12.47</td><td>80.53</td></tr>
+  <tr><td>85</td><td>Llama-3.1-8B-Instruct (Prompt)</td><td>8B</td><td>Llama 3 Community</td><td>25.83</td><td>84.00</td><td>70.76</td><td>11.12</td><td>3.00</td><td>10.75</td><td>42.70</td></tr>
+  <tr><td>86</td><td>MiniCPM3-4B-FC (FC)</td><td>4B</td><td>Apache-2.0</td><td>25.55</td><td>81.75</td><td>65.21</td><td>3.88</td><td>0.00</td><td>12.04</td><td>72.84</td></tr>
+  <tr><td>93</td><td>Granite-20b-FunctionCalling (FC)</td><td>20B</td><td>Apache-2.0</td><td>23.23</td><td>82.35</td><td>58.70</td><td>5.38</td><td>0.00</td><td>0.00</td><td>75.13</td></tr>
+  <tr><td>103</td><td>Granite-4.0-350m (FC)</td><td>0.35B</td><td>Apache-2.0</td><td>18.98</td><td>67.92</td><td>46.11</td><td>2.50</td><td>0.50</td><td>3.23</td><td>60.84</td></tr>
+</table>
+
+<p><strong>Top 3 ≤40B open-weight on V4 (verbatim from official CSV):</strong></p>
+<ol>
+<li><strong>Nanbeige4-3B-Thinking-2511 (FC) — 51.40%</strong> · 3B Apache-2.0 · <em>这是 2026-05 最大惊喜:3B 模型上 51.40%, multi-turn 51.12% 超过 Qwen3-32B 的 47.87%。</em></li>
+<li>Qwen3-32B (FC) — 48.71% · 32B Apache-2.0</li>
+<li>Nanbeige3.5-Pro-Thinking (FC) — 47.68% · Apache-2.0</li>
+</ol>
+
+<h3>6.5 (d) Specialized fine-tuned tool models</h3>
+
+<table>
+  <tr><th>Rank</th><th>Model</th><th>Params</th><th>License</th><th>Overall</th><th>NonLive</th><th>Live</th><th>MultiTurn</th><th>WebSrch</th><th>Memory</th><th>Irrel</th></tr>
+  <tr><td>18</td><td><strong>xLAM-2-32b-fc-r (FC)</strong></td><td>32B</td><td>cc-by-nc-4.0</td><td><strong>54.66</strong></td><td>89.60</td><td>75.50</td><td><strong>69.50</strong></td><td>25.50</td><td>20.86</td><td>80.23</td></tr>
+  <tr><td>22</td><td>Llama-xLAM-2-70b-fc-r (FC)</td><td>70B</td><td>cc-by-nc-4.0</td><td>53.07</td><td>88.44</td><td>72.17</td><td><strong>77.38</strong></td><td>15.00</td><td>14.41</td><td>79.11</td></tr>
+  <tr><td>34</td><td>Llama-xLAM-2-8b-fc-r (FC)</td><td>8B</td><td>cc-by-nc-4.0</td><td>46.68</td><td>84.58</td><td>67.95</td><td>70.00</td><td>6.50</td><td>13.98</td><td>63.28</td></tr>
+  <tr><td>37</td><td>Arch-Agent-32B</td><td>32B</td><td>katanemo-research</td><td>45.37</td><td>88.92</td><td>80.68</td><td>54.25</td><td>5.00</td><td>14.62</td><td>82.15</td></tr>
+  <tr><td>42</td><td>xLAM-2-3b-fc-r (FC)</td><td>3B</td><td>cc-by-nc-4.0</td><td>41.22</td><td>82.96</td><td>62.92</td><td>58.38</td><td>2.50</td><td>11.40</td><td>63.45</td></tr>
+  <tr><td>56</td><td>Arch-Agent-3B</td><td>3B</td><td>katanemo-research</td><td>35.36</td><td>86.67</td><td>72.91</td><td>34.88</td><td>0.50</td><td>6.88</td><td>74.67</td></tr>
+  <tr><td>60</td><td>Arch-Agent-1.5B</td><td>1.5B</td><td>katanemo-research</td><td>32.14</td><td>82.67</td><td>67.73</td><td>26.62</td><td>0.00</td><td>8.17</td><td>74.83</td></tr>
+  <tr><td>64</td><td>Hammer2.1-7b (FC)</td><td>7B</td><td>cc-by-nc-4.0</td><td>31.67</td><td>85.50</td><td>69.50</td><td>23.87</td><td>0.00</td><td>0.00</td><td>90.12</td></tr>
+  <tr><td>65</td><td>xLAM-2-1b-fc-r (FC)</td><td>1B</td><td>cc-by-nc-4.0</td><td>30.44</td><td>69.04</td><td>55.14</td><td>36.00</td><td>0.00</td><td>3.87</td><td>64.47</td></tr>
+  <tr><td>68</td><td>Hammer2.1-3b (FC)</td><td>3B</td><td>qwen-research</td><td>29.71</td><td>84.96</td><td>70.54</td><td>16.50</td><td>0.00</td><td>3.01</td><td>86.12</td></tr>
+  <tr><td>75</td><td>Hammer2.1-1.5b (FC)</td><td>1.5B</td><td>cc-by-nc-4.0</td><td>27.88</td><td>82.98</td><td>69.50</td><td>15.62</td><td>0.00</td><td>0.00</td><td>79.40</td></tr>
+  <tr><td>84</td><td>CoALM-8B</td><td>8B</td><td>Llama 3 Community</td><td>26.81</td><td>84.87</td><td>66.77</td><td>8.00</td><td>0.00</td><td>2.80</td><td>86.90</td></tr>
+  <tr><td>100</td><td>Hammer2.1-0.5b (FC)</td><td>0.5B</td><td>cc-by-nc-4.0</td><td>21.22</td><td>65.98</td><td>54.63</td><td>2.88</td><td>0.00</td><td>1.08</td><td>80.79</td></tr>
+</table>
+
+<div class="nb">
+<strong>specialized 模型的失败模式可以从 CSV 直接看出:</strong>
+<ul>
+<li><strong>xLAM-2-70b multi-turn 77.38% 全榜第一</strong> (高于 Claude Opus 4.5 的 68.38%) — 但 WebSearch 只有 15.00, Memory 14.41 — 经典"专精 multi-turn, 没见过 agentic"。这就是 §11 即将讲到的 RL/SFT 偏置: APIGen-MT 数据集是 multi-turn 合成,几乎没有 web/memory。</li>
+<li><strong>Hammer2.1 系列 WebSearch / Memory 全是 0</strong>。这不是 bug —— Hammer 论文(ICLR 2025 Spotlight)显式声称 on-device + function masking,数据集里完全没有 agentic 任务,V4 加 40% agentic 是<em>对它最不利</em>的改版。</li>
+<li><strong>BitAgent-Bounty-8B Live 93.12% / Irrel 97.48% 极端高,但 WebSearch 0 / Memory 1.51</strong> — 又一个 single-turn 过拟合的极端例子。</li>
+</ul>
+</div>
+
+<h3>6.6 ≤40B open-weight 子榜历史比对(沿用上一版)</h3>
+
+<p>对 <a href="27_SmallModelMCP_landscape.html">#27 小模型 MCP landscape</a> 那群读者,把上面 V4 数据接到我们已有的 V3 / 自报数字上,得到这张<em>跨版本</em>子榜:</p>
+
+<table>
+  <tr><th>模型</th><th>params</th><th>BFCL V3 (旧)</th><th>BFCL V4 (官方 CSV)</th><th>License</th></tr>
+  <tr><td>Nanbeige4-3B-Thinking-2511</td><td>3B</td><td>—</td><td><strong>51.40</strong> ✨</td><td>Apache-2.0</td></tr>
+  <tr><td>Qwen3-32B (FC)</td><td>32B dense</td><td>75.7 (V3 镜像)</td><td><strong>48.71</strong></td><td>Apache-2.0</td></tr>
+  <tr><td>Qwen3-30B-A3B-Instruct-2507 (FC)</td><td>30B / 3B-active MoE</td><td>~70</td><td>41.39</td><td>Apache-2.0</td></tr>
+  <tr><td>TOUCAN-Qwen2.5-32B (<a href="22_TOUCAN.html">#22</a>)</td><td>32B dense</td><td>70.45</td><td>(未单独上 V4 — 仅 dataset)</td><td>Apache-2.0 (data+ckpt)</td></tr>
+  <tr><td>Qwen3-8B + EnvScaler (<a href="23_EnvScaler.html">#23</a>)</td><td>8B</td><td>—</td><td>BFCL-MT 41.88</td><td>MIT</td></tr>
   <tr><td>AWM-Qwen3-Thinking-8B (<a href="18_AgentWorldModel_2602.10090.html">#18</a>)</td><td>8B</td><td>53.83 → 65.94 OOD</td><td>—</td><td>—</td></tr>
-  <tr><td>Salesforce/Llama-xLAM-2-70b-fc-r</td><td>70B</td><td>~66</td><td>—</td><td>Apache-2.0</td></tr>
-  <tr><td>Salesforce/xLAM-2-32b-fc-r</td><td>32B</td><td>~62</td><td>—</td><td>Apache-2.0</td></tr>
-  <tr><td>Phi-4</td><td>14B</td><td>40.8</td><td>—</td><td>MIT</td></tr>
-  <tr><td>Nemotron 3 Nano 30B A3B</td><td>30B/A3B</td><td>41.6</td><td>—</td><td>NVIDIA Open</td></tr>
-  <tr><td>ToolACE-2-8B</td><td>8B</td><td>~55</td><td>—</td><td>Apache-2.0</td></tr>
-  <tr><td>BitAgent-8B</td><td>8B</td><td>~54</td><td>—</td><td>—</td></tr>
-  <tr><td>meetkai/functionary-medium-v3.1</td><td>32B (Llama-3.1 base)</td><td>~52</td><td>—</td><td>MIT</td></tr>
-  <tr><td>Hermes-2-Pro-Llama-3-70B</td><td>70B</td><td>~50</td><td>—</td><td>Apache-2.0</td></tr>
+  <tr><td>Salesforce/xLAM-2-32b-fc-r</td><td>32B</td><td>~62</td><td><strong>54.66</strong></td><td>cc-by-nc-4.0</td></tr>
+  <tr><td>ToolACE-2-8B</td><td>8B</td><td>~55</td><td>42.44</td><td>Apache-2.0</td></tr>
+  <tr><td>BitAgent-Bounty-8B</td><td>8B</td><td>~54</td><td>46.23</td><td>Apache-2.0</td></tr>
+  <tr><td>Phi-4</td><td>14B</td><td>40.8</td><td>28.79</td><td>MIT</td></tr>
 </table>
 
-<p><strong>≤40B 当前 ceiling: Qwen3-32B (BFCL V3 75.7%)</strong> — 它是 open-weight + ≤40B 双重约束下的 V3 第一名,这也解释了为什么 #27 决策树里 Qwen3 系列被反复推荐为冷启 base。</p>
+<p>V4 数字大面积比 V3 低 10-30 pp,这是 V4 把 multi-turn+agentic 加权 70% 的直接结果(V3 是 33%)。<strong>注意 Nanbeige4-3B 在 V4 上爆冷拿 ≤40B 第一</strong>;Qwen3-32B 不再是 ≤40B 顶点 — 是 V4 改公式后最大的"洗牌"。</p>
 
 <hr>
 
@@ -738,6 +828,128 @@ For detailed steps, please see the <a href="https://github.com/ShishirPatil/gori
 
 <hr>
 
+<h2 id="sec11">§11 BFCL-targeted RL / post-train infra</h2>
+
+<p>这一章是 2026-05 新加的:既然 BFCL 是 ≤40B function-call 的事实标准 KPI(§9),那"<strong>什么框架/数据集/recipe 是<em>直接以 BFCL 为优化目标</em>训出来的?</strong>"就成了能直接落地的问题。下面把当前 stack 里所有可考的工件列出来,带 repo URL / license / 验证依据。</p>
+
+<h3>11.1 Gorilla 团队本身的训练代码 — 缺席</h3>
+
+<p>这是研究里的一个负面发现。<strong>Berkeley Gorilla 团队没有发布"训 BFCL"的公开 RL 代码</strong>。具体观察:</p>
+
+<ul>
+  <li><a href="https://github.com/ShishirPatil/gorilla/tree/main/openfunctions" target="_blank"><code>gorilla/openfunctions/</code></a> 只有 <code>inference_hosted.py</code> + <code>inference_local.py</code> + 一份 <code>openfunctions_utils.py</code> — 全是 <strong>inference / serving</strong> 代码。没有训练 loop, 没有 dataset 构建, 没有 RL reward。</li>
+  <li><a href="https://github.com/ShishirPatil/gorilla/tree/main/gorilla" target="_blank"><code>gorilla/gorilla/</code></a> 只有 <code>eval/</code> + <code>inference/</code>。和上面同样的 SFT/RL 空缺。</li>
+  <li>原始 Gorilla paper(2023, API Bench)使用 self-instruct + LLaMA-7B SFT,但<strong>训练 pipeline 未开源</strong>。 OpenFunctions v0/v1/v2 ckpt 上 HuggingFace 但不带训练脚本。</li>
+  <li>BFCL 仓库本身只有 <code>berkeley-function-call-leaderboard/bfcl_eval/</code>(<code>pip install bfcl-eval</code>),evaluation only。</li>
+</ul>
+
+<p><strong>结论:</strong> 想"train against BFCL",必须用第三方框架。下面是当前实际可用的 stack。</p>
+
+<h3>11.2 NVIDIA Tool-N1 — 唯一明确"以 BFCL 为目标"的开源 RL 训练 codebase</h3>
+
+<table>
+  <tr><th>Field</th><th>Value</th></tr>
+  <tr><td>Repo</td><td><a href="https://github.com/NVlabs/Tool-N1" target="_blank">github.com/NVlabs/Tool-N1</a></td></tr>
+  <tr><td>Paper</td><td><a href="https://arxiv.org/abs/2505.00024" target="_blank">arXiv:2505.00024</a> "Nemotron-Research-Tool-N1: Tool-Using LLMs with Reinforced Reasoning"(Zhang et al. 2025)</td></tr>
+  <tr><td>License</td><td><strong>Apache-2.0</strong></td></tr>
+  <tr><td>Underlying RL framework</td><td><a href="https://github.com/volcengine/verl" target="_blank">verl</a> (字节跳动 HybridFlow,GRPO 算法)</td></tr>
+  <tr><td>SFT framework</td><td>LLaMA-Factory + LoRA</td></tr>
+  <tr><td>Reward design</td><td>R1-style <strong>二元 reward</strong>: structural validity ∧ functional correctness(无需 CoT 标注)</td></tr>
+  <tr><td>Eval target</td><td>BFCL + APIBank + ACEBench(repo 自带 <code>eval/</code> + BFCL handlers)</td></tr>
+  <tr><td>提供物</td><td>preprocessed RL+SFT datasets · training scripts · eval scripts · model ckpts</td></tr>
+</table>
+
+<p>核心 claim(paper verbatim): "<em>RL offers a more effective paradigm for enhancing the tool-calling capabilities of LLMs compared to standard supervised fine-tuning</em>", 并在 BFCL 上展示 RL beats SFT。这是<strong>第一个 BFCL native 的端到端 RL 实证 codebase</strong>。</p>
+
+<div class="ok"><strong>顶级推荐(这次研究我的 top pick):</strong> Tool-N1 是当前唯一一个 (1) 明确以 BFCL 为评估目标, (2) 完整开源 (dataset + scripts + ckpt + Apache-2.0), (3) 基于成熟 RL stack (verl + GRPO), (4) 已发表 paper 验证 effectiveness 的工件。比 xLAM (cc-by-nc-4.0, 偏 SFT) 和 Hammer (无 RL) 都齐全。</div>
+
+<h3>11.3 Salesforce xLAM + APIGen + ActionStudio — SFT-heavy, 数据规模最大</h3>
+
+<table>
+  <tr><th>Field</th><th>Value</th></tr>
+  <tr><td>Repo</td><td><a href="https://github.com/SalesforceAIResearch/xLAM" target="_blank">github.com/SalesforceAIResearch/xLAM</a> (619 stars, Apache-2.0 license)</td></tr>
+  <tr><td>核心子目录</td><td><code>actionstudio/</code>(EMNLP 2025 main paper, training)+ <code>xLAM/</code>(inference)</td></tr>
+  <tr><td>数据集 1</td><td><a href="https://huggingface.co/datasets/Salesforce/xlam-function-calling-60k" target="_blank">xlam-function-calling-60k</a> — APIGen 合成,HF top-3 trending 2024-07</td></tr>
+  <tr><td>数据集 2</td><td><a href="https://huggingface.co/datasets/Salesforce/APIGen-MT-5k" target="_blank">APIGen-MT-5k</a> — multi-turn function calling,2025-05 公开</td></tr>
+  <tr><td>Paper</td><td><a href="https://arxiv.org/pdf/2504.03601" target="_blank">arXiv:2504.03601</a> (APIGen-MT, ICLR 2026 accepted)</td></tr>
+  <tr><td>Ckpt licenses</td><td><strong>cc-by-nc-4.0(research only)</strong> — 关键限制</td></tr>
+  <tr><td>BFCL on V4(官方 CSV)</td><td>xLAM-2-32b-fc-r 54.66 · 70b 53.07 · 8b 46.68 · 3b 41.22 · 1b 30.44</td></tr>
+  <tr><td>RL or SFT</td><td><strong>主要 SFT</strong>(actionstudio 是 unified trajectory training pipeline,不是 RL framework)</td></tr>
+</table>
+
+<p><strong>用 xLAM 训 BFCL 的最佳路径:</strong> (a) 取 xlam-function-calling-60k 做冷启 SFT, (b) 取 APIGen-MT-5k 做 multi-turn SFT, (c) 用 Tool-N1 (§11.2) 做 GRPO RL — 三段式。 这是当前 BFCL multi-turn 类别最佳实证(xLAM-2 在 multi-turn 单维拿到 77.38%,§6.5)。</p>
+
+<h3>11.4 MadeAgents Hammer — function-masking SFT, on-device 取向</h3>
+
+<table>
+  <tr><th>Field</th><th>Value</th></tr>
+  <tr><td>Repo</td><td><a href="https://github.com/MadeAgents/Hammer" target="_blank">github.com/MadeAgents/Hammer</a> (Apache-2.0)</td></tr>
+  <tr><td>Paper</td><td><a href="https://arxiv.org/pdf/2410.04587" target="_blank">arXiv:2410.04587</a> "Hammer: Robust Function-Calling via Function Masking"(ICLR 2025 <strong>Spotlight</strong>)</td></tr>
+  <tr><td>训练子目录</td><td><code>train/</code> 仅含 <code>data_processing.py</code> — <strong>未公开完整 trainer</strong>,需要自己接 HF trainer</td></tr>
+  <tr><td>Ckpt license</td><td>cc-by-nc-4.0(0.5B/1.5B/7B)· qwen-research(3B)</td></tr>
+  <tr><td>BFCL on V4</td><td>7B: 31.67 · 3B: 29.71 · 1.5B: 27.88 · 0.5B: 21.22(全部含 Web/Memory = 0)</td></tr>
+  <tr><td>定位</td><td><strong>on-device function-calling</strong>,V4 加 agentic 后此 model family 影响最大(WebSrch/Memory 几乎全 0)</td></tr>
+</table>
+
+<h3>11.5 verl / SkyRL / NeMo-RL — 通用 RL 框架(可承载 BFCL reward)</h3>
+
+<table>
+  <tr><th>框架</th><th>Repo</th><th>License</th><th>BFCL 直接支持?</th><th>说明</th></tr>
+  <tr><td><strong>verl</strong></td><td><a href="https://github.com/verl-project/verl" target="_blank">verl-project/verl</a></td><td>Apache-2.0</td><td>无内置 BFCL recipe; <strong>Tool-N1 用它当 backbone</strong></td><td>字节 HybridFlow,GRPO/PPO/DPO 全支持。2026-05 加了 zero-mismatch HF rollout。 BFCL reward 要自己写 ~100 行 (拿 <code>bfcl_eval</code> 的 AST checker 当 reward fn 即可)。</td></tr>
+  <tr><td>SkyRL</td><td><a href="https://github.com/NovaSky-AI/SkyRL" target="_blank">NovaSky-AI/SkyRL</a></td><td>Apache-2.0</td><td>无 BFCL recipe</td><td>UCB NovaSky,modular full-stack。 子项目 SkyRL-Agent (<a href="https://arxiv.org/abs/2511.16108" target="_blank">arXiv:2511.16108</a>) 主打 long-horizon multi-turn,理论上 BFCL multi_turn 适配 ok。</td></tr>
+  <tr><td>NVIDIA NeMo-RL</td><td><a href="https://github.com/NVIDIA-NeMo/RL" target="_blank">NVIDIA-NeMo/RL</a></td><td>Apache-2.0</td><td>无 BFCL recipe</td><td>NeMo 旗下,主打 DeepScaleR 类 verifiable reward。<a href="https://github.com/NVIDIA-NeMo/Gym" target="_blank">NeMo-Gym</a> 可作 env 容器。Tool-N1 的 NVlabs 版没用 NeMo-RL,反而用 verl,这是 NVIDIA 内部组织线的有趣信号。</td></tr>
+  <tr><td>verl-tool</td><td><a href="https://github.com/TIGER-AI-Lab/verl-tool" target="_blank">TIGER-AI-Lab/verl-tool</a></td><td>Apache-2.0</td><td>支持 generic tool, 无 BFCL 特化 recipe</td><td>verl 的 tool-use fork,981 stars。 把 tool 调用做成 RL env,BFCL-style 任务可直接挂。</td></tr>
+  <tr><td>OpenPipe ART</td><td><a href="https://github.com/OpenPipe/ART" target="_blank">OpenPipe/ART</a></td><td>Apache-2.0(9.4k stars)</td><td><strong>无 BFCL example</strong></td><td>最接近的是 <code>examples/mcp-rl/</code>(MCP server tool use)+ LangGraph 集成。GRPO 全支持,BFCL adaptation 不难但缺 ready-to-run notebook。</td></tr>
+</table>
+
+<h3>11.6 BFCL-targeted RL papers(2025-2026)</h3>
+
+<table>
+  <tr><th>Paper</th><th>核心 idea</th><th>用 BFCL?</th><th>开源?</th></tr>
+  <tr><td><strong>Tool-N1</strong>(<a href="https://arxiv.org/abs/2505.00024" target="_blank">arXiv:2505.00024</a>, NVIDIA)</td><td>R1-style 二元 reward + GRPO + verl, 取代 SFT</td><td>主要 eval target</td><td>✅ <a href="https://github.com/NVlabs/Tool-N1" target="_blank">NVlabs/Tool-N1</a> Apache-2.0</td></tr>
+  <tr><td>"Reasoning through Exploration: RL for Robust Function Calling"(<a href="https://arxiv.org/abs/2508.05118" target="_blank">arXiv:2508.05118</a>)</td><td><strong>EGPO</strong> — entropy-guided GRPO, CoT entropy 进入 advantage</td><td>BFCL eval</td><td>未明示 repo</td></tr>
+  <tr><td>RC-GRPO(<a href="https://arxiv.org/abs/2602.03025" target="_blank">arXiv:2602.03025</a>)</td><td>Reward-Conditioned GRPO,reward token-conditioned exploration</td><td>multi-turn tool calling(含 BFCL)</td><td>?</td></tr>
+  <tr><td>R2IF(<a href="https://arxiv.org/abs/2604.20316" target="_blank">arXiv:2604.20316</a>)</td><td>composite reward(format + CER + SMV)+ GRPO, 强调可解释 function calling</td><td>BFCL eval</td><td>?</td></tr>
+  <tr><td>TOUCAN(<a href="https://arxiv.org/abs/2510.01179" target="_blank">arXiv:2510.01179</a>)</td><td>1.5M MCP 合成 trajectory SFT(<em>非 RL</em>)</td><td>BFCL V3 eval</td><td>✅ CC-BY 4.0 dataset</td></tr>
+  <tr><td>APIGen-MT(<a href="https://arxiv.org/abs/2504.03601" target="_blank">arXiv:2504.03601</a>)</td><td>双 agent 模拟生成 multi-turn,xLAM-2-fc-r 训练源</td><td>BFCL + τ-bench eval</td><td>✅ APIGen-MT-5k dataset, ckpt cc-by-nc</td></tr>
+  <tr><td>GPT-5.5 system card "<strong>CoT-Control</strong>"</td><td>13K-task CoT 可控性训练集,<strong>BFCL 是源 benchmark 之一</strong></td><td>训练源</td><td>评测集 <a href="https://github.com/YuehHanChen/CoTControl" target="_blank">YuehHanChen/CoTControl</a></td></tr>
+</table>
+
+<p>GPT-5.5 system card verbatim: "<em>CoT-Control includes over 13,000 tasks built from established benchmarks: GPQA, MMLU-Pro, HLE, BFCL and SWE-Bench Verified. Each task is created by pairing a benchmark problem with one CoT instruction such as avoiding certain problem-relevant keywords in CoT, using only lowercase letters, or appending a given word to each sentence.</em>" — 这把 BFCL 从"eval"提升到"训练数据源"位置,是 frontier lab 引用 BFCL 的最严肃方式。</p>
+
+<h3>11.7 比较矩阵 — Stage × Tool × License × BFCL-specific?</h3>
+
+<table>
+  <tr><th>Tool / Stack</th><th>SFT</th><th>RL</th><th>Distill</th><th>License</th><th>BFCL-targeted?</th><th>推荐场景</th></tr>
+  <tr><td><strong>NVlabs/Tool-N1</strong></td><td>✅ LLaMA-Factory</td><td><strong>✅ verl+GRPO</strong></td><td>—</td><td>Apache-2.0</td><td><strong>✅ 显式</strong></td><td>BFCL-native RL,首选</td></tr>
+  <tr><td>SalesforceAIResearch/xLAM</td><td>✅ ActionStudio</td><td>—</td><td>—</td><td>code Apache-2.0 / ckpt cc-by-nc</td><td>✅ 间接(自报 BFCL top)</td><td>multi-turn SFT 冷启</td></tr>
+  <tr><td>MadeAgents/Hammer</td><td>✅(部分)</td><td>—</td><td>—</td><td>Apache-2.0(code)</td><td>✅ 间接</td><td>on-device tiny model</td></tr>
+  <tr><td>verl-project/verl</td><td>—</td><td>✅</td><td>—</td><td>Apache-2.0</td><td>❌(通用)</td><td>BFCL RL backbone</td></tr>
+  <tr><td>NovaSky-AI/SkyRL</td><td>—</td><td>✅</td><td>—</td><td>Apache-2.0</td><td>❌(通用)</td><td>multi-turn long-horizon</td></tr>
+  <tr><td>OpenPipe/ART</td><td>✅</td><td>✅ GRPO</td><td>✅</td><td>Apache-2.0</td><td>❌(MCP-RL 接近)</td><td>fast iteration</td></tr>
+  <tr><td>TIGER-AI-Lab/verl-tool</td><td>—</td><td>✅</td><td>—</td><td>Apache-2.0</td><td>❌</td><td>tool env wrap</td></tr>
+  <tr><td>NVIDIA-NeMo/RL</td><td>—</td><td>✅</td><td>—</td><td>Apache-2.0</td><td>❌</td><td>大规模 cluster</td></tr>
+  <tr><td>TOUCAN dataset</td><td>✅(1.5M traj)</td><td>—</td><td>—</td><td>CC-BY 4.0</td><td>✅ eval</td><td>SFT 冷启数据</td></tr>
+  <tr><td>APIGen-MT dataset</td><td>✅(5k MT)</td><td>—</td><td>—</td><td>cc-by-nc-4.0</td><td>✅ eval</td><td>multi-turn 补强</td></tr>
+</table>
+
+<h3>11.8 我的 take — 实战 BFCL 训练 stack 建议</h3>
+
+<ol>
+  <li><strong>纯 SFT 起步:</strong> Qwen3-8B(Apache-2.0 base)+ TOUCAN-1.5M(冷启 4 epoch)+ APIGen-MT-5k(multi-turn 2 epoch)。 目标:V3 ≥70% → V4 NonLive ≥85% / Live ≥75%。 整套用 HF trainer + LoRA 在 4×A100 一周搞定。</li>
+  <li><strong>RL 提升:</strong> 接 <a href="https://github.com/NVlabs/Tool-N1" target="_blank">Tool-N1</a> 的 verl+GRPO,reward 用 BFCL <code>bfcl_eval/eval_checker/ast_eval/</code> 的 AST checker(<strong>直接 import,这是 §11 最关键的实操点</strong>)+ multi_turn state diff。 注意训 train split 和 eval split 严格隔离 — BFCL 没有官方 train/val split, 所以要自己做 hold-out。</li>
+  <li><strong>避坑:</strong>
+    <ul>
+      <li>不要用 BFCL 原 ground truth 训 — 那是 eval 集合,等于污染</li>
+      <li>不要用 xLAM ckpt 商用(cc-by-nc),要商用必须从 base model + dataset 重训</li>
+      <li>不要只追 BFCL Overall — 拆分看 multi_turn vs irrelevance,常常一升一降(xLAM 案例就是典型)</li>
+    </ul>
+  </li>
+  <li><strong>下一步(把 BFCL 当 prerequisite):</strong> BFCL V4 Agentic ≥50% 后,接 MCP-Atlas / MCPMark(<a href="21_MCPBenchmarks_compare.html">#21</a>),BFCL 不能替代真 MCP eval(§8.2)。</li>
+</ol>
+
+<hr>
+
 <h3>相关阅读</h3>
 <ul>
   <li><a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas (Scale AI)</a> — 真 MCP server + Live leaderboard + Claude card 引用</li>
@@ -748,6 +960,9 @@ For detailed steps, please see the <a href="https://github.com/ShishirPatil/gori
   <li><a href="26_MCPBenchmarks_codedive.html">#26 MCP bench 代码级深潜</a> — 4 verifier 风味互斥 + 联合训 recipe</li>
   <li><a href="27_SmallModelMCP_landscape.html">#27 ≤40B 小模型 MCP landscape</a> — BFCL 在 ≤40B 训练栈中的位置</li>
   <li><a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a> — 合成 env / BFCL V3 53.83 → 65.94 OOD</li>
+  <li><a href="https://github.com/NVlabs/Tool-N1" target="_blank">NVlabs/Tool-N1</a> — §11.2 当前唯一 BFCL-targeted open RL codebase(Apache-2.0)</li>
+  <li><a href="https://github.com/SalesforceAIResearch/xLAM" target="_blank">SalesforceAIResearch/xLAM</a> — §11.3 BFCL multi-turn SOTA 训练 pipeline(ActionStudio + APIGen-MT)</li>
+  <li><a href="https://arxiv.org/abs/2505.00024" target="_blank">arXiv:2505.00024</a> — Tool-N1 paper (verl+GRPO+R1-style reward)</li>
 </ul>
 
 </main>
