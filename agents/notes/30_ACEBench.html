@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · ACEBench — 中英双语 tool-use 评测 (EMNLP 2025 Findings)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>ACEBench — 中英双语 tool-use 评测 (EMNLP 2025 Findings)</h1>
+<div class="meta">
+  USTC + Huawei Noah's Ark Lab · Chen Chen, Xinlong Hao, Weiwen Liu, Xu Huang, Xingshan Zeng, Shuai Yu, Dexun Li, Shuai Wang, Weinan Gan, Yuefeng Huang, Wulong Liu, Xinzhi Wang, Defu Lian, Baoqun Yin, Yasheng Wang, Wu Liu · v1 2025-01-22 → v8 2025-11-20 · <strong>EMNLP 2025 Findings</strong>(Suzhou, China · pages 12970–12998)<br>
+  <a href="https://arxiv.org/abs/2501.12851" target="_blank">arXiv:2501.12851</a> ·
+  <a href="https://arxiv.org/html/2501.12851v8" target="_blank">HTML v8</a> ·
+  <a href="https://aclanthology.org/2025.findings-emnlp.697/" target="_blank">ACL Anthology</a> ·
+  <a href="https://github.com/ACEBench/ACEBench" target="_blank">GitHub: ACEBench/ACEBench</a> ·
+  <a href="https://chenchen0103.github.io/ACEBench/" target="_blank">Live leaderboard</a><br>
+  关键词: tool use · function-calling · 中英双语 · Normal / Special / Agent · AST 验证 · multi-step agent · 4,538 APIs · 8 domain × 68 sub-domain · MIT license
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> ACEBench 是 <strong>USTC + 华为诺亚方舟实验室</strong> 在 2025-01 提出、2025-11 EMNLP 2025 Findings 正式发表的<strong>中英双语 tool-use 评测</strong>。原标题 "<em>Who Wins the Match Point in Tool Learning?</em>" 已在 v8 / EMNLP camera-ready 改为 "<em>A Comprehensive Evaluation of LLM Tool Usage</em>"。它的最大设计差异是把任务分成三大类: <strong>Normal</strong>(常规调用 — Atom / Single-Turn / Multi-Turn / Similar API / Preference 五子类)+ <strong>Special</strong>(异常输入 — Incomplete / Error / Irrelevant 三子类,模型必须拒答或纠错)+ <strong>Agent</strong>(<em>多智能体</em> 模拟 — Multi-Turn / Multi-Step 两子类),并且<strong>同一份数据有中、英两个语言版本</strong>。共 4,538 API · 8 大领域 · 68 子领域,数据集核心规模约 2,000 标注样本(双语)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">~2,000</div><div class="l">annotated entries(双语,每种语言一份)</div></div>
+    <div class="stat"><div class="n">4,538</div><div class="l">APIs · 8 domain · 68 sub-domain</div></div>
+    <div class="stat"><div class="n">中 + 英</div><div class="l">"two linguistically parallel versions" — verbatim</div></div>
+    <div class="stat"><div class="n">Kimi K2 76.5</div><div class="l">Kimi K2 自报 ACEBench (En) 76.5(K2 技术报告 v1)</div></div>
+  </div>
+  <p><strong>立场:</strong> ACEBench 和 <a href="28_BFCL.html">#28 BFCL</a> 是 tool-use 评测的<strong>互补</strong>关系,而不是替代关系: <strong>BFCL 是 Python-only schema-AST benchmark</strong>(社区数据 + Multi-Turn + Agentic Web/Memory,4,951 任务),<strong>ACEBench 主打 (1) 中英双语 (2) Special 异常输入显式建模 (3) Agent 子集明确分 Multi-Turn / Multi-Step 两类,且用 multi-agent 模拟代替真 user</strong>。所以在 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 里它就被当成<strong>OOD eval</strong> — 训练用 BFCL V3 400 条,泛化到 ACEBench Agent 看是否真学会(ToolACE-2 Multi-Step 6.67 → 20.00)。在 <a href="22_TOUCAN.html">#22 TOUCAN</a> 也提到 ACE 这条线。要做中文 function-call,这是<strong>当前唯一在 EMNLP 主流会议发表、有中英双语 ground truth、被 Kimi K2 / AgentScaler 技术报告引用</strong>的 benchmark。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">ACEBench 是什么 — 与 ToolACE / BFCL 的关系</a></li>
+    <li><a href="#sec2">任务设计 — Normal / Special / Agent 三大类八子类</a></li>
+    <li><a href="#sec3">评测方法 — AST + Binary + State-based 三段</a></li>
+    <li><a href="#sec4">🔍 开源现状 — repo / dataset / license / 自托管</a></li>
+    <li><a href="#sec5">leaderboard — 原 paper Table 2 + Kimi K2 + EnvTuning OOD</a></li>
+    <li><a href="#sec6">提交流程 — PR-based,无 web portal</a></li>
+    <li><a href="#sec7">与 BFCL / MCP bench 对比 — 何时用 ACEBench</a></li>
+    <li><a href="#sec8">frontier model 官方引用情况</a></li>
+    <li><a href="#sec9">局限 + 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">§1 ACEBench 是什么 — 与 ToolACE / BFCL 的关系</h2>
+
+<h3>1.1 paper 自我定位 (verbatim)</h3>
+
+<p>ACEBench v1 标题是 <em>"Who Wins the Match Point in Tool Learning?"</em>,v8 / EMNLP camera-ready 改名为 <em>"A Comprehensive Evaluation of LLM Tool Usage"</em>。两个标题之间 8 个版本(2025-01-22 至 2025-11-20),paper 完成了从 "tool learning" 概念到 "tool usage" 评测的语义收敛。EMNLP Findings 版本是事实定稿,bibtex 如下:</p>
+
+<pre>@inproceedings{chen-etal-2025-acebench,
+    title = "{ACEB}ench: A Comprehensive Evaluation of {LLM} Tool Usage",
+    author = "Chen, Chen and Hao, Xinlong and Liu, Weiwen and Huang, Xu and
+              Zeng, Xingshan and Yu, Shuai and Li, Dexun and Huang, Yuefeng and
+              Liu, Xiangcheng and Xinzhi, Wang and Liu, Wu",
+    booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2025",
+    month = nov, year = "2025",
+    address = "Suzhou, China",
+    publisher = "Association for Computational Linguistics",
+    pages = "12970--12998",
+    doi = "10.18653/v1/2025.findings-emnlp.697"
+}</pre>
+
+<p>paper 给出的三个动机(对现有 benchmark 的不满,从 EMNLP 版抽取,有微删):</p>
+
+<blockquote>
+"existing benchmarks for evaluating LLMs' tool usage face several limitations:<br>
+(1) limited evaluation scenarios, often lacking assessments in real multi-turn dialogue contexts;<br>
+(2) narrow evaluation dimensions, with insufficient detailed assessments of how LLMs use tools;<br>
+(3) reliance on LLMs or real API executions for evaluation, which introduces significant overhead."
+</blockquote>
+
+<p>三点直击 BFCL V1 / V2(单轮 schema)和 ToolBench / API-Bank(LLM judge / 真 API)的弱点。所以 ACEBench 给出的解法是: <strong>(a)</strong> 双语 / 多轮场景 / Special 异常输入 / Agent 多 agent 模拟全覆盖, <strong>(b)</strong> AST + 规则 + 沙盒 simulator 三档,不用 LLM judge。</p>
+
+<h3>1.2 团队 + 学术血统</h3>
+
+<div class="kv">
+  <strong>组:</strong> 中国科学技术大学(USTC)+ 华为诺亚方舟实验室(Huawei Noah's Ark Lab)<br>
+  <strong>第一作者:</strong> Chen Chen(USTC 博士生,intern at Huawei Noah's Ark Lab)<br>
+  <strong>资深作者:</strong> Weiwen Liu(华为诺亚)、Defu Lian(USTC,工业经济学+推荐系统)、Yasheng Wang(华为)、Wu Liu(USTC)<br>
+  <strong>姐妹 paper:</strong> <a href="https://arxiv.org/abs/2409.00920" target="_blank">ToolACE</a>(2024-09, 同一华为诺亚组,作者表大幅重合 — Weiwen Liu / Xingshan Zeng / Yasheng Wang 三人是双方共有)— 见 §1.3 二者关系
+</div>
+
+<h3>1.3 ACE-Bench vs ToolACE — 同源但完全不是一件事</h3>
+
+<p>这是写本笔记<strong>必须澄清</strong>的一点。读者会很容易把两个项目混在一起,因为名字像、组也像。实际上它们是 <em>评测 vs 数据集</em> 的关系:</p>
+
+<table>
+  <tr><th></th><th>ToolACE(2024-09)</th><th>ACEBench(2025-01)</th></tr>
+  <tr><td>arXiv</td><td><a href="https://arxiv.org/abs/2409.00920" target="_blank">2409.00920</a></td><td><a href="https://arxiv.org/abs/2501.12851" target="_blank">2501.12851</a></td></tr>
+  <tr><td>会议</td><td>ICLR 2025</td><td>EMNLP 2025 Findings</td></tr>
+  <tr><td>定位</td><td><strong>SFT 数据集 + 训练流程</strong>("automatic agentic pipeline to generate accurate, complex, and diverse tool-learning data" — verbatim abstract)</td><td><strong>评测 benchmark</strong>("comprehensive benchmark for assessing tool usage in LLMs" — verbatim)</td></tr>
+  <tr><td>核心产物</td><td>26,507 APIs · ToolACE-8B(LLaMA3.1-8B SFT)模型</td><td>4,538 APIs · 2,000 标注 entry · 中英双语</td></tr>
+  <tr><td>是否互相引用</td><td>不引 ACEBench(ToolACE 早 4 个月)</td><td>引 ToolACE 作为对比对象之一</td></tr>
+  <tr><td>团队重合</td><td>Weiwen Liu, Xingshan Zeng, Yasheng Wang(都是华为诺亚 + USTC 系)</td><td>同上三人 + 第一作者 Chen Chen 唯一仅在 ACEBench</td></tr>
+  <tr><td>后续</td><td>ToolACE-R(2025-04, arXiv:2504.01400, adaptive self-refinement)</td><td>v2-v8 持续修订, 11 月定稿入 EMNLP</td></tr>
+</table>
+
+<p><strong>结论:</strong> ToolACE 是<strong>训练 fuel</strong>,ACEBench 是<strong>OOD 测尺</strong>。同一华为诺亚团队不是巧合 — ToolACE 用 LLM agent 合成数据训出 ToolACE-8B 后,他们意识到当时所有 benchmark(尤其 BFCL V1)都偏 schema 单轮且只有英文,无法刻画真正的中文工业落地场景,于是花一年时间另起 ACEBench。这是<strong>"自己造数据→发现没好尺→造尺"</strong>的典型反馈循环。</p>
+
+<hr>
+
+<h2 id="sec2">§2 任务设计 — Normal / Special / Agent 三大类八子类</h2>
+
+<p>下面是 ACEBench 的任务类别 SVG 图(全自绘,verbatim 来自 v8 paper 章节 3 + EMNLP camera-ready 重述):</p>
+
+<div class="fig">
+<svg viewBox="0 0 760 420" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <defs>
+    <linearGradient id="gN" x1="0" x2="1"><stop offset="0" stop-color="#2f6feb"/><stop offset="1" stop-color="#5a8de8"/></linearGradient>
+    <linearGradient id="gS" x1="0" x2="1"><stop offset="0" stop-color="#cc4a1b"/><stop offset="1" stop-color="#e07c52"/></linearGradient>
+    <linearGradient id="gA" x1="0" x2="1"><stop offset="0" stop-color="#1f7a4a"/><stop offset="1" stop-color="#4ea683"/></linearGradient>
+  </defs>
+  <!-- root -->
+  <rect x="320" y="10" width="120" height="36" rx="6" fill="#1f2024"/>
+  <text x="380" y="34" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">ACEBench</text>
+  <text x="380" y="58" text-anchor="middle" font-size="11" fill="#5b5e66">~2,000 entries · 中英双语 · 4,538 APIs · 8 domain × 68 sub-domain</text>
+  <!-- 3 main branches -->
+  <line x1="380" y1="46" x2="120" y2="90" stroke="#5b5e66" stroke-width="1.2"/>
+  <line x1="380" y1="46" x2="380" y2="90" stroke="#5b5e66" stroke-width="1.2"/>
+  <line x1="380" y1="46" x2="640" y2="90" stroke="#5b5e66" stroke-width="1.2"/>
+  <!-- Normal box -->
+  <rect x="40" y="80" width="160" height="30" rx="6" fill="url(#gN)"/>
+  <text x="120" y="100" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Normal · 常规调用</text>
+  <!-- Special box -->
+  <rect x="300" y="80" width="160" height="30" rx="6" fill="url(#gS)"/>
+  <text x="380" y="100" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Special · 异常输入</text>
+  <!-- Agent box -->
+  <rect x="560" y="80" width="160" height="30" rx="6" fill="url(#gA)"/>
+  <text x="640" y="100" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">Agent · 多智能体</text>
+
+  <!-- Normal subcategories -->
+  <g font-size="11" fill="#1f2024">
+    <rect x="20" y="130" width="200" height="22" fill="#fff" stroke="#2f6feb" rx="4"/>
+    <text x="30" y="146"><tspan font-weight="bold">Atom</tspan> — number/enum/list/bool/object</text>
+    <rect x="20" y="158" width="200" height="22" fill="#fff" stroke="#2f6feb" rx="4"/>
+    <text x="30" y="174"><tspan font-weight="bold">Single-Turn</tspan> — single + parallel</text>
+    <rect x="20" y="186" width="200" height="22" fill="#fff" stroke="#2f6feb" rx="4"/>
+    <text x="30" y="202"><tspan font-weight="bold">Multi-Turn</tspan> — switching + refinement</text>
+    <rect x="20" y="214" width="200" height="22" fill="#fff" stroke="#2f6feb" rx="4"/>
+    <text x="30" y="230"><tspan font-weight="bold">Similar API</tspan> — 区分语义相近的 tool</text>
+    <rect x="20" y="242" width="200" height="22" fill="#fff" stroke="#2f6feb" rx="4"/>
+    <text x="30" y="258"><tspan font-weight="bold">Preference</tspan> — user profile 个性化</text>
+  </g>
+
+  <!-- Special subcategories -->
+  <g font-size="11" fill="#1f2024">
+    <rect x="280" y="130" width="200" height="22" fill="#fff" stroke="#cc4a1b" rx="4"/>
+    <text x="290" y="146"><tspan font-weight="bold">Incomplete</tspan> — 缺必填参数</text>
+    <rect x="280" y="158" width="200" height="22" fill="#fff" stroke="#cc4a1b" rx="4"/>
+    <text x="290" y="174"><tspan font-weight="bold">Error</tspan> — 参数畸形/违反约束</text>
+    <rect x="280" y="186" width="200" height="22" fill="#fff" stroke="#cc4a1b" rx="4"/>
+    <text x="290" y="202"><tspan font-weight="bold">Irrelevant</tspan> — 请求超出 tool 能力</text>
+    <text x="290" y="238" font-style="italic" fill="#5b5e66">→ 模型必须识别异常, binary 1/0</text>
+    <text x="290" y="252" font-style="italic" fill="#5b5e66">→ 不能"硬调用一个 function"</text>
+  </g>
+
+  <!-- Agent subcategories -->
+  <g font-size="11" fill="#1f2024">
+    <rect x="540" y="130" width="200" height="22" fill="#fff" stroke="#1f7a4a" rx="4"/>
+    <text x="550" y="146"><tspan font-weight="bold">Multi-Turn</tspan> — user repeatedly</text>
+    <rect x="540" y="158" width="200" height="22" fill="#fff" stroke="#1f7a4a" rx="4"/>
+    <text x="550" y="174"><tspan font-weight="bold">Multi-Step</tspan> — user once, 多次 tool 调用</text>
+    <text x="550" y="200" font-style="italic" fill="#5b5e66">→ 评 End-to-End Acc (EA)</text>
+    <text x="550" y="216" font-style="italic" fill="#5b5e66">→ 评 Process Acc (PA = n/m)</text>
+    <text x="550" y="232" font-style="italic" fill="#5b5e66">→ sandbox simulator backend</text>
+    <text x="550" y="256" font-style="italic" fill="#5b5e66">→ multi-agent 而非真 user-in-loop</text>
+  </g>
+
+  <!-- bottom note -->
+  <rect x="40" y="295" width="680" height="105" fill="#fff8e8" stroke="#d2a32a" rx="6"/>
+  <text x="380" y="318" text-anchor="middle" font-size="12" font-weight="bold" fill="#1f2024">overall accuracy 加权公式(v8 verbatim):</text>
+  <text x="380" y="342" text-anchor="middle" font-size="13" fill="#cc4a1b">All Acc = A·Acc_Normal + B·Acc_Special + C·Acc_Agent</text>
+  <text x="380" y="362" text-anchor="middle" font-size="11" fill="#5b5e66">权重 A/B/C 用<tspan font-style="italic"> √n_Normal / (√n_Normal + √n_Special + √n_Agent)</tspan> 形式 — 抑制大类支配</text>
+  <text x="380" y="380" text-anchor="middle" font-size="11" fill="#5b5e66">中英双语各跑一份, 同一权重</text>
+</svg>
+<figcaption>ACEBench 任务类别树状图 — 三大类八子类 + overall accuracy 加权公式。Special 子类不属于"调函数"任务,而是测<em>识别异常的能力</em>(应该拒答 / 应该追问 / 应该报错)。Agent 子类区分 Multi-Turn(user repeatedly)和 Multi-Step(user appears once)两种 — 这是 ACEBench 比 BFCL V3 multi-turn 更细的关键点。</figcaption>
+</div>
+
+<h3>2.1 Normal 五子类 — 常规调用</h3>
+
+<table>
+  <tr><th>子类</th><th>测什么</th><th>示例(改写)</th></tr>
+  <tr><td><strong>Atom</strong></td><td>不同参数类型: number / enum / list / bool / object</td><td>"设置闹钟时间为 [07:00, 12:00, 18:00] 三组" → 测 list 类型</td></tr>
+  <tr><td><strong>Single-Turn</strong></td><td>单轮 single function + parallel function</td><td>"查北京和上海今天的天气" → parallel <code>get_weather</code> 两次</td></tr>
+  <tr><td><strong>Multi-Turn</strong></td><td>topic switching + refinement-based 多轮</td><td>第 1 轮"订机票",第 2 轮"改成下周三"</td></tr>
+  <tr><td><strong>Similar API</strong></td><td>function pool 里有<em>语义相近</em>的工具,模型必须选对</td><td><code>send_email</code> vs <code>send_message</code> vs <code>send_sms</code> 三选一</td></tr>
+  <tr><td><strong>Preference</strong></td><td>user profile 个性化(用户偏好 / 历史)</td><td>"订餐厅" + user profile "素食者" → 调用时带 <code>diet=vegetarian</code></td></tr>
+</table>
+
+<p>Multi-Turn 的 v8 verbatim 描述: 对话轮次范围 <em>"The number of dialogue turns ranges from 1 to 8"</em>。这比 BFCL V3 multi-turn 平均 2-3 轮要深,但不到 MCP-Universe / MCPMark 那种 10-50 轮。</p>
+
+<h3>2.2 Special 三子类 — 异常输入</h3>
+
+<p>这是 ACEBench 比 BFCL 更精细的地方 — 显式把"<strong>识别问题、拒答</strong>"列为独立任务类。</p>
+
+<table>
+  <tr><th>子类</th><th>测什么</th><th>正确行为</th></tr>
+  <tr><td><strong>Incomplete</strong></td><td>必填参数缺失(用户说话不完整)</td><td>主动追问用户补全</td></tr>
+  <tr><td><strong>Error</strong></td><td>参数格式错 / 违反约束(比如年龄给负数)</td><td>报错或拒答,不调函数</td></tr>
+  <tr><td><strong>Irrelevant</strong></td><td>请求超出现有 tool 能力(没合适工具)</td><td>用自然语言回应,不<em>编</em>一个 function name</td></tr>
+</table>
+
+<p>评测: <strong>binary</strong> (1 = 正确识别异常, 0 = 错调函数)。这点与 BFCL V1 <code>irrelevance</code> + V3 <code>multi_turn_miss_param</code> + <code>multi_turn_miss_func</code> 性质相同,但<strong>ACEBench 把三类异常拆得更细且独立计分</strong>。</p>
+
+<h3>2.3 Agent 两子类 — 多智能体模拟</h3>
+
+<p>这是 ACEBench 与 BFCL multi-turn 真正的<strong>方法学分歧</strong>: Agent 任务用 <strong>multi-agent 模拟</strong>来产生 user 输入,而不是单一 user prompt。两个子类:</p>
+
+<table>
+  <tr><th>子类</th><th>定义(v8 verbatim 转述)</th><th>评测指标</th></tr>
+  <tr><td><strong>Multi-Turn</strong></td><td>user 在对话中<em>反复参与</em>,user agent 模拟人类多次发言</td><td>EA(End-to-End Acc)+ PA(Process Acc)</td></tr>
+  <tr><td><strong>Multi-Step</strong></td><td>user 只发<em>一次</em>需求, 但需要模型多步 tool 调用才能完成(典型: "帮我规划下周一日游" → 调天气 + 调地图 + 调订餐)</td><td>同上</td></tr>
+</table>
+
+<div class="kv">
+<strong>EA(End-to-End Accuracy):</strong> 任务完成后, 把 <em>"sandbox 中相应 class 实例的属性"</em> 与目标 state 对比 — 这是 state-based eval(和 BFCL V3 思想一致)。<br>
+<strong>PA(Process Accuracy):</strong> 形式为 <em>n/m</em>, 其中 <em>m</em> 是<em>理想 function call 流程</em>步数, <em>n</em> 是模型实际命中步数 — 这是 trajectory-level 部分匹配, 不要求严格顺序。
+</div>
+
+<h3>2.4 数据规模和分布</h3>
+
+<p>论文 v8 verbatim: <em>"The final dataset comprises 2,000 annotated entries."</em> 双语<em>各</em> 2,000(经 v8 "two linguistically parallel versions… ensuring equal distribution of data types")。但 paper <strong>没有给出</strong>每个子类的精确样本数 — Figure 3 用饼图可视化但无数字标注。这是阅读 ACEBench paper 时最大的不便处之一 — 想精确知道 "Single-Turn 多少条? Similar API 多少条?" 必须自己去 <code>data_all/possible_answer_zh/data_*.json</code> 数 entry。</p>
+
+<p>API pool 规模(verbatim): <strong>4,538 APIs · 8 major domains · 68 sub-domains</strong>。 8 个 domain: technology / finance / entertainment / society / health / culture / environment(以及其他)。这与 BFCL Live 不一样 — BFCL Live 是用户贡献,domain 偏程序员日常;ACEBench 是<em>人工精心设计</em>的 domain ontology,因此 finance / health / culture 这种类别均衡覆盖,更适合做工业评估。</p>
+
+<hr>
+
+<h2 id="sec3">§3 评测方法 — AST + Binary + State-based 三段</h2>
+
+<p>三类任务对应三种评测方法(verbatim 自 v8 §4):</p>
+
+<table>
+  <tr><th>任务类</th><th>评测器</th><th>关键判定</th></tr>
+  <tr><td>Normal</td><td><strong>AST parsing</strong></td><td>函数名 → 参数类型 → 参数值, 三步严格匹配; 与 BFCL AST checker 思路一致</td></tr>
+  <tr><td>Special</td><td><strong>Binary rule-based</strong></td><td>1 = 正确识别异常 / 拒答 / 追问; 0 = 错误调函数</td></tr>
+  <tr><td>Agent</td><td><strong>Sandbox state diff (EA) + trajectory match (PA)</strong></td><td>EA: 比 backend class 实例属性; PA = n/m 流程命中率</td></tr>
+</table>
+
+<h3>3.1 Normal 评测 — AST 三步</h3>
+
+<p>v8 verbatim: <em>"The evaluation uses AST parsing, beginning with matching the function name to the target function name, then matching parameter types to verify consistency, and finally comparing parameter values to confirm accuracy."</em></p>
+
+<p>这是<strong>纯 schema 级</strong>评测 — 不真去执行 API,因此没有 BFCL Executable 类的"weather API 今天挂了"那种不稳定问题。三步匹配的 dispatch 在 ACEBench repo <code>eval_main.py</code> 实现。</p>
+
+<h3>3.2 Special 评测 — Binary 1/0</h3>
+
+<p>异常类没有<em>需要被调对</em>的 ground-truth function call。它只问 <strong>"模型在面对 incomplete / error / irrelevant 时, 有没有避免错调"</strong>。这是 binary 二分类问题。</p>
+
+<h3>3.3 Agent 评测 — EA(End-to-End)+ PA(Process)</h3>
+
+<p>两个指标在 paper §4 Agent Evaluation 给出:</p>
+
+<div class="formula">
+<em>EA</em> = compare(backend.state_after, target.state)<br>
+<em>PA</em> = <em>n</em> / <em>m</em>,&nbsp; where <em>m</em> = 理想 function-call 流程长度, <em>n</em> = 模型实际命中数
+</div>
+
+<p>EA 借鉴 BFCL V3 state-based evaluation; PA 是 ACEBench 独有的<em>过程评分</em> — 即使最终 state 不完全对, 走对了大半流程也部分得分。这一点比 BFCL V3 "all-or-nothing per turn" 更宽容,适合反映"模型其实差最后一步"的真实表现。</p>
+
+<h3>3.4 overall accuracy 加权公式</h3>
+
+<p>v8 paper 给的总分加权 — 这个公式比 BFCL V4 用<em>硬编码 10/10/30/40/10</em> 更"统计 fair":</p>
+
+<div class="formula">
+All&nbsp;Acc = A·Acc<sub>Normal</sub> + B·Acc<sub>Special</sub> + C·Acc<sub>Agent</sub><br>
+<em>where</em> A = √n<sub>Normal</sub> / (√n<sub>Normal</sub> + √n<sub>Special</sub> + √n<sub>Agent</sub>), B & C 同理
+</div>
+
+<p>√n 加权的好处: <strong>抑制大类支配</strong> — Normal 子类很多(5 子类),Agent 只有 2 子类。如果用线性 n 加权,Agent 的权重会被冲低到 ~10% 以下;用 √n 加权,Agent 大约还能拿 25-30% 权重。这是个比 BFCL V4 "硬编码 40% Agentic" 更自洽的选择。</p>
+
+<hr>
+
+<h2 id="sec4">§4 🔍 开源现状 — repo / dataset / license / 自托管</h2>
+
+<table>
+  <tr><th>组件</th><th>位置</th><th>状态</th></tr>
+  <tr><td>代码仓库</td><td><a href="https://github.com/ACEBench/ACEBench" target="_blank">ACEBench/ACEBench</a></td><td><strong>MIT License</strong></td></tr>
+  <tr><td>数据集</td><td>仓库内 <code>data_all/</code></td><td>分 <code>possible_answer_en/</code> + <code>possible_answer_zh/</code>; JSON; 随 repo 一起 MIT 发布</td></tr>
+  <tr><td>HF dataset 镜像</td><td><span class="no">未提供</span></td><td>截至 2026-05 没有官方 HuggingFace dataset(BFCL 有 — 这是 ACEBench 比 BFCL 弱的一点)</td></tr>
+  <tr><td>Live leaderboard</td><td><a href="https://chenchen0103.github.io/ACEBench/" target="_blank">chenchen0103.github.io/ACEBench</a></td><td>last updated 2025-07-21</td></tr>
+  <tr><td>评测脚本</td><td><code>generate.py</code> + <code>eval_main.py</code></td><td>纯 python, 不依赖 SerpAPI / OAuth</td></tr>
+  <tr><td>模型 handler</td><td><code>model_inference/inference_map.py</code></td><td>APIModelInference(OpenAI / Qwen / DeepSeek / Claude / Gemini)+ CommonInference("-local" 后缀的本地模型)</td></tr>
+  <tr><td>第三方 BFCL/ACE-Bench 桥</td><td><a href="https://github.com/NVlabs/Tool-N1" target="_blank">NVlabs/Tool-N1</a></td><td>Tool-N1 eval pipeline 同时支持 BFCL + APIBank + ACEBench(<a href="28_BFCL.html">#28 §11.2</a>)</td></tr>
+</table>
+
+<h3>4.1 三步自托管(README verbatim)</h3>
+
+<pre># 1. 装环境
+git clone https://github.com/ACEBench/ACEBench
+cd ACEBench
+pip install -r requirements.txt
+
+# 2. inference — 闭源 API(以 qwen-max 中文为例)
+python generate.py --model qwen-max --category test_all --language zh
+
+# 2b. inference — 本地模型(model name 加 "-local" 后缀)
+python generate.py --model Qwen2.5-3B-Instruct-local \
+                   --model-path /path/to/model \
+                   --category test_all --language zh
+
+# 3. evaluate
+python eval_main.py --model Qwen2.5-3B-Instruct-local --category test_all --language zh</pre>
+
+<p>关键参数:</p>
+<ul>
+  <li><code>--category</code>: 可选 <code>test_all</code> 或具体子类(<code>data_normal</code> / <code>data_special</code> / <code>data_agent</code> / 等)</li>
+  <li><code>--language</code>: <code>zh</code> 中文 / <code>en</code> 英文 — <strong>必须显式指定一种,无 "both" 选项</strong></li>
+  <li><code>--model-path</code>: 本地模型 ckpt 目录(仅 <code>-local</code> 后缀 model 用)</li>
+</ul>
+
+<h3>4.2 模型 handler 注册流程</h3>
+
+<p>跟 BFCL 类似,加新模型需要 (1) 在 <code>model_inference/inference_map.py</code> 加 mapping, (2) 实现对应 <code>APIModelInference</code> 或 <code>CommonInference</code> 子类。但比 BFCL 简单 — ACEBench 只有 inference + eval 两个入口,没有 BFCL 那么大的 model_handler 模块。</p>
+
+<div class="nb"><strong>开源 inventory 总结:</strong> ACEBench 是 <em>MIT-licensed 全开源</em>,数据 / 评测 / leaderboard 都在仓库里。但<strong>没有 HF dataset 镜像</strong>,leaderboard 自 2025-07-21 后官方没再更新(三方 llm-stats 只收了 2 条 Kimi K2 自报)。这是它和 BFCL 49k/月 HF 下载 / 月度官方 CSV 更新的最大差距。<strong>实际使用基本依赖直接 clone GitHub</strong>。</div>
+
+<hr>
+
+<h2 id="sec5">§5 leaderboard — 原 paper Table 2 + Kimi K2 + EnvTuning OOD</h2>
+
+<h3>5.1 paper 原始 leaderboard (v8 Table 2 — 双语 combined Overall)</h3>
+
+<p>来自 v8 paper Table 2(combined 中英文 overall acc, 由 √n 加权): 前 21 个 model,按 Overall 排序。<strong>verbatim 自 paper</strong>:</p>
+
+<table>
+  <tr><th>Rank</th><th>Model</th><th>类型</th><th>Normal</th><th>Special</th><th>Agent</th><th>Overall</th></tr>
+  <tr><td>1</td><td><strong>GPT-4o</strong></td><td>proprietary</td><td>93.4</td><td>84.5</td><td>77.0</td><td><strong>85.4</strong></td></tr>
+  <tr><td>2</td><td>GPT-4-Turbo</td><td>proprietary</td><td>93.2</td><td>84.8</td><td>77.5</td><td>84.5</td></tr>
+  <tr><td>3</td><td>Qwen2.5-Coder-32B-Instruct</td><td>open ≤40B</td><td>90.2</td><td>81.0</td><td>71.0</td><td>79.6</td></tr>
+  <tr><td>4</td><td>Qwen-Max</td><td>proprietary</td><td>91.2</td><td>80.5</td><td>68.0</td><td>78.4</td></tr>
+  <tr><td>5</td><td>DeepSeek-V3</td><td>open large</td><td>91.5</td><td>84.0</td><td>77.0</td><td>74.8</td></tr>
+  <tr><td>6</td><td>Qwen2.5-72B-Instruct</td><td>open large</td><td>86.8</td><td>80.3</td><td>69.5</td><td>74.7</td></tr>
+  <tr><td>7</td><td>GPT-4o-Mini</td><td>proprietary</td><td>86.5</td><td>76.0</td><td>66.5</td><td>72.5</td></tr>
+  <tr><td>8</td><td>Gemini-1.5-Pro</td><td>proprietary</td><td>84.5</td><td>76.8</td><td>64.5</td><td>70.7</td></tr>
+  <tr><td>9</td><td>Claude-3-5-Sonnet</td><td>proprietary</td><td>76.9</td><td>72.5</td><td>62.5</td><td>68.9</td></tr>
+  <tr><td>10</td><td>Llama-3.1-70B-Instruct</td><td>open large</td><td>82.5</td><td>68.3</td><td>63.5</td><td>60.4</td></tr>
+  <tr><td>11</td><td>Doubao-Pro-32k</td><td>proprietary(字节)</td><td>79.8</td><td>55.5</td><td>58.0</td><td>59.4</td></tr>
+  <tr><td>12</td><td>Qwen2.5-7B-Instruct</td><td>open ≤40B</td><td>76.0</td><td>60.3</td><td>58.5</td><td>54.8</td></tr>
+  <tr><td>13</td><td>DeepSeek-Coder-V2-Lite-Instruct</td><td>open ≤40B</td><td>75.2</td><td>57.8</td><td>46.5</td><td>49.5</td></tr>
+  <tr><td>14</td><td>Qwen2.5-Coder-7B-Instruct</td><td>open ≤40B</td><td>76.0</td><td>63.8</td><td>57.5</td><td>48.9</td></tr>
+  <tr><td>15</td><td>Watt-Tool-8B</td><td>open ≤40B specialized</td><td>85.7</td><td>69.3</td><td>55.5</td><td>45.7</td></tr>
+  <tr><td>16</td><td>Hammer2.1-7B</td><td>open ≤40B specialized</td><td>73.7</td><td>57.5</td><td>40.0</td><td>42.9</td></tr>
+  <tr><td>17</td><td>Llama-3.1-8B-Instruct</td><td>open ≤40B</td><td>51.9</td><td>39.8</td><td>28.0</td><td>33.4</td></tr>
+  <tr><td>18</td><td>Phi-3-Mini-128k-Instruct</td><td>open ≤40B</td><td>57.2</td><td>39.3</td><td>23.0</td><td>32.0</td></tr>
+  <tr><td>19</td><td>xLAM-7B-r</td><td>open ≤40B specialized</td><td>43.5</td><td>22.0</td><td>19.0</td><td>21.6</td></tr>
+  <tr><td>20</td><td>Llama-3.2-3B-Instruct</td><td>open ≤40B</td><td>38.7</td><td>15.3</td><td>9.0</td><td>19.6</td></tr>
+  <tr><td>21</td><td>Hammer2.1-3B</td><td>open ≤40B specialized</td><td>22.4</td><td>11.5</td><td>3.5</td><td>11.3</td></tr>
+</table>
+
+<p><strong>SOTA 分组(paper 原报数, 2025-01 至 2025-11 周期):</strong></p>
+
+<table>
+  <tr><th>分组</th><th>Top 5(Overall verbatim)</th></tr>
+  <tr><td><strong>Proprietary frontier</strong></td><td>(1) GPT-4o 85.4 · (2) GPT-4-Turbo 84.5 · (4) Qwen-Max 78.4 · (7) GPT-4o-Mini 72.5 · (8) Gemini-1.5-Pro 70.7</td></tr>
+  <tr><td><strong>Open-weight ≤40B</strong></td><td>(3) Qwen2.5-Coder-32B 79.6 · (12) Qwen2.5-7B 54.8 · (13) DeepSeek-Coder-V2-Lite 49.5 · (14) Qwen2.5-Coder-7B 48.9 · (15) Watt-Tool-8B 45.7</td></tr>
+  <tr><td><strong>Open-weight large</strong></td><td>(5) DeepSeek-V3 74.8 · (6) Qwen2.5-72B 74.7 · (10) Llama-3.1-70B 60.4</td></tr>
+</table>
+
+<h3>5.2 Agent 子集详细 (paper Table 4 — Multi-Turn / Multi-Step 分开)</h3>
+
+<p>这是 ACEBench 最有诊断价值的子表 — 拆分 Multi-Turn 和 Multi-Step,每边给 EA/PA 双指标:</p>
+
+<table>
+  <tr><th>Model</th><th>Multi-Turn EA</th><th>Multi-Turn PA</th><th>Multi-Step EA</th><th>Multi-Step PA</th></tr>
+  <tr><td><strong>GPT-4-Turbo</strong></td><td>50.0</td><td>66.0</td><td><strong>85.0</strong></td><td><strong>89.5</strong></td></tr>
+  <tr><td>DeepSeek-V3</td><td>31.5</td><td>54.5</td><td>37.5</td><td>53.0</td></tr>
+  <tr><td>Claude-3-5-Sonnet</td><td>21.5</td><td>41.5</td><td>57.5</td><td>76.5</td></tr>
+  <tr><td>DouBao-Pro-32k</td><td>20.0</td><td>45.5</td><td>30.0</td><td>47.5</td></tr>
+  <tr><td>Qwen2.5-7B-Instruct</td><td>15.0</td><td>28.0</td><td>12.5</td><td>15.5</td></tr>
+  <tr><td>Hammer2.1-7B</td><td>8.5</td><td>33.5</td><td>25.0</td><td>42.5</td></tr>
+</table>
+
+<p>诊断信号:</p>
+<ul>
+  <li><strong>Multi-Step 普遍比 Multi-Turn 容易</strong>: GPT-4-Turbo Multi-Step 85.0 vs Multi-Turn 50.0(差 35 pp)。这反直觉 — "user 只说一次" 反而比 "user 多次发言" 容易,因为 user repeatedly 引入更多歧义。</li>
+  <li><strong>Claude-3-5-Sonnet Multi-Turn 21.5 反常低</strong>(比 GPT-4-Turbo 低近一半),但 Multi-Step 57.5 又抢回。这是 Anthropic 模型在 multi-turn schema 上的<em>已知问题</em>(与 <a href="28_BFCL.html">#28 BFCL</a> Claude V3 25.3 同源)。</li>
+  <li><strong>PA 都比 EA 高 5-15 pp</strong>: 这印证了 PA 是 "process-level partial credit", 让"差最后一步的模型"也能拿分。</li>
+</ul>
+
+<h3>5.3 Kimi K2 自报(K2 技术报告 Table 3)</h3>
+
+<p><a href="https://arxiv.org/pdf/2507.20534" target="_blank">Kimi K2 技术报告</a>(Moonshot, 2025-07)Table 3 单独把 ACEBench (En) 列为主报告 metric 之一:</p>
+
+<table>
+  <tr><th>Model</th><th>ACEBench (En) Overall</th></tr>
+  <tr><td>GPT-4.1</td><td><strong>80.1</strong></td></tr>
+  <tr><td>Kimi-K2-Instruct</td><td>76.5</td></tr>
+  <tr><td>Claude Sonnet 4</td><td>76.2</td></tr>
+  <tr><td>Claude Opus 4</td><td>75.6</td></tr>
+  <tr><td>Gemini 2.5 Flash</td><td>74.5</td></tr>
+  <tr><td>DeepSeek-V3-0324</td><td>72.7</td></tr>
+  <tr><td>Qwen3-235B-A22B</td><td>70.5</td></tr>
+</table>
+
+<p>Kimi K2 paper abstract verbatim: <em>"Notably, K2 obtains 66.1 on Tau2-Bench, <strong>76.5 on ACEBench (En)</strong>, …"</em>。 这是 frontier model 报告里少有的把 ACEBench 当 first-class metric 用的例子。</p>
+
+<h3>5.4 EnvTuning OOD(<a href="29_TuneTheEnvironment.html">#29</a>)— Agent 子集</h3>
+
+<p>EnvTuning(<a href="29_TuneTheEnvironment.html">#29</a>)把 ACEBench Agent 当 <strong>OOD eval</strong> 用 — 训练只用 BFCL V3 400 条,泛化效果由 ACEBench Agent 验证。Table 2 verbatim:</p>
+
+<table>
+  <tr><th>Model</th><th>ACEBench Agent Avg</th><th>Multi-Turn</th><th>Multi-Step</th></tr>
+  <tr><td>xLAM-2-8b-fc-r</td><td>1.65</td><td>0.00</td><td>3.33</td></tr>
+  <tr><td>BitAgent-8B</td><td>5.00</td><td>10.00</td><td>0.00</td></tr>
+  <tr><td>Llama-3.1-8B-Instruct</td><td>1.65</td><td>0.00</td><td>3.33</td></tr>
+  <tr><td>&nbsp;&nbsp;+ Environment Tuning</td><td>4.17</td><td>5.00</td><td>3.33</td></tr>
+  <tr><td><strong>ToolACE-2-Llama-3.1-8B</strong></td><td>8.34</td><td>10.00</td><td>6.67</td></tr>
+  <tr><td>&nbsp;&nbsp;<strong>+ Environment Tuning</strong></td><td><strong>15.00</strong></td><td>10.00</td><td><strong>20.00</strong></td></tr>
+  <tr><td>watt-tool-8B</td><td>2.50</td><td>5.00</td><td>0.00</td></tr>
+  <tr><td>&nbsp;&nbsp;+ Environment Tuning</td><td>7.50</td><td>0.00</td><td>15.00</td></tr>
+</table>
+
+<div class="nb"><strong>这是 user 在 #29 任务里点出的核心数字:</strong> ToolACE-2 Multi-Step 6.67 → 20.00(+13.33 pp,近 3 倍)。同一个 EnvTuning recipe(BFCL V3 400 条 + 4 stage curriculum + actionable augmentation + progress reward),只训不到一千条样本,在 ACEBench Multi-Step OOD 拿到 3 倍提升。这就是 ACEBench 作为 OOD 测尺的价值 — 它和 BFCL V3 分布显著不同(中英双语 / 多 agent / 多 step),所以能验证 "训练是否泛化到了真的工具使用能力, 还是过拟合 BFCL schema"。</div>
+
+<h3>5.5 Tool-N1 + AgentScaler 自报(社区收录)</h3>
+
+<p>除上述外, AgentScaler(基于 Qwen3 的 agentic 微调系列)/Tool-N1 (NVIDIA, <a href="28_BFCL.html">#28 §11.2</a>)的 paper 也把 ACEBench 列为对比目标之一。但因为 paper 自报数字 + 评测细节(中/英? combined?)各异,本文不再单列。 <strong>截至 2026-05,ACEBench 官方 leaderboard 自 2025-07-21 后没有再大批更新, 第三方汇总(llm-stats / airank.dev)收录非常少, 远没到 BFCL 109 model 那个量级</strong>。这是 ACEBench 在 "social adoption" 维度的明显短板。</p>
+
+<hr>
+
+<h2 id="sec6">§6 提交流程 — PR-based,无 web portal</h2>
+
+<p>ACEBench 仓库 README <strong>没有显式 "How to Submit"</strong> 章节,但从 repo 结构可推出标准 PR 流程:</p>
+
+<ol>
+  <li>fork <code>ACEBench/ACEBench</code></li>
+  <li>在 <code>model_inference/inference_map.py</code> 注册新 model + 实现对应 <code>*Inference</code> 子类</li>
+  <li>本地跑 <code>python generate.py</code> + <code>python eval_main.py</code> 出两份 JSON(<code>en</code> + <code>zh</code>)</li>
+  <li>更新 <code>docs/</code> 下的 leaderboard 表(GitHub Pages 渲染)</li>
+  <li>提 PR — 第一作者 Chen Chen(<code>chenchen0103</code> 即 GitHub Pages 域名)review</li>
+</ol>
+
+<div class="nb"><strong>对比 BFCL:</strong> BFCL 由 Berkeley 团队在 <em>自己的硬件</em> 上重测后才合并;ACEBench 暂无重测验证机制(repo 自 2025-07 后 commit 不活跃)。如果你只是想 self-report 一个数字, ACEBench 比 BFCL 友好;如果想要"权威 third-party 验证", BFCL 更靠谱。</div>
+
+<hr>
+
+<h2 id="sec7">§7 与 BFCL / MCP bench 对比 — 何时用 ACEBench</h2>
+
+<table>
+  <tr><th>维度</th><th>ACEBench</th><th><a href="28_BFCL.html">BFCL V4</a></th><th><a href="21_MCPBenchmarks_compare.html">MCP-Universe / Atlas / Toolathlon</a></th></tr>
+  <tr><td>语言</td><td><strong>中 + 英</strong> 双语</td><td>英文 (+ Java/JS subset 50-100 题)</td><td>英文为主</td></tr>
+  <tr><td>tool 接口</td><td>Python class API + JSON schema</td><td>Python class API</td><td>真 MCP protocol (JSON-RPC + OAuth)</td></tr>
+  <tr><td>异常输入</td><td><strong>3 子类显式建模</strong>(Incomplete / Error / Irrelevant)</td><td>仅 irrelevance + multi_turn_miss_func / miss_param</td><td>不显式建模</td></tr>
+  <tr><td>multi-agent</td><td><strong>是</strong>(Agent 子集用模拟 user agent)</td><td>否(real user prompts only)</td><td>真 user prompts</td></tr>
+  <tr><td>multi-step</td><td><strong>显式独立子类</strong></td><td>含在 multi_turn_base / composite</td><td>常态化, 10-50 step</td></tr>
+  <tr><td>评测器</td><td>AST + binary + state diff(<strong>无 LLM judge</strong>)</td><td>AST + state diff(无 LLM judge)</td><td>Atlas: Gemini judge · Universe: 多层 · MCPMark: verify.py · Toolathlon: 真副作用</td></tr>
+  <tr><td>规模</td><td>~2,000 entries</td><td>~4,951 entries</td><td>231 (Universe) / 1,000 (Atlas) / …</td></tr>
+  <tr><td>跑一次价格</td><td><strong>低</strong>(~$10 API, 无 OAuth)</td><td>~$50 API(SerpAPI 钱另算)</td><td>$500-2,000 + 真 cloud env</td></tr>
+  <tr><td>HF dataset</td><td><span class="no">无</span></td><td><span class="ok">49k 下载/月</span></td><td>各自不同, 都偏少</td></tr>
+  <tr><td>license</td><td>MIT</td><td>Apache-2.0</td><td>Apache-2.0 / MIT 混合</td></tr>
+  <tr><td>frontier 引用</td><td><strong>Kimi K2 技术报告主报 76.5</strong></td><td>GPT-5.5 system card (训练源)</td><td>Claude Opus 4.7 system card (MCP-Atlas 77.3)</td></tr>
+</table>
+
+<h3>7.1 何时用 ACEBench</h3>
+
+<ul>
+  <li><strong>需要中文 function-call eval</strong>: 这是当前唯一在主流会议(EMNLP 2025 Findings)上发表、有中英双语 ground truth、被工业界(Kimi K2, AgentScaler)引用的 benchmark。中文 LLM 厂商训 tool-use 模型,ACEBench 是必跑。</li>
+  <li><strong>需要 fine-grained Special 类</strong>: 如果你想测"模型拒答 / 追问能力", ACEBench 把异常输入拆成 3 子类比 BFCL 更细。</li>
+  <li><strong>OOD eval(配合 BFCL 训练)</strong>: 见 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 范例 — 用 BFCL V3 训,用 ACEBench Agent 测 OOD。</li>
+  <li><strong>预算紧</strong>: 无 SerpAPI / 无 OAuth / 无真 cloud, 跑一次便宜得多。</li>
+</ul>
+
+<h3>7.2 何时不用 ACEBench</h3>
+
+<ul>
+  <li><strong>需要真生产 stack</strong>: 真要测 OAuth Notion / Stripe / GitHub MCP, 直接上 MCP-Universe / Atlas / MCPMark。</li>
+  <li><strong>需要 109 model 大盘对比</strong>: BFCL 官方 CSV 持续更新,ACEBench leaderboard 自 2025-07 静默。</li>
+  <li><strong>需要 V4 agentic 类(web search / memory)</strong>: 这是 BFCL V4 独有, ACEBench 不评。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">§8 frontier model 官方引用情况</h2>
+
+<table>
+  <tr><th>frontier model</th><th>是否在官方 card / paper 引用 ACEBench</th><th>具体引用方式</th></tr>
+  <tr><td><strong>Kimi K2 / K2-0905</strong> (Moonshot, 2025-07)</td><td><span class="ok">是 — Table 3 主报告 metric</span></td><td>abstract verbatim: "76.5 on ACEBench (En)"; Table 3 把 ACEBench 与 Tau2-Bench / GPQA / MATH 并列 first-class</td></tr>
+  <tr><td><strong>AgentScaler</strong> (Qwen3 系列 agentic 微调)</td><td><span class="ok">是 — claim SOTA</span></td><td>3rd-party 总结: AgentScaler 4B/8B/30B-A3B 在 ACEBench 与 τ-bench / τ2-Bench 上 claim SOTA</td></tr>
+  <tr><td><strong>GPT-4o / GPT-4-Turbo / GPT-4.1</strong> (OpenAI)</td><td><span class="no">官方 system card 未引用</span></td><td>但 Kimi K2 report Table 3 替 OpenAI 报: GPT-4.1 = 80.1(ACEBench Top1)· GPT-4o 85.4(paper 原报)</td></tr>
+  <tr><td><strong>Claude Sonnet 4 / Opus 4</strong> (Anthropic)</td><td><span class="no">官方未引用</span></td><td>Kimi K2 report 替报: Sonnet 4 = 76.2 · Opus 4 = 75.6</td></tr>
+  <tr><td><strong>Gemini 2.5 Flash</strong> (Google)</td><td><span class="no">官方未引用</span></td><td>Kimi K2 report 替报: 74.5</td></tr>
+  <tr><td><strong>DeepSeek-V3</strong></td><td><span class="no">官方未引用</span></td><td>paper 原报 74.8;K2 report 72.7(0324 variant)</td></tr>
+  <tr><td><strong>Qwen3-235B</strong> (Alibaba)</td><td><span class="no">官方未直接</span></td><td>K2 report 替报 70.5</td></tr>
+  <tr><td><strong>Tool-N1 / Nemotron-Research</strong> (NVIDIA)</td><td><span class="ok">是 — eval pipeline 内嵌</span></td><td>Tool-N1 repo eval 支持 BFCL + APIBank + <strong>ACEBench</strong>(<a href="28_BFCL.html">#28 §11.2</a>)</td></tr>
+  <tr><td><strong>EnvTuning</strong> (蚂蚁 AWorld, ICLR 2026)</td><td><span class="ok">是 — Table 2 主 OOD</span></td><td>用 ACEBench Agent 当 OOD eval, ToolACE-2 8B 8.34→15.00 见 <a href="29_TuneTheEnvironment.html">#29</a></td></tr>
+</table>
+
+<p><strong>结论:</strong> ACEBench 的<strong>引用模式与 BFCL 完全不同</strong>。BFCL 主要被 ≤40B 小模型 SFT recipe(xLAM / Hammer / TOUCAN / 等)和 GPT-5.5 system card 当训练 / 训练源用;ACEBench 主要被<strong>中国厂的 frontier 模型(Kimi K2 / AgentScaler / DeepSeek 第三方报)+ 学术 OOD eval(EnvTuning)</strong>用。两个 benchmark 的 social topology 不重合 — 这恰恰是 ACEBench 不可替代的原因: <strong>"我们要在中国 frontier model 中做对比"</strong> 这件事 BFCL 没法满足,只能用 ACEBench。</p>
+
+<hr>
+
+<h2 id="sec9">§9 局限 + 个人 take</h2>
+
+<h3>9.1 ACEBench 本身局限</h3>
+
+<ol>
+  <li><strong>没有公开子类样本数</strong>: paper "2,000 annotated entries" 是<em>总数</em>,Figure 3 只画饼图无 label。 写 RL reward / curriculum 时不知道每个子类多少条非常不便,只能 clone repo 自己 <code>jq</code> 数。</li>
+  <li><strong>没有 HF dataset 镜像</strong>: 49,556 BFCL 月下载 vs 0 ACEBench HF 月下载。这意味着大多数研究者会"忘了"用 ACEBench。</li>
+  <li><strong>Leaderboard 静默</strong>: 2025-07-21 后官方网站没再更新, 第三方收录只有 2 条(llm-stats)。 想看"GPT-5 在 ACEBench 多少"找不到 — 只能去 Kimi K2 paper / EnvTuning paper 抠对比表。</li>
+  <li><strong>Agent 子集是 simulated user, 不是 real user</strong>: 比 BFCL multi_turn 多一层"另一个 LLM 演用户", 但仍然不是真用户 — 因此和 MCP-Universe / Atlas 的"真 user query"评测维度仍有差距。</li>
+  <li><strong>语言不止双语,文化也是 Chinese-context</strong>: 中文版 8 domain 里 "society / culture / health" 子类很多是<em>中文语境特有</em>(比如健康咨询的中医词汇)。 这是优点也是局限 — 英语 user 直接跑英文版分数会有 bias。</li>
+  <li><strong>没有版本演化机制</strong>: BFCL 有 V1→V4 演化(每代 changelog 公开), ACEBench v1-v8 全是<em>同一 benchmark 的 paper 修订</em>, 数据/任务集没显著扩张。一旦 GPT-5 把 Normal 类压到 95%+, 整个 benchmark 难以扩容。</li>
+</ol>
+
+<h3>9.2 我的 take</h3>
+
+<ol>
+  <li><strong>ACEBench 是 "中文 + Special + Agent 三件套" 的事实标准</strong>。 BFCL 是英文 schema 标准,ACEBench 是中英双语 + 异常处理 + 多 agent 模拟标准。两者互补, 不可互替。 训中国厂模型必跑。</li>
+  <li><strong>Agent Multi-Step 子集是 ACEBench 最大的差异化贡献</strong>。 BFCL V3 multi_turn 也有"多步", 但没把 "user 只发一次, 模型连续 plan 多 tool" 这个 sub-type 单列。 这恰恰是 production agent 最常见的形态(用户说"帮我搞定")。 ACEBench Multi-Step 单独评 EA + PA 双指标对训练 plan-and-execute 模型有<em>诊断价值</em>。</li>
+  <li><strong>"Special 类显式建模" 是被低估的设计</strong>。 现在 frontier model card 都喜欢说 "we improved hallucination", 但很少有 benchmark 把 Incomplete / Error / Irrelevant 拆开看。 ACEBench 把这 3 类拆出 binary 评测, 比 BFCL irrelevance 一锅炖<em>更可解读</em>。</li>
+  <li><strong>"OOD eval" 角色定位最准确</strong>。 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 的用法是教科书 — <em>训用 BFCL V3, 测用 ACEBench Agent</em>。 这避免了 BFCL 自我训测一致的 data leakage 风险, 也提供了跨语言泛化信号。 我推荐所有 ≤40B function-call 模型训练管线把 ACEBench Agent 当<strong>第二关 gate</strong>(第一关: BFCL V3 Overall ≥70%)。</li>
+  <li><strong>但靠 ACEBench 单独训不可行</strong>。 2,000 样本太少, 子类不公开, 不该当训练目标。 应该当<em>泛化测尺</em>用。</li>
+  <li><strong>v8 → EMNLP camera-ready 改标题 = team 的成熟信号</strong>。 从 v1 "Who Wins the Match Point" 这种竞赛标题改为 v8 "A Comprehensive Evaluation" 平实标题, 反映团队的目标从"我要发个炸点 paper"变成"我要做一个能用十年的标准"。 这对一个评测项目来说是好信号。 但要真做到 BFCL 那种"十年标准", 必须解决 §9.1 列的 6 个局限 — 尤其 (2) HF 镜像 + (3) 持续 leaderboard 维护。</li>
+</ol>
+
+<h3>9.3 一句话推荐</h3>
+
+<blockquote>
+<strong>训 ≤40B 中英双语 function-call 模型的标准流程:</strong> TOUCAN / xLAM 1.5M SFT 冷启 → BFCL V3 Overall ≥70% gate → <strong>ACEBench Agent ≥25% OOD gate(Multi-Step ≥30%)</strong> → EnvScaler / SETA / EnvTuning 合成 env RLVR → BFCL V4 Agentic ≥50% gate + ACEBench Multi-Step ≥40% → MCP-Atlas / MCPMark 真测。 ACEBench 是中英双语必经的 <strong>第二关 OOD</strong>。
+</blockquote>
+
+</main>
+</body>
+</html>
