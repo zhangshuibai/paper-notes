@@ -740,7 +740,7 @@ uv run vf-eval my-env -m gpt-4.1-mini -n 5 -r 3</pre>
 <tr><td><strong>MPL-2.0</strong></td><td>✅</td><td>✅ (per-file copyleft)</td><td>✅</td><td>修改的<em>文件</em>要开源,新加的可闭源</td><td>❌</td><td>✅</td><td>少见</td></tr>
 <tr><td><strong>CC-BY-4.0</strong></td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>很多 dataset (维基语料 / 学术 corpus)</td></tr>
 <tr><td><strong>CC-BY-SA-4.0</strong></td><td>✅</td><td>⚠ 衍生物必须 CC-BY-SA</td><td>❌</td><td>✅ share-alike</td><td>❌</td><td>✅</td><td>部分 dataset · 注意训练后模型权重的传染性争议</td></tr>
-<tr><td><strong>CC-BY-NC-4.0</strong></td><td><span class="no">❌ 非商用</span></td><td>—</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>⚠ <strong>xLAM 60K 数据</strong> · <strong>Hammer 数据</strong> · ToolACE 部分 — <em>训出来的模型不能商用</em></td></tr>
+<tr><td><strong>CC-BY-NC-4.0</strong></td><td><span class="no">❌ 非商用</span></td><td>—</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>⚠ <strong>xLAM 60K 数据</strong> · <strong>Hammer 数据</strong> — <em>训出来的模型不能商用</em>(<strong>校订 2026-05-18</strong>: 之前点名的 ToolACE 实测是 Apache-2.0,不是 NC,见 <a href="./35_ToolACE_2409.00920.html">#35</a>)</td></tr>
 <tr><td><strong>Llama 3 Community</strong></td><td>⚠ 月活 ≥7 亿要单独申请</td><td>✅ (有限制)</td><td>✅</td><td>❌ (但派生模型必须含 "Llama" 前缀)</td><td>❌</td><td>✅</td><td>所有 Llama-3 派生模型 (含很多 fine-tune)</td></tr>
 <tr><td><strong>Gemma Terms</strong></td><td>✅</td><td>✅</td><td>—</td><td>❌</td><td>—</td><td>需附 <em>Prohibited Use Policy</em></td><td>Gemma 系列</td></tr>
 <tr><td><strong>OpenRAIL-M</strong></td><td>⚠ 商用 OK 但禁特定用途 (军事 / 监控 / 误导等)</td><td>✅</td><td>—</td><td>❌</td><td>—</td><td>✅</td><td>BLOOM · 部分扩散模型</td></tr>
@@ -757,7 +757,7 @@ uv run vf-eval my-env -m gpt-4.1-mini -n 5 -r 3</pre>
 
 <div class="kv">
   <p><strong>② 数据集的 NC 条款会"穿透"到模型权重 — 这是本系列读者最容易踩的坑</strong></p>
-  <p>xLAM-60K / Hammer / ToolACE 部分数据是 <code>CC-BY-NC-4.0</code>。法理学界对"<em>训练用了 NC 数据 → 模型权重是否 NC</em>"仍有争议(Salesforce / Hugging Face 立场不一),但<strong>实务上几乎所有 frontier lab 都把它视为传染</strong> —— 你用 xLAM-60K SFT 出来的模型,商业部署有<strong>法律风险</strong>。规避方法: (a) 改用 TOUCAN(Apache-2.0 数据)/ APIGen Open(Apache);(b) 把 NC 数据的 contribution 降到 reward signal 而非 token 监督。</p>
+  <p><strong>xLAM-60K (Salesforce) / Hammer-data (ByteDance)</strong> 是 <code>CC-BY-NC-4.0</code>。法理学界对"<em>训练用了 NC 数据 → 模型权重是否 NC</em>"仍有争议(Salesforce / Hugging Face 立场不一),但<strong>实务上几乎所有 frontier lab 都把它视为传染</strong> —— 你用 xLAM-60K SFT 出来的模型,商业部署有<strong>法律风险</strong>。规避方法: (a) 改用 TOUCAN(Apache-2.0 数据)/ ToolACE(Apache-2.0)/ APIGen Open(Apache);(b) 把 NC 数据的 contribution 降到 reward signal 而非 token 监督。<strong>校订 2026-05-18</strong>: 早期版本把 ToolACE 也列入 NC 阵营是错误,实测 <code>Team-ACE/ToolACE</code> HF dataset 自标 Apache-2.0 (curl 验证),见 <a href="./35_ToolACE_2409.00920.html">#35 ToolACE</a>。</p>
 </div>
 
 <div class="kv">
@@ -777,7 +777,7 @@ uv run vf-eval my-env -m gpt-4.1-mini -n 5 -r 3</pre>
 │   └─ 任何 license 都可以,引用即可
 ├─ 开源 fine-tune 模型 (HF 公开)
 │   ├─ 训练栈/数据: <strong>MIT 或 Apache-2.0 优先</strong>
-│   ├─ 避免 CC-BY-NC 数据 (xLAM-60K / Hammer-data / ToolACE)
+│   ├─ 避免 CC-BY-NC 数据 (xLAM-60K / Hammer-data) — ToolACE 实测 Apache-2.0 误判已更正
 │   ├─ 基座是 Llama 3 → 名字必须含 "Llama" 前缀
 │   └─ 基座是 Qwen3 / DeepSeek / Mistral → 无文本限制
 └─ 闭源商业部署 (公司内部 / SaaS)

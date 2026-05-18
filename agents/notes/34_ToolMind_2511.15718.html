@@ -201,7 +201,7 @@
 <ul>
   <li><a href="https://huggingface.co/datasets/Salesforce/xlam-function-calling-60k" target="_blank"><strong>xLAM-function-calling-60k</strong></a> (Salesforce, CC-BY-4.0)</li>
   <li><a href="https://huggingface.co/datasets/glaiveai/glaive-function-calling-v2" target="_blank"><strong>Glaive-function-calling-v2</strong></a> (GlaiveAI, Apache-2.0)</li>
-  <li><a href="https://huggingface.co/datasets/Team-ACE/ToolACE" target="_blank"><strong>ToolACE</strong></a> (华为,CC-BY-NC-4.0 — <strong>非商用</strong>)</li>
+  <li><a href="https://huggingface.co/datasets/Team-ACE/ToolACE" target="_blank"><strong>ToolACE</strong></a> (华为,<strong>Apache-2.0</strong>;<strong>校订 2026-05-18</strong>: 早期标 NC 是错误,实测 HF cardData.license=apache-2.0,见 <a href="./35_ToolACE_2409.00920.html">#35 ToolACE</a>)</li>
 </ul>
 
 <p>对每个函数 <code>f_i: X_i → Y_i</code>,如果输入 / 输出参数缺 description 或 type,就用 LM 推断补全(论文 Appendix A.1 给了完整 prompt: "<em>Return only one result in JSON format with two fields: input description and input structure...</em>")。</p>
@@ -417,7 +417,7 @@ user: ###STOP###</pre>
 </table>
 
 <div class="nb">
-<strong>license 警示:</strong> ToolMind 自己在 HF 上标的是 <code>apache-2.0</code>,但<strong>它实际包含 ToolACE 来源的 7,327 条样本,而 ToolACE 原版 license 是 CC-BY-NC-4.0(非商用)</strong>。这意味着如果你在商用产品上用 ToolMind 的<strong>完整版</strong>,严格说是<strong>有 license 冲突的</strong> — 除非你能保证那 7,327 条 ToolACE 派生样本不进你的训练流水线。这是 ToolMind 和 TOUCAN 比明显的<strong>合规劣势</strong>: TOUCAN 用真 MCP 不依赖 NC 数据集,ToolMind 用三大公开 schema 数据集时混入了 ToolACE 的 NC 部分。
+<strong>license 校订 (2026-05-18):</strong> 早期版本担心 ToolMind 含 ToolACE → 继承 NC,<strong>这个判断错了</strong>。实测 <code>Team-ACE/ToolACE</code> HF cardData.license = <code>apache-2.0</code>(curl 验证),见 <a href="./35_ToolACE_2409.00920.html">#35 ToolACE</a>。所以 ToolMind 的 7 个来源数据集里,真正的 NC 风险来自 <strong>xLAM-60K 的姐妹 xLAM-function-calling-60k</strong>(实际是 CC-BY-4.0 BY-only,不是 NC),其他来源 (Glaive Apache / ToolACE Apache / APIGen-MT Apache / BUTTON Apache / When2Call Apache / τ-bench MIT) 都干净。<strong>ToolMind 完整版可商用</strong>,license 上和 TOUCAN 同档。
 </div>
 
 <h3>5.1 Synthesized 部分: 40,161 → 163,180</h3>
@@ -546,7 +546,7 @@ user: ###STOP###</pre>
   <tr><td>self-correction 保留</td><td><span class="no">差(整 traj drop)</span></td><td><span class="ok">好(只 mask 错 turn)</span></td></tr>
   <tr><td>base model</td><td>Qwen2.5-7B/14B/32B</td><td>Qwen3-8B/14B</td></tr>
   <tr><td>SOTA 主指标</td><td>BFCL-v3 32B 70.45 险胜 GPT-4.5 (70.32)</td><td>BFCL-v4 14B 50.54;τ-bench 14B 53.00</td></tr>
-  <tr><td>license — dataset</td><td>Apache-2.0(干净,只用真 MCP 不依赖 NC 数据集)</td><td>HF 标 Apache-2.0 但<strong>含 ToolACE NC 来源 7,327 样本</strong> → 实际是混 license</td></tr>
+  <tr><td>license — dataset</td><td>Apache-2.0(干净)</td><td>Apache-2.0(<strong>校订</strong>: 早期担心 ToolACE NC 传染是错的,实测 ToolACE Apache,见 <a href="./35_ToolACE_2409.00920.html">#35</a>)</td></tr>
   <tr><td>开源 ckpt</td><td><span class="ok">27 个(3 官方 + 24 衍生)</span></td><td><span class="no">paper 没发(<code>ToolMind-Web-3B</code> 是后续不同方向)</span></td></tr>
   <tr><td>哲学差异</td><td>"<em>规模 + 真</em>" 双堆</td><td>"<em>结构化采样 + 细粒度过滤</em>" 双精</td></tr>
 </table>
@@ -583,7 +583,7 @@ user: ###STOP###</pre>
 <table>
   <tr><th>项目</th><th>URL / 状态</th></tr>
   <tr><td>HF dataset</td><td><a href="https://huggingface.co/datasets/Nanbeige/ToolMind" target="_blank">huggingface.co/datasets/Nanbeige/ToolMind</a></td></tr>
-  <tr><td>license</td><td><strong>Apache-2.0</strong>(HF 自标)<span class="warn" style="display:inline;padding:0 4px;font-size:.85em">注: 含 ToolACE-CC-BY-NC 派生样本,严格商用需自己再过滤</span></td></tr>
+  <tr><td>license</td><td><strong>Apache-2.0</strong>(HF 自标,7 个来源数据集逐一验证 Apache/MIT/CC-BY,无 NC 传染。<strong>2026-05-18 校订</strong>: 早期 ToolACE NC 担忧已撤销,见 <a href="./35_ToolACE_2409.00920.html">#35</a>)</td></tr>
   <tr><td>下载量 (截止 2026-05)</td><td>2,759 次下载 / 147 likes</td></tr>
   <tr><td>created</td><td>2025-10-21</td></tr>
   <tr><td>last modified</td><td>2026-01-09</td></tr>
@@ -650,11 +650,11 @@ user: ###STOP###</pre>
     </ul>
   </li>
   <li><strong>"20K tools" 实际是 schema 不是 callable endpoint</strong>。这件事 ToolMind 的描述方式("<em>over 20k tools</em>")容易让读者误以为是 MCP-Universe 那种真 callable 数量。<strong>纠正</strong>: 这里的 "tools" 等价于 "<em>function schemas drawn from xLAM/Glaive/ToolACE</em>"。</li>
-  <li><strong>license 混合问题</strong>。
+  <li><strong>license — 早期判断已撤销 (2026-05-18 校订)</strong>。
     <ul>
-      <li>ToolACE 来源 CC-BY-NC-4.0 → 进入 ToolMind 后,严格说整个 ToolMind 衍生作品继承 NC。</li>
-      <li>HF dataset 标 Apache-2.0 是<strong>过于宽松</strong>的 license claim。</li>
-      <li>对比 TOUCAN: 用真 MCP server 数据(MCP 协议本身无 license 限制,只要 server owner 允许)+ 自己合成 trajectory,完全 Apache-2.0 干净。</li>
+      <li>之前担心 ToolACE 是 CC-BY-NC → ToolMind 继承 NC,但实测 <code>Team-ACE/ToolACE</code> HF cardData = Apache-2.0(见 <a href="./35_ToolACE_2409.00920.html">#35</a>)。<strong>整个 ToolMind 来源链 license 干净</strong>。</li>
+      <li>HF dataset 标 Apache-2.0 是<strong>准确的</strong>。</li>
+      <li>对比 TOUCAN: 两者 license 同档,选择应基于方法学差异(turn-level vs trajectory-level)而非合规。</li>
     </ul>
   </li>
   <li><strong>没发 paper 主线 ckpt 是个反常信号</strong>。Nanbeige 后来发了 <code>ToolMind-Web-3B</code> 这种<strong>转向 deep-search</strong> 的衍生品,但<strong>论文里训出来的 Qwen3-8B-ToolMind / Qwen3-14B-ToolMind 至今没在 HF 上出现</strong>。可能原因:
