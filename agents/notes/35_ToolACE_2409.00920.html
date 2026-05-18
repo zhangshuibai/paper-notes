@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · ToolACE: Winning the Points of LLM Function Calling</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>ToolACE: Winning the Points of LLM Function Calling</h1>
+<div class="meta">
+  Huawei Noah's Ark Lab + USTC + CUHK · Weiwen Liu, Xu Huang, Xingshan Zeng, Xinlong Hao, ..., Yasheng Wang, Ruiming Tang, Defu Lian, Qun Liu, Enhong Chen (27 作者) · 2024-09-02 (v1) → 2025-07-25 (v2) · <strong>ICLR 2025</strong><br>
+  <a href="https://arxiv.org/abs/2409.00920" target="_blank">arXiv:2409.00920</a> ·
+  <a href="https://huggingface.co/Team-ACE" target="_blank">HF Org Team-ACE</a> ·
+  <a href="https://huggingface.co/datasets/Team-ACE/ToolACE" target="_blank">HF Dataset</a> ·
+  <a href="https://huggingface.co/Team-ACE/ToolACE-8B" target="_blank">HF Model (ToolACE-8B)</a> ·
+  <a href="https://openreview.net/forum?id=8EB8k6DdCU" target="_blank">OpenReview</a><br>
+  关键词: function calling SFT 数据 · 26,507 API · TSS/SDG/DLV 三件套 · BFCL V3 · ToolACE-8B (LLaMA-3.1-8B SFT) · Apache-2.0
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> ToolACE 是 <strong>华为诺亚方舟实验室 + USTC</strong> 在 2024-09 发表、2025 年入选 <strong>ICLR 2025</strong> 的 <em>function-calling 训练数据合成 pipeline</em>。它做了三件事: (1) 用 <strong>TSS (Tool Self-Evolution Synthesis)</strong> 的 <em>speciation-adaptation-evolution</em> 三步,从 LLM 预训练语料里"长"出 <strong>26,507 个合成 API</strong>(390+ 领域,远超 ToolBench 16K / xLAM 等同期工作);(2) 用 <strong>SDG (Self-Guided Dialog Generation)</strong> 多 agent (user/assistant/tool) 演 dialog,且 <em>用待训 LLM 自己当 complexity evaluator</em> 来动态调整难度;(3) <strong>DLV (Dual-Layer Validation)</strong> = 规则检查 + 多 expert agent 模型检查双层过滤。基于这条数据,他们 SFT LLaMA-3.1-8B-Instruct 出 <strong>ToolACE-8B</strong>,在 BFCL-v3 leaderboard (截图日 2024-09-20) <strong>Overall 59.22 · 排名第 3</strong>(仅次于 GPT-4-turbo 60.41 / GPT-4o 59.49),Single-turn AST/Exec 高达 89.27 / 90.07,Relevance/Irrelevance 85.37/83.81 双高。<strong>License 是 Apache-2.0(数据 + 全部 4 个 model variant 一致),不是 CC-BY-NC</strong>(下面 §5 会专门校订该传言)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">26,507 / 11,300</div><div class="l">API 池 / 公开 dialog 数据条</div></div>
+    <div class="stat"><div class="n">TSS · SDG · DLV</div><div class="l">三件套(注:不是 TAS/SAD/DLA)</div></div>
+    <div class="stat"><div class="n">4 ckpts · Apache-2.0</div><div class="l">8B → 2-8B → 2.5-8B 三代 + dataset</div></div>
+    <div class="stat"><div class="n">BFCL-v3 #3</div><div class="l">59.22 Overall · 媲美 GPT-4 系列</div></div>
+  </div>
+  <p><strong>立场:</strong> ToolACE 是 <strong>2024 年下半年开源 function-calling 训练数据的事实标准之一</strong>。它在 BFCL-v3 leaderboard 上是<em>第一个</em>用 8B 规模追上 GPT-4 系列的工作,因此被几乎所有后续工作当对照(<a href="22_TOUCAN.html">#22 TOUCAN</a> 的 "5× larger than Nemotron / ToolACE" 说法 / <a href="34_ToolMind_2511.15718.html">#34 ToolMind</a> 在 function pool 里直接复用 ToolACE 7,327 条 / <a href="27_SmallModelMCP_landscape.html">#27 SmallModel landscape</a> 把它列进 ≤40B 标杆)。<strong>它的"姐妹工作" <a href="30_ACEBench.html">#30 ACEBench</a></strong>(同一华为诺亚组,2025-01)反映的是"<em>自己造数据 → 发现没好尺 → 造尺</em>"的反馈循环。<strong>本次精读的最重要 finding:</strong> <span class="ok">HF 上 <code>Team-ACE/ToolACE</code> dataset 与 <code>Team-ACE/ToolACE-8B</code>/<code>2</code>/<code>2.5</code> 三个 model 的 license 均为 <strong>Apache-2.0</strong></span>(见 §5 实地 curl 验证)— 因此 <a href="31_PrimeIntellectHub.html">#31</a> §10.1.1 把 ToolACE 列进 CC-BY-NC 名单 / <a href="34_ToolMind_2511.15718.html">#34</a> 把 ToolMind 标"含 ToolACE NC 派生" 的判断 <strong>需要更正</strong>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">§1 Motivation — 2024-09 那个时间点为什么还需要造数据</a></li>
+    <li><a href="#sec2">§2 三件套 TSS / SDG / DLV — 论文的 headline contribution</a></li>
+    <li><a href="#sec3">§3 数据 — 26,507 API / 11,300 公开 dialog / 类型分布</a></li>
+    <li><a href="#sec4">§4 训练 + BFCL/API-Bank 结果 — 8B 真的追上 GPT-4 了吗</a></li>
+    <li><a href="#sec5">§5 License + 开源清单 — Apache-2.0 校订 + 团队全部资产清点</a></li>
+    <li><a href="#sec6">§6 与本系列其它工作的连接 (#22 #27 #28 #29 #30 #31 #34)</a></li>
+    <li><a href="#sec7">§7 一年半回望 — 后继 ToolACE-R/DEV/MT · watt-tool · 局限</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">§1 Motivation — 2024-09 那个时间点为什么还需要造数据</h2>
+
+<p>ToolACE 提交 arXiv 时 (2024-09-02),function-calling 这条赛道的<strong>训练数据格局</strong>大致是:</p>
+
+<table>
+  <tr><th>数据集 / 模型</th><th>团队</th><th>API 数</th><th>Domain</th><th>问题</th></tr>
+  <tr><td>ToolBench / ToolLLM</td><td>清华 OpenBMB</td><td>16,464</td><td>RapidAPI 49 个</td><td>充满死链 + 数据 noisy,multi-step 但缺 parallel/nested</td></tr>
+  <tr><td>ToolAlpaca</td><td>NUDT</td><td>426</td><td>~50</td><td>规模小,只覆盖 single-turn</td></tr>
+  <tr><td>Glaive-FC-v2</td><td>Glaive AI</td><td>n/a</td><td>n/a</td><td>规模小,仅 single turn,广为商用基线</td></tr>
+  <tr><td>xLAM (APIGen)</td><td>Salesforce</td><td>3,673</td><td>21 个</td><td>论文 2024-06 才出,数据 CC-BY-NC-4.0(<em>这才是真 NC 的那一个</em>)</td></tr>
+  <tr style="background:#f3eee0"><td><strong>ToolACE(本文)</strong></td><td>华为诺亚 + USTC</td><td><strong>26,507</strong></td><td><strong>390+(论文 Table 1 自报)</strong></td><td>覆盖 nested / parallel / dependent / multi-type 全谱</td></tr>
+</table>
+
+<blockquote>
+"<em>real function-calling data is challenging to collect and annotate, while synthetic data from existing pipelines often lack <strong>coverage and accuracy</strong>... ToolACE comprehensively incorporates the broadest range of APIs and domains, supports complex nested parameters, accommodates both parallel and dependent function calls, and addresses various types of tool-related data.</em>" — abstract + Table 1 caption
+</blockquote>
+
+<p>论文 §1 + Table 1 的论点很直白:</p>
+<ul>
+  <li><strong>规模上</strong>: ToolBench 16K → ToolACE 26K (50% 提升),但更重要的是<strong>多样性</strong>: 引入 nested 参数(参数本身是 list-of-list / list-of-dict)、parallel calls、dependent calls(后一个 call 的参数来自前一个 return)、multi-type(混合 tool-use 和不调用 tool 的 dialog)四种类型。同期没有任何数据集同时覆盖这四种。</li>
+  <li><strong>准确性上</strong>: 旧数据集做 verification 多半只有"<em>能不能解析成 JSON</em>"这种 syntax check,ToolACE 提出 <strong>rule + model 双层</strong> verification,论文 §2.4 + Figure 3 ablation 显示双层比无验证 overall 高若干 pp(后面 §4 详细谈)。</li>
+  <li><strong>complexity 上</strong>: 论文核心 thesis 是"<em>LLMs learn most effectively when data complexity slightly exceeds their current capability</em>"(引 Du et al. 2023)— 所以他们提出 <strong>用待训 LLM 当 complexity evaluator</strong>(self-guided),这一步是 ToolACE 区别于所有同期工作的<em>方法论新意</em>。</li>
+</ul>
+
+<div class="nb"><strong>读法提示:</strong> 这个 motivation 看起来"做大做全做准",听起来像 incremental 工程,但 ToolACE 的 <strong>self-guided 这一点</strong>(SDG complexity evaluator = 待训 LLM 自己)是当时 contemporary 工作里少见的 <em>data-model co-adaptive</em> 设计,后来被 <a href="34_ToolMind_2511.15718.html">#34 ToolMind</a> 的 turn-level binary judge 借鉴(虽然实现方式不同)。</div>
+
+<hr>
+
+<h2 id="sec2">§2 三件套 TSS / SDG / DLV — 论文的 headline contribution</h2>
+
+<div class="warn"><strong>命名校订:</strong> 用户在任务里用的是 "TAS / SAD / DLA" 三个缩写,但<strong>论文原文用的是 TSS / SDG / DLV</strong>(已 verbatim 验证):
+<ul>
+  <li><strong>TSS</strong> = <strong>T</strong>ool <strong>S</strong>elf-evolution <strong>S</strong>ynthesis</li>
+  <li><strong>SDG</strong> = <strong>S</strong>elf-Guided <strong>D</strong>ialog <strong>G</strong>eneration</li>
+  <li><strong>DLV</strong> = <strong>D</strong>ual-<strong>L</strong>ayer <strong>V</strong>alidation (paper 内 abstract 又写 "dual-layer verification system", §2.4 标题用 "Dual-Layer Verification" — 同一回事; HF dataset README 写 "<em>dual-layer verification system</em>")</li>
+</ul>
+后面正文统一用 <strong>TSS/SDG/DLV</strong>。如果你在别处看到 TAS/SAD/DLA, 那是误记。
+</div>
+
+<h3>2.1 TSS — Tool Self-Evolution Synthesis (§2.2)</h3>
+
+<p>TSS 是<strong>造 API schema 的流水线</strong>,三阶段 <em>Speciation → Adaptation → Evolution</em> 命名直接借了生物学演化论的术语。</p>
+
+<div class="kv">
+<strong>Step 1 — Speciation (物种分化):</strong> 从 LLM 的 <em>pretraining data</em>(技术手册、API 文档、产品说明书、用户指南、教程)出发,prompt 一个 frontier LLM agent <strong>提取每篇文档背后的 API domain + 所有可能的 functionality / use case</strong>,得到一棵<strong>层次化 API context tree</strong>。每个节点是一个可能的功能(get the weather forecast / get the stock price / send an email),孩子节点递归生成。论文 Appendix A Figure 9 给出 entertainment domain 的子树作为例子。
+</div>
+
+<div class="kv">
+<strong>Step 2 — Adaptation (适应):</strong> 在 context tree 上<strong>采样一个子树</strong>,把这个子树对应的 functionality 集合作为一个 API 的功能集合。不同 API 可以采到不同子树深度: 复杂 API 覆盖多个节点(domain-specific 细致功能),简单 API 只覆盖单个叶节点(直接目的)。
+</div>
+
+<div class="kv">
+<strong>Step 3 — Evolution (进化):</strong> 维护一个 <em>API example buffer</em>,迭代地 <em>sample example → adapt to current subtree → generate next-gen API</em>。论文用了一组 <strong>diversity indicators</strong> 来扰动: (a) 加新 functionality / 新参数; (b) 加 constraint; (c) mutate 参数 type; (d) update return result。最终得到 <strong>26,507 API</strong>,其中 nested 类型(参数是 list-of-list / list-of-dict)是论文反复强调的<em>覆盖到</em>而其它数据集多半没有的类型。
+</div>
+
+<div class="fig">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 280" width="100%" style="max-width:720px">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+  <rect x="20" y="40" width="180" height="180" fill="#f3eee0" stroke="#5b5e66" rx="8"/>
+  <text x="110" y="65" text-anchor="middle" font-size="14" font-weight="bold">① Speciation</text>
+  <text x="110" y="90" text-anchor="middle" font-size="11">pretraining 文档</text>
+  <text x="110" y="108" text-anchor="middle" font-size="11">→ frontier LLM 提</text>
+  <text x="110" y="126" text-anchor="middle" font-size="11">→ API context tree</text>
+  <text x="110" y="155" text-anchor="middle" font-size="10" fill="#cc4a1b">(domain × functionality</text>
+  <text x="110" y="170" text-anchor="middle" font-size="10" fill="#cc4a1b">层次 tree)</text>
+  <line x1="200" y1="130" x2="280" y2="130" stroke="#2f6feb" stroke-width="2" marker-end="url(#ar)"/>
+
+  <rect x="290" y="40" width="180" height="180" fill="#f3eee0" stroke="#5b5e66" rx="8"/>
+  <text x="380" y="65" text-anchor="middle" font-size="14" font-weight="bold">② Adaptation</text>
+  <text x="380" y="90" text-anchor="middle" font-size="11">从 tree 采子树</text>
+  <text x="380" y="108" text-anchor="middle" font-size="11">→ 每 API 一个</text>
+  <text x="380" y="126" text-anchor="middle" font-size="11">unique functionality 集</text>
+  <text x="380" y="155" text-anchor="middle" font-size="10" fill="#cc4a1b">(子树深度 = </text>
+  <text x="380" y="170" text-anchor="middle" font-size="10" fill="#cc4a1b">API 复杂度)</text>
+  <line x1="470" y1="130" x2="550" y2="130" stroke="#2f6feb" stroke-width="2" marker-end="url(#ar)"/>
+
+  <rect x="560" y="40" width="180" height="180" fill="#fbfaf6" stroke="#cc4a1b" stroke-width="2" rx="8"/>
+  <text x="650" y="65" text-anchor="middle" font-size="14" font-weight="bold">③ Evolution</text>
+  <text x="650" y="90" text-anchor="middle" font-size="11">example buffer</text>
+  <text x="650" y="108" text-anchor="middle" font-size="11">+ 4 类 diversity</text>
+  <text x="650" y="126" text-anchor="middle" font-size="11">indicator 扰动</text>
+  <text x="650" y="155" text-anchor="middle" font-size="11" fill="#1f7a4a" font-weight="bold">→ 26,507 API</text>
+  <text x="650" y="172" text-anchor="middle" font-size="10" fill="#cc4a1b">(含 nested 参数)</text>
+
+  <text x="380" y="255" text-anchor="middle" font-size="12" fill="#5b5e66">TSS pipeline = 用 LLM 的预训练语料里的 API 文档,跑一个生物演化式的 generate-loop</text>
+</svg>
+<figcaption>TSS 三阶段 — speciation 抽 domain tree, adaptation 切子树, evolution 迭代变异。最终产出的不是 dialog 而是 API schema 本身;dialog 在下一步 SDG 才生成。</figcaption>
+</div>
+
+<h3>2.2 SDG — Self-Guided Dialog Generation (§2.3)</h3>
+
+<p>SDG 把 API schema 变 dialog,核心两个子模块:</p>
+
+<h4>2.2.1 Complexity Evaluator(论文的 novelty 所在)</h4>
+
+<p>论文观察到三件事(基于 LLM loss 的 empirical):</p>
+
+<ul>
+  <li>data sample 的 <strong>loss</strong> 正相关于 (1) 候选 API 数; (2) 实际调用 API 数; (3) user query 和 API description 的相似度反距离。</li>
+  <li>所以可以把 <strong>用待训 LLM 自己跑数据,看 loss 大小</strong>当 complexity 度量。</li>
+  <li>训练数据的 complexity 应当 <strong>"略高于"</strong> LLM 当前能力(否则学不到东西,要么过简单要么过难)。</li>
+</ul>
+
+<p>所以 <strong>complexity evaluator = 待训 LLM 本身</strong>。它评估当前 dialog 的 loss,如果太低就告诉 generator "再难一点"(加更多候选 API / 让 user 提更模糊的 query),太高就反向。</p>
+
+<h4>2.2.2 Multi-Agent Dialog Generator</h4>
+
+<p>三个 agent 各扮一角(三个 LLM instance):</p>
+
+<table>
+  <tr><th>Agent</th><th>职责</th><th>注意</th></tr>
+  <tr><td>User</td><td>发起 request / 提供额外信息</td><td>在 self-guided complication 指导下动态调整 dialog 复杂度</td></tr>
+  <tr><td>Assistant</td><td>调 API / 请求信息 / 总结 tool feedback / 不调工具直接回答</td><td>每个动作生成多次,只保留 <strong>多次决策一致</strong> 的;有 specialized thinking prompt</td></tr>
+  <tr><td>Tool</td><td>模拟 API 返回</td><td><strong>API 不真执行</strong>,response 由 LLM 编出 plausible JSON(这是 <a href="22_TOUCAN.html">#22 TOUCAN</a> 后来的核心批判)</td></tr>
+</table>
+
+<p>四种 dialog 类型按比例混合: <strong>single function calls / parallel function calls / dependent function calls / non-tool-use dialogs</strong> — 后者(non-tool-use)是为了训 irrelevance detection 的关键。</p>
+
+<div class="nb"><strong>关键设计:</strong> 注意 ToolACE 的 tool agent <strong>不接真 server</strong>,所有 tool response 都是 LLM 模拟出来的字符串。这后来成为 <a href="22_TOUCAN.html">#22 TOUCAN</a> 整个 motivation 的对照面 —— TOUCAN 强调 "<em>真接 MCP server</em>"，认为模拟 response 学不到 tool error / rate-limit / auth-fail。这是 ToolACE 数据的<strong>根本约束</strong>: 它能教 LLM 的是 "<em>怎么决定调什么 API + 怎么填参数</em>"，但教不了 "<em>真 server 返错怎么处理</em>"。</div>
+
+<h3>2.3 DLV — Dual-Layer Validation (§2.4)</h3>
+
+<p>双层过滤,后一层比前一层贵。</p>
+
+<h4>Layer 1: Rule Verification (廉价)</h4>
+
+<p>规则 checker 检查 4 件事:</p>
+
+<ul>
+  <li><strong>API definition clarity</strong>: API 描述是否清晰、参数说明是否完整</li>
+  <li><strong>Function calling executability</strong>: API name 是否在 tool list 里 + 必需参数全提供 + 参数格式用 regex 验证 pattern</li>
+  <li><strong>Dialog correctness</strong>: 对话 role 切换正确 + JSON 解析通过</li>
+  <li><strong>Data sample consistency</strong>: 同一 dialog 内部信息不矛盾</li>
+</ul>
+
+<h4>Layer 2: Model Verification (贵)</h4>
+
+<p>Rule 通过的 sample 进 LLM 检查。这一步 <strong>论文发现一个工程教训</strong>: 直接把整条 dialog 给 LLM 让它判断对错,效果不好。改进方式是 <strong>把任务分解</strong> 成几个子查询,每个子查询由一个独立的 expert agent 负责,主要覆盖三件事(论文 §2.4 列出但 abbreviated, exact list see paper):</p>
+<ul>
+  <li>API 调用顺序 / 参数语义是否合理</li>
+  <li>response 是否对应 query</li>
+  <li>是否有重复、无意义 token</li>
+</ul>
+
+<h4>Ablation 结果(§3.3.1 + Figure 3)</h4>
+
+<p>论文用 LLaMA-3.1-8B-Instruct + LoRA 在三种数据上各训一个模型并测 BFCL:</p>
+<ul>
+  <li><code>w.o. dual</code> — 完全不过滤的原始合成数据 (数据量最大)</li>
+  <li><code>w.o. model</code> — 只过 rule checker</li>
+  <li><code>Final</code> — 双层都过(数据量最小,但质量最高)</li>
+</ul>
+<p>结论: <strong>更多过滤 → 数据更少但模型更好</strong>。Rule checker 单独已经能拉一些 executable accuracy,model checker 在 AST + overall 上贡献最大。这是经典 <em>"质 &gt; 量"</em> 的实证。</p>
+
+<hr>
+
+<h2 id="sec3">§3 数据 — 26,507 API / 11,300 公开 dialog / 类型分布</h2>
+
+<h3>3.1 数字精确清点</h3>
+
+<div class="kv">
+<strong>API pool 总数</strong> = <strong>26,507</strong>(论文 abstract + Table 1 + HF dataset README 均一致)<br>
+<strong>Domain 数</strong> = 论文 Table 1 自报覆盖 <strong>390+ domain</strong>(<span class="pill">论文 HTML 表格未原文截到,沿用社区引用 — 未在公开来源 verbatim 确认</span>)<br>
+<strong>公开 dialog 数 (HF)</strong> = <strong>11,300 条</strong>(via <code>curl https://huggingface.co/datasets/Team-ACE/ToolACE</code> 抓到的 <code>numRows: 11300</code>,1 个 train split,7.87 GB 之外 ToolACE 的数据是 <strong>58.7 MB</strong>)<br>
+<strong>公开 vs 私有比例</strong>: 论文里有提及 "<em>a subset of the data are publicly available</em>" — 即 11,300 是 <strong>subset</strong>,完整训练集规模未公开。<span class="pill">完整训练集规模 — 未在公开来源确认</span><br>
+<strong>语言</strong>: en + zh (HF tag 上标了两种 language)
+</div>
+
+<h3>3.2 4 种 dialog 类型(论文反复对比的 4 维)</h3>
+
+<table>
+  <tr><th>类型</th><th>含义</th><th>BFCL 子项对应</th></tr>
+  <tr><td>Single function call</td><td>一句话调一个工具,最常见</td><td>Simple AST / Simple Exec</td></tr>
+  <tr><td>Parallel function calls</td><td>一句话内同时调多个独立工具</td><td>Parallel AST / Parallel Exec</td></tr>
+  <tr><td>Dependent function calls</td><td>后一个调用的参数从前一个 return 取值</td><td>Multi-turn / Multi-step</td></tr>
+  <tr><td>Non-tool-use dialog</td><td>问题不需要调工具,assistant 应直接答 / 拒答</td><td>Irrelevance / Relevance</td></tr>
+</table>
+
+<p><strong>消融 (§D 附录)</strong>: 论文逐一去掉某一类后训 LLaMA-3.1-8B 重测 BFCL,关键发现:</p>
+<ul>
+  <li>去掉 <strong>parallel</strong> → Non-live AST / Exec 都跌(BFCL 这些子项重度依赖 parallel)</li>
+  <li>去掉 <strong>multi-type</strong>(即 non-tool-use)→ <span class="no">irrelevance detection 直接掉到 6.99%</span>(模型遇到无关 query 也强行调工具,无法说"这个不需要调工具")</li>
+  <li>去掉 <strong>nested / dependent</strong> → 影响很小 — 因为 BFCL 测样本几乎没要嵌套参数,也几乎没真 dependent</li>
+</ul>
+
+<div class="nb"><strong>读法:</strong> 这个消融揭露了 BFCL 的<strong>结构偏置</strong> —— ToolACE 自己花大力气支持的 nested + dependent 在 BFCL 上几乎得不到回报。<a href="30_ACEBench.html">#30 ACEBench</a>(同组下一篇)显然观察到了这一点,所以 ACEBench 故意在 Multi-Turn / Multi-Step 子集里专门放 nested + dependent — 这就是论文 §6 标题"<em>自己造数据 → 发现没好尺 → 造尺</em>"的实际意义。</div>
+
+<h3>3.3 难度分层 (ToolACE-easy/medium/hard, §3.3.2)</h3>
+
+<p>论文用 Eq.(1) 的复杂度公式给每条样本打分,然后 <strong>按 bottom / middle / top 60,000</strong> 分别取出 <code>ToolACE_easy</code> / <code>ToolACE_medium</code> / <code>ToolACE_hard</code> 三个 60K 子集(stratified equal-size sampling, 控制 sample size 单一变量看 complexity 影响)。</p>
+
+<div class="nb">这里 <strong>60K × 3 = 180K</strong> 暗示<strong>完整训练集至少 180,000 条</strong>,但 paper 没明确说"完整训练集 N 条" — 这是上面 §3.1 "未在公开来源确认" 的依据。<strong>medium</strong> 子集表现最好(过简单 + 过难都 suboptimal),验证了 Self-Guided Complexity 的 thesis。</div>
+
+<hr>
+
+<h2 id="sec4">§4 训练 + BFCL/API-Bank 结果 — 8B 真的追上 GPT-4 了吗</h2>
+
+<h3>4.1 训练细节</h3>
+
+<div class="kv">
+<strong>Base model:</strong> LLaMA-3.1-8B-Instruct (HF model card verbatim: <code>base_model: meta-llama/Meta-Llama-3.1-8B-Instruct</code>)<br>
+<strong>训练方式:</strong> 全参数 SFT(消融实验用 LoRA, 主模型是 full SFT)<br>
+<strong>训练数据:</strong> 完整 ToolACE 数据集(规模未公开,推测 180K+)— HF 上 release 的 11,300 是<em>子集</em><br>
+<strong>训练 hyperparameter:</strong> 论文 Appendix C Table 6 列详细 — 这里不抄
+</div>
+
+<h3>4.2 BFCL-v3 主表(论文 Table 2, 截图 2024-09-20)</h3>
+
+<p>BFCL-v3 (即 V3 第一版) 当时分 <strong>Single-turn / Multi-turn / Hallucination</strong> 三大类,Overall 是 weighted average。论文 Table 2 列了 Top-20。<strong>关键数字</strong>:</p>
+
+<table>
+  <tr><th>Rank</th><th>Model</th><th>Overall</th><th>Single (A)</th><th>Single (E)</th><th>Multi-turn</th><th>Rel</th><th>Irrel</th></tr>
+  <tr><td>1</td><td>GPT-4-turbo-2024-04-09 (FC)</td><td>60+</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+  <tr><td>2</td><td>GPT-4o-2024-08-06 (FC)</td><td>~59.5</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+  <tr style="background:#f3eee0"><td><strong>3</strong></td><td><strong>ToolACE-8B (FC)</strong></td><td><strong>59.22</strong></td><td><strong>89.27</strong></td><td><strong>90.07</strong></td><td>14.37</td><td><strong>85.37</strong></td><td><strong>83.81</strong></td></tr>
+  <tr><td>4</td><td>xLAM-8x22b-r (FC)</td><td>~58</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+  <tr><td>...</td><td>xLAM-7b-fc-r (FC)</td><td>~53</td><td>~84</td><td>~83</td><td>0.00</td><td>~76</td><td>73.13</td></tr>
+</table>
+<p class="meta">数据来源: 论文 Table 2(从 HTML 提取). GPT-4 系列具体小数因 PDF 表格未完整截出, 未在 HTML 里 verbatim 确认; ToolACE-8B 这一行所有数字均 verbatim. ToolACE-8B 是当时<strong>第 3 名</strong>,前两名是 GPT-4-turbo 与 GPT-4o (都是 frontier closed model)。</p>
+
+<p><strong>论文自报的 4 个 highlight (§3.2):</strong></p>
+<ol>
+  <li><strong>Single-turn 89.27/90.07 几乎打平 GPT-4 系列</strong>;</li>
+  <li><strong>Relevance 85.37 + Irrelevance 83.81 双高且平衡</strong> — 论文称 "<em>excellent balance</em>",其它 model 多半 single 项很强但 irrel 很差(如 xLAM-7b-fc-r irrel 73.13 但 multi-turn 0%);</li>
+  <li><strong>显著强于 xLAM-7b-fc-r</strong>(同尺寸 function-calling 专用 fine-tune)在所有 category;</li>
+  <li>对比 Functionary 等公开 fc 模型也全面领先。</li>
+</ol>
+
+<div class="nb"><strong>"8B 追上 GPT-4" 这一说法的 <em>caveat</em>:</strong> ToolACE-8B 是 Rank 3, GPT-4-turbo 是 Rank 1, GPT-4o 是 Rank 2 — 准确说法是 "<em>在 0.x pp 范围内击败 GPT-4o (Prompt mode),媲美 GPT-4-turbo (FC mode)</em>"。但 ToolACE-8B 的 <strong>Multi-turn 只有 14.37</strong> — BFCL-v3 当时刚加进来的 multi-turn 1000 条样本是<strong>全部 SFT-only 模型都很差</strong>的领域(xLAM-7b-fc-r 0.00 / ToolACE 14.37 / 闭源 GPT-4 系列也只有 30-40)。所以 "<em>8B 追上 GPT-4</em>" 真正成立的是 <strong>single-turn function calling</strong>(parallel/dependent/simple),不是 multi-turn agent。这是 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 和 <a href="34_ToolMind_2511.15718.html">#34 ToolMind</a> 后续真正想攻坚的方向。</div>
+
+<h3>4.3 API-Bank 结果(论文 Table 3)</h3>
+
+<p>API-Bank (Li et al. 2023) 是另一个 function-calling benchmark, 评测 metric 包括 call accuracy / response accuracy。ToolACE-8B 在 API-Bank 上:</p>
+<ul>
+  <li><strong>显著优于所有开源 fc 模型</strong>;</li>
+  <li><strong>媲美 GPT-4 系列</strong>(论文原话 "<em>comparable performance with GPT-4-series models</em>") — 这点在两个 benchmark 上都成立,所以是个 robust finding。</li>
+</ul>
+
+<h3>4.4 Generalization tests — 不只是 BFCL 上调好</h3>
+
+<p>论文 §3.3.3 + Figure 8 在 <strong>MMLU / HumanEval / GSM8K / CommonSenseQA</strong> 四个一般能力 benchmark 上对比:</p>
+<ul>
+  <li><strong>ToolACE-8B vs xLAM-7B-fc-r:</strong> 在 MMLU / GSM8K / CommonSenseQA 上 <em>显著高</em> — 暗示 xLAM 训太狠把 general 能力洗掉了, ToolACE 数据"<em>没洗丢通用能力</em>";</li>
+  <li><strong>ToolACE-8B vs raw LLaMA-3.1-8B-Instruct:</strong> <em>negligible degradation</em>,在 BFCL 上则大涨;</li>
+  <li><strong>ToolACE-8B vs GPT-4:</strong> 在 reasoning / understanding 上仍有"clear limitations" — 模型 scale 限制。</li>
+</ul>
+
+<p><strong>结论:</strong> ToolACE 数据的<strong>"non-disruptive" 性质</strong>是它和 xLAM 系列拉开的关键。这其实是 ICLR 2025 reviewer 最看重的 generalization 故事 — 不是"造个 specialist 模型",而是"训完后还是个 general LLM, 但 fc 能力极强"。</p>
+
+<h3>4.5 Backbone 通用性(§3.3.3)</h3>
+
+<p>论文还用 ToolACE 数据训了一系列其它 8B-scale model(Qwen1.5-7B-Chat / Mistral-7B / LLaMA-2-7B 等),BFCL 全部大涨。Scaling law 实验(Qwen1.5 0.5B/1.8B/4B/7B)显示 fc 能力大致线性 scale up。<strong>这意味着 ToolACE 数据本身是 backbone-agnostic 的</strong>,可以喂任何 base model。</p>
+
+<hr>
+
+<h2 id="sec5">§5 License + 开源清单 — Apache-2.0 校订 + 团队全部资产清点</h2>
+
+<div class="warn"><strong>本节是本次精读的最重要 finding。</strong> 在写本笔记前,系列里 <a href="22_TOUCAN.html">#22</a> / <a href="31_PrimeIntellectHub.html">#31</a> §10.1.1 / <a href="34_ToolMind_2511.15718.html">#34</a> 都把 ToolACE 数据列作 <strong>CC-BY-NC-4.0(非商用)</strong>,并以此推断 ToolMind 因含 7,327 条 ToolACE 派生样本而 license 不干净。<strong>实地 curl HF API 验证</strong>(见下)显示 ToolACE 数据集和全部 4 个 model variant 实际全是 <strong>Apache-2.0</strong> —— 此前判断是<strong>错的</strong>,需要在 #22/#31/#34 三个文件里更正。</div>
+
+<h3>5.1 实地验证 — HF API 输出</h3>
+
+<pre><code>$ curl -s https://huggingface.co/api/datasets/Team-ACE/ToolACE | jq '.cardData.license'
+"apache-2.0"
+$ curl -s https://huggingface.co/api/models/Team-ACE/ToolACE-8B | jq '.cardData.license'
+"apache-2.0"
+$ curl -s https://huggingface.co/api/models/Team-ACE/ToolACE-2-Llama-3.1-8B | jq '.cardData.license'
+"apache-2.0"
+$ curl -s https://huggingface.co/api/models/Team-ACE/ToolACE-2.5-Llama-3.1-8B | jq '.cardData.license'
+"apache-2.0"</code></pre>
+
+<p>HF dataset README 头部 verbatim(2026-05-18 抓):</p>
+<pre><code>---
+license: apache-2.0
+task_categories:
+- text-generation
+language:
+- en
+- zh
+tags:
+- synthetic
+- tools
+size_categories:
+- 10K&lt;n&lt;100K
+---</code></pre>
+
+<p>HF model README 头部 verbatim:</p>
+<pre><code>---
+license: apache-2.0
+datasets:
+- Team-ACE/ToolACE
+language:
+- en
+metrics:
+- accuracy
+base_model: meta-llama/Meta-Llama-3.1-8B-Instruct
+tags:
+- code
+new_version: Team-ACE/ToolACE-2-8B
+---</code></pre>
+
+<p><strong>结论 verdict:</strong> <span class="ok">ToolACE 数据 + 三代 ToolACE/ToolACE-2/ToolACE-2.5 model 权重 <strong>全部 Apache-2.0</strong>, 可商用。</span> 论文本身 (arXiv) 没专门声明 license,论文 acknowledgments 也没提 NC 字眼。<strong>所有可获得的 license signal 都指向 Apache-2.0。</strong></p>
+
+<h3>5.2 那 "CC-BY-NC" 的传言哪来的</h3>
+
+<p>溯源后大概率是 <strong>把 xLAM 数据 (Salesforce 的 60K) 的 NC license 与 ToolACE 混淆</strong> —— xLAM 数据集是 <code>CC-BY-NC-4.0</code> 的<em>那个</em>真 NC 资产,而 ToolACE 和它是<strong>同期、同主题但不同团队</strong>(华为 vs Salesforce)。一个可能的传链是: 早期 survey / blog 把"function-calling NC 数据"列成 <em>xLAM, ToolACE, Hammer</em>,后被引用者照抄,后来传到本系列 #31 §10.1.1。<strong>本笔记纠正:</strong></p>
+
+<div class="kv">
+<strong>真正 CC-BY-NC-4.0:</strong> xLAM-60K (Salesforce, APIGen 论文 2406.18518)、Hammer-data (字节)<br>
+<strong>实际 Apache-2.0:</strong> ToolACE (华为 Team-ACE)、TOUCAN (MIT-IBM)、APIGen-MT (Apache)<br>
+<strong>MIT:</strong> Functionary (MeetKai)、ToolBench code<br>
+</div>
+
+<h3>5.3 Team-ACE 在 HF 上的完整资产清单 (2026-05-18)</h3>
+
+<table>
+  <tr><th>资产</th><th>license</th><th>HF downloads / likes</th><th>说明</th></tr>
+  <tr><td><a href="https://huggingface.co/datasets/Team-ACE/ToolACE">Team-ACE/ToolACE</a></td><td>apache-2.0</td><td>8,177 / 177</td><td>公开 dialog 数据子集, 11,300 行, train split, 58.7 MB</td></tr>
+  <tr><td><a href="https://huggingface.co/Team-ACE/ToolACE-8B">Team-ACE/ToolACE-8B</a></td><td>apache-2.0</td><td>未拉 — see HF</td><td>LLaMA-3.1-8B-Instruct full SFT, 初代 paper 模型</td></tr>
+  <tr><td><a href="https://huggingface.co/Team-ACE/ToolACE-2-Llama-3.1-8B">Team-ACE/ToolACE-2-Llama-3.1-8B</a></td><td>apache-2.0</td><td>806 / 54</td><td>2 代, 引入 self-refinement + task decomposition (即 ToolACE-R 论文)</td></tr>
+  <tr><td><a href="https://huggingface.co/Team-ACE/ToolACE-2.5-Llama-3.1-8B">Team-ACE/ToolACE-2.5-Llama-3.1-8B</a></td><td>apache-2.0</td><td>未拉</td><td>2.5 代, multi-turn 能力增强,链回 ToolACE-DEV / ToolACE-MT 两篇衍生 paper</td></tr>
+</table>
+
+<h3>5.4 GitHub 状况</h3>
+
+<p>实地确认: <strong>华为团队没有公开 GitHub repo 发 ToolACE 代码或 pipeline</strong>。验证步骤:</p>
+<ul>
+  <li><code>github.com/Team-ACE/ToolACE</code> — 404</li>
+  <li><code>github.com/HuaweiLin-CN/ToolACE</code> — 404</li>
+  <li>GitHub search <code>q=ToolACE</code> 返回的全部是社区 fork / 衍生品(<code>zuoyifan132/ToolAce</code> 6 ⭐ / <code>aimedvedevq/toolaceqwen</code> 1 ⭐ 等)</li>
+</ul>
+
+<p><strong>这是 ToolACE 开源完整度上的一个重要短板:</strong> 数据 + 模型 weights 公开了,但 <strong>合成 pipeline 代码、prompt 模板、TSS 的 context tree 构造、SDG 的 multi-agent prompt、DLV 的 rule + model checker 实现</strong> 全部没开源。<a href="22_TOUCAN.html">#22 TOUCAN</a> / <a href="23_EnvScaler.html">#23 EnvScaler</a> 都开了 pipeline 代码,这是它们的 differentiator。</p>
+
+<hr>
+
+<h2 id="sec6">§6 与本系列其它工作的连接</h2>
+
+<h3>6.1 <a href="22_TOUCAN.html">#22 TOUCAN</a> (MIT-IBM + UW, 2025-10) — 规模 5× 但哲学相反</h3>
+
+<p>TOUCAN 在它的 abstract / Table 1 反复强调 "5× larger than Nemotron / ToolACE",这里隐含的对比是:</p>
+
+<table>
+  <tr><th></th><th>ToolACE (2024-09)</th><th>TOUCAN (2025-10)</th></tr>
+  <tr><td>规模</td><td>26.5K API · 11.3K 公开 dialog</td><td>2K+ tool · 1.5M trajectory</td></tr>
+  <tr><td>API 性质</td><td>合成 schema (TSS 生成的 API 文档)</td><td>真实 MCP server (495 个)</td></tr>
+  <tr><td>Tool response</td><td>LLM 模拟 (Tool agent)</td><td>真 MCP server 真返回</td></tr>
+  <tr><td>error / rate-limit / auth-fail 分布</td><td>不存在(全 plausible JSON)</td><td>真实分布(25-40% 调用会出错)</td></tr>
+  <tr><td>License</td><td>Apache-2.0 ✓</td><td>Apache-2.0 ✓</td></tr>
+  <tr><td>pipeline 代码</td><td>未开源</td><td>MIT 开源</td></tr>
+</table>
+
+<p>TOUCAN 把 ToolACE 当 <strong>"schema-only baseline"</strong> 来批判, 但 ToolACE 在<em>它自己的时间点</em>(2024-09,MCP 协议 11 月才发布)<strong>真 MCP server 还不存在</strong> —— 所以 schema-only 不是设计缺陷而是历史约束。</p>
+
+<h3>6.2 <a href="27_SmallModelMCP_landscape.html">#27 SmallModelMCP landscape</a> — ≤40B 标杆</h3>
+
+<p>#27 把 ToolACE 列在<strong>学术线 5 篇</strong>之一(另 4 篇是 TOUCAN/EnvScaler/SETA/AWM/Agent-World)。它是这条线里<strong>最早 8B 触到 GPT-4 的工作</strong>,因此后来的 7B-8B 训练方案默认拿 ToolACE-8B 或 ToolACE-2-8B 当起点。<a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 把 ToolACE-2-8B 当 baseline,从 35.74 训到 54.34(BFCL-v3)。</p>
+
+<h3>6.3 <a href="28_BFCL.html">#28 BFCL</a> — 评测基础设施</h3>
+
+<p>ToolACE 是 BFCL 历史上的<strong>第一个 8B 学术贡献</strong> —— V1/V2 时代 leaderboard 主要是闭源模型 + 商用 fine-tune (Functionary 等),V3 (2024-09-19) 上线后 ToolACE-8B 在 2024-09-20 截图里达到 Rank 3。但 V4 (2025-07-17) 重排公式后,Multi-Turn 和 Agentic 权重上升到 70% — <strong>原始 ToolACE-8B 在 V4 上排名会大幅下滑</strong>(因为它的 multi-turn 只有 14%)。这就是为什么团队后来出 ToolACE-2 / ToolACE-2.5 — 主线就是补 multi-turn。</p>
+
+<h3>6.4 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> — ToolACE-2-8B 是核心 baseline</h3>
+
+<p>EnvTuning (蚂蚁 AWorld, ICLR 2026) 拿 <strong>ToolACE-2-Llama-3.1-8B 当 baseline</strong>, 跑 4-stage curriculum + Actionable Augmentation + Progress Reward 这套 recipe, BFCL V3 上 35.74 → 54.34 (+18.60 pp), 超 GPT-4o 51.x / o3 49.25。同时在 <a href="30_ACEBench.html">#30 ACEBench</a> OOD 上 8.34 → 15.00 (Multi-Turn) 和 6.67 → 20.00 (Multi-Step)。<strong>这说明 ToolACE-2-8B 的 SFT 起点</strong> + EnvTuning 的 RL 课程 = 当前 8B function-calling 最强组合之一。</p>
+
+<h3>6.5 <a href="30_ACEBench.html">#30 ACEBench</a> — 同组的"<em>姐妹工作</em>"</h3>
+
+<p>ACEBench 2025-01 上 arXiv, EMNLP 2025 Findings 录用, 团队是 USTC + Huawei Noah's Ark, <strong>作者表与 ToolACE 大幅重合</strong>(Weiwen Liu / Xingshan Zeng / Yasheng Wang / Xu Huang / Xinlong Hao 等核心 5 人都在两篇都署名)。这是同一团队"<em>训完 ToolACE-8B 后,意识到 BFCL V1 偏 schema 偏单轮偏英文,无法刻画真正中文工业落地,于是花一年时间另起 ACEBench</em>"的反馈循环结果。</p>
+
+<table>
+  <tr><th></th><th>ToolACE (2024-09)</th><th>ACEBench (2025-01)</th></tr>
+  <tr><td>定位</td><td>训练 fuel(造数据 + 训模型)</td><td>OOD 测尺(造 benchmark)</td></tr>
+  <tr><td>API 数</td><td>26,507(合成训练 schema)</td><td>4,538(标注 eval-only schema)</td></tr>
+  <tr><td>核心产物</td><td>ToolACE-8B 模型 + 11K dialog 数据</td><td>2,000 标注 entry × 中英双语</td></tr>
+  <tr><td>引用对方</td><td>不引(早 4 个月)</td><td>引 ToolACE 作为对比基准之一</td></tr>
+  <tr><td>核心机制</td><td>self-evolution 数据合成</td><td>√n 加权 + 3 大类 8 子类分层评测</td></tr>
+</table>
+
+<h3>6.6 <a href="31_PrimeIntellectHub.html">#31 Prime Intellect Hub</a> §10.1.1 — license 校订点</h3>
+
+<p>#31 §10.1.1 表格里把 ToolACE 列进 <strong>CC-BY-NC-4.0</strong> 风险条 — <strong>这是错的</strong>(见 §5)。正确做法是从那条风险条里去掉 "ToolACE 部分",只保留 "xLAM-60K, Hammer-data" — 后者才是真 NC 资产。同时 #31 §10.5 的"训练 datalist 决策树"里 "<em>避免 CC-BY-NC 数据 (xLAM-60K / Hammer-data / ToolACE)</em>" 的 ToolACE 也应当移除。</p>
+
+<h3>6.7 <a href="34_ToolMind_2511.15718.html">#34 ToolMind</a> — 真实"用了 ToolACE 7,327 条"但合规没问题</h3>
+
+<p>ToolMind 在 augmented open-source 部分包含 <strong>7,327 条 ToolACE 派生样本</strong>(精确数字 #34 §3.4 verbatim)。<strong>因为 ToolACE 实际是 Apache-2.0</strong>,所以 ToolMind 整库自标 Apache-2.0 是<strong>合规的</strong>,不存在"NC 染色"问题。这一点 #34 §6 + §10 整段关于"license 混染"的论证 <strong>需要全部撤回</strong>。<strong>纠正后的版本</strong>: ToolMind 含的 7 个数据源里, 真有 NC 问题的只有 xLAM-60K (101K 条 augmented) — 这一点 #34 应当只标 xLAM 那一条 NC, 其它(Glaive/ToolACE/BUTTON/APIGen-MT/When2Call/τ-bench train)的 license 状态各自独立查证, 但 ToolACE 这条肯定是 clean 的。</p>
+
+<hr>
+
+<h2 id="sec7">§7 一年半回望 — 后继 ToolACE-R/DEV/MT · watt-tool · 局限</h2>
+
+<h3>7.1 团队后续工作链 (ToolACE 衍生 paper)</h3>
+
+<p>从 ToolACE-2.5 model README 里能看到团队后续放出的三篇 follow-up paper, 全是同组接续:</p>
+
+<table>
+  <tr><th>Paper</th><th>arXiv</th><th>主题</th><th>对应 model</th></tr>
+  <tr><td><strong>ToolACE-R</strong>: Model-aware Iterative Training and Adaptive Refinement for Tool Learning</td><td>2504.01400 (2025-04)</td><td>adaptive self-refinement, model-aware iterative</td><td>ToolACE-2-8B 应用</td></tr>
+  <tr><td><strong>ToolACE-DEV</strong>: Self-Improving Tool Learning via Decomposition and EVolution</td><td>2505.07512 (2025-05)</td><td>把复杂 query 自动拆解成子问题 + evolution</td><td>同上</td></tr>
+  <tr><td><strong>ToolACE-MT</strong>: Non-Autoregressive Generation for Agentic Multi-Turn Interaction</td><td>2508.12685 (2025-08)</td><td>multi-turn 用非自回归生成,延迟显著降低</td><td>ToolACE-2.5-8B</td></tr>
+</table>
+
+<p>加上 <strong>ACEBench</strong> (2501.12851, 2025-01), 整个团队的产出轨迹是: <strong>2024-09 ToolACE 造数据 → 2025-01 ACEBench 造尺 → 2025-04 ToolACE-R 自我改进 → 2025-05 ToolACE-DEV 任务分解 → 2025-08 ToolACE-MT 多轮加速</strong>。三个 model variants(8B/2-8B/2.5-8B)对应了"<em>初代 SFT → R+DEV 联合 → MT 多轮特化</em>"的三步演进。</p>
+
+<h3>7.2 community 衍生 — watt-tool-8B</h3>
+
+<p><strong>watt-tool-8B</strong> (HF <code>watt-ai/watt-tool-8B</code>, Apache-2.0) 是 ToolACE 系列<strong>影响力最大的 community fork</strong>。它的 README verbatim 说:</p>
+
+<blockquote>
+"<em>watt-tool-8B is a fine-tuned language model based on LLaMa-3.1-8B-Instruct, optimized for tool usage and multi-turn dialogue... The training process is inspired by the principles outlined in the paper: 'Direct Multi-Turn Preference Optimization for Language Agents'. We use SFT and DMPO to further enhance the model's performance in multi-turn agent tasks.</em>"
+</blockquote>
+
+<p>watt-tool-8B 的核心 differentiator 是 <strong>多加了 DMPO (Direct Multi-Turn Preference Optimization, arXiv:2406.14868)</strong> — 把 ToolACE 数据 + DMPO 算法,做 multi-turn 偏好优化。它在 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> Table 中作为 baseline (BFCL V3 35.74 → 54.34 via EnvTuning recipe)。<strong>License 也是 Apache-2.0</strong>。</p>
+
+<p><span class="pill">watt-tool-8B 是否真在 ToolACE 数据上训 — 未在公开来源 verbatim 确认</span> — README 没明说底层数据来源,只说"specialized dataset for tool usage and multi-turn dialogue",但社区普遍认为它 fine-tune 自 ToolACE-8B 类似数据(论文 inspiration 也是 multi-turn preference)。</p>
+
+<h3>7.3 局限性 — ToolACE 的"<em>三大根本约束</em>"</h3>
+
+<h4>(1) Tool response 全是 LLM 模拟,不是真 server</h4>
+<p>这是 §2.2.2 提到的,也是 <a href="22_TOUCAN.html">#22 TOUCAN</a> 整篇论文的对照面。后果: <strong>ToolACE-8B 在真 MCP server 上(如 MCP-Universe / MCPMark)表现可能脱节</strong> —— 因为它训练时从没见过 rate-limit / auth-fail / timeout 等真实错误。<a href="22_TOUCAN.html">#22 TOUCAN</a> Section 3 实验显示, schema-only 数据训的模型遇到真 server error 会持续重试或编造结果。但这一点<strong>对 BFCL 评测无害</strong>, 因为 BFCL 本身也是 schema-based。</p>
+
+<h4>(2) Multi-turn 弱(初代 14.37)</h4>
+<p>BFCL-v3 加入 1000 条 multi-turn 后, ToolACE-8B Multi-turn 只有 14.37 — 远低于它 single-turn 89.27 的 spotlight。这是 SFT-only 模型的<em>普遍弱点</em>, 团队 ToolACE-2 + ToolACE-2.5 已经针对性补强。<strong>但 V4 (2025-07) Agentic 权重又上升, 又把这个问题放大了一次</strong> — V4 leaderboard 上, ≤40B 模型领先的是 Qwen3-32B / GLM-4.5 那种 base 自带 agentic 能力的, ToolACE 系列优势不再显著。</p>
+
+<h4>(3) Pipeline 代码全闭源 — 无法复现合成过程</h4>
+<p>论文细描了 TSS / SDG / DLV 三件套, 但 <strong>没有任何公开 GitHub repo 包含实现</strong>。其它 contemporary 工作中:</p>
+<ul>
+  <li><a href="22_TOUCAN.html">#22 TOUCAN</a> 完全开 pipeline (MIT 代码)</li>
+  <li><a href="23_EnvScaler.html">#23 EnvScaler</a> 完全开</li>
+  <li><a href="34_ToolMind_2511.15718.html">#34 ToolMind</a> 数据开但 pipeline / judge LM 闭源</li>
+  <li><strong>ToolACE 数据 + 模型开,pipeline 全闭</strong></li>
+</ul>
+<p>这是 ToolACE 在<em>"复现性"</em>这个维度上的<strong>最大短板</strong> — 你能用它的数据,但你想<em>自己跑 ToolACE pipeline 造新数据</em> 是不可能的。</p>
+
+<h3>7.4 ToolACE 是否被后继工作超越 — 一年半时间表</h3>
+
+<table>
+  <tr><th>时间</th><th>事件</th><th>对 ToolACE 的影响</th></tr>
+  <tr><td>2024-09</td><td>ToolACE v1 — BFCL-v3 Rank 3 (59.22)</td><td>立标杆</td></tr>
+  <tr><td>2025-01</td><td>ACEBench v1 — 同组造尺</td><td>承认 BFCL 不够,自己补</td></tr>
+  <tr><td>2025-04</td><td>ToolACE-R — adaptive refinement</td><td>团队补 multi-turn</td></tr>
+  <tr><td>2025-05</td><td>ToolACE-2-8B release</td><td>仍是 8B BFCL 标杆</td></tr>
+  <tr><td>2025-07</td><td>BFCL V4 公式重排 (Agentic 40%)</td><td>ToolACE-8B 不再领先</td></tr>
+  <tr><td>2025-08</td><td>ToolACE-MT — non-AR multi-turn</td><td>速度补丁</td></tr>
+  <tr><td>2025-10</td><td><a href="22_TOUCAN.html">TOUCAN</a> 1.5M 真 MCP — 5× 规模 + Apache</td><td>规模与真实度上完全 dominate ToolACE</td></tr>
+  <tr><td>2025-11</td><td><a href="34_ToolMind_2511.15718.html">ToolMind</a> 360K(BOSS Zhipin)</td><td>方法论补丁 (turn-level filter)</td></tr>
+  <tr><td>2026-01</td><td><a href="23_EnvScaler.html">EnvScaler</a> 程序化合成 env</td><td>另一路线: env 而非 dialog</td></tr>
+  <tr><td>2026-01</td><td><a href="29_TuneTheEnvironment.html">EnvTuning</a> 用 ToolACE-2-8B + 400 sample 训出 SOTA</td><td>ToolACE-2-8B 仍是 RL 起点</td></tr>
+</table>
+
+<p><strong>结论:</strong> ToolACE 在 <em>规模</em> 上被 TOUCAN 超越,在 <em>真实度</em> 上被 TOUCAN/EnvScaler 超越,在 <em>方法论</em> 上被 ToolMind 的 turn-level filter 补丁,在 <em>多轮</em> 上被它自己的 2.5 代和后继 RL 工作覆盖。但<strong>作为 SFT 数据 starting point</strong>, ToolACE-2/2.5-8B 仍然是 ≤40B 函数调用社区的<em>事实标准</em>之一,在 2026-05 的当下,它和 watt-tool-8B 仍然被 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 当 baseline. 它的 <em>历史地位</em> 是: <strong>第一个证明 8B SFT 在 BFCL 上能追上 GPT-4 系列的工作</strong>, 这点的 first-mover 价值不会因后继规模化而抹掉。</p>
+
+<h3>7.5 笔者个人 take</h3>
+
+<ul>
+  <li><strong>方法论看点</strong>: TSS 的 speciation-adaptation-evolution 生物隐喻是好的, 但实际效果取决于 <em>frontier LLM 抽 API 文档的质量</em> — 没开 prompt 模板,我们无法判断这个抽取过程到底有多 robust。</li>
+  <li><strong>self-guided complexity</strong> 这个点是真新意 —— 让待训 LLM 当 evaluator,然后用它的 loss 当 complexity 信号 — 后来的 SETA, CoEvolve, ToolMind turn-level 都各自做了这个 idea 的变体。在没有 reward model 的 SFT 设置下,<em>这是用 LLM 自身能力做难度匹配的最自然实现</em>。</li>
+  <li><strong>License 校订</strong>: 这是本笔记最重要的产出。Apache-2.0 = 可商用 = 后继工作引用 ToolACE 时不必背 NC 包袱 = ToolMind 全 Apache 化无 license 冲突。</li>
+  <li><strong>pipeline 不开源</strong>: 仍是 ToolACE 影响力上的最大短板 —— 你想"我也要造 50K function-call 数据" 时, ToolACE 没法直接给你 pipeline,只能去看 TOUCAN/EnvScaler 那种全开源工作。</li>
+  <li><strong>未来方向预测</strong>: 团队下一篇可能是 <em>ToolACE-3</em> 或 <em>ToolACE-Agent</em> — 接 MCP 真 server 的版本,以应对 BFCL V4 的 agentic 权重 + 真实 server 评测如 MCP-Universe。<span class="pill">推测,未在公开来源确认</span></li>
+</ul>
+
+<hr>
+
+<h2>关键事实速查 (cheatsheet)</h2>
+
+<table>
+  <tr><th>事实</th><th>verbatim 来源</th></tr>
+  <tr><td>API 池 26,507</td><td>论文 abstract + Table 1</td></tr>
+  <tr><td>公开 dialog 11,300</td><td>HF dataset API <code>numRows: 11300</code></td></tr>
+  <tr><td>Base model = Llama-3.1-8B-Instruct (不是 Llama-3-8B)</td><td>ToolACE-8B README verbatim</td></tr>
+  <tr><td>BFCL-v3 Rank 3 / Overall 59.22 / Single AST 89.27 / Exec 90.07</td><td>论文 Table 2(2024-09-20 截图)</td></tr>
+  <tr><td>Multi-turn 14.37 / Rel 85.37 / Irrel 83.81</td><td>论文 §3.2 verbatim</td></tr>
+  <tr><td><strong>License Apache-2.0(dataset + 全部 4 个 model variant)</strong></td><td>HF API & README header 实地 curl</td></tr>
+  <tr><td>论文录用 ICLR 2025</td><td>OpenReview <code>?id=8EB8k6DdCU</code> + ToolACE-8B model README "<em>our paper on ICLR2025</em>"</td></tr>
+  <tr><td>27 个共同作者 (Weiwen Liu first / Enhong Chen senior, USTC + 华为 Noah's Ark)</td><td>arXiv citation_author meta tag</td></tr>
+  <tr><td>合成 pipeline 代码闭源,无 GitHub repo</td><td>github 全 404, search 仅社区 fork</td></tr>
+  <tr><td>团队 4 篇衍生 paper: ACEBench / ToolACE-R / ToolACE-DEV / ToolACE-MT</td><td>ToolACE-2.5 model README 列出</td></tr>
+</table>
+
+<h2>附录 A — TSS context tree 的实际样貌(论文 Appendix A Figure 9)</h2>
+
+<p>论文 Appendix A 给了 <strong>entertainment domain</strong> 的 context tree 子树示意。可以从那一图反推 TSS 的实际形态:</p>
+
+<div class="fig">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" width="100%" style="max-width:700px">
+  <rect x="280" y="10" width="160" height="40" rx="6" fill="#cc4a1b" />
+  <text x="360" y="35" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">Entertainment</text>
+
+  <line x1="360" y1="50" x2="120" y2="100" stroke="#5b5e66"/>
+  <line x1="360" y1="50" x2="360" y2="100" stroke="#5b5e66"/>
+  <line x1="360" y1="50" x2="600" y2="100" stroke="#5b5e66"/>
+
+  <rect x="40" y="100" width="160" height="40" rx="6" fill="#2f6feb" />
+  <text x="120" y="125" text-anchor="middle" fill="#fff" font-size="13">Movies &amp; TV</text>
+  <rect x="280" y="100" width="160" height="40" rx="6" fill="#2f6feb" />
+  <text x="360" y="125" text-anchor="middle" fill="#fff" font-size="13">Music</text>
+  <rect x="520" y="100" width="160" height="40" rx="6" fill="#2f6feb" />
+  <text x="600" y="125" text-anchor="middle" fill="#fff" font-size="13">Gaming</text>
+
+  <line x1="120" y1="140" x2="40" y2="190" stroke="#5b5e66"/>
+  <line x1="120" y1="140" x2="200" y2="190" stroke="#5b5e66"/>
+  <line x1="360" y1="140" x2="280" y2="190" stroke="#5b5e66"/>
+  <line x1="360" y1="140" x2="440" y2="190" stroke="#5b5e66"/>
+  <line x1="600" y1="140" x2="520" y2="190" stroke="#5b5e66"/>
+  <line x1="600" y1="140" x2="680" y2="190" stroke="#5b5e66"/>
+
+  <text x="40" y="200" font-size="11">get_movie_info</text>
+  <text x="200" y="200" font-size="11" text-anchor="end">search_actor</text>
+  <text x="280" y="200" font-size="11">get_song</text>
+  <text x="440" y="200" font-size="11" text-anchor="end">get_artist</text>
+  <text x="520" y="200" font-size="11">get_leaderboard</text>
+  <text x="680" y="200" font-size="11" text-anchor="end">get_player_stats</text>
+
+  <line x1="40" y1="210" x2="40" y2="240" stroke="#5b5e66"/>
+  <text x="20" y="255" font-size="10">title→</text>
+  <text x="20" y="270" font-size="10">director, cast, year</text>
+  <text x="20" y="285" font-size="10">(list-of-string)</text>
+  <text x="20" y="305" font-size="10" fill="#cc4a1b" font-style="italic">← nested 参数</text>
+
+  <text x="360" y="345" text-anchor="middle" font-size="12" fill="#5b5e66">论文 Appendix A Figure 9 (示意): API context tree 节点 = "可能的 functionality", 子树深 → API 复杂</text>
+</svg>
+<figcaption>Entertainment 子树示意。adaptation 阶段会采"<em>movies + music 两个枝</em>"作为某个 cross-domain API 的 functionality 集合,evolution 阶段在叶子上加 constraint / mutate param type。整棵 tree 在论文里没全部 release —— 只给了 entertainment 这一段示例。</figcaption>
+</div>
+
+<h2>附录 B — ToolACE-8B 推理用法(README 附 code snippet)</h2>
+
+<p>HF model card 给的 prompt 模板很重要,因为 ToolACE 系列的输出格式不是 OpenAI JSON, 而是 <strong>函数调用列表</strong>:</p>
+
+<pre><code>system_prompt = """You are an expert in composing functions. You are given a question
+and a set of possible functions. Based on the question, you will need to make one or
+more function/tool calls to achieve the purpose.
+...
+If you decide to invoke any of the function(s), you MUST put it in the format of
+[func_name1(params_name1=params_value1, params_name2=params_value2...),
+ func_name2(params)]
+You SHOULD NOT include any other text in the response.
+Here is a list of functions in JSON format that you can invoke.\n{functions}\n
+"""</code></pre>
+
+<p>对比 OpenAI 标准 <code>{"name":"...", "arguments":"..."}</code>,ToolACE 用的是 <strong>Python-call 字面量字符串</strong> <code>[func_name(arg=val)]</code>。这是 <a href="28_BFCL.html">BFCL AST</a> 解析的<em>原生格式</em> —— BFCL 评测时直接 parse 这种字符串成 AST 然后比对 —— 所以 ToolACE 训练时刻意走这个 schema,在 BFCL 上拿分自然容易。<strong>但</strong>: 如果你想直接接 OpenAI Tool Calling API / MCP server 协议,你需要写一层 <em>format adapter</em> 把 ToolACE 输出转成 JSON。这是工程接入的实际 gotcha。</p>
+
+<h2>"<em>未在公开来源确认</em>"清单 (透明度)</h2>
+<ol>
+  <li><strong>ToolACE 完整训练集 N 条</strong> — paper 没给。HF 公开的 11,300 是 subset,完整规模根据 ToolACE-easy/medium/hard 各 60K 暗示 ≥180K, 但 paper 未明确数字。</li>
+  <li><strong>390+ domain 这个具体数字</strong> — paper Table 1 应该有但 HTML 抽取里没拿到 verbatim,沿用社区引用。</li>
+  <li><strong>BFCL-v3 Top-3 表里 GPT-4-turbo / GPT-4o 具体 Overall 数</strong> — HTML 表格未完整截到,只给了"<em>ToolACE-8B 89.27</em>"等本行。社区印象 GPT-4-turbo ~60.4 / GPT-4o ~59.5。</li>
+  <li><strong>watt-tool-8B 是否真用 ToolACE 数据</strong> — README 没 verbatim 说底层数据来源,只说"specialized dataset for tool usage and multi-turn dialogue" + DMPO。社区默认是 ToolACE 派生,但没 commit-level 证据。</li>
+  <li><strong>ToolACE pipeline 代码是否会开源</strong> — 团队没承诺,4 篇衍生 paper 也没开。这是推测而非已知。</li>
+</ol>
+
+</main>
+</body>
+</html>
