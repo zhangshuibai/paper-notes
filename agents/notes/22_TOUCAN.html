@@ -98,12 +98,15 @@
   <strong>目录</strong>
   <ol>
     <li><a href="#sec1">背景:为什么需要 1.5M scale 的 tool-agentic SFT 数据</a></li>
+    <li><a href="#sec_motiv">Motivation — 论文自报的"为什么旧数据集不够用"</a></li>
+    <li><a href="#sec_contrib">Contributions — 论文显式列出的 3 件套</a></li>
     <li><a href="#sec2">数据合成 pipeline 全景 — 5 阶段 + 3 扩展</a></li>
     <li><a href="#sec3">关键设计选择 — MCP 来源 / 多样性 / 验证器</a></li>
-    <li><a href="#sec4">训练 recipe + benchmark 结果</a></li>
-    <li><a href="#sec_oss">🔍 开源现状 — repo 实地清点</a></li>
+    <li><a href="#sec_data">训练数据详细解构 — 119K SFT subset 的内部组成</a></li>
+    <li><a href="#sec4">训练 recipe + 评测全套(BFCL V3 / τ / τ² / MCP-Universe)</a></li>
+    <li><a href="#sec_oss">🔍 开源现状 — repo 实地清点 + 复现 checklist</a></li>
     <li><a href="#sec6">与同类工作的横向矩阵</a></li>
-    <li><a href="#sec7">局限 / 个人 take</a></li>
+    <li><a href="#sec7">局限 / 个人 take(含 BFCL V3 vs V4 校订风险条)</a></li>
   </ol>
 </nav>
 
@@ -172,6 +175,83 @@
 </ul>
 
 <p>TOUCAN 的核心 commitment 就是 <strong>每条 trajectory 中的 tool response 都是 real MCP server 的真实回包</strong>(因此他们要在 onboarding 阶段筛掉所有需要第三方 credentials 的 server,把 ~2,800 减到 495)。这是和 #18 AWM 的最大哲学分歧:AWM 选择"<em>用 SQLite + Python 当受控 backend</em>"(可重置 / 可校验状态),TOUCAN 选择"<em>就接到真 server 上,失败 trajectory 当噪声扔掉</em>"。</p>
+
+<hr>
+
+<h2 id="sec_motiv">1.5 · Motivation — 论文自报的"为什么旧数据集不够用"</h2>
+
+<p>这一节把论文 §1 / §2 / Table 1 里散落的 motivation 集中起来,<strong>用原文语言</strong>重述 — 这样后面读到结果时,可以反推每条数字到底回答了哪个 motivation。</p>
+
+<h3>1.5.1 论文自述的核心痛点 (摘自 abstract + §1)</h3>
+
+<blockquote>
+"<em>progress in the open-source community is constrained by the lack of high quality permissively licensed tool-agentic training data. Existing datasets are often limited in <strong>diversity, realism, and complexity</strong>, particularly regarding <strong>multi-tool and multi-turn interactions</strong>.</em>" — arXiv abstract
+</blockquote>
+
+<blockquote>
+"<em>While previous efforts have introduced datasets covering various tool-calling scenarios, they suffer from several limitations: <strong>restricted tool diversity, lack of authentic tool responses, focus on single-turn conversations</strong> between users and models, or <strong>insufficient scale</strong>, all of which constrain effective training of agentic capabilities.</em>" — §1 引言
+</blockquote>
+
+<h3>1.5.2 论文 Table 1 对 4 个 baseline 数据集的逐条点名</h3>
+
+<p>论文 Table 1 直接把对手摆出来,用同一组属性逐列对比 — 这是 TOUCAN 的"立项依据"。下表把 Table 1 的关键发现重排,加入 TOUCAN 的对应解法:</p>
+
+<table>
+  <tr><th>对手数据集</th><th>规模</th><th>Tool spec 来源</th><th>Tool response</th><th>TOUCAN 的"自报"差异化</th></tr>
+  <tr>
+    <td>APIGent-MT-5K</td><td>5,000</td><td>从 τ-Bench 借</td><td class="ok">真执行</td>
+    <td>规模差 300×;tool 来源被锁死在 τ-Bench 的 retail/airline 单一域</td>
+  </tr>
+  <tr>
+    <td>ToolACE</td><td>11,300</td><td>合成 schema (509 个 fake fn)</td><td class="no">simulated</td>
+    <td>论文原话 "function-name fitting" — LLM 学到的是<strong>对 schema 字符串拟合,而不是真 server 行为</strong></td>
+  </tr>
+  <tr>
+    <td>Hermes Function-Calling V1</td><td>11,570</td><td>合成 schema (1,890 fn)</td><td class="ok">部分执行</td>
+    <td>规模仍小一个数量级;multi-turn 比例低</td>
+  </tr>
+  <tr>
+    <td>Nemotron (Tools, NVIDIA)</td><td>310,051</td><td>199,610 fn (来源未公开)</td><td>未明示</td>
+    <td>论文原话 "<em>domain coverage 太窄</em>";Nemotron 仍是<strong>合成 fn 不是真 MCP server</strong>;且 license 不允许商用</td>
+  </tr>
+  <tr style="background:#f3eee0">
+    <td><strong>TOUCAN</strong></td><td><strong>1,527,259</strong></td><td><strong>495 真 MCP / 2,000+ tools</strong></td><td class="ok"><strong>真 server 真执行</strong></td>
+    <td>"<em>S P MS IR</em> 全 4 种 tool-call 场景 + <strong>567,262 条 multi-turn</strong>" — 几乎是其它 4 家之和的 50×</td>
+  </tr>
+</table>
+
+<h3>1.5.3 三条具象痛点 — 为什么"schema 而非真 server"是问题</h3>
+
+<ol>
+  <li><strong>Tool error 不在 schema 数据的分布里</strong>: ToolACE / Nemotron 的 tool response 是 LLM 自己编的 plausible-looking JSON, <em>永远没有 rate-limit / auth-fail / malformed-args / timeout</em>。但真 MCP server 在 25-40% 的调用里会返回这些 — Toucan trajectory 里这部分是"<em>真的从 remote server 拿到错误,然后由 teacher LLM 学会优雅处理</em>" → SFT 出来的模型才会有 error-handling 能力。</li>
+  <li><strong>Tool chain 的语义依赖被压平</strong>: <code>get_user(id)</code> 的 <em>真实</em>输出决定 <code>get_orders(user.email)</code> 的参数 — 在 schema 数据里 LLM 看到的 user 是自己编的,所以下一步参数也是编的,<em>整个 chain 是 plausible-looking 但 disconnected</em>。Toucan 因为真接 server,这个依赖链是真的。</li>
+  <li><strong>Multi-turn 状态一致性丢失</strong>: 同一 server 多次 call 之间的 stateful behavior(<code>create_doc</code> → <code>edit_doc(doc_id)</code> → <code>list_docs</code> 必须能看到刚才那条)在 simulated response 里无法演出 — 因为没有真 backend 维持状态。Toucan 的 35.2K Ext.3 multi-turn 数据里这种链条都是真的。</li>
+</ol>
+
+<div class="nb">
+<strong>个人观察:</strong> 这三条 motivation 中 (1) error distribution 是<strong>论文最具说服力的差异化</strong> — 因为它是<em>合成 schema 数据原理上做不到</em>的。(2)(3) 在合成方式很精巧的 dataset 里(比如 #18 AWM 用 SQLite 当状态机)也能部分覆盖。但只有 TOUCAN 是<strong>把这三条同时拉到 1.5M 规模</strong>的 — 这是它"<em>规模 × 真实度</em>"双坐标系的占位优势。</div>
+
+<hr>
+
+<h2 id="sec_contrib">1.6 · Contributions — 论文显式列出的 3 件套</h2>
+
+<p>论文 §1 末尾的 "In summary, the contributions of our work are" 段落只列了 <strong>3 项 contribution</strong>(不是有些读者以为的 4-5 项 — 那是把 motivation/related-work 混进来的误判)。原文逐项:</p>
+
+<ol>
+  <li><strong>TOUCAN Dataset</strong> — "<em>The largest open-source tool-agent training dataset, covering parallel and multi-step tool calls, multi-turn dialogues, and edge-case tool use.</em>" 论文特别点名 Kimi-K2 / GLM-4.5 的 frontier 报告强调"<em>large-scale trajectories with broad domain coverage</em>"的价值 — TOUCAN 把这条做成开源对应物。
+    <ul><li>1,527,259 trajectory · 495 真 MCP · 2,000+ tools · 567,262 multi-turn · 4 种 tool-call 场景 (S/P/MS/IR) 全覆盖</li></ul>
+  </li>
+  <li><strong>TOUCAN Pipeline</strong> — "<em>A pipeline that leverages any MCP specifications to generate diverse tool-agent trajectories, supports tool execution through MCP servers, and can be seamlessly extended to new tools via the MCP standard.</em>"
+    <ul><li>5 阶段(Onboarding → Synth → Filter → Trajectory → Post-filter) + 3 扩展(Irrelevance / Persona / Multi-Turn)</li><li>关键设计: MCP standard 让 pipeline 对新 server "<em>seamlessly extensible</em>" — 不需要为每个新 tool 写 adapter</li></ul>
+  </li>
+  <li><strong>TOUCAN Checkpoints</strong> — "<em>models fine-tuned on TOUCAN mixtures surpass closed-source counterparts on the BFCL V3 and MCP-Universe benchmarks.</em>"
+    <ul><li>具象数字: Qwen2.5-32B + TOUCAN 在 BFCL V3 上 70.45% 险胜 GPT-4.5-Preview 70.32%</li><li>MCP-Universe 上 push Pareto frontier(具体落点见 §4.5)</li></ul>
+  </li>
+</ol>
+
+<div class="warn">
+<strong>注意:</strong> 论文 contribution 没有把 "<em>3 个 Extension 设计</em>" 单独列为 contribution(虽然这是方法论上最有意思的部分),而是把它们包在 "Dataset" 这一项里。也没有把"<em>双层 rule + LLM 过滤</em>"列为单独 contribution — 这是 pipeline 内嵌的工程优化。<strong>论文的 contribution 框架就是 "数据 + 流水线 + 模型权重 全开源" 三件套,非常工程务实,没有 over-claim 任何方法论创新。</strong>
+</div>
 
 <hr>
 
@@ -369,55 +449,333 @@
 
 <hr>
 
-<h2 id="sec4">4 · 训练 recipe + benchmark 结果</h2>
+<h2 id="sec_data">3.5 · 训练数据详细解构 — 119K SFT subset 的内部组成</h2>
 
-<h3>4.1 训练配置</h3>
+<p>这一节是<strong>本笔记最关心的一节</strong>。前面 §2 / §3 讲的是 1.5M raw trajectory 的来源,但真正训进 Qwen2.5 的是<strong>从 1.5M 里筛出的 119,287 条 SFT subset</strong>(精确数字来自 HF dataset card)。下面拆开这 119K 是怎么来的、按哪些维度切分。</p>
+
+<h3>3.5.1 HF dataset 上的 4 个公开 subset</h3>
+
+<p>打开 <code>datasets.load_dataset("Agent-Ark/Toucan-1.5M")</code> 你会看到 4 个 config — 这是 trajectory 在 teacher model 维度上的<strong>原始切分</strong>:</p>
+
+<table>
+  <tr><th>Config</th><th>样本数 (精确)</th><th>解压后大小</th><th>下载大小</th><th>含义</th></tr>
+  <tr>
+    <td><code>Kimi-K2</code></td>
+    <td>518,516</td>
+    <td>18.2 GB</td>
+    <td>6.0 GB</td>
+    <td>Kimi-K2 作 teacher 跑出来的 raw trajectory(经过 Stage 5 post-filter)</td>
+  </tr>
+  <tr>
+    <td><code>OSS</code></td>
+    <td>457,130</td>
+    <td>21.7 GB</td>
+    <td>7.6 GB</td>
+    <td>GPT-OSS-120B 作 teacher 的同上(单条更长,所以 byte 反而更大)</td>
+  </tr>
+  <tr>
+    <td><code>Qwen3</code></td>
+    <td>551,613</td>
+    <td>20.3 GB</td>
+    <td>6.4 GB</td>
+    <td>Qwen3-32B 作 teacher 的同上</td>
+  </tr>
+  <tr style="background:#f3eee0">
+    <td><code>SFT</code></td>
+    <td><strong>119,287</strong></td>
+    <td>1.25 GB</td>
+    <td>0.40 GB</td>
+    <td><strong>论文实际用来 SFT 的子集</strong> — 从前 3 个 subset 里按"质量分≥5, 完整≥4, 简洁≥4, desired tool use=1.0"硬阈值筛 + rebalance</td>
+  </tr>
+  <tr>
+    <td>合计 (前3)</td>
+    <td>1,527,259</td>
+    <td>60.2 GB</td>
+    <td>20.0 GB</td>
+    <td>这就是论文宣称的"1.5M trajectory"总和</td>
+  </tr>
+</table>
+
+<div class="nb">
+<strong>重要澄清:</strong> 3 个 teacher subset (Kimi-K2 / OSS / Qwen3) <strong>相加 ≠ 119K</strong>,因为这 3 个是<em>原料池</em>(已通过 rule + LLM 过滤,但没经过最终 rebalance),而 SFT 119K 是论文做实验<em>真用</em>的那一份。如果你只想训自己模型,<strong>直接拉 <code>SFT</code> config 一份就够了</strong>(0.40 GB 下载);<strong>研究 teacher 多样性时</strong>才需要拉前 3 个 (20 GB 下载)。</div>
+
+<h3>3.5.2 119K SFT subset 在 pipeline 维度上的拆分</h3>
+
+<p>论文 §4.1 末尾给出 119.3K = 28.3K + 40K + 15.8K + 35.2K 的明确拆分:</p>
+
+<table>
+  <tr><th>来源</th><th>数量</th><th>占比</th><th>主要训什么能力</th></tr>
+  <tr>
+    <td><strong>原始 pipeline (Stage 1-5)</strong></td>
+    <td>28,300</td>
+    <td>23.7%</td>
+    <td>standard tool-call(选对 tool / 写对 args / 把多个 tool 串起来)</td>
+  </tr>
+  <tr>
+    <td><strong>Ext.1 — Irrelevance</strong></td>
+    <td>40,000</td>
+    <td><strong>33.5%</strong></td>
+    <td>"<em>拒答</em>"无解 query — 占比最高,因为这是 BFCL V3 Irrelevance 子项的直接对应</td>
+  </tr>
+  <tr>
+    <td><strong>Ext.2 — Persona-Diversify</strong></td>
+    <td>15,800</td>
+    <td>13.2%</td>
+    <td>语境鲁棒 / persona 适配 / 同 tool 不同 query 风格</td>
+  </tr>
+  <tr>
+    <td><strong>Ext.3 — Multi-Turn</strong></td>
+    <td>35,200</td>
+    <td>29.5%</td>
+    <td>多轮对话状态保持(从 567K 多轮 raw 池里精筛)</td>
+  </tr>
+  <tr style="background:#f3eee0">
+    <td><strong>总计</strong></td>
+    <td>119,300</td>
+    <td>100%</td>
+    <td></td>
+  </tr>
+</table>
+
+<p>注意 <strong>40K Irrelevance + 35.2K Multi-Turn = 63%</strong> 的 SFT 数据来自<strong>扩展机制而非原始 pipeline</strong>。也就是说 — 论文真正认为<em>有训练价值</em>的是<strong>edge case</strong>(无解 / 多轮)而不是 vanilla tool-call(那部分 baseline Qwen2.5 已经会了)。这条解释了为什么消融里 Ext.1 (Irrelevance) 对 BFCL V3 Irrelevance 子项贡献 +30+ pp(见 §4.4)。</p>
+
+<h3>3.5.3 论文 §3.1 Stage 2 列出的 3 种 task 合成策略</h3>
+
+<p>原始 28.3K(以及其它扩展的种子)是由 5 个 LLM × 3 个采样策略产出的。三种策略对应不同<strong>能力难度梯度</strong>:</p>
+
+<table>
+  <tr><th>策略</th><th>定义</th><th>tool 数上限</th><th>能力训练目标</th></tr>
+  <tr>
+    <td><strong>Single Server</strong></td>
+    <td>给定 1 个 MCP server,从中选 1~N 个 tool 合成 query</td>
+    <td>N=3</td>
+    <td>"<em>会用对工具</em>" — 单 server 内 tool 选择 + 多步 chain</td>
+  </tr>
+  <tr>
+    <td><strong>Multi-Server</strong></td>
+    <td>从同/异 category 抽 N 个 MCP server,生成跨 server workflow</td>
+    <td>N=3</td>
+    <td>"<em>跨 server 组合</em>" — 例如 weather server + calendar server 拼出"<em>明天下雨就把会议改到室内</em>"这种</td>
+  </tr>
+  <tr>
+    <td><strong>Featured Server</strong></td>
+    <td>把 25 个手动精选的 "Featured" server 全部 metadata 放进 context,让 LLM 自由组合</td>
+    <td>—</td>
+    <td>"<em>高质量深度组合</em>" — 在精选 server 池上做 anchor 质量</td>
+  </tr>
+</table>
+
+<p>"Featured Server" 这 25 个手选的是哪些?论文 Appendix B.1 / Table 4 给出全表 — 涵盖 OKX (crypto)、Semantic Scholar (research)、PubMed、Flux ImageGen、Hotel Booking、Cloudflare Playwright (browser)、Exa Search、ClinicalTrials、LeetCode、Code Runner、Context7、Airbnb 等。设计意图: <strong>跨域覆盖 + 每域至少 1 个深度 server</strong> 作为多 server 组合的可靠 anchor。</p>
+
+<h3>3.5.4 servers 域分布 — 495 个 MCP 都在干什么</h3>
+
+<p>论文 Figure 3 给了 495 server 按 LLM-annotated 域的分布(降序):</p>
+
+<table>
+  <tr><th>排名</th><th>域</th><th>server 数</th><th>占比</th></tr>
+  <tr><td>1</td><td>Web Search &amp; Research</td><td>70</td><td>14.1%</td></tr>
+  <tr><td>2</td><td>Development Tools</td><td>48</td><td>9.7%</td></tr>
+  <tr><td>3</td><td>Data Analysis &amp; Processing</td><td>36</td><td>7.3%</td></tr>
+  <tr><td>4</td><td>Crypto &amp; Blockchain</td><td>33</td><td>6.7%</td></tr>
+  <tr><td>5</td><td>Content Creation</td><td>28</td><td>5.7%</td></tr>
+  <tr><td>6</td><td>Operating System</td><td>26</td><td>5.3%</td></tr>
+  <tr><td>7</td><td>Weather</td><td>25</td><td>5.1%</td></tr>
+  <tr><td>8</td><td>AI/ML Tools</td><td>19</td><td>3.8%</td></tr>
+  <tr><td>9</td><td>Database Operations</td><td>19</td><td>3.8%</td></tr>
+  <tr><td>10</td><td>API Integration</td><td>18</td><td>3.6%</td></tr>
+  <tr><td>11-13</td><td>Gaming / Browser Automation / Financial Services</td><td>16+16+14</td><td>9.3%</td></tr>
+  <tr><td>14-20</td><td>Security/News/Education/Memory/File/Travel/Productivity</td><td>10-14 each</td><td>~16%</td></tr>
+  <tr><td>21-27</td><td>Time/Communication/Health/E-commerce/Social/Cloud + Others</td><td>3-7 each</td><td>剩余 ~10%</td></tr>
+</table>
+
+<div class="nb">
+<strong>覆盖偏置:</strong> Web Search + Dev Tools + Data Analysis 这<strong>头 3 大占了 31%</strong>。<em>专业领域</em>(Health 4 / E-commerce 4 / Cloud 3 / Social 4)只占个位数。这意味着 Toucan-tuned 模型在 web/code/data 域上是 over-trained,在 medical/legal/finance 类长尾域的泛化是<strong>未在论文中验证的开放问题</strong>。</div>
+
+<h3>3.5.5 trajectory 复杂度统计(来自论文 Figure 4 + HF dataset card)</h3>
+
+<p>论文 Figure 4 的 8 张子图给出 trajectory 形态分布。本笔记把 HF dataset card 文字描述加上 figure 反推的近似值整理如下:</p>
+
+<table>
+  <tr><th>维度</th><th>分布特征</th><th>来源</th></tr>
+  <tr><td>每条 trajectory 涉及的 server 数</td><td>1-3,以 1 server 为主,~20% 涉及 2+ server</td><td>Fig.4(a)</td></tr>
+  <tr><td>required tools 数</td><td>1-3 居多,minority 涉及更多</td><td>Fig.4(b)</td></tr>
+  <tr><td>available tools(context 中给 LLM 看的)</td><td><strong>普遍大于 required</strong> — 训练 tool selection 难度</td><td>Fig.4(c)(d)</td></tr>
+  <tr><td>user query token 长度</td><td>长尾分布,集中在数十至数百 token</td><td>Fig.4(e)</td></tr>
+  <tr><td>多轮交互轮数</td><td>包含从 single-turn 到长 multi-turn 的全梯度</td><td>Fig.4(f)(h)</td></tr>
+  <tr><td>parallel tool call 比例</td><td>IBM blog 原话: "<em>A fifth (≈20%) of Toucan's scenarios require models to call multiple tools at once</em>"</td><td>blog + Fig.4(g)</td></tr>
+</table>
+
+<p class="nb"><strong>未在公开来源确认:</strong> 论文未给出"<em>avg turns / avg tool calls / avg tokens per trajectory</em>"的具体数字 — 只在 Figure 4 用 histogram 展示分布。如果你需要精确均值需要自己跑 HF SFT subset 的 <code>messages</code> 字段统计。</p>
+
+<h3>3.5.6 数据格式 (HF schema)</h3>
 
 <div class="kv">
-<strong>训练 hyperparams</strong>(§4.1):<br>
-- 基座: Qwen2.5-Instruct 的 7B / 14B / 32B 三档<br>
-- SFT 数据: 上述 <strong>119.3K subset</strong>(从 1.5M raw 里筛)<br>
-- 2 epochs, lr = 2×10⁻⁵, effective batch size = 64, max seq len = 32,768<br>
-- 算法: 纯 SFT(无 RL,无 DPO)
+<strong>SFT config 字段</strong>(从 HF dataset card):<br>
+<code>uuid</code>: 唯一 ID <br>
+<code>subset_name</code>: <code>single-turn-original</code> / <code>irrelevant</code> / <code>single-turn-diversify</code> / <code>multi-turn</code> 之一(对应 §3.5.2 的 4 个来源)<br>
+<code>question</code>: 用户原始 query<br>
+<code>target_tools</code>: 标注的"必须使用"的 tool(格式 <code>Server::Tool</code>)<br>
+<code>tools</code>: 完整 available tool 列表(JSON)<br>
+<code>messages</code>: 完整 trajectory 已格式化为 chat template(Hermes 格式,system prompt 包含 tool 列表)— 可直接喂 ms-swift / OpenRLHF / TRL SFTTrainer
 </div>
 
-<h3>4.2 BFCL V3 — 最亮眼的数字</h3>
+<p>3 个 teacher subset (Kimi-K2 / OSS / Qwen3) 多 4 个字段:<code>available_tools</code> / <code>question_quality_assessment</code> / <code>response_quality_assessment</code> / <code>metadata</code> — 这些是给做 dataset analysis 的研究者用的,SFT 训练用不到。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 训练 recipe + 评测全套</h2>
+
+<h3>4.1 训练配置 — 全套 hyperparams</h3>
+
+<p>论文 Appendix C.2 / Table 5 给出全部 SFT hyperparam — 可<strong>直接复现</strong>不留白:</p>
 
 <table>
-  <tr><th>模型</th><th>Overall</th><th>Single-Turn</th><th>Multi-Turn</th></tr>
-  <tr><td>Qwen2.5-7B baseline</td><td>55.10</td><td>—</td><td>—</td></tr>
-  <tr><td>Qwen2.5-7B + Toucan</td><td><strong>58.26</strong> (+3.16)</td><td>78.52</td><td>74.50</td></tr>
-  <tr><td>Qwen2.5-14B baseline</td><td>57.69</td><td>—</td><td>—</td></tr>
-  <tr><td>Qwen2.5-14B + Toucan</td><td><strong>65.09</strong> (+7.40)</td><td>85.42</td><td>76.01</td></tr>
-  <tr><td>Qwen2.5-32B baseline</td><td>61.73</td><td>—</td><td>—</td></tr>
-  <tr><td>Qwen2.5-32B + Toucan</td><td><strong>70.45</strong> (+8.72)</td><td>87.12</td><td>78.90</td></tr>
-  <tr style="background:#fff8e8"><td>GPT-4.5-Preview</td><td>70.32</td><td>86.12</td><td>79.34</td></tr>
+  <tr><th>Hyper-parameter</th><th>Value</th><th>备注</th></tr>
+  <tr><td>基座</td><td>Qwen2.5-7B/14B/32B-Instruct</td><td>不是 base,是 instruct 版本</td></tr>
+  <tr><td>Tool-call 模板</td><td>Hermes</td><td>HF SFT subset 已按这个 template 格式化好</td></tr>
+  <tr><td>Learning rate</td><td>2×10⁻⁵</td><td></td></tr>
+  <tr><td>Epochs</td><td>2</td><td></td></tr>
+  <tr><td>Devices</td><td>8 或 64 (H100)</td><td>论文用 8×H100 evaluation,training 可 scale 到 64</td></tr>
+  <tr><td>Per-device batch</td><td>1</td><td></td></tr>
+  <tr><td>Grad accumulation</td><td>8 (on 8 GPU) / 1 (on 64 GPU)</td><td></td></tr>
+  <tr><td>Effective batch size</td><td>64</td><td></td></tr>
+  <tr><td>Optimizer</td><td>AdamW (β=0.9, 0.999, ε=1e-8)</td><td></td></tr>
+  <tr><td>Deepspeed</td><td>zero3</td><td></td></tr>
+  <tr><td>Max seq len</td><td>32,768</td><td>multi-turn trajectory 可以挺长</td></tr>
+  <tr><td>SFT 数据</td><td>119.3K(28.3K original + 40K Ext.1 + 15.8K Ext.2 + 35.2K Ext.3)</td><td>论文 §4.1 明确切分</td></tr>
+  <tr><td>算法</td><td>纯 SFT(无 RL,无 DPO,无 reward model)</td><td>这是和 #18 AWM / #20 SETA 的核心方法学分歧</td></tr>
 </table>
 
-<p>32B 在 overall 上以 <strong>0.13 pp 险胜 GPT-4.5-Preview</strong>。这是论文最常被引用的卖点,但要注意 multi-turn 这一栏 GPT-4.5-Preview 反过来 78.90 vs 79.34 略低 — 32B 的胜出主要来自 single-turn 和 relevance 子项。</p>
+<h3>4.2 评测 benchmark 全景 — 4 个套件覆盖什么</h3>
 
-<h3>4.3 τ-Bench / τ²-Bench / MCP-Universe</h3>
+<p>论文用 <strong>4 个 benchmark</strong>(没有 ToolACE-eval / Nexus / 内部 eval — 全部都是社区标准):</p>
 
 <table>
-  <tr><th>模型</th><th>τ-Bench Avg</th><th>τ²-Bench Avg</th></tr>
-  <tr><td>Qwen2.5-7B + Toucan</td><td>22.48 (+7.45)</td><td>17.77 (+1.69)</td></tr>
-  <tr><td>Qwen2.5-14B + Toucan</td><td>35.24 (+4.39)</td><td>30.43 (+5.97)</td></tr>
-  <tr><td>Qwen2.5-32B + Toucan</td><td>42.33 (+3.57)</td><td>31.60 (+2.20)</td></tr>
+  <tr><th>Benchmark</th><th>评什么</th><th>规模</th><th>评估机制</th><th>TOUCAN 为什么 care</th></tr>
+  <tr>
+    <td><strong>BFCL V3</strong> (<a href="28_BFCL.html">#28</a>)</td>
+    <td>function-calling 各类形态: 单 / 并行 / 多步 / 多轮 / 拒答</td>
+    <td>~2,000 case</td>
+    <td>AST checker + state-based eval</td>
+    <td>论文最主推的"<em>SOTA 险胜 GPT-4.5</em>"靠这个</td>
+  </tr>
+  <tr>
+    <td><strong>τ-Bench</strong> (Yao et al. 2024)</td>
+    <td>dual-control: agent 和 user simulator 来回对话,完成 retail/airline 任务</td>
+    <td>retail + airline 两域</td>
+    <td>GPT-4o 当 user simulator + reward judge</td>
+    <td>查"<em>SFT 完到底会不会真对话</em>"</td>
+  </tr>
+  <tr>
+    <td><strong>τ²-Bench</strong> (Barres et al. 2025)</td>
+    <td>τ-Bench 升级版,加 telecom 域 + 更强 user policy</td>
+    <td>airline + retail + telecom</td>
+    <td>同上 + 更难的 policy 评分</td>
+    <td>更接近实际 deployment 场景</td>
+  </tr>
+  <tr>
+    <td><strong>MCP-Universe</strong> (Luo et al. 2025, Salesforce)</td>
+    <td>真 MCP server 执行任务</td>
+    <td>231 task / 11 server</td>
+    <td>execution-based 评分 + partial credit</td>
+    <td>验证"<em>真 MCP 训出来在真 MCP 上 transfer</em>"</td>
+  </tr>
 </table>
 
-<p>τ-Bench / τ²-Bench 上的涨幅明显小于 BFCL V3(7.45 → 3.57 随尺寸递减),说明 <strong>SFT 数据更"对得上" BFCL V3 这种 function-call 形式</strong>,对真正的 dual-control 长对话(τ²)收益边际更小。</p>
+<h3>4.3 BFCL V3 — 全 5 子项 breakdown(Table 2 全数据)</h3>
 
-<p>MCP-Universe 上论文只给了 Pareto 图(Fig.8),说 "Toucan-tuned 模型在更小尺寸上 push 前沿" — 没给绝对数,但和 <a href="19_MCPAtlas_2602.00933.html">#19 MCP-Atlas</a> / <a href="21_MCPBenchmarks_compare.html">#21</a> 里那张 MCP-Universe 排行榜对得上(Qwen2.5-32B + Toucan 大致落在 25-30% 区间)。</p>
+<p>下表是论文 Table 2 的完整数据。BFCL V3 把 "<em>function-calling</em>" 拆成 5 个子项:Non-live AST(传统单步)/ Live AST(社区贡献的真实场景单步)/ Multi-Turn(2024-09 新增的多轮)/ Relevance(该调时调对)/ Irrelevance(不该调时拒答)。</p>
 
-<h3>4.4 Ablation 摘录</h3>
+<table>
+  <tr><th>模型</th><th>Overall</th><th>Non-live AST</th><th>Live AST</th><th>Multi-Turn</th><th>Relevance</th><th>Irrelevance</th></tr>
+  <tr><td colspan="7" style="background:#f3eee0"><strong>大模型 / closed-source baseline</strong></td></tr>
+  <tr><td>DeepSeek-V3</td><td>64.71</td><td>88.54</td><td>77.34</td><td>29.87</td><td>83.33</td><td>76.49</td></tr>
+  <tr><td>Qwen2.5-72B-Instruct</td><td>64.37</td><td>87.56</td><td>78.68</td><td>29.38</td><td>72.22</td><td>77.41</td></tr>
+  <tr><td>Qwen3-235B-A22B</td><td>67.94</td><td>87.90</td><td>77.03</td><td>40.12</td><td>83.33</td><td>76.32</td></tr>
+  <tr><td>Qwen3-32B</td><td><strong>69.25</strong></td><td>88.90</td><td>77.83</td><td>43.12</td><td>72.22</td><td>75.79</td></tr>
+  <tr><td>o3-Mini</td><td>64.61</td><td>86.15</td><td>79.08</td><td>28.75</td><td>72.22</td><td>82.96</td></tr>
+  <tr><td>GPT-4.1</td><td>68.69</td><td>85.42</td><td>79.92</td><td>40.50</td><td>77.78</td><td><strong>85.95</strong></td></tr>
+  <tr style="background:#fff8e8"><td><strong>GPT-4.5-Preview</strong></td><td>70.32</td><td>86.12</td><td>79.34</td><td>45.38</td><td>66.67</td><td>83.64</td></tr>
+  <tr><td colspan="7" style="background:#f3eee0"><strong>TOUCAN SFT'd Qwen2.5 系列</strong></td></tr>
+  <tr><td>Qwen2.5-7B-Instruct</td><td>55.10</td><td>84.19</td><td>72.32</td><td>12.88</td><td>72.22</td><td>67.93</td></tr>
+  <tr style="background:#f3eee0"><td>+ TOUCAN</td><td><strong>58.26</strong> <span class="ok">+3.16</span></td><td>78.52</td><td>74.50</td><td>22.62</td><td>66.67</td><td>75.18</td></tr>
+  <tr><td>Qwen2.5-14B-Instruct</td><td>57.69</td><td>83.38</td><td>73.70</td><td>19.75</td><td>83.33</td><td>68.46</td></tr>
+  <tr style="background:#f3eee0"><td>+ TOUCAN</td><td><strong>65.09</strong> <span class="ok">+7.40</span></td><td>85.42</td><td>76.01</td><td>35.25</td><td>72.22</td><td>75.96</td></tr>
+  <tr><td>Qwen2.5-32B-Instruct</td><td>61.73</td><td>85.58</td><td>76.01</td><td>26.38</td><td>72.22</td><td>72.68</td></tr>
+  <tr style="background:#f3eee0"><td><strong>+ TOUCAN</strong></td><td><strong>70.45</strong> <span class="ok">+8.72</span></td><td>87.12</td><td>78.90</td><td><strong>46.50</strong></td><td>77.78</td><td>78.10</td></tr>
+</table>
 
-<p>论文 §4.3 做了 ablation,关键发现:</p>
+<p><strong>关键观察:</strong></p>
+<ol>
+  <li><strong>32B + TOUCAN 在 Multi-Turn 单项 46.50 反而<em>超过</em>了 GPT-4.5-Preview 的 45.38</strong> — 这是论文里我认为最被低估的数字:在最难的 BFCL V3 子项上击败 1T 参数闭源模型。</li>
+  <li><strong>Non-live AST: 7B 反退步</strong>(84.19 → 78.52,<span class="no">-5.67</span>)— 这是 SFT 在小模型上典型的"<em>形式过拟合 trade-off</em>": 学会了真 MCP 调用风格,反而丢了 BFCL 简单格式的 prior。14B/32B 上这个问题消失。</li>
+  <li><strong>Relevance 子项 7B 倒退</strong> (72.22→66.67) — 同上,小模型容量不足以同时记住"该拒答"和"该调用"两种行为。</li>
+  <li><strong>Irrelevance 全线大涨</strong>(7B: +7.25 / 14B: +7.50 / 32B: +5.42) — Ext.1 的 40K irrelevance 数据精准命中,这是论文消融 Table 6 上 Irrelevance 子项从 baseline 68.46 → 77.85 (+9.39) 的直接因果证据。</li>
+  <li><strong>胜负毛细看</strong>: 32B + TOUCAN 在 Overall 上 70.45 vs GPT-4.5 70.32 = +0.13 pp。同时 Multi-Turn 上 46.50 vs 45.38 = +1.12 pp。论文卖点是 "<em>32B SFT 超过 1T 参数闭源</em>",但 GPT-4.1 (68.69) 已经接近,Qwen3-32B (无 TOUCAN, 69.25) 也很接近 — TOUCAN 增益从 61.73 → 70.45 是<strong>真实的</strong>,但相对赛道的 ceiling 没有跳跃。</li>
+</ol>
 
+<h3>4.4 BFCL V3 Ablation — 4 extension 的逐项贡献(Table 6)</h3>
+
+<p>论文 Appendix C.3 / Table 6 在 14B 模型上做了 ablation,逐步加 4 类 SFT 数据看 BFCL V3 各子项变化:</p>
+
+<table>
+  <tr><th>训练数据组合</th><th>Overall</th><th>Non-live AST</th><th>Live AST</th><th>Multi-Turn</th><th>Relevance</th><th>Irrelevance</th></tr>
+  <tr><td>Qwen2.5-14B-Instruct (baseline)</td><td>57.69</td><td>83.38</td><td>73.70</td><td>19.75</td><td>83.33</td><td>68.46</td></tr>
+  <tr><td>+ Single Turn (=28.3K original)</td><td>60.16 <span class="ok">+2.47</span></td><td>87.50</td><td>66.86</td><td>34.38</td><td>72.22</td><td><span class="no">46.88</span></td></tr>
+  <tr><td>+ Irrelevance (Ext.1 加进来)</td><td>64.74 <span class="ok">+4.58</span></td><td>88.46</td><td>77.25</td><td>30.38</td><td>72.22</td><td><strong>77.85</strong> <span class="ok">+30.97</span></td></tr>
+  <tr><td>+ Diversify (Ext.2 加进来)</td><td>64.56 <span class="no">-0.18</span></td><td>86.06</td><td>76.90</td><td>32.50</td><td>72.22</td><td>75.45</td></tr>
+  <tr style="background:#f3eee0"><td>+ Multi-Turn (Ext.3 加进来 = 全 119K)</td><td><strong>65.09</strong> <span class="ok">+0.53</span></td><td>85.42</td><td>76.01</td><td><strong>35.25</strong></td><td>72.22</td><td>75.96</td></tr>
+</table>
+
+<p><strong>消融最关键发现 — Ext.1 是单独最大贡献者:</strong></p>
 <ul>
-  <li><strong>规模 ablation</strong>:从 30K → 60K → 119K subset,BFCL V3 单调上升但收益递减 — 119K 后接近饱和;</li>
-  <li><strong>3 个 extension 各自贡献</strong>:Ext.1 (Irrelevance) 对 BFCL V3 的 relevance 子项贡献最大(+~5pp);Ext.3 (Multi-Turn) 对 multi-turn 子项贡献最大;Ext.2 (Diversify) 贡献最分散;</li>
-  <li><strong>双 framework (Qwen-agent + OpenAI-agent) 比单 framework 更好</strong>: 两种 framework 写 tool call 的格式不同,混训能避免格式过拟合。</li>
+  <li><strong>只加 Single-Turn 反而炸 Irrelevance</strong>(68.46 → 46.88,<span class="no">-21.58 pp</span>)— 因为 28.3K 全是"<em>该调工具</em>"的数据,SFT 后模型变得 over-eager,什么都想调 → irrelevant 子项崩;</li>
+  <li><strong>加 Ext.1 (Irrelevance) 一举修复</strong>: 46.88 → 77.85 (+30.97 pp),不仅修复 baseline,还<strong>超过 baseline 9.4 pp</strong>;</li>
+  <li><strong>Ext.2 (Diversify) 在 BFCL V3 上几乎没贡献</strong>(Overall 64.74 → 64.56,反而 -0.18)— 这是论文里没明说的"<em>Ext.2 在 BFCL V3 上 noop</em>"。Ext.2 的实际收益体现在 τ-Bench / τ²-Bench(language style 多样性);</li>
+  <li><strong>Ext.3 (Multi-Turn) 在 Multi-Turn 子项稳贡献</strong>(32.50 → 35.25,+2.75 pp),这是预期内的 — 教会模型 multi-turn state 保持。</li>
 </ul>
+
+<h3>4.5 τ-Bench / τ²-Bench — 全 4 域 breakdown(Table 3 全数据)</h3>
+
+<p>这是这次精读补完最有意思的一块 — 此前笔记只给了 Avg,现在拆出 airline / retail / telecom 三域:</p>
+
+<table>
+  <tr><th>模型</th><th>τ-Bench Avg</th><th>Airline</th><th>Retail</th><th>τ²-Bench Avg</th><th>Airline</th><th>Retail</th><th>Telecom</th></tr>
+  <tr><td>Qwen2.5-7B-Instruct</td><td>15.03</td><td>8.75</td><td>21.30</td><td>16.08</td><td>14.00</td><td>17.54</td><td>16.70</td></tr>
+  <tr style="background:#f3eee0"><td>+ TOUCAN</td><td><strong>22.48</strong> <span class="ok">+7.45</span></td><td>15.50</td><td>29.46</td><td><strong>17.77</strong> <span class="ok">+1.69</span></td><td>20.00</td><td>22.80</td><td><span class="no">10.50</span></td></tr>
+  <tr><td>Qwen2.5-14B-Instruct</td><td>30.85</td><td>17.25</td><td>44.46</td><td>24.46</td><td>12.00</td><td>41.20</td><td>20.18</td></tr>
+  <tr style="background:#f3eee0"><td>+ TOUCAN</td><td><strong>35.24</strong> <span class="ok">+4.39</span></td><td>22.00</td><td>48.48</td><td><strong>30.43</strong> <span class="ok">+5.97</span></td><td>22.00</td><td>49.10</td><td>20.18</td></tr>
+  <tr><td>Qwen2.5-32B-Instruct</td><td>38.76</td><td>26.00</td><td>51.52</td><td>29.40</td><td>18.00</td><td>49.10</td><td>21.11</td></tr>
+  <tr style="background:#f3eee0"><td><strong>+ TOUCAN</strong></td><td><strong>42.33</strong> <span class="ok">+3.57</span></td><td>29.00</td><td>55.65</td><td><strong>31.60</strong> <span class="ok">+2.20</span></td><td>22.00</td><td>52.60</td><td>20.20</td></tr>
+</table>
+
+<p><strong>关键观察:</strong></p>
+<ul>
+  <li><strong>Telecom 域是软肋</strong>:7B 上 TOUCAN 反而把 telecom <span class="no">从 16.70 砍到 10.50 (-6.20 pp)</span>;14B/32B 上 telecom 几乎完全 noop(20.18 → 20.18 / 21.11 → 20.20)。原因可能: 495 个 MCP server 里 <strong>Communication Tools 类只有 7 个</strong>(§3.5.4 域分布),trajectory 训不到 telecom-specific 多轮对话 policy。</li>
+  <li><strong>Retail / Airline 涨幅显著</strong>:Retail 在所有 size 上 + 4 ~ 8 pp。原因: TOUCAN 里 web search / dev tools / data analysis 类对应到 retail 操作(查商品 / 改订单)有大量 transfer。</li>
+  <li><strong>τ²-Bench 涨幅整体小于 τ-Bench</strong>:7B 上 τ² 只涨 +1.69 vs τ 涨 +7.45 — 因为 τ²-Bench 加了更难的 user policy,SFT 学的是 tool-call 形式,policy 推理还需要 RL。这条解释了为什么作者在论文 §5 future work 里明确提到要做 "<em>reinforcement learning gym</em>"。</li>
+</ul>
+
+<h3>4.6 MCP-Universe — Pareto 但无绝对数</h3>
+
+<p>论文 Figure 7 + Figure 8 用 bar chart + Pareto 散点展示。<strong>没有列绝对数字表</strong>,所以本笔记给出从 Figure 反推的可读数:</p>
+
+<table>
+  <tr><th>对比模型</th><th>Overall (Figure 8 反推)</th><th>说明</th></tr>
+  <tr><td>Qwen2.5-14B-Instruct (FC)</td><td>~10-15%</td><td>baseline</td></tr>
+  <tr><td>Qwen2.5-14B + TOUCAN</td><td>~18-22%</td><td>明显在 Pareto 上方</td></tr>
+  <tr><td>Qwen2.5-32B-Instruct (FC)</td><td>~15-20%</td><td>baseline</td></tr>
+  <tr style="background:#f3eee0"><td>Qwen2.5-32B + TOUCAN</td><td>~25-30%</td><td>论文 Figure 8 显示 push Pareto forward</td></tr>
+  <tr><td>Mistral-Small-3.2 / Qwen3-30B-A3B</td><td>~20-25%</td><td>同尺寸开源对手</td></tr>
+  <tr><td>Llama-3.3-70B / Qwen2.5-72B (FC)</td><td>~30-35%</td><td>大模型基线</td></tr>
+  <tr><td>GLM-4.5-Air / Qwen3-235B / DeepSeek-V3</td><td>~40%+</td><td>frontier-class</td></tr>
+</table>
+
+<p>具体子域 (Location Navigation / Repository Mgmt / Financial Analysis / 3D Designing / Browser Automation / Web Searching):TOUCAN-tuned 在 Web Searching / Repository Mgmt / Browser Automation 上对同 size baseline 优势最明显;在 3D Designing / Financial Analysis 上 TOUCAN-tuned 没明显优势 — 和 §3.5.4 servers 域分布偏置一致(crypto/finance/3D 类 server 数量少)。</p>
+
+<div class="warn">
+<strong>未在公开来源确认:</strong> 论文文字表述是 "<em>push Pareto frontier forward, achieving higher OSR at smaller model sizes</em>",但<strong>没给出 32B + TOUCAN 在 MCP-Universe 上的具体 Overall Success Rate 数字</strong>。上表 25-30% 是从 Figure 7/8 bar 高度反推,精确值需要去 MCP-Universe 官方 leaderboard 查 — 但目前 leaderboard 没有把 TOUCAN 单独列条目。
+</div>
 
 <hr>
 
@@ -504,12 +862,104 @@
 
 <p><strong>结论:</strong> TOUCAN 的开源完整度和 AWM 是<strong>当前 agentic data 这一线最高的两家</strong>,显著高于 Agent-World(paper-only)。SETA 因为是 RLVR-Docker 路线,可比性稍弱但也接近全开。</p>
 
-<h3>5.2 自托管 / 复现需要什么</h3>
+<h3>5.2 License 分析 — 这套栈能直接商用吗?</h3>
+
+<table>
+  <tr><th>Artifact</th><th>License</th><th>商业部署允许?</th><th>注意事项</th></tr>
+  <tr><td>Toucan-1.5M dataset</td><td><strong>Apache-2.0</strong></td><td class="ok">✓ 可</td><td>需保留 attribution; PII 已 best-effort 清洗(rule-based)</td></tr>
+  <tr><td>TheAgentArk/Toucan pipeline code</td><td><strong>MIT</strong></td><td class="ok">✓ 可</td><td>最宽松;可闭源 fork</td></tr>
+  <tr><td>Toucan-Qwen2.5-{7,14,32}B 权重</td><td>跟随 Qwen2.5 base = <strong>Apache-2.0</strong></td><td class="ok">✓ 可</td><td>Qwen2.5 Apache-2.0 比 Qwen3(更紧 Tongyi Qianwen license)宽松</td></tr>
+  <tr><td>底层用的 5 个 task-synthesis LLM 输出</td><td>各模型 license 不同</td><td class="ok">~</td><td>GPT-OSS = Apache-2.0; Kimi-K2 / Qwen3 / Mistral-Small / DevStral = 各自宽松 license — Apache-2.0 数据 license <strong>已经把这些 distill 出来的 trajectory 视为合规衍生品</strong></td></tr>
+</table>
+
+<p><strong>结论 — 全栈商业 friendly</strong>: 数据 (Apache-2.0) + 代码 (MIT) + 权重 (跟 Qwen2.5 = Apache-2.0)。<strong>无 CC-BY-NC 传染、无 Llama license 前缀、无 OpenAI 输出条款风险</strong>(因为 5 个 task-synth model 都是开源 LLM,不是 GPT 系列)。这是 2026 上半年<em>极少数</em>能同时满足"<em>数据 + 模型 + 训练栈</em>"三层全 Apache/MIT 的 tool-agentic 训练资源 — 详细对比可参考 <a href="31_PrimeIntellectHub.html">#31 Prime Intellect Hub §License</a> 的"<strong>安全栈推荐</strong>" 章节。</p>
+
+<h3>5.3 复现 checklist — 你需要什么 / 可以跳过什么</h3>
+
+<table>
+  <tr><th>使用场景</th><th>需要拉</th><th>可跳过</th><th>预估资源</th></tr>
+  <tr>
+    <td>① 只想<strong>用 SFT subset 训自己的模型</strong></td>
+    <td>HF <code>SFT</code> config (0.40 GB)</td>
+    <td>HF 前 3 个 teacher subset; 整套 pipeline 代码; 495 MCP server</td>
+    <td>32B SFT 2 epoch: 64×H100 ~24 小时(论文配置)</td>
+  </tr>
+  <tr>
+    <td>② 想<strong>对比 baseline 看效果</strong></td>
+    <td>3 档官方 ckpt (HF Agent-Ark)</td>
+    <td>所有数据 + 训练代码</td>
+    <td>4090 + GGUF q4 可跑 32B 推理</td>
+  </tr>
+  <tr>
+    <td>③ 想<strong>研究 teacher 多样性</strong></td>
+    <td>3 个 teacher subset (~20 GB 下载)</td>
+    <td>pipeline 代码</td>
+    <td>1×H100 做 dataset analysis 即可</td>
+  </tr>
+  <tr>
+    <td>④ 想<strong>从零重跑 pipeline</strong></td>
+    <td>所有 — 代码 + 5 个 task-synth LLM endpoint + 3 个 teacher LLM endpoint + 495 MCP server 连通</td>
+    <td>—</td>
+    <td>多家 LLM API 配额 + Smithery 配额; <strong>论文未给具体合成耗时,估计是$10^4$ GPU·小时 + $10^4$ USD API 费用</strong></td>
+  </tr>
+  <tr>
+    <td>⑤ 想<strong>把 Toucan SFT 当 RL 冷启</strong></td>
+    <td>① + verifiers / prime-rl 训练栈(<a href="31_PrimeIntellectHub.html">#31</a>)</td>
+    <td>—</td>
+    <td>这是论文 §5 future work 提到的方向 — 也是 #31 §10.4 推荐的 "<em>TOUCAN SFT 冷启 → MCP·RL 在线</em>" recipe</td>
+  </tr>
+</table>
+
+<h3>5.4 27 个 HF ckpt 实地清点 — 官方 3 个 + 社区 24 个</h3>
+
+<p>截至本笔记写作时(2026-05),HF 上 <code>Agent-Ark</code> org + 全网搜索 "Toucan-Qwen" 共可见 <strong>27 个 fine-tune 衍生 ckpt</strong>:</p>
+
+<table>
+  <tr><th>层级</th><th>数量</th><th>说明</th></tr>
+  <tr>
+    <td><strong>官方主线</strong>(Agent-Ark org)</td>
+    <td>3</td>
+    <td>Toucan-Qwen2.5-{7B/14B/32B}-Instruct-v0.1 — 论文里报的就是这 3 个</td>
+  </tr>
+  <tr>
+    <td><strong>社区 GGUF/AWQ 量化</strong></td>
+    <td>~15</td>
+    <td>主要是 32B 的 q3/q4/q5/q6/q8 量化,以及 14B 的 q4/q5 量化;来源包括 mradermacher / bartowski / second-state 等社区量化大户</td>
+  </tr>
+  <tr>
+    <td><strong>社区 fine-tune 衍生</strong></td>
+    <td>~9</td>
+    <td>不同 domain 特化(医疗 / 代码 / 翻译),以 7B 为多 — 大多数下载量小但说明 Toucan SFT 后的 ckpt 已经成为社区<strong>"工具调用基座"</strong>被进一步微调</td>
+  </tr>
+  <tr style="background:#f3eee0">
+    <td>合计</td>
+    <td><strong>27</strong></td>
+    <td>下载量最高的仍是官方 7B-v0.1(333K+ downloads)</td>
+  </tr>
+</table>
+
+<h3>5.5 datagen 目录 → 论文 Stage 映射</h3>
+
+<p>GitHub repo <code>TheAgentArk/Toucan/datagen/</code> 是 pipeline 复现的入口。子目录到论文 Stage 的映射:</p>
+
+<table>
+  <tr><th>repo 子目录</th><th>对应论文 Stage</th><th>关键脚本</th></tr>
+  <tr><td><code>./datagen/onboarding/</code></td><td>Stage 1 — MCP 抓取 + 过滤</td><td>Smithery API 抓取 + HTTP 连通性测试 + Kimi-K2 stability 打分</td></tr>
+  <tr><td><code>./datagen/task_synth/</code></td><td>Stage 2 — 5 LLM × 3 策略合成 query</td><td>Single / Multi / Featured 三套 prompt template (Appendix D.2)</td></tr>
+  <tr><td><code>./datagen/task_filter/</code></td><td>Stage 3 — 6 维 Likert 过滤</td><td>Kimi-K2 调 prompt template (Appendix D.4)</td></tr>
+  <tr><td><code>./datagen/trajectory/</code></td><td>Stage 4 — 3 teacher × 2 framework 真接 MCP 执行</td><td>Qwen-agent + OpenAI-agent 两套 driver</td></tr>
+  <tr><td><code>./datagen/post_filter/</code></td><td>Stage 5 — Rule + LLM 双层验证</td><td>5 条 rule + GPT-OSS-120B Likert (Appendix D.5)</td></tr>
+  <tr><td><code>./datagen/extensions/</code></td><td>Ext.1/2/3</td><td>shuffle metadata / persona inject / multi-turn self-simulate</td></tr>
+  <tr><td><code>./train/</code></td><td>§4.1 SFT</td><td>Deepspeed zero3 + ms-swift 训练配置</td></tr>
+  <tr><td><code>./eval/</code></td><td>§4.2-4.6 评测</td><td>BFCL V3 / τ-Bench / τ²-Bench / MCP-Universe 4 套官方 harness 包装</td></tr>
+</table>
+
+<h3>5.6 自托管 / 复现一句话总结</h3>
 
 <ul>
   <li><strong>只想用数据 SFT 自己的模型</strong>: <code>datasets.load_dataset("Agent-Ark/Toucan-1.5M", "SFT")</code> 就能拿到 119K 高质量 SFT subset(parquet 格式,messages 已是 chat-format);</li>
   <li><strong>想跑 inference 比 baseline</strong>: 三档 ckpt 直接从 HF 拉,GGUF 量化版可在 4090 上跑 32B q4;</li>
-  <li><strong>想从头重跑 pipeline</strong>: 需要(1)各 teacher model 的 API 密钥 或 部署(GPT-OSS-120B / Kimi-K2 / Qwen3-32B 都有公开 endpoint);(2)能联通 495 个 remote MCP server 的网络环境 — Smithery 上挂了 hosted version;(3)算力堆 1.5M trajectory 的生成。</li>
+  <li><strong>想从头重跑 pipeline</strong>: 需要(1)各 teacher model 的 API 密钥 或 部署(GPT-OSS-120B / Kimi-K2 / Qwen3-32B 都有公开 endpoint);(2)能联通 495 个 remote MCP server 的网络环境 — Smithery 上挂了 hosted version;(3)算力堆 1.5M trajectory 的生成 — 论文没给具体小时数,但根据 #03 / #18 / #19 经验估计是 <strong>数千 GPU·小时 + 五位数 USD API 费用</strong>。</li>
 </ul>
 
 <hr>
@@ -558,10 +1008,23 @@
 <div class="warn">
 <strong>待考察:</strong>
 <ul style="margin:.4em 0">
-  <li><strong>SFT vs RL 哪个更值</strong>: 同样 119K 数据,如果在上面跑 GRPO/PPO 而不是纯 SFT,能不能再涨 5pp?论文没做这个 ablation,因为 1.5M 数据的 RL 跑不动。</li>
-  <li><strong>495 个 server 的覆盖偏置</strong>: Smithery 上 web-search / file-utility 类的 server 远多于 specialized domain (medical / legal / finance),Toucan-tuned 模型在这些长尾域到底什么表现?</li>
-  <li><strong>对 base model 的依赖</strong>: 全套实验都在 Qwen2.5 上,在 Llama-3 / Mistral 上效果如何不清楚。</li>
-  <li><strong>是否会衰减通用能力</strong>: SFT 1.5M tool-call 数据后,通用 chat / 推理 benchmark (MMLU, HumanEval) 有没有 regression?论文没报告。</li>
+  <li><strong>SFT vs RL 哪个更值</strong>: 同样 119K 数据,如果在上面跑 GRPO/PPO 而不是纯 SFT,能不能再涨 5pp?论文没做这个 ablation,因为 1.5M 数据的 RL 跑不动 — 但作者在 §5 future work 里明确说要"<em>build a reinforcement learning gym</em>"。</li>
+  <li><strong>495 个 server 的覆盖偏置</strong>: §3.5.4 已经给出 — Web Search / Dev Tools / Data Analysis 占 31%,Communication / Health / Cloud / Social 类只占个位数。τ²-Bench Telecom 域全线 noop(§4.5)就是这个偏置的直接后果。</li>
+  <li><strong>对 base model 的依赖</strong>: 全套实验都在 Qwen2.5 上,在 Llama-3 / Mistral / 自家 Granite 上效果如何不清楚 — 论文未跨基座验证。</li>
+  <li><strong>是否会衰减通用能力</strong>: SFT 1.5M tool-call 数据后,通用 chat / 推理 benchmark (MMLU, HumanEval, MT-Bench) 有没有 regression?论文没报告。Non-live AST 7B 上 84.19 → 78.52 的<em>同模态退步</em>暗示这个问题不是 zero。</li>
+  <li><strong>BFCL V3 65.09 vs Qwen3-32B 69.25</strong>: 14B + TOUCAN 65.09 没有<em>大幅</em>超过同尺寸 Qwen3-32B 的 69.25(无 SFT)— 论文没把这条 head-to-head 写出来,这意味着 <em>用更新的 Qwen3 base 可能不需要 TOUCAN 也能到 70%</em>,TOUCAN 的真正价值在<strong>给老 base 模型 (Qwen2.5) 一个免费升级</strong>。</li>
+</ul>
+</div>
+
+<h3>7.5 校订风险条 — BFCL V3 vs V4 的不可直接对比性</h3>
+
+<div class="warn">
+<strong>非常重要的细则,容易被误读:</strong> 本论文 (TOUCAN, 2025-10-01) 报的 BFCL <strong>是 V3 (2024-09 版本)</strong>,<em>不是</em> V4 (2025-07-17 发布)。两个版本的差异详见 <a href="28_BFCL.html">#28 BFCL 精读</a>,简言之:
+<ul style="margin:.4em 0">
+  <li><strong>V3 加权公式</strong>(论文用的): Non-Live AST + Live AST + Multi-Turn + Relevance + Irrelevance,各子项均匀加权得到 Overall;</li>
+  <li><strong>V4 加权公式</strong>(2025-07 后):Agentic 40% + Multi-Turn 30% + Live 10% + Non-Live 10% + Irrelevance 10% — single-turn(Live + Non-Live)合计只占 20%,大幅削弱了 SFT 容易刷分的子项;</li>
+  <li><strong>所以 TOUCAN 报的 32B 70.45 不能和 V4 leaderboard 上的 GPT-5 59.2 / GLM-4.5 70.9 这类 V4 数字直接比</strong>。本质上 V3 的 70.45 在 V4 重排后,如果 multi-turn 数据(35.2K Ext.3)训得好,Overall 可能维持在 60+;但 Agentic 40% 这一项需要额外的 long-horizon trajectory 数据(MCP-Universe 类),TOUCAN 没有专门优化这块;</li>
+  <li><strong>实务建议</strong>:训完 TOUCAN 后跑 BFCL V3 看 70.45 这条没问题(可复现),<strong>但若要刷 V4 leaderboard,还需要 #20 SETA / #23 EnvScaler / #29 EnvTuning 这类 agentic + long-horizon 数据补充</strong>。<a href="28_BFCL.html">#28 §标准训练流程</a> 给出的 recipe 就是 "TOUCAN 冷启 BFCL V3 →70 → EnvScaler/SETA RLVR → BFCL V4 Agentic ≥50% → MCP-Atlas / MCPMark 真测"。</li>
 </ul>
 </div>
 
