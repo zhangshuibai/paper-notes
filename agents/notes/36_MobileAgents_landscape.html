@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>调研 · 手机本地能跑的 Agent 小模型 Landscape (≤4B / iOS+Android / 2026-05)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:860px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  .badge-open{background:#dcefe4;color:#1f7a4a;padding:1px 8px;border-radius:10px;font-size:11px}
+  .badge-closed{background:#f4dde0;color:#a8353e;padding:1px 8px;border-radius:10px;font-size:11px}
+  .badge-partial{background:#fff4d6;color:#a87317;padding:1px 8px;border-radius:10px;font-size:11px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>手机本地能跑的 Agent 小模型 Landscape</h1>
+<div class="meta">调研 · 2026-05 · iOS + Android 端侧 / ≤4B 参数 base 模型 + mobile-agent 专训 / benchmark + 推理框架 + 硬件约束全梳理</div>
+
+<div class="tldr">
+<h2>🎯 TL;DR — 一句话现状</h2>
+<ul>
+<li><strong>端侧 base 模型</strong>:开源最现实是 <code>Qwen2.5-VL-3B</code> (Apache-2.0, multimodal phone-use) 与 <code>Phi-3.5-mini 3.8B</code> (MIT) 和 <code>Gemma 3 4B</code> (Gemma Terms);系统集成最深是 <code>Apple Foundation Model ~3B</code> (iOS 18+, 3.7 bit/weight 混合量化, iPhone 15 Pro ≈30 tok/s 来自 Apple 官方 blog) 与 <code>Gemini Nano</code> (Pixel 8 Pro+,通过 AICore 系统服务暴露)。</li>
+<li><strong>专门为手机 GUI 训的模型</strong>:学术线 <code>Mobile-Agent-v3.5</code>(阿里 X-PLUG / 王老师组,基于 GUI-Owl 2B/4B/8B/32B,Qwen3-VL 底)是 2026 最活跃 fork;商业线 <code>UI-TARS-1.5 7B</code> (字节,跨平台);RL 路线 <code>DigiRL 1.3B</code> (Stanford, AitW 17.7→67.2)。</li>
+<li><strong>Benchmark</strong>:事实标准是 <code>AndroidWorld</code> (Google, 116 task × 20 app, paper SOTA 30.6%, 现 leaderboard 已被 70%+ 突破);训练数据看 <code>AndroidControl</code> (15,283 demo × 833 app) 和 <code>AitW</code> (715K episode × 30K 指令)。</li>
+<li><strong>推理框架</strong>:跨平台首选 <code>MLC-LLM</code> (TVM, Apache, 原生 iOS+Android Swift/Kotlin SDK);PyTorch 派 <code>ExecuTorch</code> (Meta, 已上生产 — Instagram/WhatsApp/Quest 3,支持 CoreML/XNNPACK/Qualcomm/MediaTek 12+ 后端);Google 派 <code>MediaPipe LLM Inference API</code>;Apple 派 <code>Core ML + ANE</code> 或 <code>MLX</code>(GPU 路线);Android 派 <code>llama.cpp + GGUF</code> (PocketPal/LM Studio 封装)。</li>
+<li><strong>参数甜点</strong>:1.5-3B int4 = 0.8-1.6 GB 文件,在 8 GB RAM 旗舰上可挤 15-30 tok/s burst;<strong>4B+ 就开始挤占 app 主进程的 RAM 上限</strong>,iOS 即使有 <code>com.apple.developer.kernel.increased-memory-limit</code> entitlement 也只能拿到 ~3-4 GB,所以 4B fp16 (8 GB) 基本不可能跑,必须 int4。</li>
+</ul>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="n">≈ 3B</div><div class="l">Apple Foundation Model 端侧</div></div>
+<div class="stat"><div class="n">30 tok/s</div><div class="l">Apple 官方 iPhone 15 Pro</div></div>
+<div class="stat"><div class="n">116</div><div class="l">AndroidWorld task</div></div>
+<div class="stat"><div class="n">1.5-3B</div><div class="l">参数甜点 (int4)</div></div>
+</div>
+
+<nav class="toc">
+<strong>目录</strong>
+<ol>
+<li><a href="#sec1">手机端 LLM agent 的特殊约束 — RAM / 算力 / NPU / 热与电</a></li>
+<li><a href="#sec2">可本地跑的 base 模型矩阵 (≤4B)</a></li>
+<li><a href="#sec3">专门为 mobile-agent / GUI 训练的模型</a></li>
+<li><a href="#sec4">Benchmark 全景 — AndroidWorld / AitW / AndroidControl / Mobile-Eval / B-MoCA</a></li>
+<li><a href="#sec5">推理框架 / 部署栈 — MLC-LLM / ExecuTorch / MediaPipe / Core ML / MLX / llama.cpp / MNN</a></li>
+<li><a href="#sec6">实测性能表 — model × phone × tok/s @ int4</a></li>
+<li><a href="#sec7">Mobile agent 训练框架与数据</a></li>
+<li><a href="#sec8">与本系列其他工作的连接 (#14 #15 #16 #17 #27 #29 #31)</a></li>
+<li><a href="#sec9">决策树 — 我要在手机上做 agent 该选什么</a></li>
+<li><a href="#sec10">局限 / 诚实分析 — 为什么 Siri / Google Assistant 仍然走云</a></li>
+</ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 手机端 LLM agent 的特殊约束</h2>
+
+<p>桌面端跑模型,内存 32 GB 起步,7-13B 是日常配置;手机端是<strong>另一个物种</strong>。要做 mobile-agent,得先理解 6 条硬约束。</p>
+
+<h3>1.1 RAM 预算 — 旗舰 12-16 GB,但 app 实际能拿到的远少于此</h3>
+
+<table>
+<thead><tr><th>设备</th><th>总 RAM</th><th>OS+常驻</th><th>单 app 可用 (典型)</th><th>需要 entitlement 才能上升到</th></tr></thead>
+<tbody>
+<tr><td>iPhone 15 Pro / 16 Pro</td><td>8 GB</td><td>~3 GB</td><td>~3 GB</td><td>~4-5 GB (Increased Memory Limit entitlement)</td></tr>
+<tr><td>iPhone 17 Pro Max</td><td>12 GB</td><td>~3-4 GB</td><td>~4-5 GB</td><td>~6-7 GB (未在公开来源精确确认)</td></tr>
+<tr><td>Pixel 9 Pro</td><td>16 GB</td><td>~5 GB</td><td>~4-6 GB</td><td>取决于 Activity flags,无硬限</td></tr>
+<tr><td>Samsung S25 Ultra</td><td>12-16 GB</td><td>~5 GB</td><td>~4-6 GB</td><td>同上</td></tr>
+<tr><td>OnePlus 13 / 小米 15 Pro</td><td>16-24 GB</td><td>~5 GB</td><td>~6-10 GB</td><td>同上</td></tr>
+</tbody>
+</table>
+
+<div class="nb"><strong>iOS 的硬约束</strong>: iOS 在第三方 app 进程上有 jetsam 机制 (kernel memory pressure killer);系统直接根据 <code>memorystatus_get_priority_list</code> 排序去杀。<strong>第三方 LLM app 的硬上限,iPhone 15 Pro 实测 ≈ 3 GB;加 <code>com.apple.developer.kernel.increased-memory-limit</code> 可以上到 ≈ 5 GB,但仍然小于 fp16 4B 模型(~8 GB)</strong>。所以必须 int4。Apple 自家 Foundation Model 不受这条约束,因为它<strong>运行在系统进程</strong>,通过 <code>FoundationModels</code> framework 暴露给 app — app 不持有权重。</div>
+
+<h3>1.2 延迟预算 — 触控到行动 &lt; 500ms 是体感上限</h3>
+
+<p>手机交互的"触摸到反应"心理上限在 100-300ms (UI 设计经典数据);若 agent 是<strong>"用户问一句 → LLM 思考 → 操作 UI"</strong>,prefill + 一轮生成的 budget 大约是 1-3 秒。这意味着:</p>
+<ul>
+<li>prefill 必须用 NPU/GPU 跑(CPU prefill 在 3B 上要 5-10 秒);</li>
+<li>decode 必须 &ge; 20 tok/s 才能让 100-token 短回答 &lt; 5s;</li>
+<li>若是 GUI agent,每一步还要 vision encoder forward,vision encoder forward 在 SigLIP/CLIP ~400M 上至少要 200-400ms,这通常是 latency 第一瓶颈。</li>
+</ul>
+
+<h3>1.3 NPU / Tensor accelerator — 三大派系</h3>
+
+<table>
+<thead><tr><th>派系</th><th>硬件</th><th>峰值 TOPS</th><th>软件栈</th><th>支持的算子</th></tr></thead>
+<tbody>
+<tr><td>Apple</td><td>Apple Neural Engine (ANE) — A17/A18/A19 Pro</td><td>~35-38 TOPS</td><td>Core ML 通过 MIL → ANE backend</td><td>int8/int4 mat-mul, attention, LayerNorm; <em>不支持任意算子</em>,fallback 到 GPU</td></tr>
+<tr><td>Qualcomm</td><td>Hexagon NPU (Snapdragon 8 Gen 3 / Gen 4 / 8 Elite)</td><td>45-75 TOPS</td><td>Qualcomm AI Engine Direct (QNN) / SNPE / AI Hub</td><td>int8/int4 GEMM、grouped-conv;对 LLM 的 KV cache management 是关键痛点</td></tr>
+<tr><td>Google</td><td>Tensor G3 / G4 / G5 TPU</td><td>~33 TOPS (未在公开来源精确确认)</td><td>AICore + Edge TPU runtime</td><td>Gemini Nano 内部走 TPU,但<em>不暴露</em> generic LLM API,只有 ML Kit GenAI 5 个高层 API</td></tr>
+<tr><td>MediaTek</td><td>APU (Dimensity 9300/9400)</td><td>30-50 TOPS</td><td>NeuroPilot SDK / NNAPI</td><td>NeuroPilot SDK 直接暴露;较新机型支持 LLM ops</td></tr>
+</tbody>
+</table>
+
+<div class="nb">NPU "<strong>TOPS</strong>" 数字水分极大 — 厂商通常报 int8 sparse 峰值,LLM 实际 decode 受<strong>内存带宽</strong>而非算力限制(decode 是 memory-bound)。Snapdragon 8 Gen 3 的 LPDDR5X 带宽约 76.8 GB/s,这意味着 1B 模型 int4 (500 MB weights) 理论上限 ≈ 150 tok/s,实际 30-50 tok/s。</div>
+
+<h3>1.4 功耗 / 电池 / 散热 — 持续 LLM 推理是热瓶颈</h3>
+
+<p>iPhone 15 Pro 持续 ≈ 5W 功耗(约一半 SoC,一半屏幕)运行 LLM,会在 5-10 分钟后触发热降频 (thermal throttling),decode 速度可能砍半。<strong>battery</strong>:典型 4000 mAh × 3.85 V ≈ 15 Wh,持续 5W 推理 ≈ <strong>3 小时极限</strong>(实际显著更短,因为还要算屏幕)。这就是为什么 Apple Intelligence 走 "<em>burst on-device + 难任务 Private Cloud Compute</em>" 的设计 — 不是技术上跑不了,而是<em>用户体验上耗电不可接受</em>。</p>
+
+<h3>1.5 Storage — 4-8 GB 是 app bundle 的实际上限</h3>
+
+<p>App Store / Play Store 都不喜欢超大 binary(App Store 单 app 安装大小有 4 GB 限制,但 On-Demand Resources 可绕过)。<strong>这意味着 base 模型权重最大 6-7 GB</strong>,留 1-2 GB 给 app 自身。int4 量化下 (~0.5 byte/param):</p>
+
+<table>
+<thead><tr><th>参数量</th><th>fp16 大小</th><th>int8 大小</th><th>int4 大小</th><th>能装 iPhone 15 Pro?</th></tr></thead>
+<tbody>
+<tr><td>1B</td><td>2 GB</td><td>1 GB</td><td>0.5 GB</td><td><span class="ok">✓ 轻松</span></td></tr>
+<tr><td>1.5B</td><td>3 GB</td><td>1.5 GB</td><td>0.75 GB</td><td><span class="ok">✓ 轻松</span></td></tr>
+<tr><td>3B</td><td>6 GB</td><td>3 GB</td><td>1.5 GB</td><td><span class="ok">✓ 推荐</span></td></tr>
+<tr><td>4B</td><td>8 GB</td><td>4 GB</td><td>2 GB</td><td><span class="badge-partial">int4 才行</span></td></tr>
+<tr><td>7B</td><td>14 GB</td><td>7 GB</td><td>3.5 GB</td><td><span class="badge-partial">极限,接近 RAM 上限</span></td></tr>
+<tr><td>8B</td><td>16 GB</td><td>8 GB</td><td>4 GB</td><td><span class="no">int4 也吃力</span></td></tr>
+</tbody>
+</table>
+
+<h3>1.6 量化是必修课</h3>
+
+<p>所有手机 LLM 部署都<strong>必须量化</strong>。常见方案:</p>
+<ul>
+<li><strong>GGUF (llama.cpp)</strong>:Q4_K_M (4.5 bit/weight 平均) 是社区甜点,Q4_0 / Q8_0 / IQ3_XS 各种;</li>
+<li><strong>MLC-LLM</strong>:q3f16_1 / q4f16_1 / q4f32_1,后缀表示 group size 和 zero-point 表示;</li>
+<li><strong>Apple 的混合 2-bit/4-bit (3.7 bpw)</strong>:Apple Foundation Model 的官方方案,只在系统模型上用,SDK 不开放;</li>
+<li><strong>AWQ / GPTQ</strong>:weight-only 4-bit,适合移动端;</li>
+<li><strong>ExecuTorch 内置 8-bit / 4-bit / dynamic quantization</strong>。</li>
+</ul>
+
+<div class="warn"><strong>vision encoder 的特殊问题</strong>:大多数 mobile GUI agent 是 VLM,vision encoder (e.g. SigLIP-So400m, ~400M) 自身就要 200-800 MB,而且 <strong>activation 比 weight 更耗内存</strong> — 一张 1920×1080 截图编码出的 patch tokens × hidden dim 会临时占用几百 MB。这是手机做 GUI agent 比做 function-call agent 难的核心原因。</div>
+
+<hr>
+
+<h2 id="sec2">2 · 可本地跑的 base 模型矩阵 (≤4B)</h2>
+
+<table>
+<thead><tr><th>模型</th><th>参数</th><th>许可</th><th>多模态</th><th>int4 大小</th><th>实测 tok/s @ iPhone 15 Pro</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td>Apple Foundation Model</td><td>~3B</td><td><span class="badge-closed">闭源 (系统服务)</span></td><td>否 (有图像理解 sibling)</td><td>~1.4 GB</td><td><strong>30 tok/s (Apple 官方)</strong></td><td>iOS 18+ Writing Tools / Smart Reply / 应用内 LLM API</td></tr>
+<tr><td>Gemini Nano</td><td>3.25B (未在公开来源精确确认)</td><td><span class="badge-closed">闭源 (AICore)</span></td><td>v2 多模态</td><td>~1.6 GB</td><td>未在公开来源精确确认</td><td>Pixel 8 Pro+ 系统层 / ML Kit GenAI 5 个 API</td></tr>
+<tr><td>Qwen2.5 0.5B / 1.5B / 3B</td><td>0.5/1.5/3 B</td><td><span class="badge-open">Apache-2.0</span></td><td>否 (VL sibling 见下)</td><td>0.3/0.9/1.7 GB</td><td>~50/35/20 (社区报道)</td><td>function-call agent</td></tr>
+<tr><td>Qwen2.5-VL 3B / 7B</td><td>3 / 7 B</td><td><span class="badge-open">Apache-2.0</span></td><td><strong>是</strong></td><td>1.7 / 3.8 GB</td><td>~15 / ~8 (vision encoder 拖累)</td><td><strong>mobile GUI agent 首选开源</strong></td></tr>
+<tr><td>Qwen3 0.6B / 1.7B / 4B</td><td>0.6/1.7/4 B</td><td><span class="badge-open">Apache-2.0</span></td><td>否 (VL 见下)</td><td>0.4/1.0/2.2 GB</td><td>未在公开来源精确确认</td><td>thinking mode 可开关</td></tr>
+<tr><td>Phi-3-mini / Phi-3.5-mini</td><td>3.8B</td><td><span class="badge-open">MIT</span></td><td>vision sibling</td><td>~2.2 GB</td><td>~20 (社区报道)</td><td>通用 reasoning</td></tr>
+<tr><td>Phi-Silica</td><td>~3B (未在公开来源精确确认)</td><td><span class="badge-closed">闭源 (Windows)</span></td><td>是 (多模态版本)</td><td>—</td><td>Copilot+ PC NPU,不是手机</td><td>Windows on-device,严格说不是 phone</td></tr>
+<tr><td>Gemma 2 2B</td><td>2.6B</td><td><span class="badge-partial">Gemma Terms</span></td><td>否</td><td>~1.4 GB</td><td>~25 (社区)</td><td>通用</td></tr>
+<tr><td>Gemma 3 1B / 4B</td><td>1 / 4 B</td><td><span class="badge-partial">Gemma Terms</span></td><td>4B+ 多模态</td><td>0.6 / 2.2 GB</td><td>~30 / ~12</td><td>多模态 4B 是<strong>当前 Apache-类许可下端侧 VLM 最强</strong>之一</td></tr>
+<tr><td>LLaMA 3.2 1B / 3B</td><td>1 / 3 B</td><td><span class="badge-partial">Llama Community</span></td><td>否 (11B/90B 是 vision)</td><td>0.6 / 1.8 GB</td><td>~35 / ~18 (社区)</td><td>Meta 官方 ExecuTorch 集成,手机最 friction-less 之一</td></tr>
+<tr><td>MiniCPM 2B / 4B</td><td>2 / 4 B</td><td><span class="badge-open">Apache-2.0</span></td><td>V 系列多模态</td><td>1.1 / 2.2 GB</td><td>未在公开来源精确确认</td><td>面壁智能 OpenBMB</td></tr>
+<tr><td>MiniCPM-V 2.6</td><td>8B</td><td><span class="badge-open">Apache-2.0</span></td><td><strong>是</strong></td><td>~4 GB</td><td>~6-8 (社区,极限)</td><td>"在 iPad 上跑得动的多模态" 营销点</td></tr>
+<tr><td>MobileLLM</td><td>125M / 350M</td><td><span class="badge-open">CC-BY-NC</span> (paper)</td><td>否</td><td>0.08 / 0.2 GB</td><td>~100+</td><td>Meta 研究品,主要为<strong>证明 sub-1B 也能 function-call</strong></td></tr>
+<tr><td>SmolLM2 135M / 360M / 1.7B</td><td>0.135 / 0.36 / 1.7 B</td><td><span class="badge-open">Apache-2.0</span></td><td>否</td><td>0.08/0.2/1.0 GB</td><td>1.7B ~40 (社区)</td><td>HuggingFaceTB,IFEval 56.7,<strong>BFCL 27%</strong> (官方报)</td></tr>
+</tbody>
+</table>
+
+<h3>2.1 几个关键 base 模型的精读卡片</h3>
+
+<div class="paper-card">
+<div class="ttl">Apple Foundation Model (~3B)</div>
+<span class="date">WWDC 2024 / iOS 18+</span>
+<p><strong>Source</strong>: <a href="https://machinelearning.apple.com/research/introducing-apple-foundation-models">machinelearning.apple.com</a></p>
+<ul>
+<li><strong>参数量</strong>: ~3B(Apple 自报 approximate,Server 模型尺寸未披露)</li>
+<li><strong>量化</strong>: 平均 3.7 bpw,采用<strong>混合 2-bit / 4-bit</strong>策略;更激进的 3.5 bpw 也可以无显著质损</li>
+<li><strong>性能</strong>: iPhone 15 Pro 上 time-to-first-token ~0.6 ms/prompt token,decode <strong>30 tok/s</strong></li>
+<li><strong>评估</strong>: 人工偏好上 outperform Phi-3-mini / Mistral-7B / Gemma-7B / Llama-3-8B(Apple 自报)</li>
+<li><strong>API</strong>: iOS 26+ 的 <code>FoundationModels</code> framework — app 用 <code>LanguageModelSession</code> 调用,<strong>权重不暴露</strong>,通过 LoRA-style adapter 提供 task-specific 风格(Apple 称 "Adapters")</li>
+<li><strong>Agent 关键</strong>: 内置<strong>Tool use</strong>(系统-level Intent + 第三方 App Intent),这是 Apple Intelligence "在 Mail 里召唤 Notes 数据" 的核心机制</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<div class="ttl">Gemini Nano (3.25B, Pixel 8 Pro+)</div>
+<span class="date">2024-Q4 起逐步铺开 / 2026 Nano v2 多模态</span>
+<p><strong>Source</strong>: <a href="https://developer.android.com/ai/aicore">developer.android.com/ai/aicore</a> + Google AI blog (未在公开来源精确确认 3.25B 是否仍是 Nano v2 当前规格)</p>
+<ul>
+<li><strong>架构</strong>: 运行在 Android <strong>AICore</strong> 系统服务里(类似 Apple FoundationModels framework),app 不持权重</li>
+<li><strong>API</strong>: ML Kit GenAI 提供 <strong>5 个高层 API</strong> — Prompt / Summarization / Proofreading / Rewriting / Image Description / Speech Recognition</li>
+<li><strong>Gemini Nano v2</strong>: 2025 加入<strong>多模态</strong>(图片 → 描述 / 图片 → 答题),具体参数未公开</li>
+<li><strong>关键限制</strong>: 没有 "generic LLM completion" API — 必须经过 5 个 Task API,所以<strong>不能用来跑任意 agent</strong>(类似 Apple 但更紧)</li>
+<li><strong>设备覆盖</strong>: Pixel 8 Pro / 8a / 9 / 9 Pro / Galaxy S24 系列 / 部分 Xiaomi 14 等;<strong>不是所有有 NPU 的 Android 手机都有</strong>,要 OEM 主动集成 AICore</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<div class="ttl">Qwen2.5-VL-3B (Apache-2.0)</div>
+<span class="date">2025-Q1 / HF 4.2M downloads/月</span>
+<p><strong>Source</strong>: <a href="https://huggingface.co/Qwen/Qwen2.5-VL-3B-Instruct">HuggingFace</a></p>
+<ul>
+<li><strong>参数</strong>: 3B,bf16 ≈ 7.6 GB,int4 ~1.7 GB</li>
+<li><strong>关键能力</strong>: 论文/官方明确支持 <strong>"computer use / phone use" 作为 visual agent</strong>;能输出 bounding box 和 point 用于 GUI grounding</li>
+<li><strong>HF 上有 81 个量化版本</strong>给 llama.cpp/LM Studio/Jan/Ollama;<strong>事实标准 open-weight phone-VLM</strong></li>
+<li><strong>底层就是 Mobile-Agent-v3.5 GUI-Owl 系列的 base</strong>(2B/4B/8B/32B 都从 Qwen2.5/3-VL 起步)</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<div class="ttl">MobileLLM (Meta, ICML 2024)</div>
+<span class="date">arXiv:2402.14905 / Liu et al.</span>
+<ul>
+<li><strong>规模</strong>: 125M / 350M — <strong>sub-billion 路线</strong></li>
+<li><strong>方法</strong>: deep-and-thin (更深而非更宽) + embedding sharing + GQA + block-wise weight sharing</li>
+<li><strong>结果</strong>: 比同尺寸 SOTA 前作 +2.7-4.3 pp;API-calling 任务上"<strong>close to LLaMA-v2 7B</strong>"</li>
+<li><strong>定位</strong>: <em>研究 demo</em>,不是 production checkpoint(license CC-BY-NC),但<strong>证明了 350M 就够 function-call</strong>,这条 thesis 直接催生 SmolLM2 / Octopus v2</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<div class="ttl">SmolLM2 (HuggingFaceTB, 2024-11)</div>
+<span class="date">Apache-2.0 / 135M / 360M / 1.7B</span>
+<ul>
+<li><strong>训练</strong>: 11T tokens, 256 H100, FineWeb-Edu + DCLM + The Stack + math/code</li>
+<li><strong>1.7B Instruct</strong>: IFEval <strong>56.7</strong>(超 Qwen2.5-1.5B 的 47.4) / HellaSwag 66.1 / GSM8K 48.2 / MT-Bench 6.13</li>
+<li><strong>BFCL</strong>: <strong>27%</strong> (官方自报)</li>
+<li><strong>定位</strong>: <strong>"端侧能跑 + 通用强 + 完全开源"</strong>当前最佳综合</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · 专门为 mobile-agent / GUI 训练的模型</h2>
+
+<p>这一节是 base 模型之上的<em>专门为 phone 任务做后训练</em>的工作。</p>
+
+<table>
+<thead><tr><th>模型</th><th>规模</th><th>base</th><th>训练</th><th>许可</th><th>主线 benchmark</th></tr></thead>
+<tbody>
+<tr><td>Octopus v2</td><td>2B</td><td>Gemma 2B</td><td>SFT on synthetic Android Intent</td><td>Apache-2.0 (weights)</td><td>自报"超 GPT-4 in accuracy + latency, context length -95%"</td></tr>
+<tr><td>Octopus v3 / v4</td><td>1-7B</td><td>Mistral / Llama</td><td>SFT 跨模态 / 多 agent 路由</td><td>研究 demo</td><td>—</td></tr>
+<tr><td>Mobile-Agent v1</td><td>—</td><td>GPT-4V (推理时)</td><td>无训练,纯 prompting + OCR/检测器</td><td>MIT (code)</td><td>Mobile-Eval (自家)</td></tr>
+<tr><td>Mobile-Agent v2 (NeurIPS 2024)</td><td>—</td><td>GPT-4V / Qwen-VL</td><td>三 agent (planning/decision/reflection) + memory</td><td>MIT</td><td>+30% completion vs v1</td></tr>
+<tr><td>Mobile-Agent v3 / v3.5</td><td>2/4/8/32 B</td><td>GUI-Owl (Qwen3-VL)</td><td>full SFT + RL</td><td>开源 weights</td><td>AndroidWorld / OSWorld 自报 SOTA</td></tr>
+<tr><td>Mobile-Agent-E</td><td>—</td><td>GPT-4o</td><td>self-evolving (无训练)</td><td>MIT</td><td>—</td></tr>
+<tr><td>AutoUI / Auto-GUI</td><td>~7B</td><td>BLIP/Flamingo</td><td>SFT on AitW</td><td>研究</td><td>AitW</td></tr>
+<tr><td>AppAgent (TencentQQGYLab)</td><td>—</td><td>GPT-4V</td><td>self-explore docs + prompting</td><td>MIT</td><td>self-bench (自家 9 app)</td></tr>
+<tr><td>DigiRL (Stanford, NeurIPS 2024)</td><td>1.3B</td><td>VLM</td><td><strong>offline → offline-to-online RL</strong></td><td>Apache-2.0</td><td>AitW <strong>17.7 → 67.2</strong> success</td></tr>
+<tr><td>ScreenAgent</td><td>—</td><td>multi</td><td>SFT</td><td>研究</td><td>screen-task</td></tr>
+<tr><td>UI-TARS-1.5 / UI-TARS-2 7B</td><td>7B</td><td>Qwen2-VL</td><td>大规模 SFT + RL (字节)</td><td>weights ✓ / RL infra 部分开源</td><td>OSWorld 47.5, AndroidWorld 高位</td></tr>
+</tbody>
+</table>
+
+<h3>3.1 Octopus 系列 (Nexa AI) — function-call 路线</h3>
+
+<div class="paper-card">
+<div class="ttl">Octopus v2 (arXiv:2404.01744, 2024-04)</div>
+<ul>
+<li><strong>规模</strong>: 2B(Gemma 2B base);<strong>方法</strong>: 把每个 Android Intent / API 编码成一个 <strong>"functional token"</strong>,LLM 只需生成 1-2 个 token 就完成 function-call,prefill 几乎为 0;</li>
+<li><strong>自报</strong>: "surpasses GPT-4 in both accuracy and latency, decrease context length by 95%";"<strong>35× latency over Llama-7B RAG-style</strong>";</li>
+<li><strong>意义</strong>: 把 mobile agent 的核心瓶颈 ("prompt 包含所有 API → 几千 token prefill") 用 vocab tricks 绕过;但只解决<strong>已知封闭 tool set</strong> 的情况,不能跨任意 MCP server。</li>
+</ul>
+</div>
+
+<h3>3.2 Mobile-Agent 系列 (阿里 X-PLUG) — 学术线最活跃</h3>
+
+<div class="paper-card">
+<div class="ttl">Mobile-Agent-v2 (NeurIPS 2024, Wang et al.)</div>
+<p><strong>三 agent 架构</strong>:</p>
+<ul>
+<li><strong>Planning Agent</strong> — 维护 task progress 而非全 history,绕过"长 token 序列下 mobile screenshot 容易丢"的问题;</li>
+<li><strong>Decision Agent</strong> — 每步出操作;</li>
+<li><strong>Reflection Agent</strong> — 看上一步结果,纠错;</li>
+<li><strong>Memory unit</strong> — 持续累积"focus content"</li>
+</ul>
+<p><strong>结果</strong>: 完成率比 v1 +30% pp(GPT-4V 后端,自家 Mobile-Eval)</p>
+</div>
+
+<div class="paper-card">
+<div class="ttl">Mobile-Agent-v3.5 / GUI-Owl (2026-Q1, arXiv:2602.16855)</div>
+<ul>
+<li><strong>转折点</strong>:从 prompt engineering 转向 <strong>自训 base 模型</strong>;<strong>GUI-Owl 2B / 4B / 8B / 32B / 235B</strong> 在 Qwen3-VL 上 SFT+RL</li>
+<li><strong>评测</strong>:跨 20+ GUI benchmark(OSWorld / AndroidWorld 等),自报多个 SOTA</li>
+<li><strong>开源</strong>:weights + code 在 GitHub <code>X-PLUG/MobileAgent</code>(8.7K stars 截至 2026-05)</li>
+<li><strong>定位</strong>:<strong>开源 mobile GUI agent 当前最完整 stack</strong> — 兼有训练 base + 多 agent 编排</li>
+</ul>
+</div>
+
+<h3>3.3 DigiRL — RL 路线 (Stanford, NeurIPS 2024)</h3>
+
+<div class="paper-card">
+<div class="ttl">DigiRL (arXiv:2406.11896, Bai et al.)</div>
+<ul>
+<li><strong>1.3B VLM</strong>,在 <strong>AitW 上做 offline → offline-to-online RL</strong></li>
+<li><strong>方法</strong>:advantage-weighted RL + automatic curriculum</li>
+<li><strong>结果</strong>:<strong>17.7% → 67.2% success</strong>(同 base SFT 起点);<em>对比</em>: AppAgent + GPT-4V 仅 8.3%,CogAgent 38.5%</li>
+<li><strong>意义</strong>:<strong>证明 1.3B + RL 能在某些 AitW 子集超过 GPT-4V</strong>;但只在<strong>已知 app 集合</strong>有效,跨 app generalization 仍弱</li>
+</ul>
+</div>
+
+<h3>3.4 UI-TARS 系列 (ByteDance, 2024-2026)</h3>
+
+<p>详见 <a href="17_UITARS2_2509.02544.html">#17 UI-TARS-2</a>。简要:UI-TARS-1.5 是 7B 跨平台 agent,2 代是 230B MoE,二代不是端侧模型,但 1.5 的 7B int4 在高端 Android (24 GB 机型) 上是 prudent 选择。<strong>真正面向手机端的还是 GUI-Owl 2B/4B</strong>。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Benchmark 全景</h2>
+
+<table>
+<thead><tr><th>Benchmark</th><th>规模</th><th>评测协议</th><th>当前 SOTA</th><th>许可</th></tr></thead>
+<tbody>
+<tr><td><strong>AndroidWorld</strong> (Google)</td><td>116 task × 20 app</td><td>动态参数化 + 程序化 success-checker</td><td>paper 时 30.6%; 2026 leaderboard 70%+ (Mobile-Agent v3.5 / UI-TARS 等)</td><td>Apache-2.0</td></tr>
+<tr><td><strong>AndroidControl</strong> (Google, NeurIPS 2024)</td><td>15,283 demo × 833 app</td><td>SFT 数据集 + in/out-of-domain split</td><td>SFT 数据,不是 leaderboard</td><td>Apache-2.0 (?)</td></tr>
+<tr><td><strong>AitW (Android in the Wild)</strong></td><td><strong>715K episode × 30K 指令</strong></td><td>4 Android 版本 × 8 设备类型 × 多分辨率</td><td>多版本 leaderboard;DigiRL 67.2 / CogAgent 38.5</td><td>研究用</td></tr>
+<tr><td><strong>GUI-Odyssey</strong></td><td>~7,735 task (多任务长 episode)</td><td>cross-app 转移 + 200 多任务长 traj</td><td>未在公开来源精确确认</td><td>研究</td></tr>
+<tr><td><strong>Mobile-Eval (M3A / T3A)</strong></td><td>33 task (M3A multimodal)</td><td>self-reported success</td><td>Mobile-Agent v2 报多 +30 pp</td><td>MIT (随 Mobile-Agent)</td></tr>
+<tr><td><strong>B-MoCA</strong> (Benchmark for Mobile Control Agents)</td><td>未在公开来源精确确认</td><td>跨 daily-life 任务</td><td>未在公开来源精确确认</td><td>研究</td></tr>
+<tr><td><strong>Mobile-Agent-Bench / AppAgent-Bench</strong></td><td>每个 ~9-15 app</td><td>self-bench</td><td>—</td><td>各自 MIT</td></tr>
+<tr><td><strong>SPA-Bench</strong> (Smartphone Agent Benchmark)</td><td>340 task × en/zh 双语</td><td>real-device + emulator</td><td>未在公开来源精确确认</td><td>研究</td></tr>
+</tbody>
+</table>
+
+<h3>4.1 AndroidWorld — 事实标准</h3>
+
+<div class="paper-card">
+<div class="ttl">AndroidWorld (Rawles et al., arXiv:2405.14573)</div>
+<ul>
+<li><strong>116 个程序化 task,覆盖 20 个真实 Android 应用</strong>(系统设置、Markor 笔记、OsmAnd 地图、Audio Recorder、Tasks、Files、Joplin、Simple Gallery 等)</li>
+<li><strong>动态参数化</strong>:每个 task 模板可以生成"无限"自然语言变体 — 例如 "set alarm for 7am" → "wake me up at quarter to 7" → "remind me 30 min before sunrise"</li>
+<li><strong>每个 task 有 init / success-checker / tear-down 三件套</strong>,可重复执行</li>
+<li><strong>paper 报告 SOTA 30.6%</strong>(最佳 baseline,paper 时未命名具体模型);<strong>2026 公开 leaderboard 已经 70%+</strong>(Mobile-Agent-v3.5 / Aria-UI / 字节 UI-TARS 系列)</li>
+<li><strong>关键限制</strong>:跑在 Android emulator(<code>android_world</code> Python 包 + AVD),不是真机;但<strong>是公认开源金标准</strong></li>
+</ul>
+</div>
+
+<h3>4.2 AitW — 历史最重要的训练数据</h3>
+
+<div class="paper-card">
+<div class="ttl">Android in the Wild (Rawles et al., 2023, arXiv:2307.10088)</div>
+<ul>
+<li><strong>715K episode × 30K 唯一指令</strong>,人工演示;Android v10-13,8 种 Pixel 设备</li>
+<li>任务是 multi-step,需要"语言 + 视觉 + 手势"语义理解;<strong>关键:动作不是 UI element 而是<em>精确手势</em></strong>(水平滚动、长按、坐标级 tap),这使 grounding 难度比 web 高得多</li>
+<li><strong>它是后续几乎所有 mobile-agent 训练的数据源</strong>:DigiRL / Auto-UI / AutoUI / CogAgent (mobile mode) / Aria-UI 都从 AitW 起步</li>
+<li>但 AitW <strong>不是 dynamic benchmark</strong>(只能离线评分,看 action 是否与 ground truth 一致),所以 AndroidWorld 才是<strong>"评测"</strong>金标准;AitW 是<strong>"训练 + 离线评测"</strong>金标准</li>
+</ul>
+</div>
+
+<h3>4.3 AndroidControl — Google 自己加的 NeurIPS 2024 训练 + eval 套件</h3>
+
+<div class="paper-card">
+<div class="ttl">AndroidControl (Li et al., NeurIPS 2024, arXiv:2406.03679)</div>
+<ul>
+<li><strong>15,283 demo × 14,548 唯一 task × 833 Android app</strong></li>
+<li><strong>每个 instance 提供 high-level + low-level 双层指令</strong> — 这是 AitW 没有的;让研究者可以单独评估 "理解任务" vs "理解 UI"</li>
+<li><strong>关键结论</strong>:in-domain fine-tune 涨得快,<strong>out-of-domain scaling 显著慢</strong>;"fine-tune on more data 单凭这一项不足以实现 robust OOD"</li>
+<li><strong>它对 DigiRL / Mobile-Agent-v3 / GUI-Owl 等都是核心 SFT 数据</strong></li>
+</ul>
+</div>
+
+<h3>4.4 评测 leaderboard 现状 (2026-05 snapshot)</h3>
+
+<table>
+<thead><tr><th>系统</th><th>AndroidWorld</th><th>AitW (web subset)</th><th>底层模型</th></tr></thead>
+<tbody>
+<tr><td>GPT-4V (Mobile-Agent v2)</td><td>~30% (paper)</td><td>~30% completion</td><td>GPT-4V API</td></tr>
+<tr><td>GUI-Owl 7B (Mobile-Agent v3.5)</td><td>自报 SOTA(具体数值未在公开来源精确确认)</td><td>—</td><td>Qwen3-VL 7B + SFT/RL</td></tr>
+<tr><td>UI-TARS-1.5 7B</td><td>高位(未在公开来源精确确认确切名次)</td><td>—</td><td>Qwen2-VL 7B + 大规模 SFT</td></tr>
+<tr><td>Aria-UI (Rhymes AI)</td><td>57.0% (自报)</td><td>—</td><td>MoE 24B(<em>不能上手机</em>)</td></tr>
+<tr><td>DigiRL 1.3B</td><td>未直接评 AndroidWorld</td><td>AitW <strong>67.2%</strong></td><td>1.3B VLM + offline-to-online RL</td></tr>
+</tbody>
+</table>
+
+<div class="warn"><strong>校订</strong>: AndroidWorld 公开 leaderboard 在 2026 已被多家刷到 70%+,但 paper PDF 仍写 30.6%。引用时<strong>必须区分 "paper 数字" 和 "现 leaderboard 数字"</strong> — 不少二手 survey 误把 30.6% 当现实 ceiling。</div>
+
+<hr>
+
+<h2 id="sec5">5 · 推理框架 / 部署栈</h2>
+
+<table>
+<thead><tr><th>框架</th><th>出品</th><th>iOS</th><th>Android</th><th>NPU 后端</th><th>许可</th><th>支持模型</th></tr></thead>
+<tbody>
+<tr><td><strong>MLC-LLM</strong></td><td>MLC AI / CMU TVM</td><td>Swift SDK ✓</td><td>Kotlin/Java SDK ✓</td><td>Metal / Vulkan / OpenCL</td><td>Apache-2.0</td><td>Llama / Mistral / Qwen / Phi / Gemma / RedPajama 等几十家</td></tr>
+<tr><td><strong>llama.cpp + GGUF</strong></td><td>ggerganov + community</td><td>via PocketPal / LLMFarm</td><td>via PocketPal / Maid / ChatterUI</td><td>CPU + Metal (iOS) + OpenCL (Android Adreno)</td><td>MIT</td><td>几乎一切开源 LLM,GGUF 是事实标准</td></tr>
+<tr><td><strong>MLX</strong></td><td>Apple ML Research</td><td>iOS 18+ (mlx-swift)</td><td>—</td><td>Apple GPU (Metal); ANE 较弱</td><td>MIT</td><td>Mistral / Qwen / Llama / Phi (mlx-community)</td></tr>
+<tr><td><strong>ExecuTorch</strong></td><td>Meta PyTorch</td><td>Swift / Obj-C (CoreML backend)</td><td>Kotlin/Java + JNI</td><td>XNNPACK + CoreML/ANE + Vulkan + Qualcomm QNN + MediaTek</td><td>BSD-3</td><td>Llama 3.2/3.1/3, Qwen 3, Phi-4-mini, LiquidAI LFM2, Llava, Voxtral, Gemma 3</td></tr>
+<tr><td><strong>MediaPipe LLM Inference API</strong></td><td>Google</td><td>✓ (CocoaPods)</td><td>✓ (AAR)</td><td>XNNPACK / GPU / NPU (per device)</td><td>Apache-2.0</td><td>Gemma / Phi-2 / Falcon / StableLM (官方支持列表)</td></tr>
+<tr><td><strong>Apple Core ML</strong></td><td>Apple</td><td>原生</td><td>—</td><td>ANE + GPU</td><td>闭源 (Apple platforms)</td><td>转换工具 (coremltools);事实上 Apple Foundation Model 就在这条路径</td></tr>
+<tr><td><strong>NNAPI</strong></td><td>Google (Android)</td><td>—</td><td>OS-level (deprecated 在 NDK 31+)</td><td>各 OEM 后端</td><td>—</td><td>tflite 走 NNAPI,但<strong>Google 在缓慢弃用</strong>,推 Android NDK + 厂商 SDK 替代</td></tr>
+<tr><td><strong>Qualcomm AI Engine Direct (QNN)</strong></td><td>Qualcomm</td><td>—</td><td>✓</td><td>Hexagon NPU 直接编程</td><td>闭源 SDK</td><td>需手动 export;ExecuTorch 已经包了一层</td></tr>
+<tr><td><strong>MNN</strong></td><td>Alibaba</td><td>✓</td><td>✓</td><td>各种</td><td>Apache-2.0</td><td>主要 vision/ASR,LLM 支持后加</td></tr>
+<tr><td><strong>NCNN</strong></td><td>Tencent</td><td>✓</td><td>✓</td><td>Vulkan / Metal</td><td>BSD-3</td><td>主要 vision;LLM 走 ncnn-llm fork 但 ecosystem 落后</td></tr>
+<tr><td><strong>TensorFlow Lite (LiteRT)</strong></td><td>Google</td><td>✓</td><td>✓</td><td>NNAPI / GPU / EdgeTPU</td><td>Apache-2.0</td><td>主流 vision/ASR;LLM 走 MediaPipe wrapper</td></tr>
+</tbody>
+</table>
+
+<h3>5.1 三种推荐组合</h3>
+
+<div class="kv"><strong>组合 A · "我要跨 iOS+Android 一套代码"</strong> → <strong>MLC-LLM</strong>。<br>
+官方 Swift + Kotlin SDK,模型只需要在 desktop 上预编译(weight conversion + libgen)一次,iOS/Android binary 直接 link。<strong>适合早期 prototype / 独立开发者</strong>。</div>
+
+<div class="kv"><strong>组合 B · "我已经在 PyTorch 训了 GUI agent 模型"</strong> → <strong>ExecuTorch</strong>。<br>
+直接 <code>torch.export</code> → <code>.pte</code> → CoreML backend (iOS) / XNNPACK / Qualcomm (Android)。<strong>Meta 自己 Instagram/WhatsApp/Quest 3 都在用</strong>。代价:exporter 支持的算子有限,custom ops 要写 kernel。</div>
+
+<div class="kv"><strong>组合 C · "iOS 单平台,要榨 ANE"</strong> → <strong>Core ML (coremltools)</strong> 或直接<strong> FoundationModels framework</strong>。<br>
+FoundationModels 不需要打包权重(Apple 系统级),但仅限 Apple 模型;Core ML 自家模型可以但 ANE backend 对自由 transformer 还不够灵活,实际仍多 fallback 到 GPU。</div>
+
+<h3>5.2 MLC-LLM vs ExecuTorch 一句话</h3>
+
+<p>MLC-LLM 是 <strong>"编译器派"</strong>(TVM),把模型从 IR 一路编译到 Metal/Vulkan kernel,跨平台一致;ExecuTorch 是 <strong>"runtime 派"</strong>(50 KB runtime),依靠 12+ 硬件 backend partition graph。<strong>MLC 对模型 zoo 友好,ExecuTorch 对硬件 zoo 友好</strong>。两条路在 2026 已经 converge — 都支持 Qwen/Llama/Phi/Gemma,差距越来越窄。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 实测性能表 — model × phone × tok/s @ int4</h2>
+
+<p>下表数字大多<strong>来自社区报告 / Reddit / HF discussion / GitHub issue</strong>,而非官方;Apple Foundation Model 的 30 tok/s 是 Apple 官方 blog;其他凡未在公开来源精确确认的标注为<strong>"~估计"</strong>。</p>
+
+<table>
+<thead><tr><th>模型 (int4)</th><th>iPhone 15 Pro<br>(A17 Pro, 8 GB)</th><th>iPhone 17 Pro<br>(A19 Pro, 12 GB)</th><th>Pixel 9 Pro<br>(Tensor G4)</th><th>Snapdragon 8 Gen 3<br>(8-16 GB)</th><th>Snapdragon 8 Elite</th></tr></thead>
+<tbody>
+<tr><td>Qwen2.5-0.5B</td><td>~80 (~估计)</td><td>~100 (~估计)</td><td>~60 (~估计)</td><td>~70 (~估计)</td><td>~110 (~估计)</td></tr>
+<tr><td>Qwen2.5-1.5B</td><td>~30-40 (~估计)</td><td>~45 (~估计)</td><td>~25 (~估计)</td><td>~30 (~估计)</td><td>~55 (~估计)</td></tr>
+<tr><td>Qwen2.5-3B</td><td>~18-22 (社区)</td><td>~28 (~估计)</td><td>~15 (~估计)</td><td>~20 (~估计)</td><td>~35 (~估计)</td></tr>
+<tr><td>Qwen2.5-VL-3B</td><td>~12-15 (~估计,vision encoder 拖累)</td><td>~20 (~估计)</td><td>~10 (~估计)</td><td>~13 (~估计)</td><td>~22 (~估计)</td></tr>
+<tr><td>Phi-3.5-mini 3.8B</td><td>~18-20 (社区报)</td><td>~25 (~估计)</td><td>~15 (~估计)</td><td>~18 (~估计)</td><td>~30 (~估计)</td></tr>
+<tr><td>LLaMA 3.2 1B</td><td>~40 (~估计)</td><td>~55 (~估计)</td><td>~30 (~估计)</td><td>~35 (~估计)</td><td>~60 (~估计)</td></tr>
+<tr><td>LLaMA 3.2 3B</td><td>~15-18 (社区)</td><td>~25 (~估计)</td><td>~13 (~估计)</td><td>~17 (~估计)</td><td>~28 (~估计)</td></tr>
+<tr><td>Gemma 3 1B</td><td>~30-35 (~估计)</td><td>~45 (~估计)</td><td>~25 (~估计)</td><td>~30 (~估计)</td><td>~50 (~估计)</td></tr>
+<tr><td>Gemma 3 4B</td><td>~10-12 (~估计)</td><td>~18 (~估计)</td><td>~8 (~估计)</td><td>~12 (~估计)</td><td>~20 (~估计)</td></tr>
+<tr><td>SmolLM2 1.7B</td><td>~35 (社区)</td><td>~50 (~估计)</td><td>~28 (~估计)</td><td>~32 (~估计)</td><td>~55 (~估计)</td></tr>
+<tr><td>MiniCPM-V 2.6 8B</td><td><span class="no">~极限/不可用</span></td><td>~6 (~估计)</td><td><span class="no">RAM 紧</span></td><td>~5 (~估计)</td><td>~10 (~估计)</td></tr>
+<tr><td>Apple Foundation 3B</td><td><strong>30 (Apple 官方)</strong></td><td>~40+ (~估计)</td><td>—</td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+
+<div class="warn"><strong>表的可信度</strong>:除 Apple 30 tok/s 外,其它<strong>都是数量级估计</strong>,实际可能 ±50%。差异来自:① quantization (Q4_0 vs Q4_K_M 差很大);② thermal 状态(冷启 vs sustained);③ context length(长 context 时 KV cache 主导,decode 慢);④ 框架(llama.cpp vs MLC vs ExecuTorch)。<strong>本表用于决策粗排序,不用于绝对承诺。</strong></div>
+
+<hr>
+
+<h2 id="sec7">7 · Mobile agent 训练框架与数据</h2>
+
+<h3>7.1 训练数据三大支柱</h3>
+
+<table>
+<thead><tr><th>数据集</th><th>规模</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td>AitW (Android in the Wild)</td><td>715K episode</td><td>SFT 大规模 — DigiRL / Auto-UI / GUI-Owl base</td></tr>
+<tr><td>AndroidControl (Google)</td><td>15.3K demo × 833 app</td><td>SFT in/out-of-domain split</td></tr>
+<tr><td>GUI-Odyssey</td><td>~7K cross-app multi-step</td><td>跨应用 long horizon</td></tr>
+<tr><td>OS-Atlas (跨平台,含 mobile)</td><td>13M element</td><td>grounding</td></tr>
+<tr><td>Aguvis</td><td>4.2M grounding + 1.3M traj</td><td>两阶段训</td></tr>
+<tr><td>Mobile-Agent self-explore</td><td>合成 (无具体 size 公开)</td><td>v2/v3 自有合成</td></tr>
+</tbody>
+</table>
+
+<h3>7.2 RL 训练框架</h3>
+
+<ul>
+<li><strong>DigiRL</strong> (Stanford, 2024) — <strong>第一个公开的 mobile-agent online RL trainer</strong>;走 AitW + advantage-weighted RL + auto curriculum;Apache-2.0;<a href="https://github.com/DigiRL-agent/digirl">GitHub</a></li>
+<li><strong>android_world (Google)</strong> — 既是 benchmark 也是 env,可以接 RL — emulator + adb;Apache-2.0</li>
+<li><strong>ClawGUI / MobileWorld</strong> — 见 <a href="14_ClawGUI_2604.11784.html">#14</a>,Docker 化的 mobile env,17.1% 训练成绩,提供并行 emulator</li>
+<li><strong>UI-TARS-2 sandbox</strong>(字节内部)— 见 <a href="17_UITARS2_2509.02544.html">#17</a>,mobile+desktop 混合训练 env</li>
+<li><strong>Mobile-Agent-v3.5 (X-PLUG)</strong> — 自家 RL pipeline,但代码不完整开源</li>
+</ul>
+
+<h3>7.3 训练成本 (粗估)</h3>
+
+<p>训一个 3-4B mobile GUI agent,从 base VLM 起步:</p>
+<ul>
+<li><strong>SFT</strong>:AitW + AndroidControl 全量,Qwen2.5-VL-3B base,<strong>8× H100 / 2-3 天 / ~$2K-$5K</strong></li>
+<li><strong>online RL</strong> on emulator:DigiRL-style,<strong>32 parallel emulator + 8× H100 / 1-2 周</strong>(emulator 是瓶颈,见 #14 ClawGUI 讨论)</li>
+<li>对比 desktop OSWorld RL:<strong>mobile emulator overhead 显著小于 X11 VM</strong>(no display server),所以 mobile RL 在 throughput 上比 desktop 友好</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">8 · 与本系列其他工作的连接</h2>
+
+<table>
+<thead><tr><th>关联</th><th>笔记</th><th>关系</th></tr></thead>
+<tbody>
+<tr><td>#14 ClawGUI</td><td><a href="14_ClawGUI_2604.11784.html">14_ClawGUI</a></td><td><strong>同主题</strong> — Mobile-World Docker emulator,本笔记 §7 直接复用</td></tr>
+<tr><td>#15 PinchBench</td><td><a href="15_PinchBench.html">15_PinchBench</a></td><td>姊妹 agent benchmark 调研(coding agent,跨平台)</td></tr>
+<tr><td>#16 Desktop Agents landscape</td><td><a href="16_DesktopAgents_landscape.html">16_DesktopAgents</a></td><td><strong>姊妹篇</strong> — 桌面 GUI / CLI 生态,本笔记沿用其模板和结构</td></tr>
+<tr><td>#17 UI-TARS-2</td><td><a href="17_UITARS2_2509.02544.html">17_UITARS2</a></td><td>跨平台 GUI agent(mobile+desktop),其 1.5 版 7B 是手机端可考虑候选</td></tr>
+<tr><td>#27 Small Model MCP landscape</td><td><a href="27_SmallModelMCP_landscape.html">27_SmallModelMCP</a></td><td><strong>参数甜点讨论</strong> — 那边讨论 ≤40B MCP,这边讨论 ≤4B mobile;1.5-4B 是两边交集</td></tr>
+<tr><td>#29 EnvTuning</td><td><a href="29_TuneTheEnvironment.html">29_EnvTuning</a></td><td>"tune env 不 tune agent" 思想对 mobile 同样有效 — emulator 的 error message 可以 actionable 化</td></tr>
+<tr><td>#31 Prime Intellect Hub</td><td><a href="31_PrimeIntellectHub.html">31_PrimeIntellectHub</a></td><td>Environments Hub 已有 Android emulator env,可以用 verifiers SDK 起步训练</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="sec9">9 · 决策树 — 我要在手机上做 agent</h2>
+
+<div class="fig">
+<svg viewBox="0 0 800 720" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:760px">
+<style>
+  .node{fill:#fff;stroke:#2f6feb;stroke-width:1.5;rx:8;ry:8}
+  .leaf{fill:#dcefe4;stroke:#1f7a4a}
+  .warn{fill:#fff4d6;stroke:#a87317}
+  .bad{fill:#f4dde0;stroke:#a8353e}
+  .lbl{font:13px -apple-system,sans-serif;fill:#1f2024}
+  .lblb{font:13px -apple-system,sans-serif;fill:#1f2024;font-weight:600}
+  .edge{stroke:#5b5e66;stroke-width:1.2;fill:none;marker-end:url(#arr)}
+  .elbl{font:11px -apple-system,sans-serif;fill:#5b5e66}
+</style>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#5b5e66"/></marker></defs>
+
+<rect class="node" x="280" y="10" width="240" height="50"/>
+<text class="lblb" x="400" y="40" text-anchor="middle">想在手机上跑 agent</text>
+
+<rect class="node" x="280" y="100" width="240" height="50"/>
+<text class="lbl" x="400" y="120" text-anchor="middle">单一 OS 还是跨平台?</text>
+<text class="lbl" x="400" y="138" text-anchor="middle">(单 OS 可吃系统 API)</text>
+<path class="edge" d="M400 60 L400 100"/>
+
+<rect class="node leaf" x="20" y="200" width="200" height="80"/>
+<text class="lblb" x="120" y="225" text-anchor="middle">仅 iOS</text>
+<text class="lbl" x="120" y="245" text-anchor="middle">用 FoundationModels</text>
+<text class="lbl" x="120" y="263" text-anchor="middle">(iOS 26+, 不需打包权重)</text>
+<path class="edge" d="M340 150 L150 200"/>
+<text class="elbl" x="200" y="180">单 OS - iOS</text>
+
+<rect class="node leaf" x="240" y="200" width="200" height="80"/>
+<text class="lblb" x="340" y="225" text-anchor="middle">仅 Android</text>
+<text class="lbl" x="340" y="245" text-anchor="middle">Gemini Nano via AICore</text>
+<text class="lbl" x="340" y="263" text-anchor="middle">(只 5 个 ML Kit GenAI API)</text>
+<path class="edge" d="M390 150 L340 200"/>
+<text class="elbl" x="380" y="180">单 OS - Android</text>
+
+<rect class="node" x="480" y="200" width="290" height="80"/>
+<text class="lblb" x="625" y="225" text-anchor="middle">跨平台 / 自带模型</text>
+<text class="lbl" x="625" y="245" text-anchor="middle">→ MLC-LLM 或 ExecuTorch</text>
+<text class="lbl" x="625" y="263" text-anchor="middle">选 base 模型 ↓</text>
+<path class="edge" d="M460 150 L600 200"/>
+<text class="elbl" x="530" y="180">跨平台</text>
+
+<rect class="node" x="480" y="320" width="290" height="50"/>
+<text class="lbl" x="625" y="350" text-anchor="middle">需要 GUI grounding (看屏幕)?</text>
+<path class="edge" d="M625 280 L625 320"/>
+
+<rect class="node warn" x="340" y="420" width="200" height="80"/>
+<text class="lblb" x="440" y="445" text-anchor="middle">是 - GUI agent</text>
+<text class="lbl" x="440" y="463" text-anchor="middle">Qwen2.5-VL-3B</text>
+<text class="lbl" x="440" y="481" text-anchor="middle">or Mobile-Agent v3.5 GUI-Owl 2B/4B</text>
+<path class="edge" d="M580 370 L470 420"/>
+<text class="elbl" x="500" y="400">是</text>
+
+<rect class="node leaf" x="580" y="420" width="220" height="80"/>
+<text class="lblb" x="690" y="445" text-anchor="middle">否 - function-call</text>
+<text class="lbl" x="690" y="463" text-anchor="middle">Qwen2.5-1.5B / SmolLM2-1.7B</text>
+<text class="lbl" x="690" y="481" text-anchor="middle">or Phi-3.5-mini</text>
+<path class="edge" d="M660 370 L680 420"/>
+<text class="elbl" x="700" y="400">否</text>
+
+<rect class="node" x="280" y="540" width="240" height="50"/>
+<text class="lbl" x="400" y="570" text-anchor="middle">最终用户机型?</text>
+<path class="edge" d="M440 500 L420 540"/>
+<path class="edge" d="M690 500 L460 540"/>
+
+<rect class="node bad" x="60" y="630" width="170" height="60"/>
+<text class="lblb" x="145" y="655" text-anchor="middle">8 GB RAM 中低端</text>
+<text class="lbl" x="145" y="675" text-anchor="middle">≤1.5B int4 强制</text>
+<path class="edge" d="M320 590 L180 630"/>
+
+<rect class="node warn" x="260" y="630" width="170" height="60"/>
+<text class="lblb" x="345" y="655" text-anchor="middle">8-12 GB 主流</text>
+<text class="lbl" x="345" y="675" text-anchor="middle">3B int4 甜点</text>
+<path class="edge" d="M380 590 L360 630"/>
+
+<rect class="node leaf" x="460" y="630" width="170" height="60"/>
+<text class="lblb" x="545" y="655" text-anchor="middle">12-24 GB 旗舰</text>
+<text class="lbl" x="545" y="675" text-anchor="middle">4-7B int4 OK</text>
+<path class="edge" d="M420 590 L520 630"/>
+
+<rect class="node" x="660" y="630" width="120" height="60"/>
+<text class="lblb" x="720" y="655" text-anchor="middle">未知 OEM</text>
+<text class="lbl" x="720" y="675" text-anchor="middle">降到 1.5B</text>
+<path class="edge" d="M460 590 L700 630"/>
+</svg>
+<figcaption>从 "单 OS 还是跨平台" 一路分到 "目标机型 RAM" 的 mobile agent 选型决策树。注意每一层都有"诚实落子"的回退选项 — 8 GB RAM 中低端不能跑 3B+,即使你想。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec10">10 · 局限 / 诚实分析</h2>
+
+<h3>10.1 为什么 Siri / Google Assistant 仍然走云</h3>
+
+<p>这一点必须直说:<strong>截至 2026-05,所有可商用的复杂 mobile agent 任务,产品上仍然是 cloud-first</strong>。本地模型只做<strong>简单子任务</strong>:</p>
+<ul>
+<li>智能回复短信(Apple / Google 都做)</li>
+<li>邮件 / 通知 summarization</li>
+<li>简单的 in-app 命令(打开某 app、设个闹钟)</li>
+<li>OCR / 翻译 / ASR(这些不是 LLM,是 task-specific 小模型)</li>
+</ul>
+
+<p>真正的<strong>多 app reasoning</strong>(e.g. "看一下我妈微信发的菜谱,把里面的食材加到购物 app 然后打开外卖 app 看哪个超市送货最快")— <strong>没有产品级的 on-device 解决方案</strong>。原因:</p>
+<ol>
+<li><strong>1B-3B 模型 multi-turn reasoning 弱</strong> — 这是 #27 笔记的核心结论之一,BFCL V4 上 ≤4B 极少能 cross 50%;</li>
+<li><strong>vision encoder 太贵</strong> — 真要每 step 看屏幕,RAM/延迟双重不可承受;</li>
+<li><strong>跨 app 权限</strong>本身是 OS 问题不是模型问题(Android 跨 app 还行 via accessibility service,iOS 几乎不可能,只能走 Shortcuts/Intent 这种受控接口)。</li>
+</ol>
+
+<p>所以 Apple 设计了 <strong>Private Cloud Compute</strong>(同样架构、可审计、no-log)做难任务 fallback;Google 直接走 Gemini Cloud。这就是产品现实。</p>
+
+<h3>10.2 mobile GUI agent 比 mobile function-call agent 难一个量级</h3>
+
+<table>
+<thead><tr><th>维度</th><th>function-call</th><th>GUI agent</th></tr></thead>
+<tbody>
+<tr><td>模型尺寸</td><td>0.5-3B 足够</td><td>VLM 至少 3-7B</td></tr>
+<tr><td>RAM 内存</td><td>1.5 GB 内 fit</td><td>3+ GB (含 vision activation)</td></tr>
+<tr><td>延迟</td><td>&lt;1s feasible</td><td>每 step 1-3s typical</td></tr>
+<tr><td>OS 权限</td><td>app intent / shortcut API 即可</td><td>iOS 需 Accessibility / Android 需 Accessibility Service(显眼系统警告)</td></tr>
+<tr><td>跨 app generalization</td><td>SDK schema 已知,容易迁移</td><td>视觉 layout 千差万别,OOD generalization 弱</td></tr>
+</tbody>
+</table>
+
+<p>这就是为什么 <strong>Octopus / MobileLLM 那条 "functional-token / function-call" 路线产品上更接近落地</strong>,而 Mobile-Agent v3.5 / GUI-Owl 这条 "看屏幕直接操作" 在实验室漂亮但产品上还没成熟方案。</p>
+
+<h3>10.3 持续推理的能耗诚实账</h3>
+
+<ul>
+<li>iPhone 15 Pro 持续 LLM decode ≈ 5W,A19 Pro 更高效但仍至少 3-4W;</li>
+<li>4000-5000 mAh 典型电池 ≈ 15-20 Wh,<strong>纯 LLM 持续运行 ≈ 3-5 小时</strong>(还要算屏幕/通讯);</li>
+<li>更现实模型:<strong>每天 burst 几十次,每次 30 秒-1 分钟</strong>,这是 Apple Intelligence 的实际负载模型;</li>
+<li>"agent 在后台 7×24 跑" — <strong>iOS 当前不允许</strong>(后台只允许有限 task);Android 允许 foreground service 但很费电。</li>
+</ul>
+
+<h3>10.4 关于本笔记数字的诚实标注</h3>
+
+<p>本笔记中已经<strong>明确标记为 "未在公开来源精确确认"</strong> 的字段包括:</p>
+<ul>
+<li>iPhone 17 Pro Max 单 app 可用 RAM 上限(只是 12 GB total 的内插)</li>
+<li>Tensor G5 TPU TOPS 数字</li>
+<li>Gemini Nano v2 的当前精确参数量(3.25B 是 v1 数据)</li>
+<li>Qwen3 0.6B/1.7B/4B 在 iPhone 15 Pro 的实测 tok/s</li>
+<li>MiniCPM 2B/4B 在 iPhone 上 tok/s</li>
+<li>GUI-Odyssey 准确 task 数量</li>
+<li>B-MoCA / SPA-Bench 当前 SOTA</li>
+<li>AndroidWorld 2026 leaderboard 各家具体名次</li>
+<li>Mobile-Agent-v3.5 GUI-Owl 在 AndroidWorld 上自报 SOTA 的精确数值</li>
+<li>UI-TARS-1.5 7B 在 AndroidWorld 上确切名次</li>
+<li>第 6 节实测性能表中除 Apple 30 tok/s 之外的所有数字(均为社区数量级估计)</li>
+</ul>
+
+<p>这些字段在二手 survey 中常被错引,本笔记选择<strong>承认不知道</strong>而非编造一个精确数字。</p>
+
+<hr>
+
+<h3>📚 主要参考来源</h3>
+
+<ul>
+<li>AndroidWorld — Rawles et al., <a href="https://arxiv.org/abs/2405.14573">arXiv:2405.14573</a></li>
+<li>Android in the Wild — Rawles et al., <a href="https://arxiv.org/abs/2307.10088">arXiv:2307.10088</a></li>
+<li>AndroidControl — Li et al., NeurIPS 2024, <a href="https://arxiv.org/abs/2406.03679">arXiv:2406.03679</a></li>
+<li>DigiRL — Bai et al., <a href="https://arxiv.org/abs/2406.11896">arXiv:2406.11896</a></li>
+<li>Mobile-Agent v1 — Wang et al., <a href="https://arxiv.org/abs/2401.16158">arXiv:2401.16158</a> · v2 NeurIPS 2024, <a href="https://arxiv.org/abs/2406.01014">arXiv:2406.01014</a></li>
+<li>Octopus v2 — Nexa AI, <a href="https://arxiv.org/abs/2404.01744">arXiv:2404.01744</a></li>
+<li>MobileLLM — Liu et al., ICML 2024, <a href="https://arxiv.org/abs/2402.14905">arXiv:2402.14905</a></li>
+<li>Apple Foundation Models — <a href="https://machinelearning.apple.com/research/introducing-apple-foundation-models">machinelearning.apple.com</a></li>
+<li>Gemini Nano / AICore — <a href="https://developer.android.com/ai/aicore">developer.android.com/ai/aicore</a></li>
+<li>Qwen2.5-VL — <a href="https://huggingface.co/Qwen/Qwen2.5-VL-3B-Instruct">HF</a></li>
+<li>SmolLM2 — <a href="https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct">HF</a></li>
+<li>MLC-LLM — <a href="https://llm.mlc.ai/docs/">llm.mlc.ai</a></li>
+<li>ExecuTorch — <a href="https://github.com/pytorch/executorch">GitHub</a></li>
+<li>Mobile-Agent (X-PLUG) — <a href="https://github.com/X-PLUG/MobileAgent">GitHub</a></li>
+</ul>
+
+</main>
+</body>
+</html>
