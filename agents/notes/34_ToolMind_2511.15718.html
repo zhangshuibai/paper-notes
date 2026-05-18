@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · ToolMind: A Large-Scale, Reasoning-Enhanced Tool-Use Dataset (Nanbeige / BOSS Zhipin × RUC)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>ToolMind Technical Report: A Large-Scale, Reasoning-Enhanced Tool-Use Dataset</h1>
+<div class="meta">
+  Nanbeige Lab, BOSS Zhipin (直聘) + Gaoling School of AI, Renmin University of China · Chen Yang, Ran Le, Yun Xing, Zhenwei An, Zongchao Chen, Wayne Xin Zhao, Yang Song, Tao Zhang · 2025-11-12 (v1) → 2025-12-05 (v2)<br>
+  <a href="https://arxiv.org/abs/2511.15718" target="_blank">arXiv:2511.15718</a> ·
+  <a href="https://huggingface.co/datasets/Nanbeige/ToolMind" target="_blank">HF Dataset: Nanbeige/ToolMind</a> ·
+  <a href="https://huggingface.co/Nanbeige" target="_blank">HF Org: Nanbeige</a> ·
+  <a href="https://huggingface.co/Nanbeige/ToolMind-Web-3B" target="_blank">ToolMind-Web-3B (后续衍生 search agent)</a><br>
+  关键词: tool-agentic SFT · function graph · 三角色 multi-agent simulation · turn-level filtering · BFCL-v4 / τ-Bench / τ²-Bench · Qwen3-8B / 14B
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> ToolMind 是 BOSS 直聘 (Nanbeige Lab) + 人民大学高瓴 Wayne Xin Zhao 组联合产出的 <strong>360K 规模 tool-agentic SFT 数据集</strong>(<strong>163,180 条合成 trajectory</strong> + <strong>205,431 条 augmented open-source</strong>,合计 368,611,论文叫"约 360k")。整条 pipeline 的<strong>方法论新意</strong>是: (i) <strong>function graph + random walk</strong> 从 20K open-source 函数(xLAM-60K + Glaive + ToolACE)里采出 function chain; (ii) <strong>三角色 multi-agent simulator</strong>(user / assistant / tool 三个 LM 各扮一角)产 trajectory; (iii) <strong>双层质量过滤</strong> —— <strong>trajectory-level 二元 LLM judge + turn-level 二元 LLM judge</strong>,后者是核心 novelty,通过 <strong>masking 而非 dropping</strong> 把 trajectory 内的错误 turn 单独剔除,只在剩余 valid turn 上算 loss。<strong>Qwen3-8B SFT 后 BFCL-v4 +4.69 pp (42.21→46.92)、τ-bench +10.87 pp、τ²-bench +11.77 pp</strong>;14B 在 τ-bench 上 <strong>+14.22 pp (38.78→53.00)</strong> 最显著。Apache-2.0 dataset 全开源,但<strong>训练好的 ckpt 没发布</strong>(后续 <code>ToolMind-Web-3B</code> 是改向 deep-search 的衍生品,不是 paper 主线 SFT model)。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">160K + 200K</div><div class="l">synthetic + augmented = 368,611 samples</div></div>
+    <div class="stat"><div class="n">20K+ tools</div><div class="l">来自 xLAM/Glaive/ToolACE 三源 function pool</div></div>
+    <div class="stat"><div class="n">Turn-Level Filtering</div><div class="l">论文核心 novelty: mask 单 turn 不丢 trajectory</div></div>
+    <div class="stat"><div class="n">+14.22 pp</div><div class="l">14B 在 τ-bench 上最大涨幅 (38.78 → 53.00)</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是一篇<strong>方法论小新意 + 工程性扎实 + 评测诚实</strong>的 technical report,定位是<strong>"<a href="22_TOUCAN.html">#22 TOUCAN</a> 的方法论补丁版"</strong> —— TOUCAN 在 trajectory 级用 6 维 Likert + GPT-OSS-120B 过滤,ToolMind 在此基础上多加一层<strong>每个 assistant turn 单独二元判 + masking 而非丢弃</strong>,从而保留"<em>self-corrective reasoning</em>"信号(论文 abstract 原话)。规模上比 TOUCAN 小 4-10× (368K vs 1.5M raw / 119K SFT),但<strong>使用了真 MCP server 之外的另一条路线:tool 是 schema,response 由 tool agent LLM 模拟</strong> —— 这点和 ToolACE / Nemotron 同类(论文也明确承认"tools are not executable in our setup")。和 <a href="22_TOUCAN.html">#22 TOUCAN</a>、<a href="23_EnvScaler.html">#23 EnvScaler</a>、<a href="20_SETA_camel.html">#20 SETA</a>、<a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a> 一起构成 2025-10 → 2026-01 的 <strong>tool-agentic SFT 数据集军备竞赛</strong>。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">Motivation — 为什么 trajectory-level 过滤还不够</a></li>
+    <li><a href="#sec2">Function Graph 构造 — random walk 采 function chain</a></li>
+    <li><a href="#sec3">Multi-Agent Synthesis Framework — user / assistant / tool 三角色</a></li>
+    <li><a href="#sec4">Turn-Level Filtering — 论文核心 novelty (mask vs drop)</a></li>
+    <li><a href="#sec5">Dataset Composition — 360K 内部精确拆分</a></li>
+    <li><a href="#sec6">Training + Evaluation — Qwen3-8B/14B × BFCL-v4 + τ + τ²</a></li>
+    <li><a href="#sec7">与 #22 / #23 / #20 / #28 / #29 / #30 / #31 cross-link</a></li>
+    <li><a href="#sec8">开源现状清点 (HF dataset + 后续衍生 ToolMind-Web-3B)</a></li>
+    <li><a href="#sec9">Critical analysis — 局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · Motivation — "trajectory 级过滤会漏掉 turn 级错误"</h2>
+
+<p>ToolMind 的 motivation 段落几乎可以一句话总结: <strong>"现有 multi-turn 合成数据只验整条 trajectory,turn 内的错误会随训练放大"</strong>。原文 abstract 第二句直接点名:</p>
+
+<blockquote>
+"<em>Most existing works on multi-turn dialogue synthesis validate correctness only at <strong>the trajectory level</strong>, which may overlook <strong>turn-level errors that can propagate during training and degrade model performance</strong>.</em>" — abstract
+</blockquote>
+
+<p>这一立场和 <a href="22_TOUCAN.html">#22 TOUCAN</a> 形成<strong>直接对比</strong>: TOUCAN 用 6 维 Likert (difficulty / uniqueness / quality / realism / verifiable / stability) 在 trajectory 级别过滤,然后整条 trajectory 要么全留要么全丢。ToolMind 提出的<strong>反例</strong>是: 一条 trajectory 总体上 coherent、目标达成,但中间可能有 1-2 个 turn 出现:</p>
+
+<ol>
+  <li><strong>失败中间尝试 (failed intermediate attempts)</strong> — assistant 调错工具,被 tool agent 返回错误,然后改正。这种 self-correction 是宝贵信号还是噪声?ToolMind 的答案是: <strong>看具体 turn — 错误 turn 应当 mask 掉,纠正 turn 留下</strong>。</li>
+  <li><strong>基于错误假设的 tool call (tool calls based on incorrect assumptions)</strong> — assistant 在 user intent 没说清楚的时候硬填参数。这种 hallucination 一旦被训进模型就是<strong>"过早 commit"</strong>的坏习惯。</li>
+  <li><strong>角色漂移 (role drift in user/tool messages)</strong> — user agent 偶尔会跳出来给建议,tool agent 偶尔会用自然语言回复而不是 JSON。这种<strong>角色一致性破坏</strong>无法在 trajectory 级用 "整体连贯吗" 这种 coarse 问题筛掉,但 turn-level judge 能精确指认是哪一条 message 出问题。</li>
+</ol>
+
+<p>论文 §3.3.2 原文:</p>
+
+<blockquote>
+"<em>Since trajectory-level filtering operates at a <strong>coarse granularity</strong>, it cannot effectively isolate erroneous turns within otherwise coherent trajectories. Trajectories may still contain erroneous or misaligned turns—such as <strong>failed intermediate attempts, tool calls based on incorrect assumptions, or role drift in user/tool messages</strong>. To further improve data quality, we address these remaining issues by applying a separate LLM-based judge to each turn. The model then <strong>masks invalid or role-inconsistent steps</strong> and retains only correct procedural actions, ensuring the final training data targets effective problem solving and precise tool use.</em>" — §3.3.2
+</blockquote>
+
+<p>注意 abstract 里特意加的一句"<em>while preserving self-corrective reasoning signals essential for robust tool-use learning</em>" —— 这是<strong>对"全丢"路线的 implicit 批评</strong>: 如果用 TOUCAN 风格直接丢掉含错 trajectory,你也丢掉了"<em>错完之后恢复</em>"这个最宝贵的 RLHF-like 信号。turn-level mask 让"恢复 turn 留下"成为可能,而"错 turn 不计 loss"避免训出 hallucinate 习惯。<strong>这是论文方法论的核心 selling point</strong>。</p>
+
+<div class="nb">
+<strong>个人观察:</strong> 这个 motivation 是真有内容的 — 但它<strong>不是 ToolMind 独有</strong>。<a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 的 fine-grained progress reward 也是 per-turn signal,只不过是用在 RL 里;<a href="22_TOUCAN.html">#22 TOUCAN</a> 的 rule-based filter 实际上也部分 per-turn(查 tool-call 顺序)。ToolMind 的真正贡献是<strong>把 turn-level LLM judge + masking-not-dropping 形成一个可复现的 SFT pipeline,并配出消融表证明 +2.76 pp on BFCL-v4 (Table 4: (a) 46.87 vs (b) 44.11)</strong>。这个 ablation 落差不算特别大,但确实显著且方向一致。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · Function Graph 构造 — random walk 采 function chain</h2>
+
+<p>这是论文 §3.1 的内容,也是<strong>合成数据 diversity 的源头</strong>。整个思路用一张图说清楚:</p>
+
+<div class="fig">
+<svg viewBox="0 0 780 360" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+  <!-- Stage 1: collect -->
+  <rect x="20" y="20" width="170" height="76" rx="8" fill="#f3eee0" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="105" y="42" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">① Function Collection</text>
+  <text x="105" y="60" text-anchor="middle" font-size="11">xLAM-60K + Glaive + ToolACE</text>
+  <text x="105" y="76" text-anchor="middle" font-size="11" fill="#cc4a1b">→ ~20,000 函数 schema</text>
+  <text x="105" y="90" text-anchor="middle" font-size="10">LM 补全缺失 desc / type</text>
+  <!-- Stage 2: embed -->
+  <rect x="210" y="20" width="170" height="76" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="295" y="42" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">② Parameter Embedding</text>
+  <text x="295" y="60" text-anchor="middle" font-size="11">v(r)=φ(DESC‖desc‖TYPE‖type)</text>
+  <text x="295" y="76" text-anchor="middle" font-size="11">对每个 input/output 参数都 embed</text>
+  <text x="295" y="90" text-anchor="middle" font-size="10" fill="#cc4a1b">unified embedding model</text>
+  <!-- Stage 3: graph -->
+  <rect x="400" y="20" width="170" height="76" rx="8" fill="#fff" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="485" y="42" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">③ Build Graph G=(V,E)</text>
+  <text x="485" y="60" text-anchor="middle" font-size="11">sᵢⱼ = max cos(v(yᵢ), v(xⱼ))</text>
+  <text x="485" y="74" text-anchor="middle" font-size="10">阈值 τ + LM validator + 随机扰动</text>
+  <text x="485" y="90" text-anchor="middle" font-size="10" fill="#cc4a1b">有向边 i→j 表示 i 输出可作 j 输入</text>
+  <!-- Stage 4: walk -->
+  <rect x="590" y="20" width="170" height="76" rx="8" fill="#f3eee0" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="675" y="42" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">④ Random Walk</text>
+  <text x="675" y="60" text-anchor="middle" font-size="11">L ~ Uniform{5..20}</text>
+  <text x="675" y="74" text-anchor="middle" font-size="10">per-node visit limit 防 hub 偏置</text>
+  <text x="675" y="90" text-anchor="middle" font-size="10" fill="#cc4a1b">→ function chain W=(f₀,…,f_L)</text>
+  <!-- arrows -->
+  <line x1="190" y1="60" x2="210" y2="60" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="380" y1="60" x2="400" y2="60" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="570" y1="60" x2="590" y2="60" stroke="#2f6feb" stroke-width="2" marker-end="url(#arr)"/>
+  <!-- Stage 5: chain → intent → trajectory -->
+  <rect x="100" y="180" width="580" height="100" rx="8" fill="#fff8e8" stroke="#d2a32a" stroke-width="1.5"/>
+  <text x="390" y="204" text-anchor="middle" font-size="14" font-weight="bold" fill="#cc4a1b">⑤ Chain → User Intent → Multi-Turn Trajectory</text>
+  <text x="390" y="226" text-anchor="middle" font-size="12">function chain (e.g. getStockLocations → checkInventory → checkIpAddress)</text>
+  <text x="390" y="244" text-anchor="middle" font-size="12">→ LM 写出 user intent: "<em>我是 eCom 仓库管理员,先查库存位置,再核 XYZ789 库存,最后检 IP</em>"</text>
+  <text x="390" y="262" text-anchor="middle" font-size="12">→ 三角色 multi-agent 演出完整 multi-turn 对话(详 §3)</text>
+  <line x1="675" y1="96" x2="500" y2="180" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4,3"/>
+  <!-- Stage 6: filter -->
+  <rect x="100" y="298" width="580" height="50" rx="8" fill="#f3eee0" stroke="#2f6feb" stroke-width="1.5"/>
+  <text x="390" y="320" text-anchor="middle" font-size="13" font-weight="bold" fill="#2f6feb">⑥ Quality Filtering (双层)</text>
+  <text x="390" y="338" text-anchor="middle" font-size="11">trajectory-level binary judge → turn-level binary judge (mask 单 turn)</text>
+</svg>
+<figcaption><strong>图 1:</strong> ToolMind 数据合成 pipeline 全景。本文图 2 的中文重绘 — 论文流水线核心是 ① 收集 20K 函数 → ② 把每个 input/output 参数都 embed → ③ 用 max cosine similarity + LM validator 建有向图 → ④ random walk 采 5-20 步的 function chain → ⑤ chain 喂给 user-agent 编 intent + 三角色 multi-agent 演 trajectory → ⑥ 双层 quality filter。</figcaption>
+</div>
+
+<h3>2.1 函数集合与预处理</h3>
+
+<p>函数池<strong>不来自 MCP,而是从三个 open-source dataset 抠出 schema</strong>:</p>
+
+<ul>
+  <li><a href="https://huggingface.co/datasets/Salesforce/xlam-function-calling-60k" target="_blank"><strong>xLAM-function-calling-60k</strong></a> (Salesforce, CC-BY-4.0)</li>
+  <li><a href="https://huggingface.co/datasets/glaiveai/glaive-function-calling-v2" target="_blank"><strong>Glaive-function-calling-v2</strong></a> (GlaiveAI, Apache-2.0)</li>
+  <li><a href="https://huggingface.co/datasets/Team-ACE/ToolACE" target="_blank"><strong>ToolACE</strong></a> (华为,CC-BY-NC-4.0 — <strong>非商用</strong>)</li>
+</ul>
+
+<p>对每个函数 <code>f_i: X_i → Y_i</code>,如果输入 / 输出参数缺 description 或 type,就用 LM 推断补全(论文 Appendix A.1 给了完整 prompt: "<em>Return only one result in JSON format with two fields: input description and input structure...</em>")。</p>
+
+<h3>2.2 参数级 embedding + 边构造</h3>
+
+<p>对每个参数 <code>r ∈ X_i ∪ Y_i</code>,用统一 embedding model 编码:</p>
+
+<div class="formula">
+<em>v</em>(<em>r</em>) = ϕ( DESC ‖ desc(<em>r</em>) ‖ TYPE ‖ type(<em>r</em>) ) ∈ ℝ<sup>d</sup>
+</div>
+
+<p>然后对每对函数 <code>(f_i, f_j)</code>,计算<strong>最大输出-输入 cosine</strong>:</p>
+
+<div class="formula">
+<em>s</em><sub>ij</sub> = max <sub><em>y</em>∈<em>Y</em>ᵢ, <em>x</em>∈<em>X</em>ⱼ</sub> sim( <em>v</em>(<em>y</em>), <em>v</em>(<em>x</em>) )
+</div>
+
+<p>超过阈值 τ 的就建一条有向边 <code>i → j</code>,再用 <strong>LM 当 validator</strong>(论文 Appendix A.1 又给了一段 prompt: "<em>Please determine whether ... the output result of source_function is suitable as the input parameter of target_function. ... assign a score from 0 to 9 for the following aspects: field transitivity, coherence of potential user intent paths.</em>")<strong>二次过滤</strong>边的可靠性。最后再注入一点随机性"<em>to introduce randomness into edge construction</em>" — 防止 graph 退化成只连超热门 hub。</p>
+
+<h3>2.3 random walk 采 chain</h3>
+
+<p>从 graph 上做长度 5-20 的<strong>有 per-node visit limit 的 random walk</strong>:</p>
+
+<div class="formula">
+<em>W</em> = (<em>f</em><sub>0</sub>, <em>f</em><sub>1</sub>, …, <em>f</em><sub>L</sub>), &nbsp;&nbsp; <em>L</em> ~ Uniform{5, …, 20}
+</div>
+
+<p>per-node visit limit 防止"<em>oversampling specific nodes</em>"。每条 walk 就是一个 function chain,后面被 user-agent 翻译成"<em>我是仓库管理员,先做 X 再做 Y 最后做 Z</em>" 这种 user intent。</p>
+
+<div class="nb">
+<strong>个人观察:</strong> graph 方法是 ToolMind 最优雅的一点 — 它把"<em>多 tool chain 的语义连贯性</em>"从"<em>让 LLM 自己想</em>"(像 TOUCAN 的 Mistral-S/DevStral-S 出题)变成了"<em>从一张 parameter-similarity graph 上做 random walk</em>"。<strong>优点</strong>: chain 一定有 "前一步输出可以喂下一步输入" 的<em>真</em>语义依赖(被 LM validator 双重检查过);<strong>缺点</strong>: 这种依赖只是"<em>type/desc 相似</em>",不是"<em>值真的能传</em>" — 实际 trajectory 里 tool 是 simulated 的,所以这种 type-level fit 够用。但和真 MCP server 路线(<a href="22_TOUCAN.html">TOUCAN</a>) 比,你不会撞到"<em>输出 schema 是 dict[user_id] 但下游需要 str[email]</em>"这种现实不匹配。
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · Multi-Agent Synthesis Framework — user / assistant / tool 三角色</h2>
+
+<p>这一节(论文 §3.2)是<strong>方法论上"小创新但工程实在"</strong>的部分。注意一点: <strong>tools 不可执行</strong>。原文:</p>
+
+<blockquote>
+"<em>Since <strong>the tools are not executable in our setup</strong>, we employ a simulation framework to generate responses.</em>" — §3.2
+</blockquote>
+
+<p>因此整个 trajectory 由三个 LM agent 协同演出:</p>
+
+<table>
+  <tr><th>角色</th><th>职责</th><th>Appendix A.2 关键 prompt 片段</th></tr>
+  <tr>
+    <td><strong>User Agent</strong></td>
+    <td>基于 function chain 编出来的 intent 提问、推进对话、出现 ###STOP### 时结束</td>
+    <td>"<em>Do not reveal your entire intent at once. Unfold your needs gradually over multiple turns. Use common human conversation strategies, such as showing uncertainty when appropriate.</em>"</td>
+  </tr>
+  <tr>
+    <td><strong>Assistant Agent</strong></td>
+    <td>回复 / 索澄清 / 调用工具(<strong>这是要训的角色 — 也是 SFT loss 加在的地方</strong>)</td>
+    <td>(§3.2: "<em>Responds to the user's queries, provides guidance, asks for clarification, or calls external functions when needed.</em>")</td>
+  </tr>
+  <tr>
+    <td><strong>Tool Agent</strong></td>
+    <td>模拟 server 执行结果,返回 JSON in <code>&lt;func_return&gt;</code> tag</td>
+    <td>"<em>You are simulating a high-performance computer system with complete computational capabilities. ... For a given function, you should simulate the execution of a computer system program as accurately as possible. ... If the function call is invalid (e.g., incorrect function name, missing or malformed arguments), return a JSON error message clearly indicating the cause.</em>"</td>
+  </tr>
+</table>
+
+<p>三个 agent 在 loop 里走: user → assistant (可能 tool_call) → tool → assistant → … 直到 user agent 判定 intent 达成,输出 <code>###STOP###</code>(注意 prompt 严格规定 "<em>Do not output '###STOP###' in the first turn, regardless of the conversation!!</em>" — 防止过早收尾)。</p>
+
+<h3>3.1 关键设计取舍</h3>
+
+<ol>
+  <li><strong>"intent ≠ query"</strong> — user agent 拿到的是 underlying intent,不是直白 query。论文原话: "<em>A user intent represents the underlying goal that a user aims to achieve, rather than the exact query they pose. This distinction provides greater flexibility in modeling user behavior, as users often express the same intent in diverse ways.</em>" 这给了 user agent 重新措辞的空间,产 dialog 更自然。</li>
+  <li><strong>incremental disclosure</strong> — user 不一次性把 intent 全说完,被 prompt 强制"<em>show uncertainty when appropriate</em>"。这是 ToolMind motivation 1.5 那段说的"<em>user requests are often under-specified</em>"对应解法。所以训练数据里会有大量 <strong>assistant 主动 clarify</strong> 的 turn — 这是 BFCL-v4 multi-turn / agentic 子项的 critical 能力。</li>
+  <li><strong>tool agent 故意会模拟 error</strong> — prompt 明确说 "<em>If the function call is invalid (...), return a JSON error message</em>"。这是论文有意让"error handling + recovery"信号进入数据。</li>
+  <li><strong>具体哪些 LM 当 agent 论文没写</strong> — Appendix B 给了一条完整 trajectory 示例(15 页 PDF 的最后 3 页),从 thinking style 看像是 Qwen 系。<span class="pill">未在公开来源确认</span></li>
+</ol>
+
+<details>
+<summary>Appendix B trajectory 示例片段 (eCom 仓库管理员 intent)</summary>
+<pre>function chain: getStockLocations → checkInventory → checkIpAddress
+
+User intent: "I'm a warehouse manager for an eCommerce company. First, I need to check
+where our inventory is stored by retrieving the stock locations. Then, I want to verify
+the availability of product 'XYZ789' specifically at 'warehouse C' to plan restocking.
+Finally, I need to ensure our system's security by checking if the IP address
+192.168.1.100 is safe."
+
+user: Can you retrieve the current stock locations for me?
+assistant: &lt;think&gt;Okay, the user is asking to retrieve the current stock locations. ...
+The user didn't specify a limit, so I don't need to include that. Since the function
+doesn't require any parameters, I can call it without any arguments. ...&lt;/think&gt;
+&lt;tool_call&gt;{"name":"getStockLocations","arguments":"{}"}&lt;/tool_call&gt;
+tool: {"stock_locations":[{"id":1,"name":"Warehouse A",...},{"id":3,"name":"Distribution
+Center C","address":"789 Pine Rd, Countryside","capacity":10000}],"pagination":{...}}
+assistant: &lt;think&gt;... I should present this information clearly. ... &lt;/think&gt;
+Here are the current stock locations retrieved: 1. **Warehouse A** ... 2. **Store B** ...
+3. **Distribution Center C** - Address: 789 Pine Rd, Countryside - Capacity: 10,000 units
+...
+user: Can you check the availability of product XYZ789 at Distribution Center C?
+assistant: &lt;tool_call&gt;{"name":"checkInventory","arguments":{"product_code":"XYZ789"}}&lt;/tool_call&gt;
+tool: {"product_code":"XYZ789","location":"Distribution Center C","available_quantity":150,
+       "last_updated":"2023-10-05T14:30:00Z"}
+...
+user: ###STOP###</pre>
+<p style="font-size:13px;color:var(--muted)">注意 assistant 风格: <strong>显式 &lt;think&gt; ... &lt;/think&gt;</strong> + <strong>&lt;tool_call&gt;{...}&lt;/tool_call&gt;</strong> — 这是 Qwen3 / Kimi-K2 / GLM-4.5 系的 chat template。论文 §4.1 也明确说: "<em>Each asisstant response is structured into three parts: think, content, and tool calls. During training, we compute loss only on the tokens of the anchored assistant response.</em>" — 所以 ToolMind 是把 think trace 一并训进 SFT 的,这就解释了 paper 名字里的 "Reasoning-Enhanced"。</p>
+</details>
+
+<hr>
+
+<h2 id="sec4">4 · Turn-Level Filtering — 论文核心 novelty</h2>
+
+<p>论文 §3.3 把过滤分成两个 stage,prompt 也在 Appendix A.3 列出来了。这两个 prompt 长得几乎一样,但<strong>判定单位</strong>不同 —— 这正是论文的 key insight。</p>
+
+<h3>4.1 Trajectory-level filtering (Stage 1)</h3>
+
+<p>给完整 multi-turn 对话,LM 二元判 0/1:</p>
+
+<blockquote>
+"<em>Please strictly evaluate the quality of the following multi-turn dialogue data based on the following criteria: <strong>contextual coherence, role consistency, logical soundness, and accuracy of tool usage</strong>. Your task is to make a binary judgment — if the dialogue is of good quality, output 1; otherwise, output 0.</em>" — Appendix A.3.1
+</blockquote>
+
+<p>另外还有<strong>第一道</strong>检验: "<em>the user agent first judges whether the task is completed or not during the process of multi-turn interaction</em>" — user agent 自己判定 intent 达成,达成才进 stage 1。论文原话:</p>
+
+<blockquote>
+"<em>Given the predefined user intents, the user agent first judges whether the task is completed or not during the process of multi-turn interaction. Then, a second LLM evaluates goal coverage, coherence, and cross-turn relevance. Only trajectories that both align with the intent and exhibit a coherent flow are retained, while the rest are discarded.</em>" — §3.3.1
+</blockquote>
+
+<h3>4.2 Turn-level filtering (Stage 2 — 核心 novelty)</h3>
+
+<p>给完整 conversation history + 最后一条 response,LM 二元判 0/1:</p>
+
+<blockquote>
+"<em>Please strictly evaluate the quality of the <strong>last response</strong> in the following dialogue data, based on contextual coherence, logical consistency, and accuracy of tool usage. Determine whether the response is semantically aligned with the previous dialogue, logically sound without contradictions, and employs the mentioned tools correctly according to their definitions and argument structures. If the response is of good quality, output 1; otherwise, output 0.</em>" — Appendix A.3.2
+</blockquote>
+
+<p><strong>不同于 trajectory filter 的丢弃行为,turn filter 走的是 mask 路线</strong>: 标记为 0 的 turn 不参与 loss(论文 §3.3.2 末尾的"<em>masks invalid or role-inconsistent steps</em>")。然后再做<strong>按 turn 切样本</strong>: §4.1 原话 "<em>each multi-turn conversation is split at each assistant message into multiple samples. For each splitted sample, we retain the full prior context up to (and including) the anchor assistant message and discard all subsequent turns. ... During training, we compute loss only on the tokens of the anchored assistant response.</em>"</p>
+
+<p>所以一条 N-turn trajectory 最终会变成 N 个样本(每条样本 anchor 在不同的 assistant turn 上),但<strong>只有 turn-level filter 判 1 的那些 anchor</strong> 会进入最终训练集。这就是 §3.4 那段:</p>
+
+<blockquote>
+"<em>We split each trajectory into multiple samples using <strong>the turns that passed the turn-level quality filter</strong> and analyze both trajectories (orange) and post-split samples (blue).</em>" — §3.4
+</blockquote>
+
+<h3>4.3 为什么这么做 — Table 4 消融</h3>
+
+<p>论文 Table 4 给了直接证据 — 用 Qwen3-8B 做消融:</p>
+
+<table>
+  <tr><th>配置</th><th>τ-bench Avg</th><th>τ²-bench Avg</th><th>BFCL-v4 Overall</th></tr>
+  <tr><td>Qwen3-8B baseline</td><td>35.83</td><td>34.64</td><td>42.21</td></tr>
+  <tr><td>(a) only synthesized data <strong>带</strong> turn-level filter</td><td>42.31</td><td>38.85</td><td><strong>46.87</strong></td></tr>
+  <tr style="background:#fff4e0"><td>(b) only synthesized <strong>不带</strong> turn-level filter</td><td>35.31</td><td>41.73</td><td>44.11</td></tr>
+  <tr><td>(c) only augmented open-source</td><td><strong>48.65</strong></td><td>42.16</td><td>45.88</td></tr>
+  <tr style="background:#f3eee0"><td>full ToolMind = (a) + (c)</td><td>46.70</td><td><strong>46.41</strong></td><td><strong>46.92</strong></td></tr>
+</table>
+
+<p>关键差: <strong>(a) − (b) 才是"turn-level filter 净效应"</strong>:</p>
+
+<ul>
+  <li>τ-bench: <strong>+7.00 pp</strong> (42.31 vs 35.31) — 这是论文 turn-level 的最强证据</li>
+  <li>τ²-bench: <strong>−2.88 pp</strong> (38.85 vs 41.73) — 反方向,turn-level 反而轻微伤</li>
+  <li>BFCL-v4: <strong>+2.76 pp</strong> (46.87 vs 44.11)</li>
+</ul>
+
+<div class="warn">
+<strong>诚实诊断:</strong> turn-level filtering 在 τ-bench / BFCL-v4 上确实有用,但在 τ²-bench 上<strong>反而拖了 2.88 pp</strong>。论文没有解释这个反例。我的猜测: τ²-bench 是<strong>双侧 control</strong>(user 也有工具)的环境,你需要保留更多 "<em>错完之后纠错</em>" 的 turn 才能学到 dual-control coordination — 而 turn-level filter 太严的话可能把这些"必要的中间错误"也 mask 掉。这意味着 turn-level filter 的"strict binary"设计在某些场景下<strong>是过紧的</strong> — 比 trajectory-level filter 的 6-维 Likert 损失更多 nuance。
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · Dataset Composition — 360K 的内部精确拆分</h2>
+
+<p>论文 Table 1 给了非常清楚的拆分。注意名字虽然叫 "<strong>160K + 200K</strong>" (= ~360K),但实际 process 后的精确数字是:</p>
+
+<table>
+  <tr><th>数据源</th><th>原始 trajectory / query</th><th>process 后 sample 数</th><th>license / 来源链接</th></tr>
+  <tr>
+    <td>xLAM-function-calling-60k</td><td>60,000</td><td><strong>101,363</strong></td>
+    <td>Salesforce, CC-BY-4.0 (<strong>注意</strong> xLAM 系列原版 60K 是 CC-BY,部分文献误标为 NC)</td>
+  </tr>
+  <tr>
+    <td>When2Call (SFT split)</td><td>15,000</td><td>17,531</td>
+    <td>NVIDIA, CC-BY-4.0 (NAACL 2025 Findings)</td>
+  </tr>
+  <tr>
+    <td>Glaive-function-calling-v2</td><td>112,960</td><td>20,017</td>
+    <td>GlaiveAI, Apache-2.0 — 被切掉 82.3% (大量 multi-turn 没过 filter)</td>
+  </tr>
+  <tr>
+    <td>ToolACE</td><td>11,300</td><td>7,327</td>
+    <td>华为, <strong>CC-BY-NC-4.0</strong> — <span class="no"><strong>非商用</strong></span> 来源</td>
+  </tr>
+  <tr>
+    <td>BUTTONInstruct</td><td>8,000</td><td>21,202</td>
+    <td>PKU + 百川,arXiv:2410.12952</td>
+  </tr>
+  <tr>
+    <td>APIGen-MT-5k</td><td>5,000</td><td>25,109</td>
+    <td>Salesforce,arXiv:2504.03601</td>
+  </tr>
+  <tr>
+    <td>τ-bench train set</td><td>—</td><td>12,882</td>
+    <td>Sierra Research, MIT</td>
+  </tr>
+  <tr><th colspan="4" style="text-align:center;background:#fff8e8">合计 augmented open-source = <strong>205,431</strong></th></tr>
+  <tr style="background:#f3eee0">
+    <td><strong>Synthesized trajectories (graph + multi-agent)</strong></td>
+    <td><strong>40,161</strong></td><td><strong>163,180</strong></td>
+    <td>本论文新合成</td>
+  </tr>
+  <tr style="background:#fff8e8">
+    <td colspan="2"><strong>ToolMind Total</strong></td><td><strong>368,611</strong></td><td>composite license (取最严: CC-BY-NC-4.0)</td>
+  </tr>
+</table>
+
+<div class="nb">
+<strong>license 警示:</strong> ToolMind 自己在 HF 上标的是 <code>apache-2.0</code>,但<strong>它实际包含 ToolACE 来源的 7,327 条样本,而 ToolACE 原版 license 是 CC-BY-NC-4.0(非商用)</strong>。这意味着如果你在商用产品上用 ToolMind 的<strong>完整版</strong>,严格说是<strong>有 license 冲突的</strong> — 除非你能保证那 7,327 条 ToolACE 派生样本不进你的训练流水线。这是 ToolMind 和 TOUCAN 比明显的<strong>合规劣势</strong>: TOUCAN 用真 MCP 不依赖 NC 数据集,ToolMind 用三大公开 schema 数据集时混入了 ToolACE 的 NC 部分。
+</div>
+
+<h3>5.1 Synthesized 部分: 40,161 → 163,180</h3>
+
+<p>一条 raw trajectory 平均切成 ~4.06 个 anchor sample。考虑到论文规定 L (function chain 长度) ∼ Uniform{5..20},每条 chain 演出来的对话至少 5 轮 user-assistant 来回,所以平均 ~4 anchor sample 是合理的(每条 chain 平均剩下 ~4 个通过 turn-level filter 的 assistant turn)。</p>
+
+<h3>5.2 函数总量 = "20K+"</h3>
+
+<p>论文 abstract / §1 反复说 "<em>20k functions from open-source datasets</em>"。这个总量是 xLAM-60K (~60K query 但只覆盖 ~3K function) + Glaive-v2 + ToolACE 三个并集去重后的 <strong>~20,000 个独立 function schema</strong>(具体精确数字论文没给)。<span class="pill">未在公开来源确认</span> — HF dataset card 也只是说"20k tools"概数。</p>
+
+<h3>5.3 Domain 分布</h3>
+
+<p>论文 Figure 4 给了 user intent 的 domain 饼图。前两大类是:</p>
+<ul>
+  <li><strong>data analysis</strong> — 占比最大</li>
+  <li><strong>entertainment</strong> — 第二大</li>
+  <li>其它(finance / weather / e-commerce / travel / health / tech / sports / education / ...) — "<em>relatively balanced</em>"</li>
+</ul>
+<p>论文原话: "<em>the data analysis and entertainment domains are the most prevalent, while the remaining domains are relatively balanced.</em>" — 这是<strong>来源数据集分布的直接反映</strong>(xLAM 大量是 data analysis,Glaive 大量是 entertainment / lifestyle)。</p>
+
+<h3>5.4 Turn / tool-call 统计</h3>
+
+<p>论文 Figure 3 用 orange (trajectory level) 和 blue (post-split sample level) 两套直方图展示。论文 §3.4 给的<strong>定性观察</strong>:</p>
+
+<ul>
+  <li>trajectory-level 长度分布<strong>大致 uniform</strong>("<em>relatively uniform</em>"),user 参与度强(每条 trajectory 里都有 user message 反复出现)</li>
+  <li>post-split sample 分布<strong>右偏(短样本多)</strong>("<em>the distribution skews toward shorter instances</em>") — 这是 split anchor 后必然的</li>
+  <li><strong>"sizable fraction of turns proceed without any tool calls"</strong> — 这是 user agent 被 prompt "<em>incremental disclosure</em>"逼出来的副产品: 很多 assistant turn 是 clarify-asking 而不是 tool-calling</li>
+  <li>论文自己承认: "<em>current tasks leave room for greater complexity, motivating future work on more demanding tool-use scenarios</em>" — <strong>承认当前 trajectory 偏简单</strong>(5-20 步 chain 不等于 5-20 个 tool call;真正 tool call 数远小于此)</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · Training + Evaluation</h2>
+
+<h3>6.1 训练配置 (§4.1)</h3>
+
+<table>
+  <tr><th>项目</th><th>设定</th></tr>
+  <tr><td>base model</td><td><strong>Qwen3-8B</strong> 和 <strong>Qwen3-14B</strong>(注意不是 Qwen2.5,也不是 Qwen3-32B/235B — paper 主线就这两个尺寸)</td></tr>
+  <tr><td>训练框架</td><td><strong>OpenRLHF</strong>(arXiv:2405.11143)</td></tr>
+  <tr><td>sequence length</td><td><strong>64K</strong></td></tr>
+  <tr><td>global batch size</td><td><strong>64</strong></td></tr>
+  <tr><td>learning rate</td><td><strong>5e-6</strong></td></tr>
+  <tr><td>warmup ratio</td><td><strong>0.03</strong></td></tr>
+  <tr><td>loss 计算</td><td>仅 anchored assistant response 的 token(think + content + tool_calls 三段都算)</td></tr>
+</table>
+
+<h3>6.2 评测 (§4.2)</h3>
+
+<p>三个 benchmark,各自定位:</p>
+<ul>
+  <li><a href="28_BFCL.html"><strong>BFCL-v4</strong></a>(2025-07-17 发布的最新版) — 用 BFCL 官方 Qwen3 setup,leaderboard 截止 2025-10</li>
+  <li><strong>τ-bench</strong> (arXiv:2406.12045, NeurIPS 2024) — Sierra Research,retail + airline 两域</li>
+  <li><strong>τ²-bench</strong> (arXiv:2506.07982) — τ 的 dual-control 扩展,加 telecom 域;<strong>用 GPT-4o 当 user simulator</strong></li>
+</ul>
+
+<h3>6.3 BFCL-v4 主结果 (Table 2)</h3>
+
+<p>论文 Table 2 同时报了 leaderboard 上的大模型(上半部分)和 ToolMind 自己 SFT 的 8B/14B(下半部分):</p>
+
+<table>
+  <tr><th>Model</th><th>Overall</th><th>Single Non-Live AST</th><th>Single Live AST</th><th>Multi Turn</th><th>Agentic Search</th><th>Agentic Memory</th></tr>
+  <tr><td>DeepSeek-V3 (FC)</td><td>45.20</td><td>88.77</td><td>79.94</td><td>33.00</td><td>32.50</td><td>22.37</td></tr>
+  <tr><td>DeepSeek-R1-0528 (FC)</td><td>48.97</td><td>75.73</td><td>80.90</td><td>44.50</td><td>63.00</td><td>0.00</td></tr>
+  <tr><td>Qwen3-235-Instruct (FC)</td><td>54.37</td><td>88.10</td><td><strong>82.61</strong></td><td>44.50</td><td>49.00</td><td>29.25</td></tr>
+  <tr><td>Kimi-K2-Instruct (FC)</td><td>56.07</td><td>84.02</td><td>77.57</td><td><strong>48.75</strong></td><td>59.00</td><td>25.16</td></tr>
+  <tr><td>GPT-4o-2024-11-20 (FC)</td><td>50.27</td><td>83.88</td><td>70.54</td><td>42.50</td><td>40.50</td><td>28.82</td></tr>
+  <tr><td>GPT5-2025-0807 (FC)</td><td><strong>59.22</strong></td><td>72.92</td><td>58.25</td><td>28.50</td><td><strong>84.50</strong></td><td><strong>57.63</strong></td></tr>
+  <tr><td>Gemini-2.5-Pro (Prompt)</td><td>54.14</td><td><strong>89.54</strong></td><td>76.83</td><td>30.62</td><td>66.50</td><td>31.61</td></tr>
+  <tr style="background:#f3eee0"><td><strong>Qwen3-8B (baseline)</strong></td><td>42.21</td><td>88.27</td><td>80.83</td><td>38.88</td><td>10.00</td><td>18.71</td></tr>
+  <tr style="background:#f3eee0"><td>↳ with ToolMind</td><td><strong>46.92</strong> <span class="ok">(+4.69)</span></td><td>88.06</td><td>81.42</td><td><strong>46.62</strong> <span class="ok">(+7.74)</span></td><td><strong>21.50</strong> <span class="ok">(+11.50)</span></td><td>20.43</td></tr>
+  <tr style="background:#f3eee0"><td><strong>Qwen3-14B (baseline)</strong></td><td>45.14</td><td>90.10</td><td>80.90</td><td>44.12</td><td>12.50</td><td>21.29</td></tr>
+  <tr style="background:#f3eee0"><td>↳ with ToolMind</td><td><strong>50.54</strong> <span class="ok">(+5.40)</span></td><td>89.00</td><td>80.83</td><td><strong>51.00</strong> <span class="ok">(+6.88)</span></td><td><strong>35.50</strong> <span class="ok">(+23.00)</span></td><td>17.85 <span class="no">(−3.44)</span></td></tr>
+</table>
+
+<p><strong>读法</strong>:</p>
+<ul>
+  <li><strong>Multi-Turn 和 Agentic Search 涨幅最大</strong> — 14B 在 Agentic Search 上 +23.00 pp,这是 ToolMind 设计的方向 (multi-turn dialogue + tool use)。</li>
+  <li><strong>Single-Turn 几乎不动</strong>(8B Non-Live AST 反退 -0.21 pp, 14B 退 -1.10 pp) — 因为 baseline Qwen3 在 Single-Turn 已经接近天花板(88-90),SFT 没空间。</li>
+  <li><strong>Agentic Memory 14B 反退 -3.44 pp</strong> — ToolMind 没专门覆盖 memory_kv / vector / rec_sum 那几个 V4 子项,这是个明显的<strong>暴露面</strong>。</li>
+  <li>14B + ToolMind 50.54 <strong>超过 DeepSeek-V3 (45.20)、DeepSeek-R1 (48.97)、GPT-4o (50.27)</strong>,但仍输 Qwen3-235 (54.37) 和 GPT-5 (59.22) — 数据增强的效果显著但封顶在 ~50 左右。</li>
+</ul>
+
+<h3>6.4 τ-bench + τ²-bench (Table 3)</h3>
+
+<table>
+  <tr><th>Model</th><th>τ-bench Avg</th><th>τ retail</th><th>τ airline</th><th>τ² Avg</th><th>τ² retail</th><th>τ² airline</th><th>τ² telecom</th></tr>
+  <tr><td>Qwen3-8B (baseline)</td><td>35.83</td><td>35.65</td><td>36.00</td><td>34.64</td><td>43.86</td><td>32.00</td><td>28.07</td></tr>
+  <tr style="background:#f3eee0"><td>↳ with ToolMind</td><td><strong>46.70</strong> <span class="ok">(+10.87)</span></td><td><strong>57.39</strong> <span class="ok">(+21.74)</span></td><td>36.00</td><td><strong>46.41</strong> <span class="ok">(+11.77)</span></td><td><strong>59.65</strong> <span class="ok">(+15.79)</span></td><td><strong>48.00</strong> <span class="ok">(+16.00)</span></td><td><strong>31.58</strong> <span class="ok">(+3.51)</span></td></tr>
+  <tr><td>Qwen3-14B (baseline)</td><td>38.78</td><td>49.56</td><td>28.00</td><td>40.65</td><td>52.63</td><td>36.00</td><td>33.33</td></tr>
+  <tr style="background:#f3eee0"><td>↳ with ToolMind</td><td><strong>53.00</strong> <span class="ok">(+14.22)</span></td><td><strong>60.00</strong> <span class="ok">(+10.44)</span></td><td><strong>46.00</strong> <span class="ok">(+18.00)</span></td><td><strong>49.08</strong> <span class="ok">(+8.43)</span></td><td><strong>59.65</strong> <span class="ok">(+7.02)</span></td><td><strong>56.00</strong> <span class="ok">(+20.00)</span></td><td>31.58 <span class="no">(−1.75)</span></td></tr>
+</table>
+
+<p><strong>读法</strong>:</p>
+<ul>
+  <li>τ-bench retail 域 14B 60.00, 8B 57.39 — <strong>这是 ToolMind 最强的成绩点</strong>。retail 域和 ToolMind 大量 data-analysis / e-commerce intent 直接 distribution match。</li>
+  <li>τ²-bench airline 域 14B +20.00 pp(28.00 → 46.00 不对,应是 36.00 → 56.00,这是 14B 那行,从 baseline 36.00 涨到 56.00)— 涨幅惊人。</li>
+  <li>τ²-bench telecom 14B 反退 −1.75 pp — 和 <a href="22_TOUCAN.html">#22 TOUCAN</a> 一样的弱项,telecom 域涉及 dual-control 的特殊指令,纯 SFT 数据合成路线很难覆盖。</li>
+</ul>
+
+<h3>6.5 Ablation (Table 4 — 已在 §4 引用)</h3>
+
+<p>已经在 §4.3 里展开。这里只回顾结论:</p>
+<ol>
+  <li>开源 augmented 数据贡献最大(τ/τ² 涨幅大),graph-based synthesized 数据贡献集中在 BFCL-v4</li>
+  <li>turn-level filtering 在 τ-bench (+7.00) 和 BFCL-v4 (+2.76) 上稳定 +,在 τ²-bench 上 −2.88(反例,需注意)</li>
+  <li>full ToolMind 几乎在所有指标上 ≥ 单组件,验证组合有效</li>
+</ol>
+
+<hr>
+
+<h2 id="sec7">7 · 与已有笔记的横向对比</h2>
+
+<h3>7.1 与 <a href="22_TOUCAN.html">#22 TOUCAN</a> 的对比 — 最重要的一张表</h3>
+
+<table>
+  <tr><th>维度</th><th>TOUCAN</th><th>ToolMind</th></tr>
+  <tr><td>规模</td><td>1.5M raw → 119K SFT subset</td><td>368K (160K synth + 200K augmented)</td></tr>
+  <tr><td>tool 来源</td><td><strong>495 真实 MCP server</strong> + 2,000+ tools(HTTP 可联通)</td><td>~20K <strong>function schema</strong>(不可执行)</td></tr>
+  <tr><td>tool response</td><td><span class="ok"><strong>真 server 真执行</strong></span></td><td>tool agent LM 模拟(类 ToolACE)</td></tr>
+  <tr><td>合成方式</td><td>5 LLM 出题 × 3 策略 → 3 teacher × 2 framework 生 trajectory</td><td><strong>function graph + random walk 采 chain</strong> → 三角色 multi-agent 模拟</td></tr>
+  <tr><td>多样性源头</td><td>MCP 生态本身的天然多样性 + 多 teacher 风格</td><td>function graph 的 walk 多样性 + per-node visit limit</td></tr>
+  <tr><td>过滤策略</td><td>规则(tool-call 顺序)+ <strong>6 维 Likert</strong> trajectory 级</td><td><strong>trajectory 二元 + turn 二元</strong>(2-stage, mask 不丢)</td></tr>
+  <tr><td>过滤粒度</td><td>trajectory level only</td><td><strong>turn level + masking</strong>(核心新意)</td></tr>
+  <tr><td>self-correction 保留</td><td><span class="no">差(整 traj drop)</span></td><td><span class="ok">好(只 mask 错 turn)</span></td></tr>
+  <tr><td>base model</td><td>Qwen2.5-7B/14B/32B</td><td>Qwen3-8B/14B</td></tr>
+  <tr><td>SOTA 主指标</td><td>BFCL-v3 32B 70.45 险胜 GPT-4.5 (70.32)</td><td>BFCL-v4 14B 50.54;τ-bench 14B 53.00</td></tr>
+  <tr><td>license — dataset</td><td>Apache-2.0(干净,只用真 MCP 不依赖 NC 数据集)</td><td>HF 标 Apache-2.0 但<strong>含 ToolACE NC 来源 7,327 样本</strong> → 实际是混 license</td></tr>
+  <tr><td>开源 ckpt</td><td><span class="ok">27 个(3 官方 + 24 衍生)</span></td><td><span class="no">paper 没发(<code>ToolMind-Web-3B</code> 是后续不同方向)</span></td></tr>
+  <tr><td>哲学差异</td><td>"<em>规模 + 真</em>" 双堆</td><td>"<em>结构化采样 + 细粒度过滤</em>" 双精</td></tr>
+</table>
+
+<div class="nb">
+<strong>什么时候选哪个:</strong>
+<ul>
+  <li><strong>选 TOUCAN 如果</strong>: 你需要真 MCP server 行为(rate-limit / auth-fail / stateful 多 call);你要做商用且 license 不能含 NC 成分;你要 32B 大 SFT 来打 BFCL-v3。</li>
+  <li><strong>选 ToolMind 如果</strong>: 你优先 multi-turn dialogue clarification 能力(被 incremental-disclosure prompt 训出来);你要新一代 Qwen3 base;你愿意从 dataset card 自己去掉 ToolACE 子集来保证 license 干净;你想沿用 turn-level filter 思路自己再做 RL stage。</li>
+  <li><strong>组合: 冷启用 TOUCAN,精调用 ToolMind turn-level 思路自己过滤一遍</strong> — 这是个实操合理路线。</li>
+</ul>
+</div>
+
+<h3>7.2 与其它已有笔记的关系</h3>
+
+<table>
+  <tr><th>笔记</th><th>关系</th></tr>
+  <tr><td><a href="18_AgentWorldModel_2602.10090.html">#18 AWM (Snowflake)</a></td><td>同样是"<em>tool 不可执行用 simulator</em>"路线,但 AWM 用 SQLite/Python 当确定性 backend(状态可查 / 可重置),ToolMind 用 LM 当 tool agent — AWM 验证更严,ToolMind 实现更简。</td></tr>
+  <tr><td><a href="20_SETA_camel.html">#20 SETA</a></td><td>SETA 是 RL 路线,400 个 Docker 终端任务;ToolMind 是 SFT 路线,360K 合成对话。互补,不竞争。SETA + ToolMind 串训(SFT 冷启 + RL 在线)是合理 recipe。</td></tr>
+  <tr><td><a href="23_EnvScaler.html">#23 EnvScaler</a></td><td>EnvScaler 把 env 写成 Python class(类似 AWM 思路),ToolMind 把 env 写成 LM tool agent。都解决 "tool 不可执行" 问题但走不同路。EnvScaler dual-agent 100 轮质量门 + Reinforce++ vs ToolMind turn-level mask + SFT,前者重 RL 后者重 SFT。</td></tr>
+  <tr><td><a href="28_BFCL.html">#28 BFCL</a></td><td>ToolMind 的主评测床。注意 ToolMind 用的是 <strong>v4</strong>(2025-07-17 发布),不是 TOUCAN 用的 <strong>v3</strong>。V4 重排了权重(Agentic 40% + Multi-Turn 30% + Live 10% + Non-Live 10% + Irrelevance 10%),所以两篇 paper 数字不直接可比。</td></tr>
+  <tr><td><a href="29_TuneTheEnvironment.html">#29 EnvTuning (ICLR 2026)</a></td><td>EnvTuning 的 Fine-grained Progress Reward 也是 per-turn 信号,但用在 RL 阶段(每步给 r<sup>state</sup> + r<sup>exec</sup>);ToolMind 的 turn-level filter 是 SFT 阶段的二元 mask。两者都是 "per-turn signal is critical" 这条直觉的不同实现。</td></tr>
+  <tr><td><a href="30_ACEBench.html">#30 ACEBench (EMNLP 2025 Findings)</a></td><td>ToolMind 没在 ACEBench 上评。但 ACEBench 的 Multi-Step / Multi-Turn 子项和 ToolMind 训练目标完全 align — 在 ACEBench 上跑一次能更准确判断 ToolMind 的能力边界,paper 本身没做。</td></tr>
+  <tr><td><a href="31_PrimeIntellectHub.html">#31 Prime Intellect Hub</a></td><td>Prime 的 verifiers SDK 提供 SingleTurnEnv / MultiTurnEnv / ToolEnv,ToolMind 数据可以直接 wrap 成一个 verifiers env 上传 Prime Hub 给 community 复用 — paper 没这么做,但很自然的下游。</td></tr>
+  <tr><td><a href="26_MCPBenchmarks_codedive.html">#26 MCP Bench code dive</a></td><td>ToolMind 数据风格(LM 模拟 tool response)和 MCP-Universe / MCPMark 的真 server 验证<strong>方向不兼容</strong> — ToolMind 上训的模型迁到真 MCP 会暴露 "<em>模拟 tool response 风格 → 真实 server response schema</em>" 的 distribution gap。</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec8">8 · 开源现状清点</h2>
+
+<div class="paper-card">
+<div class="ttl">ToolMind dataset</div>
+<table>
+  <tr><th>项目</th><th>URL / 状态</th></tr>
+  <tr><td>HF dataset</td><td><a href="https://huggingface.co/datasets/Nanbeige/ToolMind" target="_blank">huggingface.co/datasets/Nanbeige/ToolMind</a></td></tr>
+  <tr><td>license</td><td><strong>Apache-2.0</strong>(HF 自标)<span class="warn" style="display:inline;padding:0 4px;font-size:.85em">注: 含 ToolACE-CC-BY-NC 派生样本,严格商用需自己再过滤</span></td></tr>
+  <tr><td>下载量 (截止 2026-05)</td><td>2,759 次下载 / 147 likes</td></tr>
+  <tr><td>created</td><td>2025-10-21</td></tr>
+  <tr><td>last modified</td><td>2026-01-09</td></tr>
+  <tr><td>文件组织</td><td>两个 split: <code>graph_syn_datasets/graphsyn.jsonl</code> (合成部分) + <code>open_datasets/*.jsonl</code> (7 个 augmented 来源各一)</td></tr>
+  <tr><td>总存储</td><td><strong>7.87 GB</strong></td></tr>
+  <tr><td>arXiv paper</td><td><a href="https://arxiv.org/abs/2511.15718" target="_blank">2511.15718</a> (v1: 2025-11-12 → v2: 2025-12-05)</td></tr>
+</table>
+</div>
+
+<div class="paper-card">
+<div class="ttl">Synthesis 代码 / 训练代码</div>
+<p><span class="no"><strong>未公开</strong></span> — 论文 abstract 只给了 dataset 链接,没有 code repo;HF dataset card 也没有 GitHub 链接。GitHub 上搜 "<code>ToolMind Nanbeige</code>" 无结果。<strong>这意味着 turn-level filter 的具体实现(用什么 LM 当 judge、阈值怎么定、prompt 是否完整就是 Appendix A 那段)只能照 Appendix 自己复现。</strong></p>
+</div>
+
+<div class="paper-card">
+<div class="ttl">Fine-tuned checkpoints</div>
+<p><strong>Paper 主线 Qwen3-8B-ToolMind / Qwen3-14B-ToolMind 没有发布</strong>。<a href="https://huggingface.co/Nanbeige" target="_blank">Nanbeige HF org</a> 上倒是有<strong>后续衍生的 search agent</strong>:</p>
+<ul>
+  <li><a href="https://huggingface.co/Nanbeige/ToolMind-Web-3B" target="_blank"><strong>Nanbeige/ToolMind-Web-3B</strong></a> — 1,622 下载 / 24 likes,Apache-2.0,base 是 <code>Nanbeige4-3B-Thinking-2511</code>(LlamaForCausalLM)而<strong>不是 Qwen3</strong>;走的是 SFT + RL with turn-level judge / turn-level reward(同源思路);<strong>专门针对 deep-search</strong>(评测 GAIA / Xbench-Deepsearch / HLE / BrowseComp);非 paper 主线产品。</li>
+  <li><a href="https://huggingface.co/mradermacher/ToolMind-web-3B-GGUF" target="_blank">mradermacher/ToolMind-web-3B-GGUF</a> + <code>i1-GGUF</code> — 量化版</li>
+  <li><a href="https://huggingface.co/Esther22/qwen3-4b-toolmind-10k-3epochs" target="_blank">Esther22/qwen3-4b-toolmind-10k-3epochs</a> — 社区独立用 ToolMind 训 Qwen3-4B 的实验,10K 子集,3 epoch</li>
+</ul>
+</div>
+
+<div class="paper-card">
+<div class="ttl">Nanbeige 团队背景</div>
+<p>Nanbeige Lab 是<strong>BOSS 直聘 (kanzhun.com)</strong> 的 AI 实验室,联合通讯作者 Yang Song (songyang@kanzhun.com)。HF 上历史模型:</p>
+<ul>
+  <li><a href="https://huggingface.co/Nanbeige/Nanbeige4.1-3B" target="_blank">Nanbeige4.1-3B</a> — 212K 下载 / 1106 likes(2026-04 起爆款的小模型)</li>
+  <li>Nanbeige-16B-Chat / Base 系列(TheBloke 在 2023 帮量化过)</li>
+</ul>
+<p>另一通讯作者 Wayne Xin Zhao (batmanfly@gmail.com) 是<strong>人民大学高瓴 AI 学院</strong>正教授,他主导的 RUCAIBox 也产出了 <a href="23_EnvScaler.html">#23 EnvScaler</a> (同 lab) — 这两篇是同一研究方向群的两个不同切片。</p>
+</div>
+
+<hr>
+
+<h2 id="sec9">9 · Critical analysis — 局限 / 个人 take</h2>
+
+<h3>9.1 论文自报的局限</h3>
+
+<p>论文 §3.4 末尾自己承认: "<em>these findings indicate that current tasks leave room for greater complexity, motivating future work on more demanding tool-use scenarios.</em>" — <strong>承认当前 trajectory 偏简单</strong>。后续 ToolMind-Web-3B 的 RL 训也是对这个的响应。</p>
+
+<h3>9.2 我观察到的几个 untouched 问题</h3>
+
+<ol>
+  <li><strong>turn-level judge 自己是用什么 LM 跑的,论文没说</strong>。 <span class="pill">未在公开来源确认</span>
+    <ul>
+      <li>如果是 self-judge(用 base Qwen3 自己判),那就有 <strong>self-reward bias</strong>: judge LM 喜欢的 turn 不一定是真好的,只是合 judge 自己的偏好,SFT 后等于把 judge 偏好烙进 student。</li>
+      <li>如果是更强的 LM(GPT-4o / Kimi-K2)判,那需要额外明示;Appendix A.3 的 prompt 是 LM-agnostic 的,看不出来。</li>
+      <li>论文 Table 2 列了 <code>GPT-4o-2024-11-20</code> 作为 baseline 对比,且 τ²-bench 评测里用 GPT-4o 当 user simulator — 一个合理猜测是<strong>判 turn 也用 GPT-4o</strong>。但论文从没说出来。</li>
+    </ul>
+  </li>
+  <li><strong>turn-level binary judge 是 0/1,信息量很低</strong>。这和 trajectory level 用 6 维 Likert 的 TOUCAN 对比:
+    <ul>
+      <li>binary 简单,但任何"<em>不完美但有价值</em>"的 turn 一刀切,这正是 §4.3 提到的 τ²-bench 反例可能成因。</li>
+      <li>更精细的设计应该是 <strong>per-turn weight ∈ [0,1]</strong> 或者 <strong>per-turn label among {good / recoverable / bad}</strong>,但 ToolMind 没做。</li>
+    </ul>
+  </li>
+  <li><strong>tool 是 LM 模拟的,不是真服务</strong>。这是和 TOUCAN 的<strong>根本 philosophy 差异</strong>:
+    <ul>
+      <li>优点: 不依赖外部 server,合成可大规模并行,无 rate-limit。</li>
+      <li>缺点: tool agent 模拟 error 的 distribution 是 <em>LM 想象的</em> error,真 server 的 error mode(timeout / partial response / silent data corruption / cross-call state inconsistency)无法演出。</li>
+      <li>这导致 ToolMind 训出来的模型<strong>在真 MCP server 上的 OOD 行为没保证</strong>。论文也没在 MCP-Universe / MCPMark / MCP-Atlas 任何一个真 server 评测上跑。</li>
+    </ul>
+  </li>
+  <li><strong>"20K tools" 实际是 schema 不是 callable endpoint</strong>。这件事 ToolMind 的描述方式("<em>over 20k tools</em>")容易让读者误以为是 MCP-Universe 那种真 callable 数量。<strong>纠正</strong>: 这里的 "tools" 等价于 "<em>function schemas drawn from xLAM/Glaive/ToolACE</em>"。</li>
+  <li><strong>license 混合问题</strong>。
+    <ul>
+      <li>ToolACE 来源 CC-BY-NC-4.0 → 进入 ToolMind 后,严格说整个 ToolMind 衍生作品继承 NC。</li>
+      <li>HF dataset 标 Apache-2.0 是<strong>过于宽松</strong>的 license claim。</li>
+      <li>对比 TOUCAN: 用真 MCP server 数据(MCP 协议本身无 license 限制,只要 server owner 允许)+ 自己合成 trajectory,完全 Apache-2.0 干净。</li>
+    </ul>
+  </li>
+  <li><strong>没发 paper 主线 ckpt 是个反常信号</strong>。Nanbeige 后来发了 <code>ToolMind-Web-3B</code> 这种<strong>转向 deep-search</strong> 的衍生品,但<strong>论文里训出来的 Qwen3-8B-ToolMind / Qwen3-14B-ToolMind 至今没在 HF 上出现</strong>。可能原因:
+    <ul>
+      <li>(a) 内部产品集成了,不方便单独发(BOSS 直聘业务相关)</li>
+      <li>(b) license 问题(混了 NC 数据训出来的 ckpt 发不发涉及合规)</li>
+      <li>(c) 团队转向了新方向,旧 ckpt 维护成本高</li>
+      <li>对比 TOUCAN 27 个 ckpt 全发,ToolMind 的开源 commitment 在<strong>数据</strong>层是好的,在<strong>模型</strong>层缺位。</li>
+    </ul>
+  </li>
+  <li><strong>没评 Agentic Memory 的几个 V4 子项</strong>(memory_kv / vector / rec_sum)— Qwen3-14B + ToolMind 在 Agentic Memory 上反退 −3.44 pp 是个明显告警:ToolMind 数据没有覆盖 long-term memory / KV-store 操作场景,SFT 后反而干扰了原模型的 memory 处理能力(catastrophic forgetting 的一种)。这是个<strong>具体可改进方向</strong>。</li>
+</ol>
+
+<h3>9.3 我会给的实操建议</h3>
+
+<div class="kv">
+<strong>"我要训一个 ≤14B 的 tool-use SFT 模型,选哪个 dataset"</strong>
+<p>三阶段叠加:</p>
+<ol>
+  <li><strong>冷启 SFT</strong> 用 <a href="22_TOUCAN.html">TOUCAN 119K</a>(真 MCP server response,license 干净)— 学到"真 server 错误处理 + tool chain 真依赖"</li>
+  <li><strong>能力补丁 SFT</strong> 用 ToolMind 的 <code>graph_syn_datasets</code> 子集(163,180 sample,跳过 NC 来源)— 学到"<em>graph-walk 出来的 multi-step chain + incremental clarification</em>"</li>
+  <li><strong>RL stage</strong> 接 <a href="20_SETA_camel.html">SETA</a> Docker 400 task 或 <a href="29_TuneTheEnvironment.html">EnvTuning</a> BFCL-V3 400 sample,做 RLVR 上一层 — 这是 ToolMind 自己没做的部分</li>
+</ol>
+<p>预期上限: BFCL-v4 Overall ~55,τ-bench ~55,τ²-bench ~50 — 这是当前 ≤14B 开源能堆到的天花板。再上就要 RL 在真 MCP 上(MCP-Universe / MCPMark)。</p>
+</div>
+
+<div class="kv">
+<strong>"我只想做 turn-level filter 复现"</strong>
+<p>看 Appendix A.3.2,prompt 已经完整给了。把任意 multi-turn dataset(TOUCAN / xLAM / Glaive)按 assistant turn 切开,每个 anchor 让 GPT-4o-2024-11-20(或 Qwen3-235-Instruct 当 self-host judge)二元判一次,过 1 的 anchor 保留,过 0 的 mask。<strong>注意</strong>: judge 的 LM 不要和 student 同型号,以减少 self-reward bias。</p>
+</div>
+
+<h3>9.4 一句话总结</h3>
+
+<p>ToolMind 是 <strong>"工具数据集应该 turn-by-turn 过滤而不是 trajectory-by-trajectory 过滤"</strong> 这个 small-but-real method insight 的扎实实现,加上一个清楚的 function-graph 多样性源头,产生一个 ~360K 规模 Apache-2.0(<em>名义上</em>)的 dataset,在 Qwen3-8B/14B 上分别 +4.69 / +5.40 BFCL-v4 Overall pp、+10.87 / +14.22 τ-bench pp。<strong>规模上输 TOUCAN,真实度上输真 MCP 路线,但方法论 (turn-level mask) 是有 transferable insight 的 — 任何后续 tool-agentic 数据集都应该考虑加这一层。</strong></p>
+
+<hr>
+
+<div class="meta">
+读完笔记后建议: ① 看 <a href="22_TOUCAN.html">#22 TOUCAN</a> 把 trajectory-level baseline 对照清楚;② 看 <a href="28_BFCL.html">#28 BFCL</a> 把 v3→v4 改版搞清楚;③ 翻 Appendix A.3.2 真把 turn-level prompt 抄出来跑一次。如果要做 RL 续训,跳到 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 看 per-turn reward 的 RL 版本。
+</div>
+
+</main>
+</body>
+</html>
