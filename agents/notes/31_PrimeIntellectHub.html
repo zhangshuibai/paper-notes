@@ -213,14 +213,45 @@
 ├── python_env.py          # PythonEnv (code execution gym)
 ├── sandbox_env.py         # SandboxEnv (隔离执行)
 ├── env_group.py           # EnvGroup (多 env 组合)
-├── experimental/          # v1 Env / Taskset / Harness 在演进
+├── experimental/          # ⭐ 大货全在这里
+│   ├── mcp_env.py             # ⭐ MCPEnv — 用官方 mcp.ClientSession + StdioServerParameters
+│   ├── cli_agent_env.py       # ⭐ CliAgentEnv — 跑在 prime_sandboxes + prime_tunnel
+│   ├── harbor_env/
+│   │   ├── env.py             # Harbor 任务目录格式 (SWE-bench-style)
+│   │   └── mcp.py             # ⭐ Harbor + MCP 混合
+│   ├── opencode_env.py        # OpenCode CLI agent
+│   ├── opencode_qa_env.py
+│   ├── opencode_rlm_env.py
+│   ├── rlm_env.py             # Recursive LM (172 KB,大型实现)
+│   ├── gym_env.py             # OpenAI Gym 风格适配
+│   └── sandbox_mixin.py       # Sandbox 生命周期管理
 └── integrations/
-    ├── browser_env/       # BrowserEnv (子目录,Playwright-based)
-    ├── openenv_env.py     # OpenEnvEnv (Meta+HF OpenEnv 兼容层)
+    ├── browser_env/       # BrowserEnv (子目录,DOM via Stagehand / CUA via Docker on Browserbase)
+    ├── openenv_env.py     # OpenEnvEnv (Meta+HF OpenEnv 兼容层,支持 MCP 契约)
     ├── reasoninggym_env.py # ReasoningGymEnv
-    └── textarena_env.py    # TextArenaEnv</pre>
+    └── textarena_env.py    # TextArenaEnv (Wordle 等文字游戏)</pre>
 
-<p>注意: <strong>没有专门的 <code>mcp_env.py</code></strong>。MCP 工具是通过 <code>ToolEnv</code> 的通用 JSON-schema 机制接入的,verifiers 没有把 MCP 当一等公民独立成类 —— 这与 <a href="./25_MCPUniverse.html">#25 MCP-Universe</a> 有专门 MCP server 抽象的做法不同。第三方衍生项目 <code>MCPEnv</code> 存在,但<strong>不在主线 repo</strong> (未在公开来源确认其稳定性)。</p>
+<div class="nb">
+  <strong>⚠ 校订 (2026-05-17)</strong>: 早期版本说"<em>主线无 MCPEnv 类</em>",此说法<strong>错误</strong>。实测 <code>verifiers/envs/experimental/mcp_env.py</code> 第 1 行即 <code>from mcp import ClientSession, StdioServerParameters</code> —— 用的是 <strong>Anthropic 官方 MCP Python SDK 的 stdio 传输</strong>,内含 <code>MCPServerConfig</code> dataclass (支持 <code>command / args / env</code> 三件套) 与 <code>MCPServerConnection</code> 类。多 server 并行接入是标准实现。同时 <code>harbor_env/mcp.py</code> 提供 Harbor + MCP 混合形态。verifiers 主线<strong>确实</strong>把 MCP 当一等公民支持,只是处在 <code>experimental/</code> 命名空间还未升级到 stable API。同样 v1 config 里有 <code>MCPToolConfig</code> 和 <code>MCPTool</code>,说明 MCP 已下沉到 v1 一等公民层。
+</div>
+
+<h3>2.2.1 CLI / Browser / Docker / MCP 形态总览</h3>
+
+<table>
+<tr><th>形态</th><th>verifiers 类</th><th>底层</th><th>Docker / 模拟器</th></tr>
+<tr><td>CLI / terminal agent</td><td><code>CliAgentEnv</code> · <code>Terminus2</code> · <code>OpenCode</code></td><td>prime_sandboxes + prime_tunnel</td><td>✅ Docker 容器 (Prime Sandbox)</td></tr>
+<tr><td>浏览器 (DOM)</td><td><code>BrowserEnv(mode="dom")</code></td><td>Stagehand SDK</td><td>无头 Chromium</td></tr>
+<tr><td>浏览器 (vision/CUA)</td><td><code>BrowserEnv(mode="cua")</code></td><td>Browserbase + Docker image <code>deepdream19/cua-server:latest</code></td><td>✅ Docker (自动部署到 Browserbase sandbox)</td></tr>
+<tr><td>MCP server</td><td><code>MCPEnv</code> (experimental) · <code>harbor_env/mcp.py</code></td><td>官方 <code>mcp.ClientSession</code> + stdio</td><td>视 server 而定 (Smithery hosted / 本地 stdio)</td></tr>
+<tr><td>SWE-bench-style 代码任务</td><td><code>HarborTaskset</code> + <code>OpenCode</code> harness · <code>MiniSWEAgent</code></td><td>Docker harbor 任务目录</td><td>✅ Docker</td></tr>
+<tr><td>OpenEnv 兼容</td><td><code>OpenEnvEnv</code></td><td>Meta OpenEnv async client</td><td>✅ Docker via <code>vf-build</code></td></tr>
+<tr><td>文字游戏</td><td><code>TextArenaEnv</code></td><td>TextArena lib</td><td>无</td></tr>
+<tr><td>数学/推理生成器</td><td><code>ReasoningGymEnv</code></td><td>reasoning-gym lib</td><td>无</td></tr>
+<tr><td>桌面 GUI (Win/macOS)</td><td colspan="3"><span class="no">❌ 未提供</span> — 不重叠 <a href="./16_DesktopAgents_landscape.html">#16</a> / <a href="./17_UITARS2_2509.02544.html">#17</a> 那条线</td></tr>
+<tr><td>移动端 (Android/iOS)</td><td colspan="3"><span class="no">❌ 未提供</span> — 无 ADB/AVD/Appium</td></tr>
+</table>
+
+<p><strong>Docker 三处出现</strong>: ① Browserbase Chromium 预制 image · ② <code>vf-build</code> 用户自定义 image · ③ <code>prime_sandboxes</code> 通用沙箱(CLI / 代码 / MCP server 都能套)。<strong>没有任何手机模拟器或桌面 OS VM</strong> —— 这是 hub 与 <a href="./17_UITARS2_2509.02544.html">#17 UI-TARS-2</a> / <a href="./14_ClawGUI_2604.11784.html">#14 ClawGUI</a> 的根本不同。</p>
 
 <h3>2.3 SingleTurnEnv — 最低门槛</h3>
 
@@ -514,13 +545,14 @@ uv run vf-eval my-env -m gpt-4.1-mini -n 5 -r 3</pre>
 <h3>5.2 MCP 环境现状 (谨慎结论)</h3>
 
 <div class="nb">
-  <strong>未在公开来源确认</strong>: 截至 2026-05-17,Hub 上<strong>"MCP 风味"环境的精确数量无法从 UI 公开页直接 enumerate</strong> —— 主页是 SSR 注入,curl 拿不到完整列表,要登录后才能搜索。已知信号:
+  <strong>校订后结论 (2026-05-17)</strong>: 早期版本的"主线无 MCPEnv"错误已修正(见 §2.2 校订框)。重新整理已确认事实:
   <ul>
-    <li>verifiers 主线<strong>没有专门 <code>MCPEnv</code> 类</strong>,MCP 工具通过 <code>ToolEnv</code> 通用机制接入</li>
-    <li>第三方 (kvrancic/prime-intellect-mcp 等) 在 Glama 上挂了"<em>Prime Intellect Hub 的 MCP 包装</em>",方向与 #24 Smithery 类似 —— 把 hub 操作暴露成 MCP tool,而非把 MCP server 包装成 env</li>
-    <li>WebSearch 摘要提到 "MCPEnv extends ToolEnv to provide integration with MCP servers, automatically connecting to MCP servers and exposing their tools to models" —— 但<strong>这条声明出处不可追溯到 Prime Intellect 官方仓库</strong>,可能是 community fork</li>
+    <li>verifiers 主线 <strong>有 <code>experimental/mcp_env.py</code></strong>(9 KB),用 Anthropic 官方 mcp SDK 的 <code>ClientSession + StdioServerParameters</code>,<code>MCPServerConfig(name, command, args, env)</code> 多 server 并发接入</li>
+    <li>v1 一等公民 API 里有 <code>MCPToolConfig</code> 与 <code>MCPTool</code>(<code>verifiers/v1/__init__.py</code> 显式 export),说明 MCP 已下沉到 stable API 层</li>
+    <li><code>verifiers/envs/experimental/harbor_env/mcp.py</code>(12 KB)提供 Harbor + MCP 混合形态 —— 把 SWE-bench-style 任务目录里的 server 也用 MCP 协议拉起</li>
+    <li>Hub UI 上<strong>"MCP 风味"环境的精确数量仍无法 enumerate</strong> —— 主页 SSR + login-gated;<code>/api/environments</code> 与 <code>api.primeintellect.ai/v1/environments</code> 均返回 <code>{"detail":"Not Found"}</code>,需 auth token</li>
   </ul>
-  实务建议: 若要训 MCP 能力,目前最 robust 的路线是<strong>(a) 用 verifiers ToolEnv 手写一个 wrapper,把 MCP server 工具转 JSON-schema</strong>,或 <strong>(b) 用 <a href="./25_MCPUniverse.html">#25 MCP-Universe</a> 自带的 GRPO+verl 栈</strong>(那是目前唯一确认能 RL train MCP 的开源 pipeline)。
+  实务建议: 若要训 MCP 能力,可直接 <code>from verifiers.envs.experimental.mcp_env import MCPEnv</code>,传一组 <code>MCPServerConfig</code>;若需 RL 训(GRPO/PPO),把这个 env 接到 prime-rl trainer 即可。另一条路线 <a href="./25_MCPUniverse.html">#25 MCP-Universe</a> 的 verl 栈仍可用,但与 prime-rl 不同栈。
 </div>
 
 <h3>5.3 推荐起步 env (从公开材料筛)</h3>
@@ -692,6 +724,71 @@ uv run vf-eval my-env -m gpt-4.1-mini -n 5 -r 3</pre>
 </tbody>
 </table>
 
+<h3>10.1.1 License 横向详细对比 (本系列各 repo 覆盖的 7 大类)</h3>
+
+<p>本系列 30+ 篇里出现的开源 license 共 7 大类。下表按"<em>能不能商用 / 能不能闭源分发 / 改了要不要回馈 / 数据是否随权重</em>"四条核心问题做精确对比。</p>
+
+<table>
+<thead><tr><th>License</th><th>商用</th><th>闭源分发</th><th>专利授权</th><th>修改回馈</th><th>SaaS 闭环</th><th>归属署名</th><th>本系列实例</th></tr></thead>
+<tbody>
+<tr><td><strong>MIT</strong></td><td>✅</td><td>✅</td><td>❌ 隐含</td><td>❌ 不要求</td><td>❌ 不要求</td><td>✅ 保留 copyright</td><td>verifiers · TOUCAN · Functionary · EnvScaler · prime CLI</td></tr>
+<tr><td><strong>Apache-2.0</strong></td><td>✅</td><td>✅</td><td>✅ <strong>显式</strong> + 反诉撤销</td><td>❌ 不要求</td><td>❌ 不要求</td><td>✅ 保留 NOTICE</td><td>prime-rl · BFCL · SETA · xLAM 代码 · Hammer · MCP-Universe · AgentGym-RL · ART</td></tr>
+<tr><td><strong>BSD-3-Clause</strong></td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>✅ + 禁止用名字背书</td><td>少见,React 早期等</td></tr>
+<tr><td><strong>LGPL-3.0</strong></td><td>✅</td><td>⚠ 动态链接 OK,静态需开源 wrapper</td><td>✅</td><td>修改库本身必须开源</td><td>❌</td><td>✅</td><td>少见于本系列</td></tr>
+<tr><td><strong>GPL-3.0</strong></td><td>✅</td><td>❌ <strong>整个发行物必须 GPL</strong></td><td>✅</td><td>✅ 强制 (copyleft)</td><td>❌ (SaaS 不算 distribute)</td><td>✅</td><td>极少出现于现代 AI repo</td></tr>
+<tr><td><strong>AGPL-3.0</strong></td><td>✅</td><td>❌</td><td>✅</td><td>✅ 强制</td><td>✅ <strong>关闭 SaaS 漏洞</strong> — 用户通过网络访问也要给源码</td><td>✅</td><td>Smithery 部分服务端组件 · MongoDB 5.x</td></tr>
+<tr><td><strong>MPL-2.0</strong></td><td>✅</td><td>✅ (per-file copyleft)</td><td>✅</td><td>修改的<em>文件</em>要开源,新加的可闭源</td><td>❌</td><td>✅</td><td>少见</td></tr>
+<tr><td><strong>CC-BY-4.0</strong></td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>很多 dataset (维基语料 / 学术 corpus)</td></tr>
+<tr><td><strong>CC-BY-SA-4.0</strong></td><td>✅</td><td>⚠ 衍生物必须 CC-BY-SA</td><td>❌</td><td>✅ share-alike</td><td>❌</td><td>✅</td><td>部分 dataset · 注意训练后模型权重的传染性争议</td></tr>
+<tr><td><strong>CC-BY-NC-4.0</strong></td><td><span class="no">❌ 非商用</span></td><td>—</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td><td>⚠ <strong>xLAM 60K 数据</strong> · <strong>Hammer 数据</strong> · ToolACE 部分 — <em>训出来的模型不能商用</em></td></tr>
+<tr><td><strong>Llama 3 Community</strong></td><td>⚠ 月活 ≥7 亿要单独申请</td><td>✅ (有限制)</td><td>✅</td><td>❌ (但派生模型必须含 "Llama" 前缀)</td><td>❌</td><td>✅</td><td>所有 Llama-3 派生模型 (含很多 fine-tune)</td></tr>
+<tr><td><strong>Gemma Terms</strong></td><td>✅</td><td>✅</td><td>—</td><td>❌</td><td>—</td><td>需附 <em>Prohibited Use Policy</em></td><td>Gemma 系列</td></tr>
+<tr><td><strong>OpenRAIL-M</strong></td><td>⚠ 商用 OK 但禁特定用途 (军事 / 监控 / 误导等)</td><td>✅</td><td>—</td><td>❌</td><td>—</td><td>✅</td><td>BLOOM · 部分扩散模型</td></tr>
+<tr><td><strong>"Custom Research Only"</strong></td><td><span class="no">❌</span></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>UI-TARS-2 主线权重 · 早期 LLaMA-1 · 部分 ByteDance/百川 发布</td></tr>
+</tbody>
+</table>
+
+<h4>关键差异四条总结(给"<em>训模型 + 发模型</em>"的人)</h4>
+
+<div class="kv">
+  <p><strong>① MIT vs Apache-2.0 的唯一实质差别 = 专利授权</strong></p>
+  <p>从用户视角:几乎一样,都允许闭源分发、不要求开源修改。<strong>Apache-2.0 多了"贡献者授予专利许可,且若你起诉贡献者侵犯专利,你的许可立即终止"</strong>。这条对企业级训练栈(prime-rl / verl / Megatron / SETA / MCP-Universe)是必备的;对纯研究库(verifiers / TOUCAN 数据加载脚本)MIT 已经够用。 <strong>选 Apache 的代价</strong>: 必须分发 <code>NOTICE</code> 文件 + 标明你修改了什么。</p>
+</div>
+
+<div class="kv">
+  <p><strong>② 数据集的 NC 条款会"穿透"到模型权重 — 这是本系列读者最容易踩的坑</strong></p>
+  <p>xLAM-60K / Hammer / ToolACE 部分数据是 <code>CC-BY-NC-4.0</code>。法理学界对"<em>训练用了 NC 数据 → 模型权重是否 NC</em>"仍有争议(Salesforce / Hugging Face 立场不一),但<strong>实务上几乎所有 frontier lab 都把它视为传染</strong> —— 你用 xLAM-60K SFT 出来的模型,商业部署有<strong>法律风险</strong>。规避方法: (a) 改用 TOUCAN(Apache-2.0 数据)/ APIGen Open(Apache);(b) 把 NC 数据的 contribution 降到 reward signal 而非 token 监督。</p>
+</div>
+
+<div class="kv">
+  <p><strong>③ AGPL vs GPL 的 SaaS 漏洞</strong></p>
+  <p>GPL 只在"<em>distribute</em>"时触发 copyleft —— 跑 SaaS 不算 distribute,所以 OpenAI 可以闭源跑 GPL 库。<strong>AGPL 把"通过网络给用户提供服务"也算 distribute</strong>,所以 SaaS 也要给源码。在本系列里 Smithery 的<em>服务端组件</em>就是 AGPL,这是它逼竞争对手"<em>要么开源,要么付费授权</em>"的护城河手段。verifiers / prime-rl 都<strong>不</strong>用 AGPL —— 因为它们要让 Lab 平台自己闭源运营。</p>
+</div>
+
+<div class="kv">
+  <p><strong>④ Llama Community License ≠ open source(OSI 不承认)</strong></p>
+  <p>核心限制有三条: <strong>(a)</strong> 月活 ≥ 7 亿用户的公司要单独找 Meta 谈;<strong>(b)</strong> 派生模型名字必须以 "Llama" 开头(<code>Llama-3.1-MyAgent</code> 而不能叫 <code>MyAgent</code>);<strong>(c)</strong> 不能用 Llama output 训竞争 LLM(条款 1(b)(v))—— 这条<em>形式上</em>禁止你用 Llama 蒸馏出新模型再独立分发。Qwen Apache-2.0(Qwen3 系列)和 DeepSeek MIT(权重)<strong>没有这些限制</strong>,这是 2025 年中文开源模型在 fine-tune 生态里反超 Llama 的关键 license 优势。</p>
+</div>
+
+<h4>给本系列读者的 license 决策树</h4>
+
+<pre>你的最终产品是?
+├─ 学术 paper (不部署)
+│   └─ 任何 license 都可以,引用即可
+├─ 开源 fine-tune 模型 (HF 公开)
+│   ├─ 训练栈/数据: <strong>MIT 或 Apache-2.0 优先</strong>
+│   ├─ 避免 CC-BY-NC 数据 (xLAM-60K / Hammer-data / ToolACE)
+│   ├─ 基座是 Llama 3 → 名字必须含 "Llama" 前缀
+│   └─ 基座是 Qwen3 / DeepSeek / Mistral → 无文本限制
+└─ 闭源商业部署 (公司内部 / SaaS)
+    ├─ 训练栈: ✅ MIT / Apache-2.0 / BSD
+    ├─ 训练栈: ❌ 避开 GPL / AGPL (除非整个产品愿意开源)
+    ├─ 基座: 选 Apache-2.0 模型 (Qwen3 / OLMo / DeepSeek-V3)
+    ├─ 数据: 用 Apache/MIT 数据 (TOUCAN / EnvScaler / SETA tasks)
+    └─ Llama 3 商业部署: 月活 ≥ 7 亿需联系 Meta;否则直接用</pre>
+
+<p><strong>本系列在 license 上的"安全栈"推荐</strong>: <code>Qwen3-8B-Base (Apache-2.0)</code> + <code>TOUCAN SFT (Apache-2.0)</code> + <code>verifiers (MIT) + prime-rl (Apache-2.0)</code> + <code>BFCL eval (Apache-2.0)</code> —— 全栈商业 friendly,无 license 传染、无 NC 数据、无 Llama 前缀强制。这套是 2026 年<em>能直接部署到生产</em>的开源全套方案。</p>
+
 <h3>10.2 与 OpenAI/Anthropic 闭源 RL 基建的诚实对比</h3>
 
 <p>OpenAI 内部有 <code>codex-eval</code> + <code>swe-rebench</code> + 完整 RLHF/RLAIF 流水线 (从 paper / system card 推断,未公开 codebase);Anthropic 同理有内部 <em>environment harness</em> + Sonnet/Opus 训练用 RL gym。这些<strong>从不开放</strong>。Prime Intellect 的<em>整体策略</em>就是把 <code>verifiers + prime-rl + Hub</code> 三件套开源,赌"<em>开源生态规模效应 &gt; 单一闭源 lab</em>"。这条赌注的<strong>历史先例</strong>是 PyTorch / vLLM / SGLang —— 都用了 5-8 年把闭源对手追平甚至超过。Prime Intellect 在<em>训练栈</em>能否同样成功,要看 2026-2028 三年。</p>
@@ -702,7 +799,7 @@ uv run vf-eval my-env -m gpt-4.1-mini -n 5 -r 3</pre>
   <strong>诚实告知的 risk</strong>:
   <ol>
     <li><strong>1,000+ env 的质量方差极大</strong> — 类比 Smithery 的 7K servers / TOUCAN 实际只能用 17%。Hub 上"<em>能跑通 vf-eval 且 reward 信号干净</em>"的 env <strong>很可能不到一半</strong> (未公开统计,但基于 Smithery 经验合理推断)。</li>
-    <li><strong>MCP 覆盖未确认</strong> — verifiers 主线没 MCPEnv,Hub 上 MCP 风味环境数无法 enumerate。要 MCP RL 当下还是去 #25 MCP-Universe / #21 Toolathlon-Gym。</li>
+    <li><strong>MCP 类已确认存在,但 Hub UI 上 enumerate 仍受限</strong> — 校订后:verifiers 主线<code>experimental/mcp_env.py</code> 与 v1 <code>MCPToolConfig</code> 均存在(见 §2.2 校订框)。但 Hub 上"MCP 风味" env 的精确数量仍需登录才能搜索 —— 已知 fixture 类(如 <code>terminal-bench</code>)有现成 env,具体多少 MCP-server 直接挂载的 env 待确认。要 MCP RL 当下可选: 用 <code>verifiers.envs.experimental.MCPEnv</code> + prime-rl,或 <a href="./25_MCPUniverse.html">#25 MCP-Universe</a> verl 栈。</li>
     <li><strong>Lab 付费层 lock-in</strong> — per-token 计费在 LoRA 范畴友好,一旦你的训练 run 依赖 Prime Dynamo 多租户基础设施,迁移到自建 cluster 不是简单 export checkpoint 那么轻。<strong>切换成本中等</strong>。</li>
     <li><strong>"INTELLECT-3 同栈"是营销也是事实</strong> — 同栈不代表你能复现 INTELLECT-3 (你没那 2,048 GPU + 那个数据集)。社区能复现的是 8B-32B 规模 RL,这与"<em>训出 106B agentic MoE</em>"差两个数量级。</li>
     <li><strong>Hub 治理还在早期</strong> — 没有像 PyPI 的 yank policy,没有 vulnerability scan,env 里跑任意 Python 代码 (尤其 PythonEnv/SandboxEnv) 有<em>供应链风险</em>。生产环境 install 前 <code>prime env inspect &lt;hub-id&gt;</code> 看源码是必须的。</li>
