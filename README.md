@@ -22,8 +22,9 @@
 | 14 | [LK Losses](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/14_LKLosses_2602.23881.html) | 直接优化 acceptance rate / TV+KL hybrid / 反对 proxy 训练 | 41 KB |
 | 15 | [📐 Lossless 证明 (Tutorial)](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/15_Lossless_Proof_Tutorial.html) | rejection sampling 数学证明全步详解 (Leviathan/Chen 2023) | 53 KB |
 | 16 | [DDTree](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/16_DDTree_2604.12989.html) | 块扩散 drafter 上的最优 draft tree / best-first heap | 47 KB |
+| 17 | [Orthrus](https://zhangshuibai.github.io/paper-notes/spec-rl/notes/17_Orthrus_2605.12825.html) | dual-view diffusion / frozen AR + diffusion attention path 共享 KV / 7.8× lossless / O(1) 内存 | 54 KB |
 
-建议阅读顺序: **15 (Lossless 数学证明) → 02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 14 (LK Losses) → 13 (SV) → 12 (DropMatch) → 11 (Performance or Illusion?)**
+建议阅读顺序: **15 (Lossless 数学证明) → 02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 14 (LK Losses) → 13 (SV) → 12 (DropMatch) → 11 (Performance or Illusion?) → 16 (DDTree) → 17 (Orthrus, intra-model 终极 lossless 加速)**
 
 ## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (13 篇)
 
@@ -133,6 +134,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | Speculative Verification (SV) | — | 2025-09 | [2509.24328](https://arxiv.org/abs/2509.24328) |
 | LK Losses | — | 2026-02 | [2602.23881](https://arxiv.org/abs/2602.23881) |
 | DDTree | — | 2026-04 | [2604.12989](https://arxiv.org/abs/2604.12989) |
+| Orthrus | Adobe Research + Univ of Oregon + Google DeepMind | 2026-05 | [2605.12825](https://arxiv.org/abs/2605.12825) · [GitHub](https://github.com/chiennv2000/orthrus) · [HF Orthrus-Qwen3-8B](https://huggingface.co/chiennv/Orthrus-Qwen3-8B) |
 | (经典) Leviathan et al. — Fast Inference via SD | Google | 2022-11 | [2211.17192](https://arxiv.org/abs/2211.17192) |
 | (经典) Chen et al. — Accelerating LLM Decoding | DeepMind | 2023-02 | [2302.01318](https://arxiv.org/abs/2302.01318) |
 

@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Orthrus: Dual-View Diffusion (2605.12825)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .ctrl{margin:6px 0 4px;text-align:center}
+  .ctrl button{font-size:13px;padding:5px 12px;border:1px solid var(--line);
+    background:#fff;border-radius:6px;cursor:pointer;margin:0 4px}
+  .ctrl button:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#ffefef;border-left:3px solid var(--bad);padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  @media print{body{background:#fff}.ctrl{display:none}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Orthrus: Memory-Efficient Parallel Token Generation via Dual-View Diffusion</h1>
+<div class="meta">
+  Chien Van Nguyen (Univ of Oregon), Chaitra Hegde (Google DeepMind), Van Cuong Pham (Univ of Oregon),
+  Ryan A. Rossi · Franck Dernoncourt (Adobe Research), Thien Huu Nguyen (Univ of Oregon) ·
+  2026-05-12 · <a href="https://arxiv.org/abs/2605.12825" target="_blank" rel="noopener">arXiv:2605.12825</a> ·
+  <a href="https://github.com/chiennv2000/orthrus" target="_blank" rel="noopener">GitHub</a><br>
+  关键词: dual-view diffusion · frozen AR backbone · shared KV cache · lossless inference · O(1) memory · block diffusion drafter · intra-model consensus
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>把一个轻量级 <em>diffusion attention head</em> 拼到<em>冻结的 AR Transformer</em> 上, 两条 attention path 共享同一份 KV cache — AR head 做 prefill 构建 high-fidelity KV, diffusion head 做<em>一次前向</em>并行预测 K=32 个 future token, 然后用 frozen AR head 自己做严格 left-to-right 的 <em>intra-model consensus</em> 验证 (greedy 时 argmax 匹配, T>0 时退化为 Leviathan-style 拒绝采样). 结果: lossless · 平均 5-6× 加速 · 仅 ~4.5 MiB O(1) KV cache 开销 · 仅 16% 参数可训 · 单 8×H200 节点 24 小时训完.</p>
+  <div class="stats">
+    <div class="stat"><div class="n">7.8×</div><div class="l">peak speedup (Qwen3-8B / Pseudo2code)</div></div>
+    <div class="stat"><div class="n">~4.5 MiB</div><div class="l">O(1) KV cache 开销 (vs SD 线性增长)</div></div>
+    <div class="stat"><div class="n">Lossless</div><div class="l">intra-model consensus (greedy / 拒绝采样)</div></div>
+    <div class="stat"><div class="n">16% 可训</div><div class="l">只调 diffusion Q/K/V proj &lt;1B token</div></div>
+  </div>
+  <p><strong>立场:</strong>这是<em>用 spec-decoding 验证协议 + diffusion drafter</em>但<em>把 drafter 和 verifier 焊到同一个 transformer 里共享 KV</em>的结构性创新 — 不再有"外部 drafter" 与"verifier" 的二元区分, 也不再有 redundant KV cache. 论文把它叫 "intra-model speculative", 是 DFlash / EAGLE-3 这条 block-diffusion-drafter 线的下一站.</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">§1 动机: AR sequential bottleneck vs diffusion 的 lossy 并行</a></li>
+    <li><a href="#sec2">§2 方法: 双视图 (Dual-View) 架构</a></li>
+    <li><a href="#sec3">§3 训练: Dual-Pass Block Masking + KL 蒸馏</a></li>
+    <li><a href="#sec4">§4 推理: Exact Consensus 机制 (lossless 的来源)</a></li>
+    <li><a href="#sec5">§5 实验: TPF / 7.8× peak / 与 SOTA diffusion 对比</a></li>
+    <li><a href="#sec6">§6 与 EAGLE-3 / DFlash 的速度对比</a></li>
+    <li><a href="#sec7">§7 与本系列其他工作的关系</a></li>
+    <li><a href="#sec8">§8 开源现状与可复现性</a></li>
+    <li><a href="#sec9">§9 批判性分析 / 待验证问题</a></li>
+    <li><a href="#sec10">Memory points</a></li>
+  </ol>
+</nav>
+
+<p class="nb">
+  <strong>前置阅读:</strong>
+  Orthrus 是 spec-rl 系列里"块扩散 drafter"这一支的延续, 看本文前建议过一遍
+  <a href="07_DFlash_2602.06036.html">07_DFlash</a> (理解 block diffusion drafter 的一次前向出整块 marginals 是怎么回事),
+  以及 <a href="15_Lossless_Proof_Tutorial.html">15_Lossless_Proof_Tutorial</a> (rejection sampling 为什么 lossless).
+  Orthrus 的 consensus mechanism 在 greedy 下退化为 argmax 等价检查, T>0 时直接复用 Leviathan/Chen 2023 的拒绝采样.
+</p>
+
+<hr>
+
+<h2 id="sec1">§1 动机: AR sequential bottleneck vs diffusion 的 lossy 并行</h2>
+
+<h3>1.1 两条裂变路径的死结</h3>
+<p>
+作者用一段非常 clean 的 framing 把整个加速器领域归约成两难选择:
+</p>
+<blockquote>
+  <strong>AR:</strong> exact causal conditioning 保证 fidelity, 但强制 sequential — 解码 N 个 token = N 次 forward, memory-bandwidth bound.<br>
+  <strong>Diffusion (MDM):</strong> 并行出整块, 但 conditional independence 假设让 joint distribution 偏离 AR target — long-horizon reasoning 上 drift 累积.
+</blockquote>
+<p>
+作者拿 Fast-dLLM-v2 当反面教材: 它把 pre-trained AR 改造成 block diffusion, 在 MATH-500 上掉了 <strong>11 分</strong>; 而且为了挽回 coherence 还要 multi-step iterative denoising, 把理论上的并行加速优势又吃掉一大块, 最终 wall-clock 加速反而微薄.
+</p>
+
+<h3>1.2 论文的根本主张</h3>
+<p>
+Orthrus 不试图把 AR 改成 diffusion (Fast-dLLM-v2/Dream/SDAR 等都是这条路, 全部要 50-580B token 继续预训), 也不接受 diffusion 的 lossy. 它的招法是:
+</p>
+<div class="kv">
+  <strong>结构性 trick:</strong> 把 AR 模型冻死, 只在每层旁边再焊一组 Q/K/V projection (<code>W_Q^diff, W_K^diff, W_V^diff</code>),
+  形成第二条 attention path — 这条 path 在<em>同一份 KV cache</em> 上做<em>双向</em> attention, 一次出 K 个 future token.
+  然后用 frozen AR head 自己验证, lossless 直接复用 spec decoding 的拒绝采样数学.
+</div>
+<p>
+说白了 — diffusion 部分只是个<em>"并行 drafter"</em>, AR 部分既当 prefill 又当 verifier, KV 完全共享. 这是 EAGLE-3 / DFlash 这条线的极简化结晶: 不再有外置 drafter, 没有 redundant KV.
+</p>
+
+<h3>1.3 在 spec-rl 系列里的位置</h3>
+<p>
+看 spec-rl 16 篇前作走过的路:
+</p>
+<ul>
+  <li><strong>EAGLE-1/2/3 (#02):</strong> 外置 feature-space drafter, 树形 expand, target frozen, drafter 单独训.</li>
+  <li><strong>DFlash (#07):</strong> drafter 换成 block diffusion, 一次前向出整块 marginals, 但取 argmax 串成单 trajectory, 浪费 marginal 分布信息.</li>
+  <li><strong>DDTree (#16):</strong> 在 DFlash 之上加 best-first heap 树, 把 marginal 分布的信息榨干.</li>
+  <li><strong>Hidden States Drift / KVShot (#08):</strong> 探讨 drafter 与 target 之间 hidden vs KV 该共享什么, KV-only reuse 才稳.</li>
+  <li><strong>SV (#13):</strong> companion-model 风格验证, info-gain 动态 verify length.</li>
+</ul>
+<p>
+Orthrus 像是把这些经验汇拢: <em>不要外置 drafter</em> (省 KV) + <em>diffusion 出整块</em> (DFlash 思路) + <em>frozen target 自己验</em> (lossless) + <em>KV 严格共享</em> (KVShot 启示) + <em>greedy 一致即接受</em> (类似 Medusa 的 typical acceptance 但更严格). 把外置 drafter 这一历史包袱彻底丢掉.
+</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,sans-serif" font-size="12">
+  <text x="360" y="20" text-anchor="middle" font-weight="600" font-size="14">Orthrus 在 spec-rl 演化中的位置</text>
+  <rect x="20" y="50" width="200" height="70" rx="8" fill="#f3eee0" stroke="#cc4a1b"/>
+  <text x="120" y="70" text-anchor="middle" font-weight="600" fill="#cc4a1b">外置 AR drafter</text>
+  <text x="120" y="90" text-anchor="middle" font-size="11">Vanilla SD / EAGLE-1/2/3</text>
+  <text x="120" y="108" text-anchor="middle" font-size="11" fill="#5b5e66">2× redundant KV</text>
+  <rect x="260" y="50" width="200" height="70" rx="8" fill="#eef6ff" stroke="#2f6feb"/>
+  <text x="360" y="70" text-anchor="middle" font-weight="600" fill="#2f6feb">块扩散 drafter</text>
+  <text x="360" y="90" text-anchor="middle" font-size="11">DFlash / DDTree / DART</text>
+  <text x="360" y="108" text-anchor="middle" font-size="11" fill="#5b5e66">仍有独立 drafter 模型</text>
+  <rect x="500" y="50" width="200" height="70" rx="8" fill="#e8f5e9" stroke="#1f7a4a"/>
+  <text x="600" y="70" text-anchor="middle" font-weight="600" fill="#1f7a4a">改造 AR → 全 diffusion</text>
+  <text x="600" y="90" text-anchor="middle" font-size="11">Fast-dLLM-v2 / Dream / SDAR</text>
+  <text x="600" y="108" text-anchor="middle" font-size="11" fill="#5b5e66">lossy (MATH 掉 11pt)</text>
+  <rect x="200" y="180" width="320" height="70" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="360" y="205" text-anchor="middle" font-weight="700" fill="#1f7a4a">Orthrus (2605.12825)</text>
+  <text x="360" y="225" text-anchor="middle" font-size="11">单 transformer · 双 attention path · shared KV · lossless</text>
+  <text x="360" y="240" text-anchor="middle" font-size="11" fill="#5b5e66">外置 drafter + diffusion drafter + 改造路线 的合流</text>
+  <path d="M120,120 L300,180" stroke="#5b5e66" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+  <path d="M360,120 L360,180" stroke="#5b5e66" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+  <path d="M600,120 L420,180" stroke="#5b5e66" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+</svg>
+<figcaption>三条历史路径 (外置 AR drafter / 块扩散 drafter / 全模型改造成 diffusion) 在 Orthrus 处汇流: 借用块扩散一次前向出整块的并行性, 但又像 EAGLE-3 那样冻结目标模型保留 lossless, 还把 KV cache 完全共享掉.</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec2">§2 方法: 双视图 (Dual-View) 架构</h2>
+
+<h3>2.1 网络结构 — 在每层旁边加 (W_Q^diff, W_K^diff, W_V^diff)</h3>
+<p>
+对每一层 transformer block, Orthrus 都注入一组<em>额外的</em> Q/K/V 投影矩阵, 这就是 trainable 的 diffusion view. 输出 logits 共用同一个 LM head — 也就是说, 唯一新增的可学权重就是<em>每层 3 个矩阵</em>, 总共占 ~16% 参数. AR 路径和原本一模一样, 整个 backbone 冻结.
+</p>
+
+<div class="formula">
+  O<sub>diff</sub> = softmax( Q<sub>diff</sub> · [K<sub>AR</sub> ∥ K<sub>diff</sub>]<sup>⊤</sup> / √d ) · [V<sub>AR</sub> ∥ V<sub>diff</sub>]
+</div>
+
+<p>
+注意: <strong>K<sub>diff</sub>, V<sub>diff</sub></strong> 只存在于<em>当前那块 K 个 future positions</em> 内部 (transient, 用完即扔) — 真正用来当"历史"的 K<sub>AR</sub>/V<sub>AR</sub> 是<em>原封不动的</em>, 这就是 O(1) KV cache 开销的来源.
+</p>
+
+<h3>2.2 Prefill 与 generation 阶段的角色分工</h3>
+<table>
+  <thead><tr><th>阶段</th><th>谁执行</th><th>做什么</th><th>KV cache 变化</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Prefill (prompt 处理)</strong></td>
+      <td>frozen AR backbone</td>
+      <td>标准 causal self-attention 处理 prompt</td>
+      <td>构建 high-fidelity K<sub>AR</sub><sup>≤t</sup>, V<sub>AR</sub><sup>≤t</sup></td>
+    </tr>
+    <tr>
+      <td><strong>Generation - Step 1 (并行投影)</strong></td>
+      <td>diffusion head</td>
+      <td>一次 forward 出 K 个候选 token (anchor + K-1 个 mask 位置)</td>
+      <td>读 K<sub>AR</sub> + transient K<sub>diff</sub>; 后者一次后丢</td>
+    </tr>
+    <tr>
+      <td><strong>Generation - Step 2 (一致性验证)</strong></td>
+      <td>frozen AR head</td>
+      <td>把 diffusion 投影出来的整个 K-token block 喂一次 causal forward, 拿 p<sub>AR</sub>(·|context, ŷ<sub>1:k-1</sub>) 与 ŷ<sub>k</sub> 对比</td>
+      <td>把接受的前缀的 AR-KV 永久 append 进共享 cache</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+关键的概念分裂在于: <strong>AR path 永远只对"已确定的真序列"做 causal forward</strong>, 因此它产出的 K/V 一定是 ground-truth quality 的 KV. <strong>Diffusion path 用来对"还没确定的 K 个 future 位置"做<em>双向</em> 投影</strong>, 它的 KV 不入历史 cache.
+</p>
+
+<h3>2.3 "为什么不需要外置 drafter KV cache" — O(1) 的来源</h3>
+<p>
+标准 spec decoding 里, drafter 通常是<em>独立的小模型</em>, 它有自己的 KV cache, 跟着 target 序列长度一起线性增长 — 8B target + 1.5B drafter, 那 drafter 的 KV cache 大约 = target 的 <code>(d_drafter / d_target) × (L_drafter / L_target)</code>, 通常占目标 10-30%. 即使 EAGLE-3 的 feature-space drafter 也要存一份独立 KV.
+</p>
+<p>
+Orthrus 把 drafter 焊到同一个 transformer 里, 让它<em>直接读 target 的 KV</em>, 自身只在生成 K 个 future 时短暂分配 (K × d_head × 2 个 float, K=32 时大约 4.5 MiB, 用完即可丢). 这就是 §B 里 <strong>"Δ≈4.5 MiB regardless of sequence length L"</strong> 的物理解释.
+</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,sans-serif" font-size="12">
+  <text x="360" y="20" text-anchor="middle" font-weight="600" font-size="14">KV cache 内存增长对比</text>
+  <!-- axes -->
+  <line x1="80" y1="270" x2="680" y2="270" stroke="#1f2024"/>
+  <line x1="80" y1="60" x2="80" y2="270" stroke="#1f2024"/>
+  <text x="380" y="295" text-anchor="middle">序列长度 L (token)</text>
+  <text x="40" y="170" text-anchor="middle" transform="rotate(-90 40 170)">KV 内存</text>
+  <!-- AR baseline -->
+  <line x1="80" y1="240" x2="680" y2="80" stroke="#5b5e66" stroke-width="2"/>
+  <text x="500" y="120" fill="#5b5e66">Qwen3-8B baseline (linear in L)</text>
+  <!-- Orthrus (same as baseline + tiny delta) -->
+  <line x1="80" y1="237" x2="680" y2="77" stroke="#1f7a4a" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="500" y="158" fill="#1f7a4a">Orthrus = baseline + Δ4.5 MiB</text>
+  <!-- Vanilla SD (with drafter cache) -->
+  <line x1="80" y1="220" x2="680" y2="50" stroke="#a8353e" stroke-width="2"/>
+  <text x="450" y="55" fill="#a8353e">Vanilla SD with external drafter (linear with bigger slope)</text>
+  <!-- annotations -->
+  <line x1="640" y1="80" x2="640" y2="77" stroke="#1f7a4a" stroke-width="3"/>
+  <text x="680" y="95" font-size="10" fill="#1f7a4a">Δ≈O(1)</text>
+</svg>
+<figcaption>Orthrus 与 Qwen3-8B baseline 的 KV cache 曲线几乎重合, 仅 ~4.5 MiB 常数差距; 而带 external drafter 的 vanilla SD 因为要维护两份独立 cache, 增长斜率更陡.</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec3">§3 训练: Dual-Pass Block Masking + KL 蒸馏</h2>
+
+<h3>3.1 数据 — 用 frozen AR 自己当 teacher</h3>
+<p>
+训练数据是从 <strong>Nemotron-Post-Training-Dataset-v2</strong> 抽出的, 严格 1:1:1 比例 (Chat / Math / Code) 三个 domain. 关键的 ground-truth 标签<em>不是数据集里的 token</em>, 而是 frozen AR head 在每个位置预测出的<em>整个 full softmax</em> — 即 forward KL distillation against teacher.
+</p>
+<p>
+Sequence packing 到 L=2048, 总训练实例 471,952 个 (Appendix A 精确数字), 折合 <strong>0.96B 总 token</strong>. 每条 packed sequence 里随机采 256 个 anchor block, 每个 block 大小 K=32. 单 8×H200 节点跑 2 epoch, <strong>不到 24 小时</strong>训完.
+</p>
+
+<h3>3.2 Dual-Pass attention mask — 怎么防止 diffusion 偷看未来</h3>
+<p>
+训练时, AR path 处理干净的 historical context, diffusion path 处理 corrupted block (anchor + K-1 个 mask token). FlexAttention 实现一个特殊的 block mask:
+</p>
+<div class="formula" style="font-size:.9em">
+M<sub>diff</sub>[q,k] = <span style="color:#2f6feb">1[k&lt;L]·1[k≤a<sub>b</sub>-1]</span> &nbsp; OR &nbsp; <span style="color:#cc4a1b">1[k≥L]·1[⌊q/K⌋=⌊(k-L)/K⌋]</span>
+</div>
+<p>
+左半部分: diffusion 的每个 query 位置只能<em>因果地</em>看到自己 block anchor 之前的 historical context (蓝色). 右半部分: 同一个 block 内部的 K 个位置可以<em>双向</em>互看 (红色, "bidirectional within block"). <em>不同 block 之间</em>看不见 — 这样一条 packed sequence 里采 256 个 anchor 互不干扰, 一次 forward 完成 256 个独立任务.
+</p>
+
+<h3>3.3 Loss — forward KL against frozen AR</h3>
+<div class="formula" style="font-size:.95em">
+L<sub>Orthrus</sub> = E<sub>x,{a<sub>b</sub>}</sub> [ Σ<sub>b,k</sub> D<sub>KL</sub>( p<sub>AR</sub>(·|x<sub>≤a<sub>b</sub>+k-1</sub>) ‖ p<sub>diff</sub>(·|x<sub>&lt;a<sub>b</sub></sub>, ỹ<sub>b</sub>) ) ]
+</div>
+<p>
+诠释: 对每个 mask 位置, frozen AR 给出"如果我顺着 ground-truth 因果生成, 该位置的下一 token 分布是什么"; diffusion 在<em>不知道 ground-truth 中间 token</em>的条件下, 用 mask 重建该位置. KL 强迫 diffusion 学到与 AR-teacher 完全相同的分布形状, 而<em>不是去 fit 数据集硬标签</em>.
+</p>
+
+<h3>3.4 软标签 vs 硬标签 — 6.35 vs 5.86 TPF</h3>
+<div class="kv">
+  <strong>Ablation (Appendix B, Table 5):</strong> 同样 Qwen3-8B, 同样 MATH-500 准确率 86.2% (因为 consensus 保证 lossless), 但 TPF 软 KL (6.35) <span class="ok">&gt;</span> 硬 CE (5.86).
+</div>
+<p>
+作者解释: 硬 CE 让 diffusion 过拟合到数据集的表层句法, 推理时 consensus 拒绝率高; 软 KL 让 diffusion <em>对齐到 AR 的具体 causal trajectory 偏好</em>, 接受率自然高. 这是 lossless 之外的"<em>速度</em>"成本 — 即便是 lossless 框架, 训练目标依然影响 acceptance length.
+</p>
+
+<h3>3.5 Hyperparam 速查</h3>
+<table>
+  <thead><tr><th>项目</th><th>值</th></tr></thead>
+  <tbody>
+    <tr><td>Max seq length L</td><td>2048</td></tr>
+    <tr><td>Anchor blocks / sequence</td><td>256</td></tr>
+    <tr><td>Parallel block size K</td><td>32</td></tr>
+    <tr><td>Epochs</td><td>2</td></tr>
+    <tr><td>Peak LR</td><td>2e-4 (cosine, 5% warmup)</td></tr>
+    <tr><td>Grad clip</td><td>1.0</td></tr>
+    <tr><td>Global batch</td><td>128 (micro=1 × accum=16 × 8 GPU)</td></tr>
+    <tr><td>Precision</td><td>bfloat16</td></tr>
+    <tr><td>Backend</td><td>FSDP-2 + FlexAttention + FlashAttention-4</td></tr>
+    <tr><td>Domain split</td><td>1:1:1 Chat / Math / Code</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="sec4">§4 推理: Exact Consensus 机制 (lossless 的来源)</h2>
+
+<h3>4.1 单步循环的三段</h3>
+<p>
+设当前已生成 prefix x<sub>≤t</sub>, 它的 high-fidelity KV cache 已经在共享区. 一次 generation cycle:
+</p>
+<ol>
+  <li><strong>Step 1 (Parallel Projection):</strong> 构造 ỹ<sub>t</sub> = [x<sub>t</sub>, mask, mask, ..., mask] (长度 K), 让 diffusion head 一次 forward, 拿到 K 个 candidate token ŷ = (ŷ<sub>1</sub>, ..., ŷ<sub>K</sub>) ~ p<sub>diff</sub>(·|x<sub>&lt;t</sub>, ỹ<sub>t</sub>).</li>
+  <li><strong>Step 2 (AR Verification):</strong> 把这 K 个 candidate 当作"已确定的输入"喂给 frozen AR head 做一次 causal forward, 同时算出 K 个位置上的 p<sub>AR</sub>(·|x<sub>≤t</sub>, ŷ<sub>1:k-1</sub>) — <em>注意这次 forward 是 AR 单次, 一次性出 K 个分布</em>.</li>
+  <li><strong>Step 3 (Consensus):</strong> 从左到右 (k=1,2,...,K) 做匹配 — greedy 下检查 ŷ<sub>k</sub> 是否等于 argmax<sub>v</sub> p<sub>AR</sub>(v|...); T&gt;0 下用 Leviathan/Chen 拒绝采样. 一旦在 j 位置不匹配, 锁定前 j-1 个 + 用 p<sub>AR</sub> 在 j 位置原生采 1 个 correction token, 截 cache 到 t+j, 进入下一 cycle.</li>
+</ol>
+
+<p>
+每个 cycle 恰好<em>两次 forward</em> (diffusion 1 + AR 1), 至少接受 1 个 token (因为 correction token 一定会被 commit). 这就是论文里 "<em>theoretical lower bound 0.5 TPF, ≥1 token per 2 passes</em>" 的来源.
+</p>
+
+<h3>4.2 Greedy 模式 — 为什么 argmax 等价就够 lossless?</h3>
+<p>
+在 T=0 greedy 解码下, AR baseline 就是 deterministically 选 argmax. Consensus 只接受跟 AR argmax 完全相同的 ŷ<sub>k</sub>, 一旦不同就回滚 + 用 AR 自己的 argmax 当 correction — 输出序列<em>每个位置</em>都<strong>恰好</strong>等于 AR baseline 跑出来的 argmax, 因此严格 lossless.
+</p>
+
+<h3>4.3 T&gt;0 — 复用 Leviathan 拒绝采样</h3>
+<p>
+T&gt;0 时, 接受 ŷ<sub>k</sub> with prob min(1, p<sub>AR</sub>(ŷ<sub>k</sub>)/q<sub>diff</sub>(ŷ<sub>k</sub>)), 拒绝则按 max(0, p<sub>AR</sub>-q<sub>diff</sub>) 重采 — 这就是 spec decoding 经典证明 (<a href="15_Lossless_Proof_Tutorial.html">见 #15</a>). 同样 lossless.
+</p>
+
+<h3>4.4 与外置 drafter spec decoding 的差异</h3>
+<table>
+  <thead><tr><th>维度</th><th>标准 spec decoding (Leviathan/EAGLE)</th><th>Orthrus</th></tr></thead>
+  <tbody>
+    <tr><td>drafter 是谁</td><td>外置小模型 (独立参数 + 独立 KV)</td><td>同一 transformer 的 diffusion attention path (共享 KV)</td></tr>
+    <tr><td>drafter 出多少 token</td><td>k 次 forward 出 k 个 (AR 链式)</td><td>1 次 forward 出 K 个 (diffusion 并行)</td></tr>
+    <tr><td>verifier</td><td>target model (一次性 forward all)</td><td>同一 transformer 的 AR head (一次性 forward all)</td></tr>
+    <tr><td>KV cache 数量</td><td>2 份 (drafter + verifier)</td><td>1 份 (共享)</td></tr>
+    <tr><td>额外参数</td><td>~10-30% of target</td><td>~16% of target (但与 verifier 同 transformer)</td></tr>
+    <tr><td>Lossless</td><td>拒绝采样</td><td>greedy: argmax 等价; T&gt;0: 同样拒绝采样</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="sec5">§5 实验: TPF / 7.8× peak / 与 SOTA diffusion 对比</h2>
+
+<h3>5.1 评测设置</h3>
+<p>
+Base model 三档: Qwen3-1.7B / 4B / 8B (frozen). Benchmark 全是 reasoning-heavy 的, 因为这种 long-horizon 最能暴露 diffusion drift:
+</p>
+<ul>
+  <li><strong>数学:</strong> GSM8K, MATH-500, AIME24, AIME25</li>
+  <li><strong>代码:</strong> HumanEval, MBPP, Pseudo2code, LiveCodeBench-v5</li>
+</ul>
+<p>
+指标 <strong>TPF (Tokens Per Forward Pass) = total generated tokens / total forward passes</strong>, hardware-agnostic. AR baseline TPF = 1.0. Orthrus 一个 cycle = 2 forward + 至少 1 token → 理论 TPF ∈ [0.5, K/2] = [0.5, 16].
+</p>
+
+<h3>5.2 Table 1 关键数字 (greedy, T=0)</h3>
+<table>
+  <thead><tr><th>Task</th><th>Qwen3-1.7B TPF / Speedup</th><th>Qwen3-4B TPF / Speedup</th><th>Qwen3-8B TPF / Speedup</th></tr></thead>
+  <tbody>
+    <tr><td>GSM8K</td><td>4.20 / 4.37×</td><td>4.91 / 4.48×</td><td>5.30 / 5.22×</td></tr>
+    <tr><td>MATH-500</td><td>4.71 / 4.74×</td><td>6.02 / 5.76×</td><td>6.35 / 5.95×</td></tr>
+    <tr><td>AIME24</td><td>4.33 / 5.65×</td><td>5.00 / 6.06×</td><td>5.63 / <strong>6.81×</strong></td></tr>
+    <tr><td>AIME25</td><td>3.89 / 4.80×</td><td>5.17 / 5.86×</td><td>5.25 / 6.03×</td></tr>
+    <tr><td>HumanEval</td><td>2.75 / 3.07×</td><td>3.57 / 3.67×</td><td>3.94 / 3.68×</td></tr>
+    <tr><td>MBPP</td><td>2.76 / 3.07×</td><td>3.74 / 4.43×</td><td>3.95 / 3.90×</td></tr>
+    <tr><td>Pseudo2code</td><td>4.60 / 4.90×</td><td>7.40 / 7.38×</td><td>7.51 / <strong>7.83×</strong> ⭐</td></tr>
+    <tr><td>LiveCodeBench-v5</td><td>3.86 / 5.87×</td><td>4.50 / 6.28×</td><td>5.17 / 6.68×</td></tr>
+    <tr style="background:#eef6ff"><td><strong>Average</strong></td><td>3.89 / 4.25×</td><td>5.04 / 5.20×</td><td><strong>5.39 / 5.36×</strong></td></tr>
+  </tbody>
+</table>
+
+<p>
+读出几条:
+</p>
+<ul>
+  <li><strong>"7.8× peak"</strong> 的具体出处: <em>Qwen3-8B / Pseudo2code</em>, 不是平均水平. Pseudo2code 这种"伪代码翻译"任务往往有很强的结构重复性, diffusion 一次拍出整块的<em>大块 prefix</em> 容易接受到 12+ 个 token.</li>
+  <li><strong>Average 5.36×</strong> 才是 8B 上更现实的"日常加速". 16% 训练参数 + 1B token 就能在 reasoning task 上做出 5-6× 是相当扎实的.</li>
+  <li><strong>更大模型加速更大</strong> — 4× → 5.2× → 5.4× 单调递增. 解释: 大模型本身 memory-bandwidth 越紧, 一次 forward 摊薄 K token 的边际收益越显著.</li>
+  <li><strong>HumanEval / MBPP 偏低 (3-4×)</strong> — 短代码段, decoding 长度本身不长, diffusion block 优势被稀释.</li>
+  <li><strong>T=1 (sampling) 的表现</strong> 与 T=0 几乎打平 (8B 平均 5.02× vs 5.36×) — 拒绝采样代价不大, 这印证了 §4.3 的设计.</li>
+</ul>
+
+<h3>5.3 Table 2 — 与 SOTA diffusion LLM 对比</h3>
+<table>
+  <thead><tr><th>Model</th><th>Params</th><th>GSM8K</th><th>MATH-500</th><th>AIME24</th><th>AIME25</th><th>HumanEval</th><th>MBPP</th></tr></thead>
+  <tbody>
+    <tr><td>Dream-7B</td><td>7B</td><td>79.3</td><td>39.6</td><td>—</td><td>—</td><td>57.9</td><td>58.8</td></tr>
+    <tr><td>LLaDA-1.5</td><td>7B</td><td>82.4</td><td>57.4</td><td>—</td><td>—</td><td>52.4</td><td>42.8</td></tr>
+    <tr><td>SDAR-Qwen3-8B</td><td>8B</td><td>91.7</td><td>78.6</td><td>10.0</td><td>10.0</td><td>78.7</td><td>72.0</td></tr>
+    <tr><td>SDAR-Qwen3-30B-A3B</td><td>30B</td><td>91.4</td><td>77.8</td><td>16.7</td><td>10.8</td><td>71.6</td><td>87.2</td></tr>
+    <tr><td>Fast-dLLM-v2</td><td>7B</td><td>83.7</td><td>61.5</td><td>—</td><td>—</td><td>43.3</td><td>28.2</td></tr>
+    <tr><td>Mercury Coder Small</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>90.0</td><td>76.6</td></tr>
+    <tr><td>Gemini Diffusion</td><td>—</td><td>—</td><td>—</td><td>—</td><td>20.0</td><td>89.6</td><td>76.0</td></tr>
+    <tr style="background:#eef6ff"><td><strong>Orthrus-Qwen3-8B</strong></td><td>8.7B</td><td><strong>96.0</strong></td><td><strong>86.2</strong></td><td><strong>28.3</strong></td><td><strong>23.3</strong></td><td><strong>95.1</strong></td><td><strong>93.4</strong></td></tr>
+  </tbody>
+</table>
+
+<p>
+注意 — Orthrus 8.7B 的<strong>准确率严格等于 Qwen3-8B baseline</strong> (因为 lossless). 表里所有 diffusion 都"自食其变" — SDAR 同样用 Qwen3-8B 当起点都跌到 78.6 (vs Qwen3-8B baseline 86.2), Fast-dLLM-v2 直接 61.5. 这把作者反复强调的"<em>adaptation 导致 distributional drift</em>"用数字钉死了.
+</p>
+
+<h3>5.4 Ablation</h3>
+
+<h4>5.4.1 Block size K (Figure 5)</h4>
+<p>
+K 从 4 增到 32 时, TPF 从 ~1.8 涨到 6.35 (Qwen3-8B / MATH-500), 但<em>forward-pass latency 几乎不变</em> — 因为 diffusion 是一次 forward, 算 K=4 还是 K=32 都是<em>一次 GPU kernel launch</em>, 在 H200 上都不太够吃满算力. 作者选 K=32 当 default.
+</p>
+
+<h4>5.4.2 Multi-step vs Single-step (Table 3)</h4>
+<table>
+  <thead><tr><th>策略</th><th>每 cycle forward 数</th><th>TPF</th></tr></thead>
+  <tbody>
+    <tr><td>Multi-Step (à la Fast-dLLM-v2)</td><td>3 (diff×2 + AR×1)</td><td>3.53</td></tr>
+    <tr style="background:#eef6ff"><td><strong>Orthrus Single-Step</strong></td><td>2 (diff×1 + AR×1)</td><td><strong>6.35</strong></td></tr>
+  </tbody>
+</table>
+<p>
+<strong>单步胜出 1.8×</strong>. 这是个重要 finding — 在 diffusion LLM 文献里普遍认为 multi-step iterative denoising 必不可少, 但 Orthrus 证明只要后面有 AR consensus 兜底, <em>diffusion 不需要把自己 polish 到完美</em>, 单次粗投影 + AR 校正反而更快.
+</p>
+
+<h4>5.4.3 内存 (Figure 6)</h4>
+<div class="kv">
+  <strong>Peak GPU memory:</strong> Orthrus vs Qwen3-8B 差距 &lt;1%, 大约 ~100 MiB. 这部分是 diffusion 那 16% 参数的 weights 占用 (恒定, 不随序列长度变).<br>
+  <strong>KV cache 增量:</strong> <strong>≈ 4.5 MiB</strong>, <em>独立于 L</em>, O(1).
+</div>
+
+<hr>
+
+<h2 id="sec6">§6 与 EAGLE-3 / DFlash 的速度对比</h2>
+
+<h3>6.1 Average Acceptance Length (Figure 4)</h3>
+<p>
+论文 §4.4 给了一张关键对比图, 在 Qwen3-8B 上, 三种 drafter 方案的 average acceptance length (一次 verify 后接受的 token 数):
+</p>
+
+<table>
+  <thead><tr><th>方案</th><th>MATH-500 acceptance length</th><th>drafter 类型</th><th>独立 KV cache?</th></tr></thead>
+  <tbody>
+    <tr><td>EAGLE-3</td><td>3.5</td><td>外置 AR feature-space drafter</td><td>是 (额外 ~10% 内存)</td></tr>
+    <tr><td>DFlash</td><td>7.9</td><td>外置 block-diffusion drafter</td><td>是 (5 层 K/V 注入开销)</td></tr>
+    <tr style="background:#eef6ff"><td><strong>Orthrus</strong></td><td><strong>11.7</strong></td><td>内嵌 diffusion attention path</td><td><strong>否</strong> (共享 KV)</td></tr>
+  </tbody>
+</table>
+
+<p>
+Orthrus 在 acceptance length 上比 DFlash 多 48%, 比 EAGLE-3 多 234%. 直观原因:
+</p>
+<ul>
+  <li>EAGLE-3 的 drafter 是一个 feature-space 小网络, 链式生成, 出错累积快 → acceptance length 短.</li>
+  <li>DFlash 一次出整块, 但 drafter 是<em>独立小模型</em>, 它对 target 的内部表征只有有限的 5 层 K/V 注入访问 → marginals 有偏差.</li>
+  <li>Orthrus 的 diffusion head <em>共享 target 的所有层的 KV</em>, 而且训练时用了 forward KL 直接拟合 target 的 full distribution → 投影分布几乎就是 target 分布的并行近似, 接受率自然爆高.</li>
+</ul>
+
+<h3>6.2 整体速度公式角度</h3>
+<p>
+Orthrus 每 cycle 都是 2 次 forward (1 diff + 1 AR), 最多接受 K=32 个 token. 平均 TPF 5.39 ≈ <em>每 2 forward 接受 5.4 个</em>, 等价 acceptance length ≈ 10.8. 跟 Figure 4 上的 11.7 基本对得上 (差异是不同 task 的均值).
+</p>
+
+<h3>6.3 但 wall-clock 呢?</h3>
+<p>
+论文用的主要指标是 TPF — hardware-agnostic. Figure 3 给了 wall-clock throughput 但没明确数字, 仅说"<em>6× speedup over Qwen3-8B baseline on MATH-500</em>" — 跟 TPF 5.95× 大致对得上. 也就是说 Orthrus 的 diffusion forward 和 AR forward<em>都是单次</em>, kernel 调度开销几乎抵消, TPF≈wall-clock ratio.
+</p>
+
+<hr>
+
+<h2 id="sec7">§7 与本系列其他工作的关系</h2>
+
+<h3>7.1 与 #07 DFlash — 同祖不同枝</h3>
+<p>
+DFlash 是 block diffusion drafter 概念的奠基: 一个独立的 diffusion 模型, 一次前向出整块 marginals, 通过 5 层 K/V 注入读 target 的 hidden states. Orthrus 走得更彻底 — drafter 不再是独立模型, 而是 target 上直接长出来的 attention path, KV 完全共享, 训练只动 16% 参数 (vs DFlash 的整个 drafter).
+</p>
+<p>
+本质区别: <strong>DFlash 仍然有"draft vs verify"的二元划分</strong>, Orthrus 把这个划分内化到了一个 transformer 内部的 attention path 上.
+</p>
+
+<h3>7.2 与 #15 Lossless Proof Tutorial — 直接复用 Leviathan/Chen 2023</h3>
+<p>
+Orthrus paper §3.3 明确说: T&gt;0 时 "<em>leverages an exact rejection sampling to align the parallel projection with the target distribution, guaranteeing strictly lossless sampling (Leviathan et al., 2022)</em>". 也就是说, Orthrus 的"lossless"<em>不是新理论</em>, 而是把 spec decoding 的 rejection sampling 数学搬过来用 — 唯一新的是: <em>drafter 现在是同一 transformer 内的 attention path</em>, 而不是外置模型. 拒绝采样的数学对 drafter 的具体身份不挑.
+</p>
+<p>
+推荐串读: 看完 <a href="15_Lossless_Proof_Tutorial.html">#15</a> 的 § "rejection sampling 等价定理"那一段, 再回头看本文的 §4.3, 一切就通了.
+</p>
+
+<h3>7.3 与 #08 Hidden States Drift / KVShot — KV-reuse 的极致</h3>
+<p>
+KVShot 的核心 finding 是 "<em>drafter 与 target 之间应该共享 KV 而不是 hidden states</em>" — hidden states reuse 会引入分布 drift. Orthrus 是这个 finding 的"完成体": 两条 attention path 共享同一份 KV (绝对一致), 各自独立计算 hidden states (没有跨 path 的 hidden states 复用风险).
+</p>
+
+<h3>7.4 与 #13 SV (Speculative Verification) — 互补</h3>
+<p>
+SV 关心的是"<em>验证 length 是否应该动态</em>" — 用 info-gain 当 signal 动态决定 verify 多少 token. Orthrus 走的是<em>固定 K=32</em> 路线. 两者其实正交: 完全可以在 Orthrus 上加 SV 的 info-gain criterion, 让 K 变成 adaptive — Orthrus 没做这个 ablation, 是个可挖的方向.
+</p>
+
+<h3>7.5 与 #16 DDTree — 树 vs 链</h3>
+<p>
+DDTree 在 DFlash 之上加 best-first heap tree, 在<em>同一份</em> diffusion forward 出的 marginals 上枚举 top-B prefix, 用 tree attention 一次验证, 比 vanilla DFlash 再 +30~60%. Orthrus 没用树, 只用<em>单链 (single trajectory)</em> + 严格 left-to-right 验证. 因此:
+</p>
+<div class="kv">
+  <strong>开放问题:</strong> Orthrus 的 diffusion head 每个位置都有 full softmax 分布, 完全可以套 DDTree 的 best-first heap 在<em>同一次</em> diffusion forward 上枚举多个候选 trajectory, 再用 AR 的<em>一次树验证</em>检查. 论文里没有这个 ablation, 但理论上能再榨一截速度. 不过, 是否会跟 "<em>共享 KV cache · O(1) 内存</em>" 的精神有冲突 (tree attention 在 verifier 上要存 K×B 个 transient 位置), 需要进一步分析.
+</div>
+
+<h3>7.6 关联图</h3>
+<div class="fig">
+<svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,sans-serif" font-size="12">
+  <text x="360" y="20" text-anchor="middle" font-weight="600" font-size="14">Orthrus 在 spec-rl 系列中的关联网</text>
+  <!-- center -->
+  <rect x="280" y="140" width="160" height="50" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="360" y="170" text-anchor="middle" font-weight="700" fill="#1f7a4a">#17 Orthrus</text>
+  <!-- DFlash -->
+  <rect x="40" y="60" width="140" height="50" rx="8" fill="#eef6ff" stroke="#2f6feb"/>
+  <text x="110" y="80" text-anchor="middle" font-weight="600" fill="#2f6feb">#07 DFlash</text>
+  <text x="110" y="98" text-anchor="middle" font-size="10" fill="#5b5e66">块扩散 drafter 奠基</text>
+  <line x1="180" y1="100" x2="280" y2="155" stroke="#2f6feb" stroke-dasharray="3,2"/>
+  <text x="220" y="125" font-size="10" fill="#2f6feb">同祖不同枝</text>
+  <!-- KVShot -->
+  <rect x="40" y="170" width="140" height="50" rx="8" fill="#eef6ff" stroke="#2f6feb"/>
+  <text x="110" y="190" text-anchor="middle" font-weight="600" fill="#2f6feb">#08 KVShot</text>
+  <text x="110" y="208" text-anchor="middle" font-size="10" fill="#5b5e66">KV-only reuse 启示</text>
+  <line x1="180" y1="195" x2="280" y2="175" stroke="#2f6feb" stroke-dasharray="3,2"/>
+  <!-- DDTree -->
+  <rect x="540" y="60" width="140" height="50" rx="8" fill="#eef6ff" stroke="#2f6feb"/>
+  <text x="610" y="80" text-anchor="middle" font-weight="600" fill="#2f6feb">#16 DDTree</text>
+  <text x="610" y="98" text-anchor="middle" font-size="10" fill="#5b5e66">树验证 / open question</text>
+  <line x1="440" y1="155" x2="540" y2="100" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+  <text x="500" y="125" font-size="10" fill="#cc4a1b">可结合</text>
+  <!-- Lossless -->
+  <rect x="540" y="170" width="140" height="50" rx="8" fill="#fff8e8" stroke="#d2a32a"/>
+  <text x="610" y="190" text-anchor="middle" font-weight="600" fill="#d2a32a">#15 Lossless 证明</text>
+  <text x="610" y="208" text-anchor="middle" font-size="10" fill="#5b5e66">拒绝采样数学</text>
+  <line x1="440" y1="175" x2="540" y2="195" stroke="#d2a32a" stroke-dasharray="3,2"/>
+  <text x="490" y="190" font-size="10" fill="#d2a32a">直接复用</text>
+  <!-- SV -->
+  <rect x="170" y="260" width="140" height="50" rx="8" fill="#eef6ff" stroke="#2f6feb"/>
+  <text x="240" y="280" text-anchor="middle" font-weight="600" fill="#2f6feb">#13 SV</text>
+  <text x="240" y="298" text-anchor="middle" font-size="10" fill="#5b5e66">动态 verify length</text>
+  <line x1="310" y1="280" x2="340" y2="195" stroke="#cc4a1b" stroke-dasharray="3,2"/>
+  <text x="290" y="240" font-size="10" fill="#cc4a1b">正交</text>
+  <!-- EAGLE-3 -->
+  <rect x="410" y="260" width="140" height="50" rx="8" fill="#eef6ff" stroke="#2f6feb"/>
+  <text x="480" y="280" text-anchor="middle" font-weight="600" fill="#2f6feb">EAGLE-3 (#02)</text>
+  <text x="480" y="298" text-anchor="middle" font-size="10" fill="#5b5e66">外置 AR drafter baseline</text>
+  <line x1="410" y1="275" x2="380" y2="195" stroke="#a8353e" stroke-dasharray="3,2"/>
+  <text x="430" y="230" font-size="10" fill="#a8353e">基线对比</text>
+</svg>
+<figcaption>Orthrus 与 spec-rl 系列其他工作的关系: 继承 DFlash 的块扩散 drafter / 吸取 KVShot 的 KV-only reuse 教训 / 沿用 #15 的 lossless 数学 / 暴打 EAGLE-3 + DFlash 的 acceptance length / 与 DDTree 和 SV 留有可结合空间.</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec8">§8 开源现状与可复现性</h2>
+
+<h3>8.1 GitHub</h3>
+<div class="kv">
+  <strong>仓库:</strong> <a href="https://github.com/chiennv2000/orthrus" target="_blank">github.com/chiennv2000/orthrus</a><br>
+  <strong>仓库 tagline:</strong> "Fast, lossless LLM inference via dual-view diffusion decoding."<br>
+  <strong>所有者:</strong> chiennv2000 (一作 Chien Van Nguyen 个人账号, 非 Adobe 组织账号)<br>
+  <strong>验证:</strong> 实测 HTTP 200, 仓库存在.<br>
+  <strong>未在公开来源确认:</strong> 内部具体提交了哪些文件 (training code / inference kernel / FlexAttention mask 的实现 / data prep pipeline) 笔者没有完整 fetch 仓库内容, 仅确认 URL 存在与论文里给出的链接吻合.
+</div>
+
+<h3>8.2 HuggingFace 模型权重</h3>
+<p>
+HF API 查询 (search=orthrus) 返回的 chiennv 账号下的 3 个 checkpoint:
+</p>
+<table>
+  <thead><tr><th>Model</th><th>下载量</th><th>likes</th><th>License</th><th>Created</th></tr></thead>
+  <tbody>
+    <tr><td><code>chiennv/Orthrus-Qwen3-1.7B</code></td><td>464</td><td>5</td><td>CC-BY-4.0</td><td>2026-05-08</td></tr>
+    <tr><td><code>chiennv/Orthrus-Qwen3-4B</code></td><td>249</td><td>5</td><td>CC-BY-4.0</td><td>2026-05-08</td></tr>
+    <tr><td><code>chiennv/Orthrus-Qwen3-8B</code></td><td><strong>1,535</strong></td><td><strong>13</strong></td><td>CC-BY-4.0</td><td>2026-05-08</td></tr>
+  </tbody>
+</table>
+<p>
+所有权重都带 <code>custom_code</code> tag — 因为 diffusion head 不是标准 transformer 模块, 需要 <code>trust_remote_code=True</code>. tag 里还有 "<em>diffusion · parallel-decoding · orthrus · arxiv:2605.12825</em>", 跟论文一一对应.
+</p>
+
+<h3>8.3 License 评估</h3>
+<div class="kv">
+  <strong>权重: CC-BY-4.0</strong> — 商用 friendly (允许商业使用, 只需署名).<br>
+  <strong>代码: 未在公开来源确认</strong> (仓库的 LICENSE 文件笔者没单独 fetch, 但作者个人账号 + Adobe 联合工作, 通常会用 Apache-2.0 或 MIT, 较少用 NC).<br>
+  <strong>Base 模型限制:</strong> Orthrus 是 derived from Qwen3 base, 因此最终用户必须同时遵守 Qwen3 的 license (Apache-2.0).
+</div>
+
+<h3>8.4 与同系列开源对比</h3>
+<table>
+  <thead><tr><th>项目</th><th>代码</th><th>权重</th><th>训练数据</th><th>整体可复现性</th></tr></thead>
+  <tbody>
+    <tr><td>EAGLE-3</td><td>完整开源 Apache</td><td>多 size 全开</td><td>ShareGPT 类</td><td>★★★★★</td></tr>
+    <tr><td>DFlash (#07)</td><td>大部分</td><td>主要 size 开</td><td>SFT 数据可获取</td><td>★★★★</td></tr>
+    <tr><td>SDAR</td><td>有</td><td>有 (8B/30B)</td><td>50B token 预训练数据未必公开</td><td>★★★</td></tr>
+    <tr><td>Fast-dLLM-v2</td><td>有</td><td>有</td><td>500B 改造数据不公开</td><td>★★</td></tr>
+    <tr><td><strong>Orthrus</strong></td><td>GitHub 存在 (内容未细查)</td><td>1.7/4/8B 三档全开 CC-BY-4.0</td><td>用公开 Nemotron-Post-Training-Dataset-v2 + frozen AR 自生成 KL teacher</td><td>★★★★ (训练只 1B token + 8×H200×24h, 单人都能复现)</td></tr>
+  </tbody>
+</table>
+<p>
+评价: <strong>Orthrus 的复现门槛极低</strong> — 因为它的整个训练数据是 <em>frozen AR 自己合成的 soft target</em>, 不依赖外部专有数据集. 8×H200 一节点 24 小时 = ~$50-200 算力 (按 H200 cloud 计价 ~$2-5/h/GPU × 8 × 24). 学生党 / 小实验室都能复现, 这点比 DFlash / SDAR 都强.
+</p>
+
+<hr>
+
+<h2 id="sec9">§9 批判性分析 / 待验证问题</h2>
+
+<h3>9.1 "Lossless" 真的严格 lossless 吗?</h3>
+<p>
+✅ <strong>是的, 严格 lossless</strong> — 这一点没有水分:
+</p>
+<ul>
+  <li>Greedy (T=0): consensus 强制接受的每个 token 都恰好等于 AR-baseline argmax, 任何不一致都被 AR correction 覆盖. 数学上输出序列与"<em>纯 AR 跑出来的序列</em>" 逐 token 相同.</li>
+  <li>T&gt;0: 用的是 Leviathan 2023 拒绝采样, 论文 §3.3 明确引用, 复用经典证明 (<a href="15_Lossless_Proof_Tutorial.html">#15</a>).</li>
+</ul>
+<p>
+但 lossless 的"<em>口径</em>"要注意 — 它是<em>分布意义</em>的 lossless, 不是"每个具体生成都跟 AR 完全相同". T&gt;0 时, 同样的 prompt 跑两次 Orthrus 不会得到相同 trajectory, 跟跑两次 AR baseline 一样. 但<em>分布</em>是同一个分布.
+</p>
+
+<h3>9.2 7.8× 是 peak — 平均水平到底多少?</h3>
+<p>
+看 Table 1:
+</p>
+<ul>
+  <li><strong>"7.8×" 出现在</strong> Qwen3-8B / Pseudo2code / T=0, 是<strong>所有 cell 里的最大值</strong>. 这是高度结构化的伪代码 → 代码翻译任务, 不代表通用场景.</li>
+  <li><strong>更现实的平均:</strong> 8B 上所有 task 平均 5.36× (T=0). 4B 上 5.20×. 1.7B 上 4.25×. <em>对小模型, 加速比也小 — 因为小模型 memory-bandwidth 占比不那么主导.</em></li>
+  <li><strong>HumanEval / MBPP 偏低 (3-4×)</strong>: 短代码段, 而且 Python 那种"每行一个新 statement" 的低 prefix 共享性, diffusion block 在这里发挥不出最大优势.</li>
+</ul>
+<p>
+所以读这篇的时候: 7.8× 是<em>marketing 数字</em>, 5-6× 是<em>工程数字</em>, 3× 是<em>worst case (短代码)</em>. 但即便最差的 3× 仍然比 EAGLE-3 (典型 1.5-2.5×) 强.
+</p>
+
+<h3>9.3 训练数据是 SFT 还是从 teacher 蒸馏的?</h3>
+<p>
+答: <strong>从 teacher 蒸馏</strong>. Appendix A 写得很清楚: "<em>target outputs are generated directly by the frozen AR head and used as the distillation signal to train the diffusion head</em>". 也就是说, Nemotron-Post-Training-Dataset-v2 只是提供 prompt 文本 (作为 context input), 真正的 label 是 frozen Qwen3 自己 forward 出来的 full distribution. 这就解释了为什么 1B token 就够用 — 不是从头学知识, 而是<em>学一个"快速近似 Qwen3 分布"的并行 head</em>.
+</p>
+
+<h3>9.4 vs EAGLE-3 — 真的差异在哪?</h3>
+<p>
+表面上, EAGLE-3 和 Orthrus 都是 "frozen target + lightweight trainable drafter + lossless 拒绝采样". 真正的差异:
+</p>
+<ol>
+  <li><strong>drafter 怎么出 token:</strong> EAGLE-3 链式 (k 步 forward 出 k 个), Orthrus 并行 (1 forward 出 K 个).</li>
+  <li><strong>drafter 是否独立:</strong> EAGLE-3 独立小网络, Orthrus 同 transformer 的 attention path.</li>
+  <li><strong>KV cache:</strong> EAGLE-3 两份 (额外 ~10% 内存), Orthrus 一份 (额外 ~4.5 MiB).</li>
+  <li><strong>Acceptance length:</strong> EAGLE-3 ≈ 3.5, Orthrus ≈ 11.7 (3× 提升).</li>
+</ol>
+<p>
+本质: <strong>AR drafter 在结构上天然受限 — chain 长度=drafter forward 次数</strong>; diffusion drafter <strong>把 chain 摊平成一次并行 forward</strong>, 这就是 Orthrus 比 EAGLE-3 acceptance length 大 3 倍的 fundamental 原因.
+</p>
+
+<h3>9.5 O(1) memory 的口径校验</h3>
+<p>
+论文反复说 O(1) memory overhead, 笔者去 §B / Figure 6 验证:
+</p>
+<ul>
+  <li>✅ <strong>KV cache 增量</strong>: 确实 ≈4.5 MiB constant, regardless of L. 因为 diffusion path 不写入历史 cache, 只在生成时用 transient K×d 的临时空间.</li>
+  <li>⚠️ <strong>Weights 增量</strong>: 16% of base model 参数 — 8B base 大约 +1.4B parameters, FP16 下 ~2.8 GB. 这是<em>恒定</em>但不算小. 论文说 "<em>peak GPU memory overhead is practically negligible (&lt;1%)</em>" — 但这里 1% 应该是相对总 GPU 内存 (H200=80GB), 不是相对模型大小.</li>
+  <li>✅ <strong>Diffusion head 本身的 KV</strong>: 训练时每个 sequence 256 个 anchor block × K=32 = 8192 个 transient positions, 每个有 K<sub>diff</sub>+V<sub>diff</sub>. 但这些都是 batched compute 后立即丢的, 不持久. 推理时只有 K=32 个临时位置.</li>
+</ul>
+<p>
+所以 O(1) 是<em>KV cache 维度</em>的 O(1), 不是<em>所有内存维度</em>的 O(1). 总内存还是要加 16% 的 weight footprint. 这点论文 framing 略夸张, 但<em>真正重要的</em>那块 (KV cache scaling, 随 L 线性增长的那块) 确实是 O(1) 的.
+</p>
+
+<h3>9.6 没做的 ablation / 可挖坑</h3>
+<ul>
+  <li><strong>更小的可训练参数</strong>: 16% 已经很少, 但 LoRA-style only-update-attention-K-V 可能压到 5-8%, 训练数据可能能再少一半. 论文没探.</li>
+  <li><strong>K=32 之外</strong>: K=4 → 32 的扫描有了, K=64/128 没扫. 大 K 时 single-forward 算力是否还够 (序列长度+K 接近 attention quadratic 上界)?</li>
+  <li><strong>Tree verify</strong>: 上面 §7.5 提过. 一次 diffusion forward 拿到 K 个 marginals, 完全可以套 DDTree 的 best-first heap 出树.</li>
+  <li><strong>动态 K (à la SV)</strong>: 接受率高的 task 用大 K, 低的用小 K. 没探.</li>
+  <li><strong>多模型</strong>: 论文只测 Qwen3 一家. Llama-3 / GPT-OSS / DeepSeek 等是否一样能用同样的训练协议 (1B token, 24h) 拿到 5× 加速? 未在公开来源确认.</li>
+  <li><strong>多语言 / non-English benchmark</strong>: 都是英文 reasoning 任务. 中文 / 多语言场景下 acceptance length 是否一样? 未测.</li>
+  <li><strong>Long context (&gt;2K)</strong>: 训练 L=2048, 推理时 generalize 到 8K / 32K context 表现如何? 论文 Figure 6 测到了内存稳定但<em>没测 acceptance length 是否随 L 衰减</em>.</li>
+</ul>
+
+<h3>9.7 Limitation (作者自己 Appendix C 承认)</h3>
+<blockquote>
+"Because the Orthrus architecture strictly freezes the autoregressive backbone to guarantee exact inference parity, its generative capabilities are strictly upper-bounded by the foundation model. ... Consequently, the framework acts solely as an inference accelerator and inherently inherits any biases, knowledge gaps, or hallucination tendencies present in the underlying base model."
+</blockquote>
+<p>
+这是 frozen-backbone 路线的<em>共同代价</em>: 你的 ceiling 不会超过 base model. 想突破能力上限只能换更大的 base, 或者放弃 frozen (但那就回到 Fast-dLLM-v2 那条死路). 不过对纯加速来说这反而是优点 — 你的 caller 不需要担心 Orthrus 改变了模型行为.
+</p>
+
+<h3>9.8 笔者个人 take</h3>
+<div class="kv">
+  <strong>这篇论文的核心 contribution 不是 lossless</strong> (拒绝采样早就证好了), <strong>也不是 diffusion drafter</strong> (DFlash 已经有了), <strong>真正的精华是"把 drafter 和 verifier 焊到同一个 transformer 内的 attention path 共享 KV"这个工程结构</strong> — 把 spec decoding 的 "draft + verify 两阶段" 范式从 "<em>两个模型</em>" 收紧到 "<em>一个 transformer 的两条 attention path</em>". 这是<em>架构层面</em>的简化, 比单纯的算法优化更深.
+</div>
+<p>
+对比 EAGLE 系列: EAGLE-1/2/3 一直在 drafter 上做文章 (feature space, dynamic tree, training-time test), 但 drafter 始终是个独立小网络. Orthrus 直接说: <em>这个"独立"是历史包袱, 砍掉</em>. 这种"<em>把工程边界往内收</em>"的招法很 Apple 风 — 不是把功能加复杂, 而是把抽象层去除.
+</p>
+<p>
+预测: <strong>这个范式会很快成为下一代 spec decoding 的标准模板</strong>, 接下来 6-12 个月会有一波在 Orthrus 上加各种 enhancement 的工作 (tree-verify, dynamic K, longer context, multi-model). EAGLE-3 这条外置 drafter 线在新的工业部署里大概会逐步被取代.
+</p>
+
+<hr>
+
+<h2 id="sec10">Memory points</h2>
+
+<ol>
+  <li><strong>Orthrus = AR backbone (frozen) + diffusion attention path (trainable, 16% params) 共享同一份 KV cache.</strong> 这是<em>核心结构创新</em>, 比任何单独的 algorithmic trick 都重要.</li>
+  <li><strong>训练: 1B token, 8×H200×24h, Forward-KL 蒸馏自己的 AR teacher.</strong> 复现门槛极低, 学生党都能跑.</li>
+  <li><strong>推理 cycle: 2 forward (1 diff + 1 AR), 接受 1-K 个 token.</strong> Theoretical lower bound = 0.5 TPF, 实测 average ≈ 5.4 TPF (8B).</li>
+  <li><strong>Lossless = 拒绝采样 (Leviathan 2023, #15) 的直接复用</strong> — 不是新理论, 是把 spec decoding 的数学搬到 intra-transformer 验证场景.</li>
+  <li><strong>7.8× peak (Pseudo2code), 5-6× average reasoning, 3-4× HumanEval/MBPP (短代码).</strong> Marketing 是 7.8×, 工程数字 5×, worst case 3×.</li>
+  <li><strong>Acceptance length 11.7 vs DFlash 7.9 vs EAGLE-3 3.5.</strong> 这是 Orthrus 真正吊打 SOTA 的硬指标.</li>
+  <li><strong>KV cache 增量 ≈ 4.5 MiB, regardless of L.</strong> 这是 "O(1)" 的物理来源, 但 weight 多了 ~16% (~2.8 GB on 8B) — 后者论文没明说.</li>
+  <li><strong>Single-step &gt; Multi-step (6.35 vs 3.53 TPF).</strong> 反 diffusion 文献常规直觉: 有 AR consensus 兜底时, diffusion 不需要 polish 到完美.</li>
+  <li><strong>Soft KL &gt; Hard CE (6.35 vs 5.86 TPF, 同 accuracy).</strong> Lossless 框架里, 训练目标依然影响速度 (通过 acceptance rate).</li>
+  <li><strong>GitHub <a href="https://github.com/chiennv2000/orthrus">chiennv2000/orthrus</a> + HF <code>chiennv/Orthrus-Qwen3-{1.7,4,8}B</code> 三档权重 CC-BY-4.0 全开.</strong></li>
+  <li><strong>Ceiling = base model.</strong> Frozen backbone 路线的共同代价, 但对纯加速场景反而是优点.</li>
+  <li><strong>潜在 open question:</strong> Orthrus × DDTree 树验证 / Orthrus × SV 动态 K / Orthrus on 非 Qwen3 base / Orthrus 在 long-context 上 acceptance length 衰减如何 — 论文都没做.</li>
+  <li><strong>预测:</strong> 这个 "drafter 焊到 attention path" 的结构范式会快速取代外置 drafter 范式. EAGLE-3 类工作 6-12 月后会显老.</li>
+</ol>
+
+<hr>
+<p style="text-align:center;color:var(--muted);font-size:13px;margin-top:40px">
+  · 本笔记基于 arXiv:2605.12825v1 + arXiv HTML 版 + HuggingFace API 元数据 + GitHub HEAD 验证 ·<br>
+  · 标注 "未在公开来源确认" 的项: GitHub 仓库内具体文件清单 / 代码 LICENSE / Long context / 非 Qwen3 base 推广性 ·
+</p>
+
+</main>
+</body>
+</html>
