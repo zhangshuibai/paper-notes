@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · OpenEnv ← Agent World Model: Meta 把 Snowflake AWM 1K 环境包装成标准 OpenEnv server</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>OpenEnv ← Agent World Model: Meta 把 Snowflake AWM 1K 环境包装成标准 OpenEnv server</h1>
+<div class="meta">
+  Meta PyTorch + Snowflake AI Research(原 AWM 数据集所有者) · OpenEnv 文档页 <code>environments/agent_world_model.html</code><br>
+  <a href="https://meta-pytorch.org/OpenEnv/environments/agent_world_model.html" target="_blank">官方文档</a> ·
+  <a href="https://github.com/meta-pytorch/OpenEnv" target="_blank">GitHub: meta-pytorch/OpenEnv</a> ·
+  <a href="https://huggingface.co/spaces/ChilleD/agent_world_model_env" target="_blank">HF Space: ChilleD/agent_world_model_env</a> ·
+  <a href="18_AgentWorldModel_2602.10090.html">本仓库 #18 (原始 AWM 论文精读)</a><br>
+  关键词: OpenEnv 标准 · MCP server packaging · AWM-1K reuse · WebSocket / FastAPI / uvicorn · code 模式 vs SQL LLM-judge · 大规模 RL stress test (1024 并发 episode)
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> OpenEnv(Meta + HuggingFace 2025 年 10 月起的 agentic RL 环境统一规范)把 Snowflake 已开源的 <strong>AgentWorldModel-1K(1,000 个全合成 MCP 环境 / 10,000 个任务)</strong>包装成一个标准的 OpenEnv server,接口完全统一到 <code>reset() / step(CallToolAction) / done</code> 三件套,部署方式是 <code>uvicorn</code> + WebSocket + 一键 HF Spaces 镜像。<strong>验证器有两种模式</strong>:<code>code</code>(默认,纯 Python 比对 SQLite 状态 diff,无 LLM)和 <code>sql</code>(SQL 提状态变化 + LLM-as-judge)。这不是一篇新论文,而是 <strong>AWM 原版数据集 + 验证器在 OpenEnv 生态里的"二次封装"</strong> —— 用户可以用 <code>pip install</code> 完之后 5 行代码连上一个共享 HF Space 跑通,也可以本地起 server 撑 10,000 并发 session。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">1,000 / 10,000</div><div class="l">scenario 数 / task 数(每 scenario 10 task)</div></div>
+    <div class="stat"><div class="n">10,000</div><div class="l">单 server 默认 MAX_CONCURRENT_ENVS</div></div>
+    <div class="stat"><div class="n">2 模式</div><div class="l">verifier: code (default, no LLM) / sql (LLM-judge)</div></div>
+    <div class="stat"><div class="n">BSD-3 + Apache</div><div class="l">OpenEnv 自身 BSD-3,AWM 数据 Apache-2.0</div></div>
+  </div>
+  <p><strong>立场:</strong> 这次 port 是<strong>纯工程整合</strong>,不改 AWM 的合成方法、不改任务总数、不改 verifier 算法,只换 wire protocol —— 把原版 AWM 那种"<em>arbitrary Python harness 调 MCP 子进程</em>"改成统一的 <code>EnvClient</code> + WebSocket。意义在于:OpenEnv 已经接入 TRL / SkyRL / ART / Oumi / Unsloth / torchforge 等 6+ RL 框架,任何能跑 OpenEnv 的 trainer 现在<strong>立刻获得 AWM 1K 作为可选 RL env</strong>,不需要再单独对接 Snowflake 的代码。它和 <a href="31_PrimeIntellectHub.html">#31 Prime Intellect Hub</a> 的 <code>verifiers</code> SDK 是<strong>同时代的兄弟标准</strong>—— Prime Intellect 主打 task-set / verifier 范式,OpenEnv 主打 docker + WebSocket 范式,两者目前可互相桥接(verifiers 已加 OpenEnv 适配器)。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">§1 — OpenEnv + AWM 的桥接背景</a></li>
+    <li><a href="#sec2">§2 — AWM-in-OpenEnv 的实际接口(逐字段)</a></li>
+    <li><a href="#sec3">§3 — Docker / 包装方式 / 大规模 RL 配置</a></li>
+    <li><a href="#sec4">§4 — 与原始 AWM (#18) 的差异:port 改了什么 / 没改什么</a></li>
+    <li><a href="#sec5">§5 — 在生态里的位置:OpenEnv vs verifiers vs Toolathlon-Gym</a></li>
+    <li><a href="#sec6">§6 — 开源 + 使用方式(5 行 quick start)</a></li>
+    <li><a href="#sec7">§7 — 局限 / 诚实分析 / 待验证项</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">§1 · OpenEnv + AWM 的桥接背景</h2>
+
+<h3>1.1 OpenEnv 是什么 — 30 秒回顾</h3>
+
+<p>OpenEnv 是 <strong>Meta PyTorch + HuggingFace 在 2025 年 10 月开源的 agentic RL 环境标准</strong>,核心立意是"让 RL trainer 不必关心环境长什么样,只调三个方法 —— <code>reset() / step(action) / state()</code>"。它的具体形式是:</p>
+
+<ul>
+  <li><strong>每个 env 是一个 FastAPI server</strong>,封进 Docker 容器,容器之间互相隔离;</li>
+  <li><strong>通信走 WebSocket</strong>(JSON 序列化的 Action / Observation),client 侧暴露 <code>EnvClient</code> 基类;</li>
+  <li><strong>action / observation 强类型</strong>(<code>Action</code> 基类 + <code>Observation</code> 基类,dataclass 风格);</li>
+  <li><strong>支持 sync / async 两套 API</strong>,默认 async(<code>async with EnvClient(...) as env</code>),<code>.sync()</code> 包一层做同步;</li>
+  <li><strong>CLI 是 <code>openenv init / openenv push</code></strong>:前者从模板搭新 env 骨架,后者一键推到 HF Spaces 部署。</li>
+</ul>
+
+<p>架构图(README verbatim):</p>
+
+<pre>┌─────────────────────────────────────────────────────────┐
+│                    Client Application                   │
+│  ┌────────────────┐              ┌──────────────────┐   │
+│  │  EchoEnv       │              │  CodingEnv       │   │
+│  │  (EnvClient)   │              │   (EnvClient)    │   │
+│  └────────┬───────┘              └────────┬─────────┘   │
+└───────────┼───────────────────────────────┼─────────────┘
+            │ WebSocket                     │ WebSocket
+            │ (reset, step, state)          │
+┌───────────▼───────────────────────────────▼─────────────┐
+│              Docker Containers (Isolated)               │
+│  ┌──────────────────────┐    ┌──────────────────────┐   │
+│  │ FastAPI Server       │    │ FastAPI Server       │   │
+│  │   EchoEnvironment    │    │ PythonCodeActEnv     │   │
+│  │ (Environment base)   │    │ (Environment base)   │   │
+│  └──────────────────────┘    └──────────────────────┘   │
+└─────────────────────────────────────────────────────────┘</pre>
+
+<p>截至 2026-05,OpenEnv catalog 已经包含 <strong>30+ 个 first-party env</strong>(Echo / Coding / Atari / OpenSpiel / Chess / Connect4 / FinQA / Maze / Reasoning Gym / BrowserGym / TextArena / Wildfire / OpenSpiel / Terminus / TB2 / Unity ML-Agents / CARLA / Calendar / dm_control / kernrl / Julia / dpg-safety / Snake / Web Search / OpenCode / OpenApp / Jupyter / Git / SUMO-RL / Coding Tools / Chat / FinRL / REPL / Grid World / Agent World Model / ...)。Agent World Model 在<strong>列表最后一项(紧邻 OpenCode 之前)</strong>,定位是"<em>大规模 tool-use 合成 env / 1,000 scenario × 10 task</em>"。</p>
+
+<h3>1.2 Snowflake AWM 是什么 — 链接到 <a href="18_AgentWorldModel_2602.10090.html">#18</a></h3>
+
+<p>本仓库 <a href="18_AgentWorldModel_2602.10090.html">#18 AWM 精读</a>已经把原版讲透了,这里只复述<strong>跟 OpenEnv port 直接相关的部分</strong>:</p>
+
+<table>
+  <tr><th>维度</th><th>原始 AWM(Snowflake, arXiv:2602.10090)</th></tr>
+  <tr><td>数据集名</td><td><code>Snowflake/AgentWorldModel-1K</code></td></tr>
+  <tr><td>规模</td><td>1,000 environment / 35,062 tool / 10,000 task</td></tr>
+  <tr><td>合成方式</td><td><strong>全 code-driven</strong>:LLM 生成 Python 代码,代码本身就是 env 后端(MCP server),后端用 SQLite 持久化状态</td></tr>
+  <tr><td>verifier 设计</td><td>每个 scenario 配一个 Python verifier 函数,比对 task 开始前 / 结束后的 SQLite 状态 diff(无 LLM 也能跑)</td></tr>
+  <tr><td>训练 recipe</td><td>Qwen3-Thinking 4B / 8B / 14B + GRPO,产出 Arctic-AWM-4B/8B/14B</td></tr>
+  <tr><td>license</td><td>数据 Apache-2.0,模型 Apache-2.0,合成 pipeline 公开</td></tr>
+</table>
+
+<p>AWM 当时的"原生"使用方式是:<code>git clone Snowflake-Labs/agent-world-model</code> → 直接跑 Python harness → harness 拉起 1,000 个 MCP server 子进程之一 → trainer 自己 wire 上 OpenAI-tool-call API。<strong>这套 harness 没有标准化的 wire protocol</strong>,要接到 TRL / SkyRL / ART 这类训练框架里都得自己写 adapter。OpenEnv port 干的事情就是: <em>把这块 adapter 写一次、所有人复用</em>。</p>
+
+<h3>1.3 为什么这次 port 值得单独写一篇 note</h3>
+
+<ul>
+  <li><strong>AWM 是 OpenEnv catalog 里少数"大规模 tool-use 合成 RL env"</strong> —— OpenEnv 自己的 starter env 大部分是<em>玩具 env</em>(Echo / Atari / Connect4 / Wordle / 2048 / Snake / Maze),AWM 是<strong>第一个真正可以 train 出 BFCL 提分模型的 LLM tool-use env</strong>;</li>
+  <li><strong>Port 后的 verifier 设计有意思</strong> —— 原版 AWM 默认 code 模式,OpenEnv port 把 LLM-judge SQL 模式做成<strong>同一个 <code>verify</code> tool 的不同 <code>verifier_mode</code> 参数</strong>,在 wire protocol 上等价,这是 OpenEnv 风格的"reward backend 选择题"做法;</li>
+  <li><strong>OpenEnv 接了 6+ RL 框架</strong>(TRL, SkyRL, ART, Oumi, Unsloth, torchforge),因此 AWM 现在变成了"<em>任意主流 RL trainer 都能拉起来的 1K env benchmark</em>",这是分发力的质变;</li>
+  <li><strong>它是 OpenEnv vs Prime Intellect Hub 路线对比的极佳样本</strong> —— 同一份数据集(AWM 1K),Prime Intellect Hub 端 <a href="31_PrimeIntellectHub.html">#31</a> 是否已收录、收录形式是什么,可以做横向对照。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec2">§2 · AWM-in-OpenEnv 的实际接口(逐字段)</h2>
+
+<p>本节内容<strong>全部来自官方文档页 <code>environments/agent_world_model.html</code>(2026-05 访问)</strong>,代码段 verbatim。</p>
+
+<h3>2.1 Quick Start — Server 端</h3>
+
+<p>从 OpenEnv 仓库根目录起一个本地 AWM server(默认 8899 端口):</p>
+
+<pre># From the OpenEnv root directory
+PYTHONPATH=src:envs uv run uvicorn envs.agent_world_model_env.server.app:app \
+    --host 0.0.0.0 --port 8899</pre>
+
+<p class="nb">注意几个细节: <em>(1)</em> 用的是 <code>uv run uvicorn</code>(<code>uv</code> 是更快的 Python package manager,OpenEnv 整个项目都默认 <code>uv</code>); <em>(2)</em> <code>PYTHONPATH=src:envs</code> 把 OpenEnv 的 core src 和环境目录都加进去; <em>(3)</em> app 的位置是 <code>envs.agent_world_model_env.server.app:app</code> —— 即 env 的 server 端代码在 <code>envs/agent_world_model_env/server/</code>。</p>
+
+<h3>2.2 Quick Start — Client 端(完整 episode)</h3>
+
+<pre>import asyncio
+from agent_world_model_env import AWMEnv
+from openenv.core.env_server.mcp_types import CallToolAction, ListToolsAction
+
+async def main():
+    async with AWMEnv(base_url="http://localhost:8899") as env:
+        # Reset to a scenario with a specific task
+        result = await env.reset(scenario="e_commerce_33", task_idx=0)
+        print(f"Task: {result.observation.task}")
+        print(f"Tools available: {result.observation.num_tools}")
+        print(f"Verifier support: {result.observation.has_verifier}")
+        # {sql: True, code: True}
+
+        # List available tools
+        tools = await env.list_tools()
+        for tool in tools[:3]:
+            print(f"  - {tool.name}: {tool.description}")
+
+        # Call a tool
+        obs = await env.call_tool("search_products", query="headphones")
+        print(f"Result: {obs.tool_result}")
+
+        # Run verification
+        result = await env.step(CallToolAction(
+            tool_name="verify",
+            arguments={"verifier_mode": "code", "final_answer": "optional answer"}
+        ))
+        print(f"Reward type: {result.observation.reward_type}")
+        print(f"Reward: {result.reward}")
+        print(f"Verify result: {result.observation.verify_result}")
+
+        # End episode (destroys subprocess; set keep_session=True to preserve files)
+        result = await env.step(CallToolAction(
+            tool_name="done", arguments={"keep_session": False}))
+        print(f"Episode done: {result.done}")
+
+asyncio.run(main())</pre>
+
+<p>这 25 行<strong>完整覆盖了一次 episode 的所有阶段</strong>:reset → list_tools → call_tool(业务 tool) → step(verify tool) → step(done tool)。注意 <code>verify</code> 和 <code>done</code> 是<strong>特殊保留的 tool_name</strong>,业务 tool(<code>search_products</code> 等)和它们走同一个 <code>CallToolAction</code> 接口。</p>
+
+<h3>2.3 Action 类型 — 只有两种</h3>
+
+<table>
+  <tr><th>Action</th><th>含义</th></tr>
+  <tr><td><code>ListToolsAction()</code></td><td>列出当前 scenario 的全部 MCP tools(无 args)</td></tr>
+  <tr><td><code>CallToolAction(tool_name, arguments)</code></td><td>调用具体 tool,<code>arguments</code> 是 dict</td></tr>
+</table>
+
+<p>三个特殊 <code>tool_name</code>:</p>
+<table>
+  <tr><th>tool_name</th><th>含义</th><th>是否触发 verifier</th></tr>
+  <tr><td><code>"verify"</code></td><td>跑当前 task 的 verifier,<code>arguments = {"verifier_mode": "sql"|"code", "final_answer": str optional}</code></td><td class="ok">是</td></tr>
+  <tr><td><code>"done"</code></td><td>结束 episode,destroy 子进程;<code>arguments = {"keep_session": True/False}</code></td><td class="no">否(不重复跑 verifier)</td></tr>
+  <tr><td><code>"__list_scenarios__"</code></td><td>返回全部 1,000 个 scenarios 列表 + 每个 scenario 的 task 数(<code>arguments = {}</code>)</td><td class="no">否</td></tr>
+</table>
+
+<p class="nb">这套设计哲学是 <strong>"verify is just another tool"</strong> —— RL trainer 不用引入新概念,verify 就是策略可以选择何时调用的一个工具,这跟 ReAct / tool-call 思路完全一致。对比之下,Prime Intellect 的 <code>verifiers</code> SDK 把 verify 做成 <code>Env</code> 的独立 <code>verify()</code> 方法,概念上跟 tool-call 分离。</p>
+
+<h3>2.4 Observation 字段(逐字段)</h3>
+
+<p>每次 <code>step</code> 返回的 <code>StepResult.observation</code> 包含以下 11 个字段:</p>
+
+<table>
+  <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+  <tr><td><code>reward</code></td><td>float</td><td>本步 reward(根据 reward_type + reward_config 计算)</td></tr>
+  <tr><td><code>reward_type</code></td><td>str</td><td>本步分类: <code>complete / incomplete / format_error / tool_not_found / invalid_args / server_error / timeout / ...</code></td></tr>
+  <tr><td><code>scenario</code></td><td>str</td><td>当前 scenario 名(如 <code>e_commerce_33</code>)</td></tr>
+  <tr><td><code>task</code></td><td>str</td><td>自然语言 task 描述</td></tr>
+  <tr><td><code>task_idx</code></td><td>int</td><td>task 索引,0–9(每 scenario 10 task)</td></tr>
+  <tr><td><code>has_verifier</code></td><td>dict / None</td><td><code>{sql: bool, code: bool}</code>;原版 AWM 大部分 scenario 两种都支持</td></tr>
+  <tr><td><code>num_tools</code></td><td>int</td><td>当前 scenario 暴露的 tool 数</td></tr>
+  <tr><td><code>tool_name</code></td><td>str</td><td>本步调的 tool 名</td></tr>
+  <tr><td><code>tool_result</code></td><td>Any</td><td>tool 返回的内容</td></tr>
+  <tr><td><code>error</code></td><td>str</td><td>异常 message(如有)</td></tr>
+  <tr><td><code>verify_result</code></td><td>dict</td><td>verifier 输出(只在调过 verify 之后非空)</td></tr>
+  <tr><td><code>trajectory_path</code></td><td>str</td><td><code>done</code> 之后的 trajectory JSON 文件路径</td></tr>
+  <tr><td><code>session_dir</code></td><td>str</td><td>只在 <code>keep_session=True</code> 时返回</td></tr>
+</table>
+
+<h3>2.5 Reward 设计 — 默认值 + 可在 reset 覆盖</h3>
+
+<p>默认 reward map:</p>
+
+<table>
+  <tr><th>reward_type</th><th>Reward</th><th>含义</th></tr>
+  <tr><td><code>complete</code></td><td class="ok">+1.0</td><td>verifier 通过</td></tr>
+  <tr><td><code>incomplete</code></td><td>+0.1</td><td>verifier 失败但格式 OK(给一点活下来的信号)</td></tr>
+  <tr><td><code>format_error</code> / <code>tool_not_found</code> / <code>invalid_args</code></td><td class="no">−1.0</td><td>格式 / tool 名错 / 参数错</td></tr>
+  <tr><td>其他(<code>server_error</code> / <code>timeout</code> / …)</td><td>0.0</td><td>系统级错误,不算策略责任</td></tr>
+</table>
+
+<p>这套默认值<strong>对 RL 来说不是 sparse reward</strong>:</p>
+<ul>
+  <li>complete = +1.0,incomplete = +0.1 —— 给一个非零但小的 baseline,鼓励"尝试"而不是"放弃";</li>
+  <li>format_error = −1.0 —— <strong>显式惩罚</strong>不会调工具的失误,这是 BFCL 那条 AST-only 路线在 RL 里的体现;</li>
+  <li>系统错误 = 0.0 —— 把<em>不可归因</em>的 reward 信号清零,避免噪声反向梯度。</li>
+</ul>
+
+<p>可在 reset 时覆盖:</p>
+
+<pre>result = await env.reset(
+    scenario="e_commerce_33",
+    task_idx=0,
+    reward_config={"complete": 1.0, "incomplete": 0.0, "format_error": 0.0}
+)</pre>
+
+<p>典型的"<strong>稀疏 binary RL</strong>"做法是把 incomplete 设 0、format_error 设 0,只奖励 complete = 1.0,跟 RLVR 风格对齐。</p>
+
+<h3>2.6 Verifier 两种模式 — 同一个 tool 调用 / 不同 arguments</h3>
+
+<h4>code 模式(默认,无 LLM 需求)</h4>
+
+<pre>result = await env.step(CallToolAction(
+    tool_name="verify",
+    arguments={"verifier_mode": "code", "final_answer": "optional answer"}
+))</pre>
+
+<p>跑一个 Python verifier 函数,比对 <strong>task 开始前的 SQLite snapshot</strong> 和 <strong>当前 SQLite 状态</strong>。这就是原版 AWM 论文里的"state-diff verifier"。<em>determinstic, no LLM, free</em>。<code>final_answer</code> 是 optional 的 —— 有些 task 除了改 DB 还要给一个最终答案字符串。</p>
+
+<h4>sql 模式(code-augmented LLM-as-a-Judge,文档推荐)</h4>
+
+<p>文档原话: "<em>This mode is recommended for judge performance.</em>" —— OpenEnv 团队认为 LLM judge 在这套数据上判得更准。需要先配 LLM 凭证:</p>
+
+<pre># Set LLM credentials via environment variables
+# OPENENV_AWM_LLM_BASE_URL, OPENENV_AWM_LLM_API_KEY, OPENENV_AWM_LLM_MODEL
+
+result = await env.step(CallToolAction(
+    tool_name="verify",
+    arguments={"verifier_mode": "sql"}
+))</pre>
+
+<p>具体流程: <em>跑 SQL query 提取状态变化</em> → <em>把 diff 喂给 LLM judge</em> → <em>LLM 判断是否完成 task</em>。这种 "<strong>SQL augmented LLM judge</strong>" 比 raw LLM judge 稳很多,因为 LLM 看到的不是原始 DB dump 而是<strong>结构化的状态 diff</strong>。注意 LLM 凭证是<strong>客户端 env var,不是 server 参数</strong> —— 也就是说同一个 AWM server 实例可以同时服务 code mode 用户和 sql mode 用户。</p>
+
+<p>这次 port 的<strong>设计亮点</strong>: <em>原版 AWM 论文里 sql 模式是默认主线,code 模式偏 fallback;OpenEnv port 把 code 模式做成默认,LLM 模式做成 opt-in。</em>这一翻转直接降低了 RL 训练成本(默认就不需要付 judge LLM 的 API 费用)。<span class="warn">这里"翻转"是 OpenEnv 文档的措辞推断,具体原版 AWM 的 default 模式选择<strong>未在公开来源直接比较</strong>,但 #18 笔记里读到的训练 recipe 是混用两种 verifier。</span></p>
+
+<h3>2.7 Session artifacts — done(keep_session=True) 保留什么</h3>
+
+<p>当客户端调 <code>done(keep_session=True)</code> 时,session 目录会保留以下 5 个文件:</p>
+
+<table>
+  <tr><th>文件</th><th>说明</th></tr>
+  <tr><td><code>trajectory.json</code></td><td>完整 episode trajectory(scenario / task / 每步 action+result)</td></tr>
+  <tr><td><code>{scenario}.db</code></td><td>SQLite — agent 操作完毕后的最终 DB 状态</td></tr>
+  <tr><td><code>{scenario}_initial.db</code></td><td>SQLite — agent 操作前的初始 DB snapshot</td></tr>
+  <tr><td><code>server.py</code></td><td>本次 launch 的 patched env 代码</td></tr>
+  <tr><td><code>server.log</code></td><td>子 uvicorn 的启动日志 + 全部 HTTP 请求</td></tr>
+</table>
+
+<p><strong>这五个文件加起来等于一个可调试 / 可回放 / 可二次 verifier 的 minimum 工件包</strong>。<code>{scenario}.db</code> 配 <code>{scenario}_initial.db</code> 就是 verifier 的全部输入,因此<strong>事后任何人都可以独立重跑 verifier</strong>。<code>trajectory.json</code> 直接喂回任何 trajectory-based SFT / RL pipeline。<em>这是非常工业级的设计</em>。</p>
+
+<p>默认 <code>keep_session=False</code> —— RL 训练时大多不需要存 artifact,直接清干净就行。</p>
+
+<h3>2.8 List scenarios — 元数据接口</h3>
+
+<pre>async with AWMEnv(base_url="http://localhost:8899") as env:
+    # List all 1,000 scenarios
+    result = await env.step(CallToolAction(tool_name="__list_scenarios__", arguments={}))
+
+    print(f"Total scenarios: {result.observation.total}")
+    for scenario in result.observation.scenarios[:5]:
+        print(f"  - {scenario['name']}: {scenario['num_tasks']} tasks")
+        print(f"    Sample task: {scenario['tasks'][0][:80]}...")</pre>
+
+<p>这是 OpenEnv AWM 提供的<strong>额外便利接口</strong>(原版 AWM 需要 grep 数据集才能列出 scenarios)。每个 scenario 返回 <code>name</code> + <code>num_tasks</code> + <code>tasks</code>(list of task descriptions)。1,000 个 scenarios × 10 tasks = 10,000 个 task,与原始 AWM 数据集对齐。</p>
+
+<hr>
+
+<h2 id="sec3">§3 · Docker / 包装方式 / 大规模 RL 配置</h2>
+
+<h3>3.1 Server 监控 — <code>/stats</code> endpoint</h3>
+
+<pre>curl http://localhost:8899/stats</pre>
+
+<p>返回:</p>
+<ul>
+  <li><code>total_sessions</code>: 当前活跃 WebSocket session 数</li>
+  <li><code>max_idle_time_config</code>: idle 阈值(默认 600s)</li>
+  <li><code>cleanup_interval_config</code>: 清理 daemon 扫描间隔(默认 5s)</li>
+  <li><code>scenarios breakdown</code>: 哪些 scenario 当前有 session</li>
+  <li><code>max_idle_s</code>: 当前实测最大 idle 秒数</li>
+</ul>
+
+<p><strong>背景清理 daemon</strong>: 当 <code>total_sessions > ALLOWED_IDLE_SESSIONS</code>(默认 3,000)时,把 idle &gt; <code>MAX_IDLE_TIME</code>(默认 600s)的 session 自动 kill。这套设计针对的就是<strong>大规模 RL rollout 出现 stuck session 导致内存爆炸</strong>的现实问题。</p>
+
+<h3>3.2 大规模 RL 设计 — 单 server 撑 10,000 session</h3>
+
+<p>文档原话:</p>
+<blockquote>AWM is designed for large-scale agentic RL. A single server supports thousands of concurrent WebSocket sessions, each with its own isolated environment subprocess.</blockquote>
+
+<p>压测脚本(verbatim):</p>
+
+<pre># after server started, then in another terminal:
+PYTHONPATH=src:envs uv run python examples/agent_world_model/example_stress_test.py \
+    --scale 1024 --concurrency 64 --min-turns 3 --max-turns 20 \
+    --think-min 3.0 --think-max 30.0</pre>
+
+<p>这个命令的语义: <strong>1,024 个并行 episode</strong>,每个 episode 3–20 多轮 tool 调用,每轮模拟 LLM "think" 3–30 秒,<code>concurrency=64</code> 是 client 端的并发 worker 数。这是<strong>模拟 RL on-policy rollout 阶段的 LLM 推理延迟</strong>(LLM 推理慢,env 必须能扛住 client 端的高并发空转)。</p>
+
+<p class="nb">这 1,024 episode 并不会同时拉起 1,024 个 env subprocess —— concurrency=64 意味着 client 最多 64 个 in-flight,server 端 env subprocess 应该会在 episode 之间复用 / 起新进程。具体 subprocess lifecycle <strong>未在文档直接说明</strong>,但 <code>READY_TIMEOUT=180s</code> 和 <code>MAX_PORT_RETRIES=5</code> 暗示了 spawn-on-demand 模式。</p>
+
+<h3>3.3 Server 配置表 — 全部可经 env var 调</h3>
+
+<table>
+  <tr><th>Config</th><th>默认</th><th>Env Var</th><th>含义</th></tr>
+  <tr><td><code>MAX_CONCURRENT_ENVS</code></td><td>10,000</td><td>—</td><td>单 server 最大 WebSocket session 数</td></tr>
+  <tr><td><code>READY_TIMEOUT</code></td><td>180s</td><td><code>OPENENV_AWM_READY_TIMEOUT</code></td><td>env subprocess 启动超时</td></tr>
+  <tr><td><code>MAX_PORT_RETRIES</code></td><td>5</td><td><code>OPENENV_AWM_MAX_PORT_RETRIES</code></td><td>端口冲突时重试次数</td></tr>
+  <tr><td><code>RETRY_READY_TIMEOUT</code></td><td>30s</td><td><code>OPENENV_AWM_RETRY_READY_TIMEOUT</code></td><td>重试时用更短的 timeout(快速失败)</td></tr>
+  <tr><td><code>READY_POLL_INTERVAL</code></td><td>0.5s</td><td>—</td><td>startup readiness 轮询间隔</td></tr>
+  <tr><td><code>MAX_IDLE_TIME</code></td><td>600s</td><td><code>OPENENV_AWM_MAX_IDLE_TIME</code></td><td>idle 阈值</td></tr>
+  <tr><td><code>ALLOWED_IDLE_SESSIONS</code></td><td>3,000</td><td><code>OPENENV_AWM_ALLOWED_IDLE_SESSIONS</code></td><td>触发 cleanup 的 session 数</td></tr>
+  <tr><td><code>CLEANUP_INTERVAL</code></td><td>5s</td><td><code>OPENENV_AWM_CLEANUP_INTERVAL</code></td><td>cleanup daemon 扫描周期</td></tr>
+</table>
+
+<p><strong>10,000 默认 MAX_CONCURRENT_ENVS 是非常激进的数字</strong> —— 假设每个 env subprocess 占 50MB,理论上一台 server 撑 500GB RAM 的工作集。但实际 RL 训练时 concurrent active session 不会真的拉到 10K,主要是给 client 端波动留 headroom。3,000 这个 idle session 阈值更现实,触发清理时差不多 150GB,符合一台 256GB 训练节点的容量。</p>
+
+<h3>3.4 Docker 打包方式 — 走 OpenEnv 标准</h3>
+
+<p>OpenEnv 的统一打包标准是: <strong>每个 env 一个 <code>server/Dockerfile</code></strong>,容器内跑 FastAPI server,容器外用 <code>LocalDockerProvider</code> 或 <code>KubernetesProvider</code> 拉起。<strong>AWM env 自己的 Dockerfile 文档没有 verbatim 贴出</strong>,但根据 OpenEnv README 的环境模板:</p>
+
+<pre>my_env/
+├── .dockerignore        # Docker build exclusions
+├── __init__.py          # Export YourAction, YourObservation, YourEnv
+├── models.py            # Define Action, Observation, State dataclasses
+├── client.py            # Implement YourEnv(EnvClient)
+├── README.md
+├── openenv.yaml         # Environment manifest
+├── pyproject.toml
+├── outputs/             # Runtime outputs (logs, evals) - gitignored
+│   ├── logs/
+│   └── evals/
+└── server/
+    ├── your_environment.py  # Implement YourEnvironment(Environment)
+    ├── app.py               # Create FastAPI app
+    ├── requirements.txt
+    └── Dockerfile</pre>
+
+<p>AWM env 在仓库里应该是 <code>envs/agent_world_model_env/</code>,跟此结构对齐(从 <code>envs.agent_world_model_env.server.app:app</code> 的 import path 可推断)。<span class="warn">具体的 <code>envs/agent_world_model_env/server/Dockerfile</code> 内容、镜像大小、tag 名称<strong>未在公开来源(文档页 + README)直接看到</strong>;但根据 OpenEnv 一键发布机制,该 env 必然能用 <code>openenv push</code> 推到 HF Spaces,而 HF Space <code>ChilleD/agent_world_model_env</code> 正是公开示例。</span></p>
+
+<h3>3.5 公开 HF Space — 0 部署成本试用</h3>
+
+<p>不想本地起 server 的话,文档明确提供了 HF Space 入口:</p>
+
+<pre># 直接连公开 HF Space(可能比较慢)
+AWM_BASE_URL=https://chilled-agent-world-model-env.hf.space
+# 或
+async with AWMEnv(base_url="https://chilled-agent-world-model-env.hf.space") as env:
+    ...</pre>
+
+<p>这是 OpenEnv 整套生态的<strong>核心便利</strong> —— HF Spaces 免费 host(CPU tier),任何研究者都能在自己的 colab 里直接连远端 env 跑实验,不用配 Docker、不用 GPU、不用申请配额。代价是延迟(每个 tool call 走 public internet,数百 ms 起步)。</p>
+
+<hr>
+
+<h2 id="sec4">§4 · 与原始 AWM (#18) 的差异 — port 改了什么,没改什么</h2>
+
+<table>
+  <tr><th>维度</th><th>原始 AWM (#18, Snowflake)</th><th>OpenEnv port</th><th>差异</th></tr>
+  <tr><td>数据集</td><td>AgentWorldModel-1K (HF)</td><td>同 — 1,000 scenario / 10,000 task</td><td><span class="ok">无</span></td></tr>
+  <tr><td>tool 总数</td><td>35,062(论文报告)</td><td>文档只说"per-scenario num_tools",未给总数</td><td>同源数据,数字应一致;<strong>OpenEnv 未公开复述</strong></td></tr>
+  <tr><td>verifier 算法</td><td>SQLite 状态 diff + Python verifier</td><td>同 — code mode = 同一套 Python verifier</td><td><span class="ok">无</span></td></tr>
+  <tr><td>LLM judge</td><td>SQL 提取 diff + LLM judge(论文 6.3 节)</td><td>同 — sql mode,LLM 经 env var 配</td><td><span class="ok">无算法差异</span></td></tr>
+  <tr><td>默认 verifier mode</td><td>混用 / 训练 recipe 自选</td><td>code mode 是默认</td><td>port <strong>明确把 free mode 设为默认</strong>,降低试用门槛</td></tr>
+  <tr><td>Wire protocol</td><td>Python harness 直接调子进程</td><td>WebSocket + FastAPI + JSON Action/Observation</td><td><strong>port 的最大改动</strong>:协议从"语言内"升到"语言外"</td></tr>
+  <tr><td>action 模型</td><td>{name, arguments}(直接 OpenAI tool-call JSON)</td><td><code>CallToolAction(tool_name, arguments)</code> dataclass</td><td>类型化,但语义不变</td></tr>
+  <tr><td>verify 触发方式</td><td>训练 harness 调 verifier 函数</td><td>policy 调一个特殊的 <code>verify</code> tool</td><td><strong>port 把 verify 内化为 tool</strong>,RL agent 可学"何时 verify"</td></tr>
+  <tr><td>session 隔离</td><td>原版 harness 单进程 / 论文未细说</td><td>每 session 一个子进程,subprocess 隔离</td><td><strong>port 显著增强并发隔离</strong>,适合大 batch RL</td></tr>
+  <tr><td>大规模 stress test</td><td>论文 §7 报训练时跑了 ~8 GPU h100</td><td>提供 1,024 episode / 64 concurrency 压测脚本</td><td>port 把 RL 部署侧明确化</td></tr>
+  <tr><td>idle cleanup</td><td>无显式机制</td><td>3,000 / 600s 阈值自动 kill idle session</td><td>port 解决生产部署的内存泄漏问题</td></tr>
+  <tr><td>artifact 保留</td><td>需要自己改 harness 存</td><td>5 文件 standard session_dir(trajectory + 2 DB + server.py + log)</td><td>port 做了 <strong>事后调试友好的标准化包</strong></td></tr>
+  <tr><td>HF Space hosting</td><td>无</td><td><code>ChilleD/agent_world_model_env</code> 公开 Space</td><td>port 提供零部署试用入口</td></tr>
+  <tr><td>license</td><td>code Apache,数据 Apache</td><td>OpenEnv 本身 BSD-3,封装的数据继承 AWM 的 Apache</td><td><span class="ok">仍然商用 friendly</span></td></tr>
+  <tr><td>训练 recipe / 模型</td><td>Arctic-AWM-4B/8B/14B(Qwen3-Thinking + GRPO)</td><td><strong>port 不包含 RL recipe</strong> —— 这是 env 而非模型 release</td><td>需借助 TRL / SkyRL / torchforge 等 OpenEnv 兼容 trainer 自己训</td></tr>
+</table>
+
+<h3>4.1 没改的部分 — 数据 / verifier 算法 / 数学</h3>
+
+<p>这次 port <strong>是一次纯 wire protocol 转换</strong>,Snowflake 原版的全部"<em>科研意义"内容(scenario 合成方法、数量、verifier 设计、SQLite-as-state)都没动</em>。所以 <a href="18_AgentWorldModel_2602.10090.html">#18 笔记</a>里 §3-§6 的"数据合成 pipeline / verifier 设计 / 训练 recipe"对 OpenEnv port 全部成立 —— 任何在 OpenEnv 上拿 AWM 训出的模型,跟直接拿原版 harness 训应该<strong>等价</strong>(模 wire-protocol-noise)。</p>
+
+<h3>4.2 真正改了的部分 — wire protocol + 工程化</h3>
+
+<ul>
+  <li><strong>protocol 标准化</strong>: 任何 OpenEnv-兼容的 RL trainer 都能直接用 AWM,不用写 adapter;</li>
+  <li><strong>verify-as-tool</strong>: 把 verifier 从 harness 内化为 policy 可调的 tool,理论上让 RL 也能学"何时 verify"这一决策 —— 这是<strong>一个微妙的语义升级</strong>;</li>
+  <li><strong>subprocess 隔离 + idle cleanup</strong>: 解决了大 batch RL 时 env crash / hang 的内存泄漏问题;</li>
+  <li><strong>HF Space hosting</strong>: 试用门槛从"clone + setup"降到"<code>pip install + URL</code>";</li>
+  <li><strong>artifact pack 标准化</strong>: trajectory.json + 2 DB + server.py + log,事后任何人能独立 reproduce + re-verify。</li>
+</ul>
+
+<h3>4.3 "verify 作为 tool"是不是真的更好?— 双面分析</h3>
+
+<p><strong>支持论点</strong>: 把 verify 当 tool,policy 可以学到"<em>什么时候我自己觉得 task 做完了</em>" —— 这跟 critic-free RL 里"learn to stop"的思路一致。OpenAI 的 SWE-bench 风格训练里,模型学会自己说 <code>I'm done</code> 后总比硬 turn-cap 表现好。</p>
+
+<p><strong>反对论点</strong>: 把 verify 当 tool 也意味着<strong>策略可以"作弊地"调一次 verify 看看 reward 信号,然后基于这个反馈修改后续行为</strong> —— 这在 RL 里属于 <em>process-level reward leak</em>,可能让模型学到"调一次 verify 看结果,失败的话回去改,直到成功"的 hack 行为。AWM 默认 reward <code>incomplete = +0.1</code>(失败也给一点),理论上能让 policy 多调几次 verify 而不被罚太狠。<span class="warn">具体 verify 是否限制每 episode 只能调一次、是否给重复调 verify 设惩罚<strong>未在文档直接说明</strong>。从 quick-start 代码看,verify 可以多次调用(注释 "<em>can be called multiple times with different modes</em>"),这意味着 reward leak 风险存在。</span></p>
+
+<hr>
+
+<h2 id="sec5">§5 · 在生态里的位置 — OpenEnv vs verifiers vs Toolathlon-Gym</h2>
+
+<h3>5.1 三套主流 RL env 标准的 2026-05 现状</h3>
+
+<table>
+  <tr><th>标准</th><th>开发方</th><th>核心抽象</th><th>Wire</th><th>RL trainer 覆盖</th><th>AWM 是否已收</th></tr>
+  <tr><td><strong>OpenEnv</strong></td><td>Meta + HF + community</td><td>FastAPI server + WebSocket / <code>reset/step</code></td><td>HTTP + WS</td><td>TRL / SkyRL / ART / Oumi / Unsloth / torchforge(6+)</td><td class="ok"><strong>是</strong> — 即本文</td></tr>
+  <tr><td><strong>verifiers (Prime Intellect)</strong></td><td>Prime Intellect</td><td><code>Env(taskset, harness, verify_func)</code> Python SDK</td><td>语言内</td><td>prime-rl 主线;OpenEnv 桥接</td><td><span class="warn">未在公开来源直接确认 Hub 上有 AWM</span></td></tr>
+  <tr><td><strong>Toolathlon-Gym</strong></td><td>Toolathlon team</td><td>MCP-based,RL gym wrapper</td><td>MCP 协议</td><td>主要给 Toolathlon-bench-RL 训用</td><td class="no">否(scope 不同)</td></tr>
+  <tr><td><strong>MCP-Universe</strong></td><td>Salesforce AI</td><td>framework with verl GRPO 集成</td><td>MCP 协议</td><td>verl(单家)</td><td class="no">否</td></tr>
+  <tr><td><strong>AgentGym-RL</strong></td><td>复旦/上交</td><td>27 task / ScalingInter-RL 课程</td><td>语言内</td><td>自家 trainer</td><td class="no">否</td></tr>
+</table>
+
+<p>OpenEnv 收 AWM 的意义:<strong>AWM 第一次从"单家 Snowflake 自循环"被拉进了一个真的<em>多 RL trainer 共用</em>的标准</strong>。Prime Intellect Hub 上能否找到 AWM env <a href="31_PrimeIntellectHub.html">#31</a> 没有明确确认,但即使有,也是 Prime 自家 verifiers 格式,不直接被 TRL/SkyRL/ART 用。</p>
+
+<h3>5.2 verifiers 和 OpenEnv 已经互桥</h3>
+
+<p>本仓库 <a href="31_PrimeIntellectHub.html">#31 Prime Intellect Hub</a> 已经提到,verifiers SDK 在 v1 加了 <strong>OpenEnv 桥接(<code>OpenEnvAdapter</code>)</strong>,把 OpenEnv 的 client 包成 verifiers 的 <code>Env</code>。这意味着:</p>
+
+<ul>
+  <li>verifiers 用户可以直接 import OpenEnv 上的 AWM,跑 prime-rl 训练;</li>
+  <li>OpenEnv 用户可以反向用 verifiers 上的 task-set / harness 抽象,接 OpenEnv server。</li>
+</ul>
+
+<p>这是<strong>非常健康的"标准之间合作"现象</strong> —— 不像之前 OpenAI Gym vs Farama Gymnasium 那种分叉,OpenEnv 和 verifiers 选择互相 wrap。具体桥接代码<strong>未在 OpenEnv 文档页直接给出</strong>,需要去 verifiers repo 看 <code>OpenEnvAdapter</code> 实现。</p>
+
+<h3>5.3 vs Toolathlon-Gym — 不直接竞争</h3>
+
+<p>Toolathlon-Gym 是给 Toolathlon bench(<a href="21_MCPBenchmarks_compare.html">#21</a> 提及)用的 RL gym,scope 是<strong>真实 MCP server 上的 long-horizon 任务</strong>,跟 AWM(全合成 / 短任务 / 大规模)的设计目标互补。AWM 的优势是<strong>规模 + 速度 + verifier 确定性</strong>,Toolathlon-Gym 的优势是<strong>分布跟实际 MCP 用法贴近</strong>。理论上理想的 RL 训练 pipeline 是:<em>先 OpenEnv-AWM 大规模冷启 → 再 Toolathlon-Gym fine-tune long-horizon</em>。</p>
+
+<h3>5.4 OpenEnv catalog 里 AWM 的同类</h3>
+
+<p>OpenEnv 30+ env 里,跟 AWM 最像的是:</p>
+
+<ul>
+  <li><strong>Coding Tools Environment</strong> — Python tool-use,smaller scope</li>
+  <li><strong>BrowserGym Environment</strong> — browser 任务,跨域</li>
+  <li><strong>OpenApp Environment</strong> — app simulation,scope 不同</li>
+  <li><strong>Web Search Environment</strong> — search tool,单一 vertical</li>
+  <li><strong>Calendar Environment</strong> — 单一 tool 域</li>
+</ul>
+
+<p>对比下来 <strong>AWM 是 OpenEnv catalog 里规模最大的 LLM tool-use RL env</strong>(1,000 env × 10 task),其他都是<em>玩具 env(Echo / Wordle / 2048)</em>或<em>vertical-specific env(Calendar / FinRL)</em>。AWM 在 OpenEnv 里相当于"大规模 tool-use benchmark suite"的官方答案。</p>
+
+<hr>
+
+<h2 id="sec6">§6 · 开源 + 使用方式(5 行 quick start)</h2>
+
+<h3>6.1 最短上手路径(连公开 HF Space)</h3>
+
+<pre>pip install openenv-core
+pip install git+https://huggingface.co/spaces/ChilleD/agent_world_model_env  # 推测安装路径,<span style="color:#cc4a1b">未在公开来源逐字确认</span>
+
+import asyncio
+from agent_world_model_env import AWMEnv
+from openenv.core.env_server.mcp_types import CallToolAction
+
+async def main():
+    async with AWMEnv(base_url="https://chilled-agent-world-model-env.hf.space") as env:
+        result = await env.reset(scenario="e_commerce_33", task_idx=0)
+        print(result.observation.task)
+
+asyncio.run(main())</pre>
+
+<p>上面的<strong>客户端 pip 安装路径是基于 OpenEnv 通用模式推测</strong> —— OpenEnv 标准做法是 <code>pip install git+https://huggingface.co/spaces/&lt;org&gt;/&lt;env&gt;</code>(README 里 Echo env 就是这样),AWM 应该一致,但<strong>文档页未 verbatim 给出 pip 命令</strong>。</p>
+
+<h3>6.2 本地起 server(完整自主)</h3>
+
+<pre># 1. clone OpenEnv
+git clone https://github.com/meta-pytorch/OpenEnv.git
+cd OpenEnv
+uv pip install -e .   # core 包
+
+# 2. 起 AWM server
+PYTHONPATH=src:envs uv run uvicorn envs.agent_world_model_env.server.app:app \
+    --host 0.0.0.0 --port 8899
+
+# 3. 另一终端跑 client
+PYTHONPATH=src:envs uv run python examples/agent_world_model/example_usage.py</pre>
+
+<p>这是<strong>研究复现 / debugging / 大规模 RL 训练时的标准路径</strong>。example_usage.py 文档说支持本地和远端两种 base_url,<code>AWM_BASE_URL=https://chilled-agent-world-model-env.hf.space</code> 切到 HF Space。</p>
+
+<h3>6.3 接到 RL trainer — 以 TRL 为例</h3>
+
+<p>OpenEnv 在 HF TRL 文档里有 <a href="https://huggingface.co/docs/trl/openenv" target="_blank">官方 example</a>。<strong>原则上把 AWMEnv 替换上去就能跑</strong> —— 任何接受 OpenEnv <code>EnvClient</code> 的 trainer (TRL / SkyRL / ART / Oumi / Unsloth / torchforge) 都立刻可以拿 AWM 训。<span class="warn">具体 TRL × AWMEnv × GRPO 的 example code <strong>OpenEnv 文档未直接给</strong>,需要按 TRL OpenEnv 通用模板自己写一个;但因为 protocol 完全标准化,改动量应该很小(替换 base_url + reward 字段映射)。</span></p>
+
+<h3>6.4 License 一览</h3>
+
+<table>
+  <tr><th>组件</th><th>License</th><th>来源</th></tr>
+  <tr><td>OpenEnv 本体(core, CLI, server framework)</td><td>BSD-3-Clause</td><td>github.com/meta-pytorch/OpenEnv LICENSE</td></tr>
+  <tr><td>AgentWorldModel-1K 数据集</td><td>Apache-2.0(继承原版 Snowflake/AgentWorldModel-1K)</td><td>HF dataset license</td></tr>
+  <tr><td>AWM 合成 pipeline 代码</td><td>Apache-2.0</td><td>Snowflake-Labs/agent-world-model</td></tr>
+  <tr><td>Arctic-AWM-4B/8B/14B 模型</td><td>Apache-2.0(原版 release)</td><td>HF model card</td></tr>
+  <tr><td>OpenEnv AWM env adapter 代码(<code>envs/agent_world_model_env/</code>)</td><td>跟随 OpenEnv 主仓 BSD-3</td><td>推测(因为在 OpenEnv 主仓内)</td></tr>
+</table>
+
+<p><strong>整套商用 friendly</strong>:BSD-3 + Apache-2.0 都允许商用、修改、再分发,无 NC 限制。</p>
+
+<h3>6.5 引用</h3>
+
+<p>OpenEnv 文档明确给出 BibTeX(verbatim):</p>
+
+<pre>@article{wang2026agentworldmodelinfinity,
+  title={Agent World Model: Infinity Synthetic Environments for Agentic Reinforcement Learning},
+  author={Zhaoyang Wang and Canwen Xu and Boyi Liu and Yite Wang and
+          Siwei Han and Zhewei Yao and Huaxiu Yao and Yuxiong He},
+  year={2026},
+  eprint={2602.10090},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI},
+  url={https://arxiv.org/abs/2602.10090},
+}</pre>
+
+<p>注意:OpenEnv 的引用建议<strong>只引 Snowflake 原 paper</strong>,没有要求引 OpenEnv 本身 —— 这暗示 OpenEnv 团队把这次 port 当工程贡献,不当学术贡献。</p>
+
+<hr>
+
+<h2 id="sec7">§7 · 局限 / 诚实分析 / 待验证项</h2>
+
+<h3>7.1 安全警告 — 文档自己 admit</h3>
+
+<p>文档 §Warning 原话:</p>
+
+<blockquote>AWM treats verifier code and scenario code from the curated AgentWorldModel-1K dataset as <strong>trusted</strong>. Verifier code (<code>server/_verifier_runner.py</code>) is run in a subprocess sandbox (rlimits, restricted builtins, import allowlist); <strong>scenario subprocesses run without per-process sandboxing</strong> and rely on the container as the outer isolation boundary. The codes are synthetically generated and carefully curated, however, there is no guarantee of absolute safety. <strong>We recommend only academic research use.</strong></blockquote>
+
+<p>翻译: <em>(1)</em> verifier 跑在带 rlimits + builtin 白名单 + import 白名单的 subprocess 沙箱里; <em>(2)</em> <strong>scenario 子进程没有进程级沙箱</strong>,只靠 Docker 容器隔离; <em>(3)</em> 代码是 LLM 合成 + 人工 curate 的,<strong>无绝对安全保证</strong>; <em>(4)</em> <strong>官方仅推荐学术研究使用</strong>,不要在生产环境 / 不可信用户输入场景部署。</p>
+
+<p>这是一个<strong>明显的局限</strong> —— AWM 的 scenario 代码本身就是 LLM 生成的 Python,虽然 Snowflake 做了 curation,但理论上每个 scenario 都能跑任意 Python(<code>os.system</code> / <code>subprocess</code> 等),只靠 Docker 兜底。在多租户 RL 训练集群里,这意味着<strong>不能让外部用户上传 AWM scenario</strong>。</p>
+
+<h3>7.2 未确认 / 待验证项清单</h3>
+
+<table>
+  <tr><th>项</th><th>状态</th><th>需要去哪里查证</th></tr>
+  <tr><td>AWM env 的 pip 安装路径(<code>pip install git+https://huggingface.co/spaces/ChilleD/agent_world_model_env</code>)</td><td><span class="warn">推测,未在文档 verbatim</span></td><td>HF Space 页面 README</td></tr>
+  <tr><td>OpenEnv AWM env 的 Dockerfile 内容 / 镜像大小</td><td><span class="warn">未公开</span></td><td><code>envs/agent_world_model_env/server/Dockerfile</code> in OpenEnv repo</td></tr>
+  <tr><td>OpenEnv AWM 复刻的 tool 总数是否仍是 35,062</td><td><span class="warn">未文档化</span></td><td>跑 <code>__list_scenarios__</code> + sum num_tools</td></tr>
+  <tr><td>原版 AWM 的 default verifier mode 是 code 还是 sql</td><td><span class="warn">无直接对比</span></td><td>arXiv:2602.10090 + Snowflake-Labs/agent-world-model README</td></tr>
+  <tr><td>verify tool 是否限制每 episode 调用次数</td><td><span class="warn">未文档化</span></td><td>读 <code>server/_verifier_runner.py</code> 实现</td></tr>
+  <tr><td>verifiers SDK × OpenEnv AWM 桥接是否已落 PR</td><td><span class="warn">verifiers v1 加了 OpenEnv adapter(<a href="31_PrimeIntellectHub.html">#31</a>),但 AWM 特定的 example 未确认</span></td><td>PrimeIntellect-ai/verifiers PR history</td></tr>
+  <tr><td>TRL/SkyRL/ART × AWMEnv × GRPO 是否有 verbatim training script</td><td><span class="warn">通用 OpenEnv 模板有,AWM specific 未见</span></td><td>HF TRL docs OpenEnv section</td></tr>
+</table>
+
+<h3>7.3 个人 take — 这次 port 解决了什么 / 没解决什么</h3>
+
+<p><strong>解决了:</strong></p>
+<ul>
+  <li>✅ AWM 从 Snowflake 自循环走向<strong>多 trainer 共用标准</strong>;</li>
+  <li>✅ Verifier code/sql 两种模式做成<strong>同一接口下的 mode 参数</strong>,降低试用门槛;</li>
+  <li>✅ Session 管理 / cleanup daemon / 1024 并发压测 —— <strong>大规模 RL 部署侧的工程缺口补齐</strong>;</li>
+  <li>✅ HF Space 零部署试用入口;</li>
+  <li>✅ Artifact 标准化(5 文件 session_dir),debug 友好。</li>
+</ul>
+
+<p><strong>没解决:</strong></p>
+<ul>
+  <li>✗ AWM 本身的分布问题(全合成 ≠ 真实 MCP)<strong>没改</strong> —— 这是 <a href="22_TOUCAN.html">#22 TOUCAN</a> / <a href="03_AgentWorld_2604.18292.html">#03 Agent-World</a> 试图解决的方向,跟 OpenEnv port 无关;</li>
+  <li>✗ verify-as-tool 的<strong>reward leak 风险</strong>(policy 可反复调 verify 探 reward 信号)<strong>未在文档讨论</strong>;</li>
+  <li>✗ scenario 沙箱缺失 —— 容器是唯一边界,<strong>不适合多租户</strong>;</li>
+  <li>✗ <strong>没有打包 RL recipe</strong> —— 用户得自己写 TRL/SkyRL trainer 配置,没有"<em>5 行训出 Arctic-AWM-8B</em>"的 one-shot 例子;</li>
+  <li>✗ <strong>无评测 leaderboard</strong> —— OpenEnv 文档不报告"训完模型的 BFCL/τ-bench 分数",得回原版 AWM 论文看(<a href="18_AgentWorldModel_2602.10090.html">#18</a> §7)。</li>
+</ul>
+
+<h3>7.4 跟其他 note 的 cross-link</h3>
+
+<table>
+  <tr><th>本仓库 note</th><th>跟本篇的关系</th></tr>
+  <tr><td><a href="18_AgentWorldModel_2602.10090.html">#18 Agent World Model (Snowflake)</a></td><td><strong>原始论文 / 数据集来源</strong>。本篇专注 OpenEnv port,科研内容请回 #18</td></tr>
+  <tr><td><a href="31_PrimeIntellectHub.html">#31 Prime Intellect Environments Hub</a></td><td><strong>同代竞争 / 互补标准</strong>。verifiers SDK 是 OpenEnv 的兄弟标准,两者已互桥</td></tr>
+  <tr><td><a href="23_EnvScaler.html">#23 EnvScaler</a></td><td><strong>类似全合成 env</strong>。EnvScaler 是 Python class = env,AWM 是 Python class = MCP server backend</td></tr>
+  <tr><td><a href="20_SETA_camel.html">#20 SETA (CAMEL-AI)</a></td><td><strong>另一种合成 env</strong> — Docker terminal 任务,真实但小规模 (400 task)</td></tr>
+  <tr><td><a href="22_TOUCAN.html">#22 TOUCAN</a></td><td><strong>对比的 SFT 路线</strong> — 真 MCP server SFT 数据;AWM 是合成 RL env,两者互补</td></tr>
+  <tr><td><a href="21_MCPBenchmarks_compare.html">#21 MCP Benchmarks 横向对比</a></td><td><strong>Toolathlon-Gym 在那篇</strong>,跟 OpenEnv-AWM 是不同 scope 的 RL env</td></tr>
+  <tr><td><a href="29_TuneTheEnvironment.html">#29 Don't Just Fine-tune the Agent, Tune the Environment</a></td><td><strong>env-side 调优思路</strong>,跟 OpenEnv 把 env 标准化的工程化方向气质相投</td></tr>
+  <tr><td><a href="06_AgentGymRL_2509.08755.html">#06 AgentGym-RL</a></td><td><strong>另一个 RL gym 抽象</strong> — 27 task,跟 OpenEnv 30+ env 是同代</td></tr>
+</table>
+
+<h3>7.5 一句话总结</h3>
+
+<p class="kv"><strong>OpenEnv × AWM</strong> 是 <em>把 Snowflake 已开源的 1K 合成 RL env 包装成业界统一标准的 wire protocol(WebSocket + FastAPI + Action/Observation 强类型),换来"任何 OpenEnv-兼容 RL trainer 即插即用"的分发力</em>。<strong>科研内容零变化,工程价值很大</strong>。对于做 LLM tool-use RL 的研究者,这意味着 AWM 现在<strong>不再需要写 Snowflake-specific adapter</strong> —— 一行 <code>pip install</code> 加一个 <code>base_url</code> 就接进训练循环;对 RL 框架作者来说,意味着 OpenEnv catalog 里<strong>第一次出现一个真正能 train 出 BFCL 提分模型的 tool-use env</strong>,玩具 env 时代结束。</p>
+
+<hr>
+
+<p class="meta">本文基于 OpenEnv 官方文档页(2026-05-18 抓取)+ Snowflake AWM 原始 paper #18 笔记 + OpenEnv GitHub README(2026-05-18 抓取)整理。所有 verbatim 代码段来自 <code>https://meta-pytorch.org/OpenEnv/environments/agent_world_model.html</code>。"未确认"标记 5 处,见 §7.2。</p>
+
+</main>
+</body>
+</html>
