@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · DockSmith: Scaling Reliable Coding Environments via an Agentic Docker Builder</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>DockSmith: Scaling Reliable Coding Environments via an Agentic Docker Builder</h1>
+<div class="meta">
+  StepFun · Jiaran Zhang† · Luck Ma† · Fanqi Wan · Di Qi · Xu Zhao · Jieyi Hou · Zhe Xie · Mengqiang Ren · Xin Wu · Zhewei Huang · Liangyu Chen · Qi Han* · Xiangyu Zhang* · 2026-01-31 (v1) · 2026-04-28 (v2)<br>
+  <a href="https://arxiv.org/abs/2602.00592" target="_blank">arXiv:2602.00592</a> ·
+  <a href="https://arxiv.org/pdf/2602.00592" target="_blank">PDF</a> ·
+  <a href="https://huggingface.co/8sj7df9k8m5x8/DockSmith" target="_blank">HF Model (anonymous)</a> ·
+  <a href="https://huggingface.co/datasets/8sj7df9k8m5x8/docker_building_training" target="_blank">HF Dataset (anonymous, Apache-2.0)</a> · GitHub 未确认<br>
+  关键词: Docker env builder · execution-grounded SFT · SWE-Factory · loop-detection · cross-task memory · Qwen3-Coder-30B-A3B · Multi-Docker-Eval · SWE-bench Verified/Multilingual · Terminal-Bench 2.0
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> DockSmith 是 StepFun 出品的<strong>专吃 Docker 环境构建任务</strong>的 agentic 模型 — base 是 <strong>Qwen3-Coder-30B-A3B-Instruct</strong>(30B 总参 / 3B 激活的 MoE),训练数据是 <strong>SWE-Factory 控制流</strong>跑出来的 Docker 构建 trajectory,再加两个 augmentation:<strong>loop-detection controller</strong>(打破 agent 之间的重复循环)+ <strong>cross-task success memory</strong>(把已验证 Dockerfile/eval script pair 当 demo 跨任务复用)。在 Multi-Docker-Eval 上拿到 <strong>39.72% Fail-to-Pass + 58.28% Commit Rate</strong>,超过此前 37.7% F2P 的开源 upper bound;同时 OOD 在 SWE-bench Verified (+2.25)、SWE-bench Multilingual (+2.34)、Terminal-Bench 2.0 (+3.37) 上都有可观涨幅。论文的核心 thesis 是:<strong>把"装环境"从 preprocessing 提升到 first-class agentic 任务,会反哺 SWE/Terminal 的通用 agent 能力</strong>。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">39.72%</div><div class="l">Multi-Docker-Eval Fail-to-Pass · 开源 SOTA(+20.3 pp over base)</div></div>
+    <div class="stat"><div class="n">58.28%</div><div class="l">Multi-Docker-Eval Commit Rate · 高于 Kimi-K2-0905 (55.49%)</div></div>
+    <div class="stat"><div class="n">30B-A3B</div><div class="l">Qwen3-Coder MoE / SFT only / 2 epoch / 32K seq</div></div>
+    <div class="stat"><div class="n">3 OOD bench</div><div class="l">SWE.V +2.25 · SWE.M +2.34 · Terminal-Bench 2.0 +3.37</div></div>
+  </div>
+  <p><strong>立场:</strong> 本文和 <a href="22_TOUCAN.html">#22 TOUCAN</a>(真 MCP server SFT)、<a href="20_SETA_camel.html">#20 SETA</a>(Docker terminal RLVR)、<a href="23_EnvScaler.html">#23 EnvScaler</a>(程序化合成 env)合起来正在把"<em>环境是 agent 训练的核心 supervision 源</em>"这件事推到工业流水线层面。DockSmith 的特殊位置是:它<strong>不造新 env、也不发明新 RL 算法</strong>,而是把 SWE-Factory 的 Docker-building loop 做 SFT 蒸馏出来,核心 thesis 接近 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> 的"<em>tune the environment</em>" — 但 DockSmith 是反过来 "<em>把环境构建本身当 agent 训练目标</em>"。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">Motivation — 为什么 Docker 装环境是 SWE agent 训练的瓶颈</a></li>
+    <li><a href="#sec2">方法 — DockSmith pipeline 全景</a></li>
+    <li><a href="#sec3">Multi-Docker-Eval — 这是什么 benchmark / 两个指标定义</a></li>
+    <li><a href="#sec4">实验结果 — MDE SOTA + 三个 OOD bench 涨幅</a></li>
+    <li><a href="#sec5">与本系列既有工作的连接</a></li>
+    <li><a href="#sec_oss">开源现状 — 实地清点 repo / 模型 / 数据</a></li>
+    <li><a href="#sec7">局限 / 个人 take</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · Motivation — 为什么 Docker 装环境是 SWE agent 训练的瓶颈</h2>
+
+<h3>1.1 论文 abstract 原文(verbatim)</h3>
+
+<blockquote>
+"Reliable Docker-based environment construction is a dominant bottleneck for scaling execution-grounded training and evaluation of software engineering agents. We introduce DockSmith, a specialized agentic Docker builder designed to address this challenge. DockSmith treats environment construction <strong>not only as a preprocessing step, but as a core agentic capability</strong> that exercises long-horizon tool use, dependency reasoning, and failure recovery, yielding supervision that transfers beyond Docker building itself. DockSmith is trained on large-scale, execution-grounded Docker-building trajectories produced by a <strong>SWE-Factory–style pipeline augmented with a loop-detection controller and a cross-task success memory</strong>. Training a <strong>30B-A3B</strong> model on these trajectories achieves open-source state-of-the-art performance on Multi-Docker-Eval, with <strong>39.72% Fail-to-Pass</strong> and <strong>58.28% Commit Rate</strong>. Moreover, DockSmith improves out-of-distribution performance on <strong>SWE-bench Verified, SWE-bench Multilingual, and Terminal-Bench 2.0</strong>, demonstrating broader agentic benefits of environment construction." — arXiv:2602.00592 abstract
+</blockquote>
+
+<h3>1.2 SWE agent 训练的"装环境瓶颈"是什么?</h3>
+
+<p>过去 2 年的 SWE agent 训练数据(SWE-bench / SWE-Smith / SWE-Gym / Multi-SWE-Bench / SWE-Factory)有一条共同的瓶颈:</p>
+
+<blockquote>
+<em>"In practice, Docker-based environment setup is highly failure-prone... <strong>even for strong models, including Claude-4-Sonnet and Gemini-2.5-Flash</strong>: on Multi-Docker-Eval ... such models struggle to reliably pass environment setup and validation"</em> — §1 引言
+</blockquote>
+
+<p>具体痛点用论文 §1 的原话:</p>
+
+<ul>
+  <li><strong>Heterogeneous dependencies + system-level conflicts + undocumented build assumptions</strong> → 大量 repo 跑不起来;</li>
+  <li>这导致"<em>only a small fraction of repositories suitable for agent training</em>" — 即 SWE 训练数据规模被装环境的失败率卡死;</li>
+  <li>结论是 — 装环境本身就是 long-horizon reasoning + tool use + failure recovery,所以应该<strong>把它当 first-class agentic 任务,而不是 preprocessing</strong>。</li>
+</ul>
+
+<h3>1.3 与 SWE-Factory / SWE-bench / SETA 的关系</h3>
+
+<table>
+  <tr><th>工作</th><th>身份</th><th>对装环境的处理</th><th>与 DockSmith 的关系</th></tr>
+  <tr>
+    <td>SWE-bench (Princeton, 2023)</td>
+    <td>事实标准 SWE eval bench</td>
+    <td>预先 maintainer 手工/脚本构建 ~2,300 docker images,作为 frozen ground truth</td>
+    <td>DockSmith 拿 SWE.V 当 OOD bench 之一</td>
+  </tr>
+  <tr>
+    <td>SWE-Factory (Guo et al., 2025; arXiv:2506.10954)</td>
+    <td>SWE 训练数据自动化 factory</td>
+    <td>4-agent 多智能体迭代构建 Docker env(Context Retrieval / Dockerfile / Eval Script / Test Analysis)+ binary file recovery + exit-code based parsing</td>
+    <td><strong>DockSmith 直接继承这个 pipeline</strong>,只在上面加 loop-detection + cross-task memory</td>
+  </tr>
+  <tr>
+    <td>Multi-Docker-Eval (Fu et al., 2025; arXiv:2512.06915)</td>
+    <td>专为 Docker 构建任务设计的 bench</td>
+    <td>39 repo × 9 language,success 由 build-成功 + 测试可执行共同定义</td>
+    <td><strong>DockSmith 的主战场;论文核心结果都在这里</strong></td>
+  </tr>
+  <tr>
+    <td><a href="20_SETA_camel.html">#20 SETA</a> (CAMEL-AI, 2026-01)</td>
+    <td>Terminal agent 训练 env</td>
+    <td>400+ Docker 合成任务 + AReaL GRPO RLVR,目标是训 terminal-bench 能力</td>
+    <td>近邻路线;SETA 用 Docker 当训练 sandbox,DockSmith 训"如何造 Docker"</td>
+  </tr>
+  <tr style="background:#f3eee0">
+    <td><strong>DockSmith</strong></td>
+    <td>专吃 Docker 构建的 agentic 模型</td>
+    <td>SFT distillation from SWE-Factory rollouts(+ 两项 augmentation)</td>
+    <td>把 SWE-Factory 的能力"内化"到 30B-A3B 模型权重里</td>
+  </tr>
+</table>
+
+<p>所以 DockSmith 的<strong>系谱位置</strong>很清晰:它是 <em>SWE-Factory pipeline 的产物(trajectories)→ 训练成模型权重 → 反向喂回 SWE-Factory 当更强 builder</strong> 的闭环里"模型化"这一步。</p>
+
+<h3>1.4 论文自述的"environment construction 是 agentic capability"论证链</h3>
+
+<p>论文 §1 的论证逻辑值得拆开看,因为这是它和单纯"做个 SOTA"工作的区别:</p>
+
+<ol>
+  <li><strong>Premise A</strong>:装环境本身是 long-horizon reasoning + tool use + failure recovery;</li>
+  <li><strong>Premise B</strong>:这些技能正好是 SWE/Terminal agent 的核心 capability;</li>
+  <li><strong>Hypothesis</strong>:那么用 Docker-building trajectory 训练应该会 transfer 到下游 SWE/Terminal 任务;</li>
+  <li><strong>Empirical evidence</strong>:Table 8 显示 Docker:SWE 混训在 1:0.5–1:1 时,SWE.V/SWE.M/Terminal 全都涨,Terminal 涨最多 (+3.37 pp)。</li>
+</ol>
+
+<p>这个 thesis 其实和 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a>(ICLR 2026)的"环境维度才是 agent 训练的真信号"互为镜像:EnvTuning 说"<em>tune env 不 tune agent</em>",DockSmith 说"<em>把 env 构建当 agent 训练目标</em>"。两者都是把 environment 当核心 supervision 源,只是切入角度相反。</p>
+
+<hr>
+
+<h2 id="sec2">2 · 方法 — DockSmith pipeline 全景</h2>
+
+<h3>2.1 完整管线:三阶段 + 两扩展</h3>
+
+<div class="fig">
+<svg viewBox="0 0 740 460" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <defs>
+    <marker id="ds-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#2f6feb"/></marker>
+  </defs>
+  <rect x="0" y="0" width="740" height="460" fill="#fff"/>
+  <!-- Phase 1 -->
+  <rect x="20" y="30" width="200" height="100" rx="8" fill="#fff4e0" stroke="#cc4a1b"/>
+  <text x="120" y="55" text-anchor="middle" font-weight="600" fill="#cc4a1b">① Data Sourcing</text>
+  <text x="120" y="78" text-anchor="middle" font-size="13">GitHub repos (≥500★/≥200 fork)</text>
+  <text x="120" y="96" text-anchor="middle" font-size="13">10 langs · &gt;15K repos</text>
+  <text x="120" y="114" text-anchor="middle" font-size="13">merged PRs · LM 改写 desc · ~200K 实例</text>
+
+  <!-- Phase 2 -->
+  <rect x="270" y="30" width="450" height="220" rx="8" fill="#eef4ff" stroke="#2f6feb"/>
+  <text x="495" y="55" text-anchor="middle" font-weight="600" fill="#2f6feb">② Agentic Docker-Building Pipeline (SWE-Factory + 2 ext)</text>
+  <!-- 4 agents -->
+  <rect x="290" y="75" width="190" height="35" rx="5" fill="#fff" stroke="#2f6feb"/>
+  <text x="385" y="98" text-anchor="middle" font-size="12">Context Retrieval Agent</text>
+  <rect x="510" y="75" width="190" height="35" rx="5" fill="#fff" stroke="#2f6feb"/>
+  <text x="605" y="98" text-anchor="middle" font-size="12">Dockerfile Agent</text>
+  <rect x="290" y="125" width="190" height="35" rx="5" fill="#fff" stroke="#2f6feb"/>
+  <text x="385" y="148" text-anchor="middle" font-size="12">Eval Script Agent</text>
+  <rect x="510" y="125" width="190" height="35" rx="5" fill="#fff" stroke="#2f6feb"/>
+  <text x="605" y="148" text-anchor="middle" font-size="12">Test Analysis Agent</text>
+  <!-- ext 1 -->
+  <rect x="290" y="180" width="190" height="55" rx="5" fill="#fff4e0" stroke="#cc4a1b"/>
+  <text x="385" y="202" text-anchor="middle" font-size="12" font-weight="600">[ext1] Loop Detector</text>
+  <text x="385" y="220" text-anchor="middle" font-size="11">监控 agent 调用模式;</text>
+  <text x="385" y="232" text-anchor="middle" font-size="11">检测到死循环 → 强制切换</text>
+  <!-- ext 2 -->
+  <rect x="510" y="180" width="190" height="55" rx="5" fill="#fff4e0" stroke="#cc4a1b"/>
+  <text x="605" y="202" text-anchor="middle" font-size="12" font-weight="600">[ext2] Cross-task Memory</text>
+  <text x="605" y="220" text-anchor="middle" font-size="11">已验证 (Dockerfile, eval)</text>
+  <text x="605" y="232" text-anchor="middle" font-size="11">pair 跨任务当 demo 复用</text>
+
+  <!-- Phase 3 -->
+  <rect x="20" y="280" width="700" height="160" rx="8" fill="#f3eee0" stroke="#1f7a4a"/>
+  <text x="370" y="305" text-anchor="middle" font-weight="600" fill="#1f7a4a">③ Model Training (SFT on Qwen3-Coder-30B-A3B-Instruct)</text>
+  <rect x="40" y="320" width="200" height="100" rx="5" fill="#fff" stroke="#1f7a4a"/>
+  <text x="140" y="340" text-anchor="middle" font-size="12" font-weight="600">Trajectory Filter</text>
+  <text x="140" y="358" text-anchor="middle" font-size="11">discard 重复 agent 调用</text>
+  <text x="140" y="372" text-anchor="middle" font-size="11">discard turn 过长 trajectory</text>
+  <text x="140" y="386" text-anchor="middle" font-size="11">cross-language balancing</text>
+  <text x="140" y="402" text-anchor="middle" font-size="11">(per-lang token 限额)</text>
+
+  <rect x="260" y="320" width="220" height="100" rx="5" fill="#fff" stroke="#1f7a4a"/>
+  <text x="370" y="340" text-anchor="middle" font-size="12" font-weight="600">Complexity Curriculum</text>
+  <text x="370" y="358" text-anchor="middle" font-size="11">Score = 0.5·L + 5·R + 3·P</text>
+  <text x="370" y="372" text-anchor="middle" font-size="11">(L=lines, R=RUN, P=pkg)</text>
+  <text x="370" y="386" text-anchor="middle" font-size="11">分 Easy/Medium/Hard</text>
+  <text x="370" y="402" text-anchor="middle" font-size="11">1:2:2 比例采样</text>
+
+  <rect x="500" y="320" width="200" height="100" rx="5" fill="#fff" stroke="#1f7a4a"/>
+  <text x="600" y="340" text-anchor="middle" font-size="12" font-weight="600">Joint Training</text>
+  <text x="600" y="358" text-anchor="middle" font-size="11">Docker traj + Nex Agent-SFT</text>
+  <text x="600" y="372" text-anchor="middle" font-size="11">token-level mixing</text>
+  <text x="600" y="386" text-anchor="middle" font-size="11">SWE:Docker = 1:0.5 / 1:1</text>
+  <text x="600" y="402" text-anchor="middle" font-size="11">最佳 mix</text>
+
+  <line x1="220" y1="80" x2="270" y2="80" stroke="#2f6feb" stroke-width="2" marker-end="url(#ds-arrow)"/>
+  <line x1="370" y1="250" x2="370" y2="280" stroke="#2f6feb" stroke-width="2" marker-end="url(#ds-arrow)"/>
+</svg>
+<figcaption>DockSmith 的端到端流水线。① Data Sourcing 阶段从 GitHub 拉 ~200K 实例;② SWE-Factory 4-agent loop 跑出 Docker-building rollouts,DockSmith 在此加 loop detector + cross-task memory;③ SFT 阶段用 trajectory filter + complexity curriculum + joint training 把 ~30K 高质量 trajectory 蒸馏到 Qwen3-Coder-30B-A3B-Instruct。</figcaption>
+</div>
+
+<h3>2.2 Phase ① Data Sourcing — 三步过滤</h3>
+
+<div class="kv">
+  <strong>Repository Selection:</strong> ≥500 star, ≥200 fork,10 大语言(Python / PHP / TypeScript / Go / C++ / JavaScript / Java / Rust / C / Ruby)→ <strong>&gt;15,000 repos</strong>。
+</div>
+<div class="kv">
+  <strong>PR Crawling:</strong> 只留 <em>merged + 有 substantive code changes + 有 test-related modifications</em> 的 PR;关键防 contamination 步骤是 <strong>repository-level dedup against all eval benchmarks</strong>(SWE-bench / SWE-bench Multilingual / Multi-Docker-Eval / Terminal-Bench 涉及的 repo 整体踢掉)。
+</div>
+<div class="kv">
+  <strong>Quality Enhancement:</strong> 用 LM 改写过短或模糊的 PR description,保持原技术意图但补充细节。最终得到约 <strong>200,000 高质量实例</strong>。
+</div>
+
+<h3>2.3 Phase ② SWE-Factory pipeline + 两扩展</h3>
+
+<h4>2.3.1 SWE-Factory 4 个专门 agent(继承)</h4>
+
+<table>
+  <tr><th>Agent</th><th>职责</th></tr>
+  <tr><td><strong>Context Retrieval Agent</strong></td><td>通过迭代工具调用 inspect 仓库,收集环境相关信号: dependency manifest / build script / CI config / test entry points。</td></tr>
+  <tr><td><strong>Dockerfile Agent</strong></td><td>基于上下文与执行反馈,合成或 patch Dockerfile。</td></tr>
+  <tr><td><strong>Eval Script Agent</strong></td><td>生成一个 executable 脚本,负责配置 container 工作区 + 调用目标 test 命令。</td></tr>
+  <tr><td><strong>Test Analysis Agent</strong></td><td>执行 Docker build + test pipeline,把 raw log 蒸馏成结构化 failure summary 给下轮 repair 用。</td></tr>
+</table>
+
+<h4>2.3.2 [扩展 1] Loop-Detection Controller</h4>
+
+<p>论文 §2.2 原文:</p>
+
+<blockquote>"In practice, iterative multi-agent repair may devolve into a repetitive failure mode where the same subset of agents is invoked without measurable progress. We introduce a loop-detection controller that monitors <strong>recent agent-invocation traces alongside execution failure signatures</strong>. When repeated activation of an identical agent combination fails to improve outcomes for several rounds, the controller intervenes by enforcing <strong>diversification</strong> — such as activating alternative agents or strategies — to break deadlocks and reduce wasted iterations."</blockquote>
+
+<div class="nb">
+<strong>读后注:</strong> 这个 controller 在论文里<strong>没有给出具体阈值或算法伪码</strong> — 只有"<em>monitors recent agent-invocation traces</em>" + "<em>fails to improve outcomes for several rounds</em>"这样的口语化描述。从 trajectory filter §2.3.1 中"<em>discard rollouts that repeatedly invoke the same agent module</em>"这一句反推,loop-detection 很可能就是简单的 N-gram 模式匹配(agent 调用序列 N-gram 出现 ≥k 次 + failure signature 不变 → 触发),不是学出来的判别器。</div>
+
+<h4>2.3.3 [扩展 2] Cross-Task Success Memory Pooling</h4>
+
+<p>论文 §2.2 原文:</p>
+
+<blockquote>"SWE-Factory maintains a memory pool of validated environment solutions. We augment this mechanism to support <strong>cross-task retrieval</strong>, enabling previously verified (Dockerfile, eval script) pairs to serve as <strong>lightweight demonstrations</strong> for new repositories."</blockquote>
+
+<p>注意三点细节:</p>
+<ul>
+  <li>SWE-Factory 原版有 success memory,但只在<strong>同一任务内</strong>复用(per-task);</li>
+  <li>DockSmith 把它扩成<strong>跨任务</strong> retrieval — 即另一个 repo 的成功 Dockerfile 可以被 retrieve 来当 in-context demo;</li>
+  <li>论文没说 retrieval 用 BM25 / embedding / 还是 metadata match — 推测是简单的 metadata + 关键依赖签名匹配,因为 §1 强调"<em>verified (Dockerfile, eval script) pairs to serve as lightweight demonstrations</em>" — 这种 demo 注入是 prompt-level 而非权重 level。</li>
+</ul>
+
+<h3>2.4 Phase ③ Model Training — SFT only,no RL</h3>
+
+<div class="kv">
+  <strong>Base model:</strong> <code>Qwen3-Coder-30B-A3B-Instruct</code>(30B 总参 / 3B 激活的 MoE,Apache-2.0)。<br>
+  <strong>Optimizer:</strong> global batch 32, lr <code>1e-5</code>, 2 epoch。<br>
+  <strong>Max seq:</strong> 32K(Docker-only)/ 64K(混训 SWE 时,要装 long SWE-solving trajectory)。<br>
+  <strong>训练方式:</strong> 纯 <strong>SFT</strong> on Docker-building trajectories — <em>no RL, no DPO, no GRPO</em>。论文里"acceptance shaping"和"complexity curriculum"都是<strong>数据筛选 / 采样</strong>策略,不是 RL reward。
+</div>
+
+<h4>2.4.1 Cross-Language Balancing</h4>
+
+<p>原文观察: 长尾语言(Rust / PHP)indiscriminate upsampling 会引起 distribution shift 反而劣化。因此采用<strong>保守平衡</strong>:保留主流语言(Python / C/C++)的核心分布,长尾在 per-language token 限额下 controlled 加入。</p>
+
+<h4>2.4.2 Trajectory Filtering(Acceptance Shaping)</h4>
+
+<p>把以下三类轨迹删掉:</p>
+<ul>
+  <li>反复调用同一 agent module 的 — 这是浪费 token + 把 noise 喂给 SFT 的元凶;</li>
+  <li>turn 数过多的;</li>
+  <li>message 累积过多的。</li>
+</ul>
+
+<h4>2.4.3 Complexity-Based Curriculum Sampling</h4>
+
+<p>这是论文里唯一的公式(eq. 1):</p>
+
+<div class="formula">
+  <em>Score(d) = 0.5 · L(d) + 5 · R(d) + 3 · P(d)</em>
+</div>
+
+<ul>
+  <li><code>L(d)</code> — Dockerfile 非空行数</li>
+  <li><code>R(d)</code> — <code>RUN</code> 指令数(权重 ×5 最重)</li>
+  <li><code>P(d)</code> — 通过 <code>apt-get / apt install</code> 装的 distinct 包数(权重 ×3)</li>
+</ul>
+
+<p>论文解释为什么 R/P 权重大:"<em>additional build steps and dependencies typically introduce more failure modes and longer error chains than Dockerfile length alone</em>"。然后按这个 Score 分 Easy/Medium/Hard,用 <strong>1:2:2</strong> 比例采样 — 故意让训练接触更多硬实例。</p>
+
+<h4>2.4.4 Joint Training with Coding Trajectories</h4>
+
+<p>这是论文 §2.3.2 提的<strong>关键 trick</strong>: 在 Docker traj 旁边混入 <strong>Nex Agent-SFT 数据集</strong>(Cai et al., 2025 - arXiv:2512.04987)的 general SWE/coding 轨迹。混合方式是 <em>token-level mixing</em> — SWE token 预算固定,Docker token 预算可变。结果(§3.3 + Table 8)显示:</p>
+
+<table>
+  <tr><th>SWE:Docker ratio</th><th>SWE.V (49.65 base)</th><th>SWE.M (31.83 base)</th><th>Terminal (10.67 base)</th></tr>
+  <tr><td>Only SWE</td><td>49.65</td><td>31.83</td><td>10.67</td></tr>
+  <tr><td>1 : 0.125</td><td>50.70 (+1.05)</td><td>34.17 (<strong>+2.34</strong>)</td><td>10.67 (+0.00)</td></tr>
+  <tr><td>1 : 0.25</td><td>50.80 (+1.15)</td><td>32.83 (+1.00)</td><td>11.80 (+1.12)</td></tr>
+  <tr style="background:#f3eee0"><td>1 : 0.5</td><td>51.75 (+2.10)</td><td>33.33 (+1.50)</td><td><strong>14.04 (+3.37)</strong></td></tr>
+  <tr style="background:#f3eee0"><td>1 : 1</td><td><strong>51.90 (+2.25)</strong></td><td>33.92 (<strong>+2.09</strong>)</td><td>11.38 (+0.70)</td></tr>
+  <tr><td>1 : 2</td><td>49.55 (−0.10)</td><td>31.75 (−0.08)</td><td>11.52 (+0.84)</td></tr>
+</table>
+
+<p><strong>关键 read</strong>:</p>
+<ul>
+  <li>SWE.V / SWE.M 在 <strong>1:1</strong> 达到峰值(+2.25 / +2.09);</li>
+  <li>Terminal-Bench 2.0 在 <strong>1:0.5</strong> 达到峰值(+3.37) — 即 Docker 训练对 terminal 帮助最大;</li>
+  <li><strong>1:2 全线下降</strong> — 过量 Docker 数据稀释 SWE-specific 推理信号。</li>
+</ul>
+
+<h3>2.5 Trajectory Filtering 消融(论文 Table 4)</h3>
+
+<p>这是控制训练预算严格相等下的消融,所有 variant 用相同 token 数 + 相同 epoch:</p>
+
+<table>
+  <tr><th>Variant</th><th>Easy F2P</th><th>Hard F2P</th><th>Avg F2P</th></tr>
+  <tr><td>Baseline(随机采样的 resolved trajectory)</td><td>45.27</td><td>28.96</td><td>32.24</td></tr>
+  <tr><td>+ Acceptance Shaping (AS)</td><td>46.77</td><td>30.83</td><td>34.03 (+1.79)</td></tr>
+  <tr><td>+ Complexity Curriculum (CC)</td><td>45.27</td><td>30.09</td><td>33.13 (+0.89)</td></tr>
+  <tr style="background:#f3eee0"><td><strong>+ AS + CC</strong></td><td>47.26</td><td><strong>31.84</strong></td><td><strong>34.93 (+2.69)</strong></td></tr>
+</table>
+
+<p>两者作用是<strong>互补</strong>:AS 提高单条 trajectory 质量(去冗余),CC 提高训练分布覆盖(平衡难度)。Hard bucket 在 CC 上涨幅最大(+1.13)印证 CC 的目标 — 让模型多见硬实例。</p>
+
+<hr>
+
+<h2 id="sec3">3 · Multi-Docker-Eval — 这是什么 benchmark</h2>
+
+<h3>3.1 出处与规模</h3>
+
+<div class="kv">
+  <strong>Multi-Docker-Eval (MDE)</strong>: Fu et al., 2025, arXiv:<strong>2512.06915</strong>(论文里引用为 "<em>Multi-Docker-Eval: A 'shovel of the gold rush' benchmark on automatic environment building for software engineering</em>")。
+</div>
+
+<p>关键参数(摘自 DockSmith §4 + MDE 引文上下文):</p>
+
+<ul>
+  <li><strong>39 个 repository × 9 种语言</strong>(Python / JavaScript / Java / C++ / C / Go / Ruby / Rust / PHP);</li>
+  <li>每个实例的任务: 模型需要 <em>合成一个 valid Dockerfile + build 环境 + 让 repo 跑通测试</em>;</li>
+  <li>已是 2025-12 才发布的"新鲜" bench — DockSmith 是早期受益者之一;</li>
+  <li>论文里 Multi-Docker-Eval 自报 SOTA 模型 F2P 也<strong>低于 40%</strong>("<em>success rates often below 40%</em>" — §4 related works);DockSmith 的 39.72% 正好是这个上界附近。</li>
+</ul>
+
+<div class="warn">
+<strong>这点必须强调</strong>: Multi-Docker-Eval 是 <strong>独立第三方 benchmark</strong>,不是 DockSmith 论文里自创的 — 这避免了"自评 bench 自己 SOTA"的循环论证嫌疑。但反过来,MDE 本身是 2025-12 才出的,SWE-Factory pipeline 也是 MDE 作者的相关工作(Fu et al. 与 Guo et al. 都涉及 SWE 训练 infra 圈),所以 <strong>评测协议层面的 alignment</strong> 客观上对 DockSmith 比较友好。
+</div>
+
+<h3>3.2 两个核心指标</h3>
+
+<div class="kv">
+  <strong>Fail-to-Pass (F2P)</strong>:<em>the proportion of tasks where the configured environment successfully transitions tests from a failing to a passing state</em>。<br>
+  这个指标和 SWE-bench 的 FAIL_TO_PASS 概念同源 — 任务 ground-truth 包含一组"基线就 fail / fix 后该 pass"的测试,模型构造的环境必须让它们全部 transit。
+</div>
+
+<div class="kv">
+  <strong>Commit Rate</strong>:<em>the fraction of instances where the agent submits a solution for evaluation, reflecting model confidence rather than ground-truth correctness</em>。<br>
+  这是<strong>提交率</strong> — 模型"自己认为做完了"的比例,衡量 agent 的<em>放弃倾向</em>。F2P ≤ Commit Rate 永远成立。Commit Rate 高且 F2P 低意味着<em>过度自信</em>;反之意味着<em>太保守</em>。
+</div>
+
+<h3>3.3 还有几个 process metric</h3>
+
+<p>论文 Table 1 同时报告 3 个 process metric 用来评估<strong>效率 + 资源开销</strong>:</p>
+
+<ul>
+  <li><strong>Avg input</strong> — 平均输入 token 数(单位推测是 K,后续表里 DockSmith 是 207.68);</li>
+  <li><strong>Avg output</strong> — 平均输出 token 数(DockSmith 26.38);</li>
+  <li><strong>Avg docker</strong> — 平均 docker image 构建次数(DockSmith 1.13)。</li>
+</ul>
+
+<p>这三项的意义是检验 DockSmith 是否"<em>用更多算力换性能</em>" — 数据看 DockSmith 输入 token 比基线 Qwen3-Coder-30B-A3B (150.10) 多约 38%,但 output token 反而少一半(26.38 vs 13.75 ❌等等基线是 13.75,DockSmith 高一倍),Docker 次数 1.13 也只略多。整体是<strong>可接受的 effectiveness-efficiency 平衡</strong>。</p>
+
+<hr>
+
+<h2 id="sec4">4 · 实验结果</h2>
+
+<h3>4.1 主表:Multi-Docker-Eval 全模型横评(Table 1)</h3>
+
+<table>
+  <tr><th>Model</th><th>F2P (%)</th><th>Commit (%)</th><th>Avg in</th><th>Avg out</th><th>Avg docker</th></tr>
+  <tr><td colspan="6" style="background:#f3eee0"><strong>Open-source</strong></td></tr>
+  <tr><td>DeepSeek-v3.1</td><td>37.72</td><td>52.89</td><td>158.11</td><td>17.15</td><td>1.02</td></tr>
+  <tr><td>DeepSeek-R1</td><td>26.65</td><td>41.72</td><td>138.05</td><td>60.10</td><td>1.02</td></tr>
+  <tr><td>GPT-OSS-20B</td><td>17.17</td><td>29.44</td><td>184.23</td><td>58.37</td><td>0.87</td></tr>
+  <tr><td>GPT-OSS-120B</td><td>27.00</td><td>37.72</td><td>128.31</td><td>30.17</td><td>0.83</td></tr>
+  <tr><td>Kimi-K2-0905</td><td>37.62</td><td>55.49</td><td>113.02</td><td>7.92</td><td>1.01</td></tr>
+  <tr><td>Kimi-K2-thinking</td><td>36.53</td><td>52.69</td><td>162.12</td><td>59.40</td><td>1.05</td></tr>
+  <tr><td>Qwen3-235B-A22B</td><td>23.65</td><td>34.53</td><td>101.46</td><td>38.87</td><td>1.00</td></tr>
+  <tr><td colspan="6" style="background:#f3eee0"><strong>Closed-source</strong></td></tr>
+  <tr><td>Claude-Sonnet-4</td><td>35.53</td><td>47.41</td><td>182.85</td><td>15.01</td><td>1.17</td></tr>
+  <tr><td>GPT-5-Mini</td><td>34.13</td><td>49.60</td><td>339.94</td><td>103.32</td><td>0.95</td></tr>
+  <tr><td>Gemini-2.5-Flash</td><td>29.44</td><td>40.62</td><td>153.43</td><td>32.60</td><td>0.97</td></tr>
+  <tr><td colspan="6" style="background:#f3eee0"><strong>Our Method (base = Qwen3-Coder-30B-A3B-Instruct)</strong></td></tr>
+  <tr><td>Qwen3-Coder-30B-A3B-Instruct(base)</td><td>19.46</td><td>34.13</td><td>150.10</td><td>13.75</td><td>0.93</td></tr>
+  <tr style="background:#fff4e0"><td><strong>DockSmith</strong></td><td><strong>39.72</strong></td><td><strong>58.28</strong></td><td>207.68</td><td>26.38</td><td>1.13</td></tr>
+</table>
+
+<p><strong>关键观察</strong>:</p>
+
+<ul>
+  <li><strong>开源 SOTA 险胜 DeepSeek-v3.1</strong>(39.72 vs 37.72,+2.00 pp);超 Kimi-K2-0905 (+2.10 pp);</li>
+  <li>vs 自己的 base Qwen3-Coder-30B-A3B-Instruct: <strong>+20.26 pp 绝对涨幅</strong> — 这是论文最强的"训练有效"证据;</li>
+  <li>vs 闭源最强 Claude-Sonnet-4: <strong>+4.19 pp F2P</strong>,vs GPT-5-Mini +5.59 pp;</li>
+  <li>Commit Rate <strong>58.28%</strong> 是表中第一,且高于 F2P 18.56 pp — 这个 gap 比其他模型都大(Kimi-K2-0905 gap 17.87, DeepSeek-v3.1 gap 15.17),表明 DockSmith 倾向<strong>提交更多 trajectory</strong>(包括不一定 F2P 通过的),即 commit 行为更激进。</li>
+</ul>
+
+<h3>4.2 语言级 F2P 拆解(Table 2)</h3>
+
+<table>
+  <tr><th>Model</th><th>Python</th><th>JS</th><th>Java</th><th>C++</th><th>C</th><th>Go</th><th>Ruby</th><th>Rust</th><th>PHP</th></tr>
+  <tr><td>DeepSeek-v3.1</td><td>47.86</td><td>45.83</td><td>14.29</td><td>18.89</td><td>33.33</td><td>57.50</td><td>51.67</td><td>20.83</td><td>42.22</td></tr>
+  <tr><td>Kimi-K2-0905</td><td>47.01</td><td>49.17</td><td>12.38</td><td>12.22</td><td>34.17</td><td>61.67</td><td>51.67</td><td>22.50</td><td>36.67</td></tr>
+  <tr><td>Claude-Sonnet-4</td><td>41.88</td><td>48.33</td><td>8.57</td><td>18.89</td><td>32.50</td><td>66.67</td><td>43.33</td><td>18.33</td><td>30.00</td></tr>
+  <tr><td>GPT-5-Mini</td><td>43.59</td><td>49.17</td><td>14.29</td><td>15.56</td><td>29.17</td><td>48.33</td><td>49.17</td><td>16.67</td><td>34.44</td></tr>
+  <tr><td>Qwen3-Coder-30B(base)</td><td>23.93</td><td>11.67</td><td>6.67</td><td>6.67</td><td>20.00</td><td>35.00</td><td>31.67</td><td>25.00</td><td>6.67</td></tr>
+  <tr style="background:#fff4e0"><td><strong>DockSmith</strong></td><td><strong>51.28</strong></td><td><strong>51.67</strong></td><td><strong>19.05</strong></td><td>15.56</td><td>20.00</td><td>63.33</td><td><strong>57.50</strong></td><td>30.00</td><td>41.11</td></tr>
+</table>
+
+<p>DockSmith <strong>Python / JS / Java / Go / Ruby / Rust 全部第一</strong>;但<strong>C 反而退步</strong>(base 20.00 → DockSmith 20.00,无改善),C++ 只 +8.89 pp 涨幅有限。论文自我解释 — "<em>low-level systems languages (C/C++, Java, Rust) remain bottlenecked by compiler toolchains and system dependencies</em>";即<strong>编译工具链依赖丰富</strong>的语言是 Docker 构建难点,SFT 数据稀缺,模型学不到细粒度修复模式。</p>
+
+<h3>4.3 OOD transfer:三大 SWE/Terminal benchmark</h3>
+
+<p>这是 DockSmith 论文 thesis 的<strong>核心 OOD 证据</strong> — 把 Docker traj 当 supervision 信号,看是否 transfer 到下游 agentic tasks。论文 §3.3 + Table 8 给出绝对分:</p>
+
+<table>
+  <tr><th>Mix ratio</th><th>SWE-bench Verified</th><th>SWE-bench Multilingual</th><th>Terminal-Bench 2.0</th></tr>
+  <tr><td>Only SWE (baseline)</td><td>49.65</td><td>31.83</td><td>10.67</td></tr>
+  <tr><td>SWE : Docker = 1:0.125</td><td>50.70</td><td><strong>34.17</strong></td><td>10.67</td></tr>
+  <tr><td>SWE : Docker = 1:0.25</td><td>50.80</td><td>32.83</td><td>11.80</td></tr>
+  <tr style="background:#fff4e0"><td>SWE : Docker = 1:0.5</td><td>51.75</td><td>33.33</td><td><strong>14.04</strong></td></tr>
+  <tr style="background:#fff4e0"><td>SWE : Docker = 1:1</td><td><strong>51.90</strong></td><td>33.92</td><td>11.38</td></tr>
+  <tr><td>SWE : Docker = 1:2</td><td>49.55</td><td>31.75</td><td>11.52</td></tr>
+</table>
+
+<p><strong>读 OOD 结果</strong>:</p>
+
+<ul>
+  <li><strong>SWE-bench Verified</strong>: 49.65 → 51.90(+2.25 pp 在 1:1)。注意这个绝对数字 — 51.90 不算 frontier,GPT-5 / Claude-Opus-4.5 都在 70+;DockSmith 的成绩在 30B 开源模型阵营内算<strong>训练有效</strong>而非<strong>绝对 SOTA</strong>;</li>
+  <li><strong>SWE-bench Multilingual</strong>: 31.83 → 33.92(+2.09 pp 在 1:1)/ 34.17(+2.34 pp 在 1:0.125)。涨幅小但稳定;</li>
+  <li><strong>Terminal-Bench 2.0</strong>: 10.67 → <strong>14.04 (+3.37 pp 在 1:0.5)</strong>。绝对涨幅最大,符合论文 thesis "<em>Docker-building trajectories function as a powerful form of agentic skill training, strengthening the model's competence in command execution, tool invocation, and long-horizon interaction</em>"。</li>
+</ul>
+
+<div class="warn">
+<strong>关于 Terminal-Bench 2.0 的横向对比</strong>(交叉链接 <a href="20_SETA_camel.html">#20 SETA</a>):TB2.0 当前榜首是 Claude Sonnet 4.5 + CAMEL agent 框架的 <strong>46.5%</strong>(SETA 团队);DockSmith 在 TB2.0 上的 <strong>14.04%</strong> 是<em>裸 model 跑</em>(无 agent framework + 用 Qwen3-Coder-30B-A3B + 自动 evaluation)。两者不可直接比 — agent framework 加成是 TB2.0 上的 ~30 pp 量级差距。
+</div>
+
+<h3>4.4 Docker-only vs Mixed-training 对照(Table 3)</h3>
+
+<p>论文 §3.3 还做了反向消融 — 加 SWE 数据对 Docker 任务有没有帮助:</p>
+
+<table>
+  <tr><th>Training Data</th><th>SWE.V</th><th>SWE.M</th><th>Terminal</th><th>MDE F2P</th></tr>
+  <tr><td>Docker only</td><td>33.50</td><td>18.25</td><td>7.16</td><td>34.43</td></tr>
+  <tr style="background:#f3eee0"><td><strong>Docker + 0.5×SWE</strong></td><td><strong>47.45</strong></td><td><strong>31.00</strong></td><td><strong>10.11</strong></td><td><strong>35.63</strong></td></tr>
+</table>
+
+<p>结论:加 SWE 数据 <em>所有 4 个 bench 都涨</em>,包括 MDE 本身(+1.20 pp)。这说明 <strong>纯 Docker 训练会过拟合到 Docker-specific 行为</strong>,SWE 数据提供的 general edit-run-debug pattern 是必需的。这是和很多"专家模型"工作不同的有意思之处 — DockSmith 不是越专越好,而是<strong>专家 + 通用混合最强</strong>。</p>
+
+<h3>4.5 错误分析(Table 5 + Figure 3)</h3>
+
+<table>
+  <tr><th>Metric</th><th>Baseline</th><th>DockSmith</th><th>Δ</th></tr>
+  <tr><td>Total Errors</td><td>3,757</td><td>2,161</td><td><strong>−42.5%</strong></td></tr>
+  <tr><td>Avg Errors / Trajectory</td><td>11.81</td><td>6.67</td><td>−43.5%</td></tr>
+  <tr><td>Critical Errors</td><td>2,454</td><td>1,468</td><td>−40.2%</td></tr>
+  <tr><td>Minor Errors</td><td>1,303</td><td>693</td><td>−46.8%</td></tr>
+  <tr><td colspan="4" style="background:#f3eee0"><strong>By Pipeline Stage</strong></td></tr>
+  <tr><td>Dockerfile Generation</td><td>1,434</td><td>765</td><td>−46.7%</td></tr>
+  <tr><td>Eval Script Handling</td><td>936</td><td>536</td><td>−42.7%</td></tr>
+  <tr><td>Test Analysis</td><td>1,102</td><td>544</td><td>−50.6%</td></tr>
+  <tr><td>Context Retrieval</td><td>285</td><td>316</td><td><strong>+10.9%</strong></td></tr>
+</table>
+
+<p>关注两个细节:</p>
+
+<ul>
+  <li><strong>Test Analysis 错误降幅最大 (−50.6%)</strong> — 即 DockSmith 在"看测试 log + 归因失败"这一最 reasoning-heavy 的阶段进步最明显。这印证论文 §3.5.2 的 thesis: Docker traj 训练 transfer 的是 dependency reasoning + failure recovery,而不是 prompt-engineering;</li>
+  <li><strong>Context Retrieval 错误反增 (+10.9%)</strong> — 论文坦诚说明这是因为 DockSmith "<em>more aggressive information gathering</em>" 会偶尔 over-infer dependencies;但下游 stage 的稳定足以补偿这点。</li>
+</ul>
+
+<p>Figure 3 进一步把错误细分到 type level,DockSmith 最大改善:</p>
+
+<ul>
+  <li><code>eval_patch_error</code>: −79.1%(应用 eval patch 不再被 git checkout 误删)</li>
+  <li><code>diag_vague_error</code>: −71.7%(诊断更具体可执行)</li>
+  <li><code>diag_loop_error</code>: −59.8%(诊断逻辑不再震荡)</li>
+  <li><code>docker_env_error</code>: −48.7%(基础环境配置错误减少)</li>
+</ul>
+
+<h3>4.6 错误传播分析(Figure 4 + Table 6/7) — 为什么 transfer 有效</h3>
+
+<p>论文 §3.5.2 用一个 4 层 error taxonomy(<code>shell / env / runtime / logic</code>)做<strong>跨任务的错误传播矩阵</strong>。每个 entry <em>(i, j)</em> = 当前层 <em>i</em> 出错后,下一步在 <em>j</em> 层再出错的概率。结论:</p>
+
+<ul>
+  <li><strong>DockSmith 在 env / runtime 层"diagonal"概率提高</strong>: <em>P(env→env)</em> 0.34 → 0.40 (+6%), <em>P(runtime→runtime)</em> 0.38 → 0.45 (+7%)。这表示 DockSmith 不会"<em>怕错就跳走</em>",而是<em>留在同一层继续修</em>;</li>
+  <li>这种 "<strong>within-layer persistence</strong>" 是论文最哲学的发现:很多失败的 agent 不是因为<em>没找到正确答案</em>,而是因为<em>过早放弃当前思路、乱跳到另一层</em>;</li>
+  <li>Table 6: <strong>logic-layer terminal rate 从 22.6% 降到 15.9%</strong>(−6.7 pp 最大降幅) — 即 logic-level 错误更可恢复;</li>
+  <li>Table 7: High-quality response 从 34.6% → 40.4%(+5.8 pp),principled reasoning 从 27.1% → 33.0%(+5.9 pp),即<strong>修复行为从 heuristic 试错 转向 system reasoning</strong>。</li>
+</ul>
+
+<div class="nb">
+<strong>读后:</strong> 这一节其实是论文最有信号量的部分 — DockSmith 的真正"transfer mechanism"不是"<em>会写 Dockerfile</em>",而是"<em>装环境的过程教会模型 don't panic + 在错误层级里坚持修复</em>"。这是和 RL agent 训练中 reward shaping 的隐性同构 — long-horizon perseverance 才是 transfer 的实际信号载体。
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · 与本系列既有工作的连接</h2>
+
+<p>DockSmith 在本仓库的 31 篇 agent 笔记里处于<strong>"环境是核心 supervision 源"</strong>这条主线上。下面用一张图把它的位置标清楚:</p>
+
+<div class="fig">
+<svg viewBox="0 0 740 480" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">
+  <rect x="0" y="0" width="740" height="480" fill="#fff"/>
+  <!-- Title -->
+  <text x="370" y="25" text-anchor="middle" font-weight="600" font-size="15" fill="#1f2024">"环境 × Agent 训练"四象限 (Real ↔ Synthetic) × (Tool ↔ System env)</text>
+
+  <line x1="370" y1="50" x2="370" y2="470" stroke="#e2dfd5" stroke-width="1"/>
+  <line x1="40" y1="260" x2="700" y2="260" stroke="#e2dfd5" stroke-width="1"/>
+
+  <!-- 4 quadrant labels -->
+  <text x="50" y="65" font-size="12" fill="#5b5e66">← Real env</text>
+  <text x="630" y="65" font-size="12" fill="#5b5e66">Synthetic env →</text>
+  <text x="50" y="75" font-size="12" fill="#5b5e66">↑ Tool / API</text>
+  <text x="50" y="475" font-size="12" fill="#5b5e66">↓ System / OS</text>
+
+  <!-- Q1 Real Tool (top-left) -->
+  <rect x="50" y="80" width="300" height="170" rx="6" fill="#eef4ff" stroke="#2f6feb" opacity="0.8"/>
+  <text x="200" y="100" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Real env · Tool/API</text>
+  <text x="200" y="120" text-anchor="middle" font-size="12">#22 TOUCAN — 495 真 MCP server / 1.5M SFT</text>
+  <text x="200" y="138" text-anchor="middle" font-size="12">#25 MCP-Universe — 11 server eval framework</text>
+  <text x="200" y="156" text-anchor="middle" font-size="12">#19 MCP-Atlas — 36 server / 220 tool</text>
+  <text x="200" y="174" text-anchor="middle" font-size="12">#28 BFCL — function call 事实标准</text>
+  <text x="200" y="192" text-anchor="middle" font-size="12">#03 Agent-World — 1,978 real env</text>
+  <text x="200" y="218" text-anchor="middle" font-size="11" fill="#5b5e66">特征:tool schema 来自真协议,response 真执行</text>
+
+  <!-- Q2 Synthetic Tool (top-right) -->
+  <rect x="390" y="80" width="300" height="170" rx="6" fill="#fff4e0" stroke="#cc4a1b" opacity="0.8"/>
+  <text x="540" y="100" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Synthetic env · Tool/API</text>
+  <text x="540" y="120" text-anchor="middle" font-size="12">#18 AWM (Snowflake) — code-driven 35K tool</text>
+  <text x="540" y="138" text-anchor="middle" font-size="12">#23 EnvScaler — Python class = env / 191 env</text>
+  <text x="540" y="156" text-anchor="middle" font-size="12">#13 RLAnything — env+policy+reward 联合</text>
+  <text x="540" y="174" text-anchor="middle" font-size="12">#29 EnvTuning — tune env 不 tune agent</text>
+  <text x="540" y="192" text-anchor="middle" font-size="12">#06 AgentGym-RL — ScalingInter-RL 课程</text>
+  <text x="540" y="218" text-anchor="middle" font-size="11" fill="#5b5e66">特征:env 用代码模拟,可受控、可重置</text>
+
+  <!-- Q3 Real System (bottom-left) -->
+  <rect x="50" y="290" width="300" height="170" rx="6" fill="#f3eee0" stroke="#1f7a4a" opacity="0.8"/>
+  <text x="200" y="310" text-anchor="middle" font-size="13" font-weight="600" fill="#1f7a4a">Real env · System/OS</text>
+  <text x="200" y="330" text-anchor="middle" font-size="12">#20 SETA — 400 Docker terminal task / RLVR</text>
+  <text x="200" y="348" text-anchor="middle" font-size="12">#14 ClawGUI — MobileWorld Docker GUI</text>
+  <text x="200" y="366" text-anchor="middle" font-size="12">#17 UI-TARS-2 — 230B MoE GUI agent</text>
+  <text x="200" y="384" text-anchor="middle" font-size="12">#31 Prime Intellect Hub — Docker sandboxes</text>
+  <text x="200" y="402" text-anchor="middle" font-size="12">SWE-bench / TB2.0 / SWE-Smith — 真 repo</text>
+  <text x="200" y="430" text-anchor="middle" font-size="11" fill="#5b5e66">特征:真 OS / Docker / 容器副作用真发生</text>
+
+  <!-- Q4 Synthetic System (bottom-right) -->
+  <rect x="390" y="290" width="300" height="170" rx="6" fill="#fff4e0" stroke="#a8353e" opacity="0.8"/>
+  <text x="540" y="310" text-anchor="middle" font-size="13" font-weight="600" fill="#a8353e">本文所在象限</text>
+  <text x="540" y="330" text-anchor="middle" font-size="14" font-weight="600">#32 DockSmith</text>
+  <text x="540" y="350" text-anchor="middle" font-size="12">SWE-Factory pipeline 跑真 Docker</text>
+  <text x="540" y="368" text-anchor="middle" font-size="12">但用 trajectory 当 SFT 数据</text>
+  <text x="540" y="386" text-anchor="middle" font-size="12">→ 环境构建本身是任务</text>
+  <text x="540" y="410" text-anchor="middle" font-size="12" fill="#5b5e66">特殊:Real System env 的 trajectory</text>
+  <text x="540" y="425" text-anchor="middle" font-size="12" fill="#5b5e66">蒸馏到 SFT,30B-A3B 内化</text>
+  <text x="540" y="445" text-anchor="middle" font-size="11" fill="#5b5e66">填补 "环境构建 = first-class 任务" 空白</text>
+</svg>
+<figcaption>DockSmith 在本仓库 31 篇 agent 笔记构成的四象限里,位于"Real System env"的 trajectory SFT 蒸馏角落 — 这个角落此前是空白,SETA(#20)做的是 terminal agent 训练,而 DockSmith 做的是 Docker builder 训练,任务方向相反但都在 OS-system 真环境维度。</figcaption>
+</div>
+
+<h3>5.1 横向对比表</h3>
+
+<table>
+  <tr><th>论文</th><th>环境类型</th><th>训练方式</th><th>base / 规模</th><th>评测</th><th>开源</th></tr>
+  <tr>
+    <td><a href="22_TOUCAN.html">#22 TOUCAN</a></td>
+    <td>495 真 MCP server</td>
+    <td>SFT (multi-teacher distill)</td>
+    <td>Qwen2.5-32B, 1.5M traj</td>
+    <td>BFCL V3 / τ²</td>
+    <td class="ok">全开源</td>
+  </tr>
+  <tr>
+    <td><a href="23_EnvScaler.html">#23 EnvScaler</a></td>
+    <td>程序化合成 Python class</td>
+    <td>SFT + Reinforce++</td>
+    <td>Qwen3-Thinking 8B</td>
+    <td>BFCL-MT</td>
+    <td class="ok">MIT 全开源</td>
+  </tr>
+  <tr>
+    <td><a href="18_AgentWorldModel_2602.10090.html">#18 AWM</a></td>
+    <td>code-driven 全合成</td>
+    <td>GRPO</td>
+    <td>Qwen3 4/8/14B</td>
+    <td>BFCL V3</td>
+    <td class="ok">全开源</td>
+  </tr>
+  <tr>
+    <td><a href="20_SETA_camel.html">#20 SETA</a></td>
+    <td>400 Docker 合成终端任务</td>
+    <td>AReaL GRPO RLVR</td>
+    <td>Qwen3-8B</td>
+    <td>Terminal-Bench 2.0</td>
+    <td class="ok">Apache-2.0</td>
+  </tr>
+  <tr>
+    <td><a href="14_ClawGUI_2604.11784.html">#14 ClawGUI</a></td>
+    <td>MobileWorld Docker GUI</td>
+    <td>RL</td>
+    <td>—</td>
+    <td>MobileWorld 17.1%</td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td><a href="25_MCPUniverse.html">#25 MCP-Universe</a></td>
+    <td>11 真 MCP server</td>
+    <td>GRPO + verl (有 RL 训练栈)</td>
+    <td>—</td>
+    <td>self-bench</td>
+    <td class="ok">Apache-2.0</td>
+  </tr>
+  <tr>
+    <td><a href="29_TuneTheEnvironment.html">#29 EnvTuning</a></td>
+    <td>BFCL V3 环境增强</td>
+    <td>GRPO + 4-stage curriculum</td>
+    <td>Qwen2.5-7B / Llama-3.1-8B</td>
+    <td>BFCL V3 / V4</td>
+    <td class="ok">MIT</td>
+  </tr>
+  <tr>
+    <td><a href="31_PrimeIntellectHub.html">#31 Prime Intellect Hub</a></td>
+    <td>1,000+ env hub</td>
+    <td>verifiers SDK + prime-rl</td>
+    <td>Qwen3-0.6B 起</td>
+    <td>multiple</td>
+    <td class="ok">MIT + Apache</td>
+  </tr>
+  <tr style="background:#fff4e0">
+    <td><strong>#32 DockSmith</strong></td>
+    <td>SWE-Factory + 真 Docker</td>
+    <td>SFT only(无 RL)</td>
+    <td>Qwen3-Coder-30B-A3B</td>
+    <td>Multi-Docker-Eval / SWE.V / SWE.M / TB2.0</td>
+    <td class="no">匿名 HF release</td>
+  </tr>
+</table>
+
+<h3>5.2 与 #29 EnvTuning 的有意思镜像</h3>
+
+<p>DockSmith 和 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a>(ICLR 2026)代表"环境视角"的两个对偶切片:</p>
+
+<ul>
+  <li><strong>EnvTuning</strong>:固定 agent,改造 env 的反馈信号(把 "<em>No available route</em>" 改成 "<em>Invalid airport code[s]:...</em>"),用 dense per-turn reward 训练;</li>
+  <li><strong>DockSmith</strong>:固定 env(Docker),把"<em>如何造 env</em>"本身当 agent 训练目标;</li>
+  <li>二者都认为 <strong>environment 维度是 agent capability 的核心 supervision 源</strong>,但 EnvTuning 是"<em>environment as feedback shaper</em>",DockSmith 是"<em>environment as task itself</em>"。</li>
+</ul>
+
+<h3>5.3 和 #20 SETA / Terminal-Bench 2.0 的细节</h3>
+
+<p>DockSmith 把 TB2.0 当 OOD bench 之一(<a href="20_SETA_camel.html">#20 SETA</a> 把 TB2.0 当主战场)。两者具体数字:</p>
+
+<ul>
+  <li><strong>SETA</strong>(Claude Sonnet 4.5 + CAMEL agent framework): TB2.0 <strong>46.5%</strong>(榜首);Qwen3-8B + AReaL GRPO RLVR 后裸跑 TB2.0 涨幅约 +4 task / +20.2% pass ratio;</li>
+  <li><strong>DockSmith</strong>: Qwen3-Coder-30B 自己跑 TB2.0,从 10.67 → <strong>14.04</strong>(+3.37 pp 在 1:0.5 mix)。</li>
+  <li>核心差异: SETA 跑的是<strong>agent framework 加成的 frontier</strong>,DockSmith 跑的是<strong>裸 model OOD 泛化</strong>。两者不可直接比,但说明 Docker 训练对 TB2.0 的 transfer 信号是真实存在的(SETA 也是用 Docker 任务训练)。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec_oss">6 · 开源现状 — 实地清点</h2>
+
+<h3>6.1 论文自报的 release statement</h3>
+
+<p>论文 abstract 末尾说:</p>
+
+<blockquote>"Our model and Docker-building trajectories are <strong>publicly available at here</strong>." (原文 §abstract 最后一句)</blockquote>
+
+<p>注意 "<strong>at here</strong>" — 这是 LaTeX 模板里 <code>\href{here}{here}</code> 占位符没填,即<strong>论文里的 link 是空的</strong>。这是匿名审稿/早期 preprint 的常见痕迹。</p>
+
+<h3>6.2 实地搜索结果</h3>
+
+<table>
+  <tr><th>资源</th><th>状态</th><th>详情</th></tr>
+  <tr>
+    <td>GitHub <code>stepfun/DockSmith</code></td>
+    <td class="no">未确认</td>
+    <td>API 搜 stepfun + DockSmith 关键词 0 结果;StepFun 官方 GitHub 没有 DockSmith repo(截至 2026-05-18)</td>
+  </tr>
+  <tr>
+    <td>HF org <code>stepfun-ai/DockSmith</code></td>
+    <td class="no">未确认</td>
+    <td>stepfun-ai org 下没有 DockSmith 模型;org 已发 Step-3.5-Flash / Step-Audio / NextStep-1 系列,但 DockSmith 不在</td>
+  </tr>
+  <tr>
+    <td>HF model <code>8sj7df9k8m5x8/DockSmith</code></td>
+    <td class="ok">已找到</td>
+    <td>匿名账号上传 · 2026-01-27 · <code>qwen3_moe</code> safetensors · 标签缺失 · 下载数仅 1 · 推测是<strong>论文匿名审稿配套 release</strong>;<br><a href="https://huggingface.co/8sj7df9k8m5x8/DockSmith" target="_blank">huggingface.co/8sj7df9k8m5x8/DockSmith</a></td>
+  </tr>
+  <tr>
+    <td>HF dataset <code>8sj7df9k8m5x8/docker_building_training</code></td>
+    <td class="ok">已找到</td>
+    <td>同一匿名账号 · 2026-03-31 · <strong>Apache-2.0</strong> · 39,719 samples / 2,876 unique instances · 9 个 JSON shard + 9 个 index · 下载数 64;<br><a href="https://huggingface.co/datasets/8sj7df9k8m5x8/docker_building_training" target="_blank">huggingface.co/datasets/8sj7df9k8m5x8/docker_building_training</a></td>
+  </tr>
+  <tr>
+    <td>Reproducibility code</td>
+    <td class="no">未确认</td>
+    <td>未找到训练脚本 / pipeline 实现 / loop-detection 算法 / cross-task memory 检索代码</td>
+  </tr>
+</table>
+
+<h3>6.3 匿名 HF 账号 <code>8sj7df9k8m5x8</code> 是什么</h3>
+
+<p>这个账号名是典型的随机字符串 — 看起来是 <strong>arXiv preprint 配套的匿名审稿账号</strong>。账号下只有这一个 model + 一个 dataset,创建时间(2026-01-27)和 v1 提交时间(2026-01-31)只差 4 天,且都直接以 "DockSmith" / "docker_building_training" 命名,极不可能是无关第三方。</p>
+
+<div class="warn">
+<strong>读者警告</strong>:这意味着<strong>正式开源 repo 未公开</strong>。HF 上的匿名 release 通常会在 conference accept 之后由 StepFun 团队迁移到正式 org(参照 INTELLECT-3 / Kimi-K2 等先例)。当前下载的 model + dataset 应视为 <strong>preview release</strong>,缺少:
+<ul>
+  <li>训练代码(SFT 配置 / hyperparameter / curriculum 实现);</li>
+  <li>SWE-Factory pipeline 的 DockSmith 分支(loop-detection + cross-task memory 实现);</li>
+  <li>评测脚本(Multi-Docker-Eval 调用 + SWE-bench 接入);</li>
+  <li>数据 license 的明确归属(虽然 dataset 标 Apache-2.0,但<strong>底层 GitHub repo 的 license</strong> — repo 内代码 / Dockerfile / commit message — 没有 derivative work 的明确说明)。</li>
+</ul>
+</div>
+
+<h3>6.4 数据集内部结构(根据 HF README)</h3>
+
+<div class="kv">
+  <strong>Total samples:</strong> 39,719<br>
+  <strong>Unique instances:</strong> 2,876(即一个 repo issue 对应 ~14 个 trajectory)<br>
+  <strong>Files:</strong> <code>1.json … 9.json</code>(sample shard,每个 sample 是一个 chat messages list)+ <code>1.index.json … 9.index.json</code>(每 shard 的 index,字段 <code>sample_id</code> / <code>instance_id</code> / <code>agent_type</code> / <code>source_file</code> / <code>num_assistants</code>)<br>
+  <strong>License:</strong> apache-2.0<br>
+  <strong>Language:</strong> en
+</div>
+
+<p>从 <code>agent_type</code> 这个字段可以看出,数据集<strong>已经按 SWE-Factory 4 个 agent 拆分</strong> — 即每个 sample 是<em>单个 agent 的多轮交互</em>而不是整条 trajectory。<strong>2,876 instance × 4 agent ≈ 11,500,论文里说 30K instance + 4 agent 应得到 ~120K trajectory</strong> — 所以 HF 上 39,719 个 sample 应该只是<strong>过滤后 SFT subset 的一部分</strong>,而非全部训练数据。这是另一个 release 不完整的信号。</p>
+
+<h3>6.5 复现可行性 checklist</h3>
+
+<table>
+  <tr><th>组件</th><th>是否可复现</th><th>缺什么</th></tr>
+  <tr><td>Base model</td><td class="ok">✓</td><td>Qwen3-Coder-30B-A3B-Instruct(Apache-2.0,HF 上可直接下)</td></tr>
+  <tr><td>SFT 数据</td><td>部分</td><td>HF dataset 是 subset / 缺训练全量(论文 200K → 30K filtered → ? )</td></tr>
+  <tr><td>SWE-Factory pipeline</td><td>部分</td><td>SWE-Factory 原版可在 arXiv:2506.10954 找到,DockSmith 的两扩展未公开实现</td></tr>
+  <tr><td>训练脚本</td><td class="no">✗</td><td>SFT 配置 / curriculum 采样代码 / joint training mix 实现</td></tr>
+  <tr><td>评测 Multi-Docker-Eval</td><td>第三方</td><td>需要等 MDE 作者(Fu et al. arXiv:2512.06915)release</td></tr>
+  <tr><td>Eval SWE-bench Verified</td><td class="ok">✓</td><td>SWE-bench 官方 Apache-2.0</td></tr>
+  <tr><td>Eval Terminal-Bench 2.0</td><td class="ok">✓</td><td>arXiv:2601.11868 / harness 公开</td></tr>
+  <tr><td>Eval SWE-bench Multilingual</td><td class="ok">✓</td><td>arXiv:2504.02605</td></tr>
+</table>
+
+<p>结论: 当前状态下 <strong>"完整复现"是不可能的</strong>,但"<strong>用 Qwen3-Coder-30B-A3B + HF 上的 39K SFT subset 跑 SFT 再用现成 MDE/SWE-bench 评测</strong>"这个 lite-reproduce 路径是<strong>可行的</strong>。预期能达到 论文 39.72 F2P 的 70-80%(因为 SFT subset 不完整)。</p>
+
+<hr>
+
+<h2 id="sec7">7 · 局限 / 个人 take</h2>
+
+<h3>7.1 论文的真实贡献是什么?</h3>
+
+<p>剥掉宣传性表述,DockSmith 实际贡献是 <strong>3 件</strong>:</p>
+
+<ol>
+  <li><strong>把 SWE-Factory pipeline 的输出</strong>当 SFT 数据,蒸馏到 30B-A3B 模型权重里 — 这本质是 distillation;</li>
+  <li><strong>两个 pipeline-level augmentation</strong>(loop-detection + cross-task memory)— 都是 engineering 优化,不是新算法;</li>
+  <li><strong>实验上证明</strong>装环境训练 transfer 到 SWE/Terminal — 这是论文 thesis 的<em>原创性</em>所在,但属于工程发现,不是新方法。</li>
+</ol>
+
+<p>所以 DockSmith 的论文价值是<strong>系统性 + 实证性</strong>,不是<strong>算法性</strong>。它把过去散落的 intuition(<em>装环境很重要,但又只是 preprocessing</em>)系统化、量化、跑出来给大家看。</p>
+
+<h3>7.2 真正的 limitation</h3>
+
+<h4>7.2.1 Multi-Docker-Eval 的 self-eval bias 隐患</h4>
+
+<p>MDE(Fu et al., arXiv:2512.06915,2025-12)和 SWE-Factory(Guo et al., arXiv:2506.10954,2025-06)虽然<strong>不是 StepFun 自家工作</strong>,但都在 SWE 训练 infra 这个小圈子里。DockSmith 直接复用 SWE-Factory pipeline 跑 MDE bench — 评测协议 alignment 自然非常完美。这<em>不是</em>狭义的 "self-eval bias",但确实使<strong>对比基线的劣势被放大</strong>(其他模型如 DeepSeek-v3.1 / Claude-Sonnet-4 都是 zero-shot 跑 SWE-Factory framework,而 DockSmith 是<em>专门为这个 framework 训练</em>的)。</p>
+
+<p>更公允的对比方式应该是:把 DockSmith 接到一个<strong>不同的 Docker-building scaffold</strong>(比如 ExecutionAgent / Repo2Run / SetupAgent)上看是否还保持 SOTA。论文没做这个实验。</p>
+
+<h4>7.2.2 30B-A3B 的"开源"主张需要打折</h4>
+
+<p>论文反复强调 <strong>"open-source state-of-the-art"</strong>,但实际:</p>
+
+<ul>
+  <li>Base model Qwen3-Coder-30B-A3B-Instruct <em>本身</em>是 Apache-2.0 真开源 — 这部分没问题;</li>
+  <li>DockSmith 的训练 weight <strong>放在匿名 HF 账号下</strong>,无正式 license 声明,无 release announcement;</li>
+  <li>HF 上 dataset 标了 Apache-2.0,但 GitHub repo 派生数据的合规性(尤其涉及 200K PR description + Dockerfile + test log 的版权 / NOTICE 文件)未在 README 中说明;</li>
+  <li>训练脚本 / pipeline 实现完全缺失。</li>
+</ul>
+
+<p>结论:DockSmith 的 "<strong>open-source</strong>" 主张当前只能算"<strong>artifact-partial</strong>" — model weight + 部分 SFT subset 可下载,但<strong>不是 reproducibility-grade open-source</strong>(对比 TOUCAN #22 的 Apache 数据 + MIT 代码 + 27 个 HF ckpt 全栈商用 friendly)。</p>
+
+<h4>7.2.3 Cross-task success memory — 启发式还是学到的?</h4>
+
+<p>论文 §2.2 只说 "<em>previously verified (Dockerfile, eval script) pairs to serve as lightweight demonstrations</em>",没给 retrieval 算法、没给 ablation(memory on/off 对最终结果影响多少)。这是一个明显的<strong>消融缺口</strong>:</p>
+
+<ul>
+  <li><strong>loop-detection</strong>的消融完全缺(Table 4 是 Acceptance Shaping + Curriculum,不是 loop-detection);</li>
+  <li><strong>cross-task memory</strong>的消融完全缺;</li>
+  <li>所以读者无法判断<strong>这两个"扩展"对最终 SOTA 贡献了多少</strong>。两个看起来都是 engineering trick,但论文是把它们当 contribution 提出的。</li>
+</ul>
+
+<p>个人推测:cross-task memory 极有可能是简单的 metadata lookup(按主语言 + 主框架 match),不是学出来的检索器。如果是 learned retrieval,论文一定会单独 ablation 出来 sell。</p>
+
+<h4>7.2.4 OOD claim 的污染风险</h4>
+
+<p>论文 §2.1 说做了 "<em>repository-level deduplication against all evaluation benchmarks</em>" 防 contamination — 但这只能保证 <strong>repo 没重叠</strong>。<strong>但 SWE-Factory 的 pipeline 数据本身</strong>就是从 GitHub merged PR 拉的,而 SWE-bench / SWE-bench Multilingual / Terminal-Bench 2.0 的任务<em>也是</em>从 GitHub 公开仓库制定的 — 即两者数据生成过程在源数据维度有结构性同构。这种"软污染"在<strong>编程领域是普遍存在的</strong>,DockSmith 没有比同类工作做得更糟,但 +2.25/+2.09/+3.37 这种<strong>小数量级涨幅</strong>的 OOD claim 应该带着这层警觉来读:可能有一部分涨幅是源数据相关性贡献的,而不是单纯"<em>装环境训练 transfer</em>"。</p>
+
+<h4>7.2.5 SWE.V / SWE.M / TB2.0 绝对分数都不高</h4>
+
+<p>DockSmith 的 OOD 涨幅是<strong>百分点级</strong>而非<strong>数量级</strong>:</p>
+
+<ul>
+  <li>SWE-bench Verified: 49.65 → 51.90 — 30B-A3B 区间内有提升,但 frontier 已经在 70+(Claude-Opus-4.5,GPT-5);</li>
+  <li>SWE-bench Multilingual: 31.83 → 33.92 — 还低于 50%;</li>
+  <li>Terminal-Bench 2.0: 10.67 → 14.04 — 远低于 SETA(Claude + CAMEL)的 46.5%。</li>
+</ul>
+
+<p>即论文 OOD 部分的<strong>"transfer 信号是真实的"</strong>这个 claim 成立,但<strong>"DockSmith 是个强 SWE/Terminal agent"</strong>这个隐含 claim<strong>不成立</strong>。两者要分清。论文 §5 conclusion 措辞已较谨慎("<em>improves out-of-distribution performance</em>"而非"<em>achieves SOTA</em>"),但 abstract 的措辞容易被误读。</p>
+
+<h4>7.2.6 没有 RL,SFT 上限到顶了吗?</h4>
+
+<p>整个 DockSmith 训练管线是 <strong>纯 SFT</strong>。考虑到:</p>
+
+<ul>
+  <li><a href="20_SETA_camel.html">#20 SETA</a> 用 AReaL GRPO RLVR 在 Qwen3-8B 上跑出温和涨幅;</li>
+  <li><a href="23_EnvScaler.html">#23 EnvScaler</a> 用 Reinforce++ 在 Qwen3-Thinking 上跑出 SOTA;</li>
+  <li><a href="25_MCPUniverse.html">#25 MCP-Universe</a> 内含 verl GRPO 训练栈;</li>
+  <li>SWE-Factory 流水线天然有 <code>exit code</code> 作为 verifier signal,这是<strong>免费的 RLVR reward</strong>;</li>
+</ul>
+
+<p>论文<strong>没有探索 RL</strong> — 这是一个未完成的实验维度。猜测原因有二:(1) Docker-building rollout 太长(单个 trajectory 可达 50 steps),GRPO 在长 horizon 上 sample efficiency 差;(2) StepFun 当前可能更看重蒸馏出快速可部署的 SFT 模型,RL 留作后续。但<strong>RL × Docker-building 是显然的下一步</strong>,谁先做完会拿到更大 jump。</p>
+
+<h4>7.2.7 C 语言 / C++ / Java 编译工具链的 systematic 失败</h4>
+
+<p>从 Table 2 看,DockSmith 在 <strong>C 语言上 base 已经是 20.00,DockSmith 还是 20.00</strong>(无改善),C++ 6.67 → 15.56(+8.89 pp,但绝对值还是很低),Java 6.67 → 19.05(+12.38 pp,但与 Python 的 51.28 相比还是低)。这是 Docker-building 的<strong>结构性难点</strong>: 编译工具链(<code>gcc</code> 版本 / glibc ABI / cmake 设置 / Maven cache / Gradle wrapper)的失败模式高度长尾,SFT 数据稀缺、修复路径多分支。这暗示<strong>Docker 训练的"语言不均衡"是固有的</strong>,加更多 C/C++ 数据未必 scale。</p>
+
+<h3>7.3 个人 take</h3>
+
+<div class="warn">
+<strong>DockSmith 是个干净的"工程化 + 实证化"工作</strong> — 不发明新算法,但把 SWE-Factory 流水线的产出工业化、SFT 化、benchmark 化。它的核心价值不在 model weight,而在 thesis 验证:<strong>装环境 trajectory 训练 transfer 到 SWE/Terminal,且 transfer 信号通过 within-layer persistence 落实</strong>(Figure 4 + Table 6/7)。
+<br><br>
+对本仓库读者最有用的 takeaway:
+<ul>
+  <li>如果你在做 SWE/Terminal agent 训练,<strong>Docker-building trajectory 是被严重 under-utilized 的 SFT signal</strong>(论文 Table 8 显示 1:0.5 mix 在 TB2.0 上拿 +3.37 pp);</li>
+  <li><strong>装环境的 "<em>within-layer persistence</em>" 才是 transfer 的真信号载体</strong> — 不是 Dockerfile 写得多,而是教会模型"<em>错了不要乱跳,在同一层继续修</em>";</li>
+  <li>对照 <a href="20_SETA_camel.html">#20 SETA</a> + <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a> + DockSmith,可以预见<strong>下一代 SWE agent 训练栈</strong>会是: SWE-Factory(Docker-building SFT 冷启)+ SETA(terminal Docker RLVR)+ EnvTuning(env feedback shaping)+ general SWE traj(joint mix at 1:1)。</li>
+</ul>
+</div>
+
+<h3>7.4 待验证问题清单</h3>
+
+<ol>
+  <li>Loop-detection controller 的具体算法(N-gram 阈值? 学习的判别器?)— 论文未给;</li>
+  <li>Cross-task memory 的 retrieval 算法(BM25 / embedding / metadata match?)— 论文未给;</li>
+  <li>Loop-detection on/off 的 ablation — 论文未给;</li>
+  <li>Cross-task memory on/off 的 ablation — 论文未给;</li>
+  <li>正式开源 repo / 权重的 timeline — StepFun 是否会在 ICML / NeurIPS 2026 cycle 内做迁移;</li>
+  <li>Cai et al. (2025) "Nex-N1: Agentic models trained via a unified ecosystem for large-scale environment construction" arXiv:2512.04987 — 这是 SFT joint-training 用的 Nex Agent-SFT 数据集来源,是 StepFun 自家相关工作?需要交叉读;</li>
+  <li>DockSmith 是否能反过来 boost SWE-Factory 本身的数据生成 yield — 闭环验证;</li>
+  <li>对 C/C++/Java 等长尾语言的<strong>极限提升路径</strong>是什么 — 加 toolchain-specific 训练 data? RL?。</li>
+</ol>
+
+<hr>
+
+<div class="kv">
+<strong>引用建议:</strong> 如果你在做 SWE / agent 训练相关工作,DockSmith 的 § 3.5.2 错误传播分析(Figure 4 + Table 6 + Table 7)值得单独引用 — 它是目前为止<strong>少见的把"agent transfer 的真实信号"拆到 within-layer persistence 颗粒度上的实证 study</strong>。
+</div>
+
+<p style="text-align:right;color:var(--muted);font-size:13px;margin-top:40px">
+笔记完成 · 2026-05-18 · 笔记 #32 · <a href="../../README.md">返回 README</a>
+</p>
+
+</main>
+</body>
+</html>
