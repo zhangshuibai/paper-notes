@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · AgentDistill: Training-Free Agent Distillation with Generalizable MCP Boxes</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:780px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;
+    font-family:"Cambria Math","STIX Two Math","Latin Modern Math",Cambria,"Times New Roman",serif;
+    text-align:center;font-size:1.1em}
+  .formula em{font-style:italic}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff4e0;border:1px solid #f0d8a3;border-radius:8px;padding:10px 14px;margin:1em 0}
+  .paper-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+  .paper-card .ttl{font-weight:600;color:var(--accent)}
+  .paper-card .date{color:var(--muted);font-size:13px;margin-left:8px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>AgentDistill: Training-Free Agent Distillation with Generalizable MCP Boxes</h1>
+<div class="meta">
+  Princeton AI Lab · UMich · IIIS Tsinghua · SJTU · Columbia · CUHK · TCCI · UT Austin · Jiahao Qiu, Xinzhe Juan, Yimin Wang, Ling Yang, Xuan Qi, Tongcheng Zhang, Jiacheng Guo, Yifu Lu, Zixin Yao, Hongru Wang, Shilong Liu, Xun Jiang, Liu Leqi, <strong>Mengdi Wang</strong>(通讯)· 2025-06-17 v1<br>
+  <a href="https://arxiv.org/abs/2506.14728" target="_blank">arXiv:2506.14728</a> · 10 pages, 5 figures · <span class="no">无官方公开代码 / 数据 / 权重</span>(arXiv "Code, Data and Media" tab 空, CatalyzeX 未抓到 — 见 §7)<br>
+  关键词: training-free agent distillation · MCP-Box · teacher-generated MCP · SmolAgents · FastMCP · biomedical+math benchmarks · Game of 24 / PathVQA / SLAKE · Alita 同源
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> AgentDistill 把"agent 蒸馏"重新定义为<strong>不动 student 权重</strong> — 让 teacher agent(Claude-Sonnet-4 + GPT-4o)在解题过程中"<em>顺手</em>"写出一堆<code>@mcp.tool()</code> Python 工具脚本,经过 <strong>abstract / cluster / consolidate</strong> 三步用 Claude-Sonnet-4 自动合并成一个 <strong>MCP-Box(参数化 FastMCP 工具库)</strong>,然后把整个 box 挂到 small LLM (Llama-3.1-8B / Qwen3-8B / GPT-3.5-turbo)上,student 在<strong>零梯度更新</strong>条件下推理。在 <strong>Game of 24 / PathVQA / SLAKE</strong> 上,<strong>GPT-3.5-turbo +48.4 pp、LLaMA-3.1-8B +42.3 pp</strong>(Game of 24),student-after-distill 的均值<strong>超过 OctoTools (GPT-4o)</strong> baseline,逼近 teacher。本质上是<strong>把"agent 知识"从权重里搬到了运行时的<em>工具库</em>里</strong>。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">0 梯度</div><div class="l">∇θπ_S = 0(student 权重完全冻结)</div></div>
+    <div class="stat"><div class="n">9 / 13 / 1</div><div class="l">PathVQA / SLAKE / Game-of-24 三个 box 的<br>distilled MCP 数量</div></div>
+    <div class="stat"><div class="n">+48.4 pp</div><div class="l">GPT-3.5-turbo 在 Game of 24 上的<br>绝对涨幅(34.3 → 82.7)</div></div>
+    <div class="stat"><div class="n">3 + 3</div><div class="l">3 个 student × 3 个 benchmark<br>9/9 全部正向</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是一篇<strong>方法上轻、概念上重</strong>的论文。"training-free agent distillation"本质是把 <a href="22_TOUCAN.html">#22 TOUCAN</a>(1.5M SFT)、<a href="34_ToolMind_2511.15718.html">#34 ToolMind</a>(turn-level SFT)、<a href="35_ToolACE_2409.00920.html">#35 ToolACE</a>(TSS/SDG/DLV 三件套 SFT)这一整支<strong>权重蒸馏</strong>路线,换成<strong>工具库蒸馏</strong>: teacher 不教 student 怎么<em>说话</em>,而是把自己写过的<em>能跑的 python 工具</em>留给 student 当外挂。读完最大的怀疑: 这不就是"<strong>retrieval-free dynamic tool generation</strong>"加上"<em>Claude 当 MCP 编译器</em>"吗?它真正的贡献其实是 <strong>(a) 提出"MCP 是 agent 蒸馏的对象"</strong> 这个概念定位,以及 <strong>(b) 证明小到 8B 的开源模型挂上 MCP-Box 后能逼近 GPT-4o + OctoTools</strong>;但 benchmark 只测了 3 个数据集、box 里的工具数极少(1~13),"generalizable"这个词在论文里是<em>口号而非证据</em>(见 §8 critical)。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">Motivation — 为什么"training-free"是个值得讨论的概念</a></li>
+    <li><a href="#sec2">What is an "MCP Box" — 拆开看,它到底是什么</a></li>
+    <li><a href="#sec3">蒸馏过程逐 stage 拆解 — 谁是 teacher, 谁是 student, 什么被传递</a></li>
+    <li><a href="#sec4">"Generalizable"的具体含义 — 论文怎么测,怎么<em>没</em>测</a></li>
+    <li><a href="#sec5">实验 + 完整数字(Table 1 / 2 / 3 逐条)</a></li>
+    <li><a href="#sec6">与本系列的横向连接 — TOUCAN / ToolACE / ToolMind / EnvTuning</a></li>
+    <li><a href="#sec7">开源现状 — 实测无官方 repo</a></li>
+    <li><a href="#sec8">Critical analysis — 当我说"training-free"时我并没说清楚什么</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · Motivation — "training-free agent distillation"作为概念立项</h2>
+
+<h3>1.1 论文怎么自报立场</h3>
+
+<p>论文的开篇逻辑非常直接: 现有 agent 蒸馏路线被分为三类(§2.3),每一类都有结构性缺陷:</p>
+
+<table>
+  <tr><th>路线</th><th>代表</th><th>蒸馏对象</th><th>论文点的痛点</th></tr>
+  <tr>
+    <td><strong>Trajectory 蒸馏</strong></td>
+    <td>SAD (Structured Agent Distill) · "Distilling LLM Agents into Small Models" (arXiv:2505.17612)</td>
+    <td>完整 reasoning-action trajectory</td>
+    <td class="no">"high computational cost and generalize poorly"<br>student 只会照搬,不会适应新环境</td>
+  </tr>
+  <tr>
+    <td><strong>Structure 蒸馏</strong></td>
+    <td>MAGDi · Sub-goal Distillation</td>
+    <td>graph / subgoal 序列</td>
+    <td class="no">"overlook differences in model capability, knowledge boundaries, or tool usage"<br>teacher 的 plan 不一定是 student 能执行的</td>
+  </tr>
+  <tr>
+    <td><strong>Action policy 蒸馏</strong></td>
+    <td>DeDer · Language-Oriented to Emergent Communication</td>
+    <td>language → non-linguistic controller</td>
+    <td class="no">语言→符号策略,完全丢掉了 tool-use 的可读性</td>
+  </tr>
+  <tr style="background:#f3eee0">
+    <td><strong>AgentDistill (本文)</strong></td>
+    <td>—</td>
+    <td><strong>teacher 生成的 MCP(Python 工具)</strong></td>
+    <td class="ok">student 权重完全冻结、teacher 工具<em>能跑</em></td>
+  </tr>
+</table>
+
+<p>注意它没有 cite <a href="22_TOUCAN.html">#22 TOUCAN</a>、<a href="34_ToolMind_2511.15718.html">#34 ToolMind</a>、<a href="35_ToolACE_2409.00920.html">#35 ToolACE</a> 这种 <strong>tool-use SFT 数据集</strong>路线 —— 因为这些其实<em>不是 agent 蒸馏</em>,而是<em>数据集合成</em>。本论文真正的差异化在于把"知识"放在哪儿: <strong>SFT 把工具知识塞进权重 vs AgentDistill 把工具知识塞进运行时 library</strong>。</p>
+
+<h3>1.2 为什么"training-free"这个 framing 值得讨论</h3>
+
+<p>把"agent capability"看成是<strong>权重存储</strong>还是<strong>外部库存储</strong>,是 2025 下半年这一波 MCP-agent 浪潮里最根本的二选一。</p>
+
+<div class="kv">
+  <strong>权重派(SFT/RL 路线)</strong>: TOUCAN / ToolACE / ToolMind / SETA / EnvTuning / Agent-World / AWM — agent 必须"<em>知道</em>" tool 怎么用,知识沉淀进权重才能泛化。<br>
+  典型路径: 造 1.5M trajectory → SFT Qwen2.5-32B → BFCL V3 测分。
+</div>
+<div class="kv">
+  <strong>库派(prompt/retrieval/library 路线)</strong>: Alita(本文 cite 的同组 [20] 工作)/ AutoAgent / OctoTools / AgentDistill — agent 用预制 library,通用 LLM 不动权重。<br>
+  典型路径: 写好 K 个 MCP tool → mount 到 student → 评测。
+</div>
+
+<p>AgentDistill 的<strong>哲学立场</strong>是: 知识不该烧在权重里 — 应该<strong>结晶为可重用的 python 工具</strong>。论文 §1 原话:</p>
+
+<blockquote>
+"<em>By directly integrating these distilled MCP boxes, student agents significantly enhance their performance and adaptability, effectively bridging the capability gap between teacher and student agents. Consequently, our method offers a scalable, efficient, and low-cost solution for agent distillation.</em>" — §1 contribution para
+</blockquote>
+
+<p>这个立场和上一波的<strong>RAG vs in-weight knowledge</strong>的争论同构 — 你愿意把"知识"放外面让它可审计 / 可热更新, 还是放权重里让它快但黑盒。本文站<strong>外面</strong>。</p>
+
+<h3>1.3 cost / privacy / 部署的"潜在卖点"</h3>
+
+<p>论文显式提的卖点有 3 个:</p>
+
+<ul>
+  <li><strong>训练成本 = 0</strong>: "<em>no fine-tuning of either the teacher or the student agent</em>" — 直接跳过 SFT 几百~几千 GPU 小时;</li>
+  <li><strong>部署 cost 低</strong>: student 是 frozen 8B 模型,推理时只多挂一个 MCP runtime;</li>
+  <li><strong>泛化优于 trajectory replay</strong>: 因为 MCP 是参数化 Python 函数,不是固定 token 序列。</li>
+</ul>
+
+<div class="nb">
+  论文<strong>没有</strong>正面打出"privacy preserving"或"on-device" 这两张牌 — 虽然 reader 可能期待 (毕竟 student 8B 可端侧). 这两张牌其实更适合 #36 mobile agent 路线, AgentDistill 真正想抢的是 <strong>OctoTools (GPT-4o)</strong> 这类<em>预定义 toolset 加 frontier model 做 manager</em>的工业实践。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · What is an "MCP Box" — 把这个词拆开看</h2>
+
+<h3>2.1 论文里"MCP"的具体含义</h3>
+
+<p>论文 §1 给出的定义: "<em>MCP is an open protocol designed to standardize how context is provided to LLMs</em>" — cite Anthropic 的官方 MCP blog. 但在 AgentDistill 上下文里,"MCP"被<strong>窄化</strong>为:</p>
+
+<div class="kv">
+  <strong>一个 MCP = 一段带 <code>@mcp.tool()</code> 装饰器的 self-contained Python function</strong>, 接 FastMCP runtime 跑.<br>
+  Figure 4 的 brain-MRI 例子直接给出代码:
+</div>
+
+<pre>@mcp.tool()
+def analyze_brain_mri(image_path: str,
+                      region: str = "full",
+                      analysis_mode: str = "detailed",
+                      bright_threshold_multiplier: float = 2.5,
+                      ...) -&gt; str:
+    """Analyze brain MRI image for abnormalities and diseases."""
+</pre>
+
+<p>所以"MCP"在这篇里<strong>不是</strong>:</p>
+<ul>
+  <li class="no">不是 docker 容器(没有 sidecar 服务)</li>
+  <li class="no">不是 registry entry(没接 Smithery/Atlas/Hub)</li>
+  <li class="no">不是 schema JSON(不是 BFCL 那种 function spec)</li>
+</ul>
+<p>而<strong>是</strong>:</p>
+<ul>
+  <li class="ok">是 Python 源文件 — 带 <code>@mcp.tool()</code> 装饰器,接 FastMCP local runtime</li>
+  <li class="ok">是 参数化的(每个工具留 ≤3 个 critical parameter)</li>
+  <li class="ok">是 由 LLM 自动生成 + 由 LLM 自动合并的</li>
+</ul>
+
+<h3>2.2 "MCP Box"是 K 个 MCP 的 collection</h3>
+
+<p>论文 (7) 式给出 box 的形式定义:</p>
+
+<div class="formula">
+<em>B</em> = { (MCP<sub>k</sub><sup>final</sup>, cluster_name<sub>k</sub>) }<sub>k=1</sub><sup>K</sup>
+</div>
+
+<p>每个 entry 是 (consolidated python tool, functional label) 对,K 是<strong>聚类数</strong>。在论文实测里:</p>
+
+<ul>
+  <li>PathVQA: K = 9</li>
+  <li>SLAKE: K = 13</li>
+  <li>Game of 24: K = 1</li>
+</ul>
+
+<p><span class="term">这意味着 student 在做 Game of 24 时,工具箱里其实<strong>只有一个 tool</strong></span> — 一个"通用 24-puzzle 求解器"。Game of 24 上的 +48.4 pp 涨幅,本质上是把<strong>编程问题外包给 teacher 写好的 python 程序</strong>。后面讨论 critical 时会回来批这一点。</p>
+
+<h3>2.3 跟 Anthropic 官方 MCP 协议的关系</h3>
+
+<p>名字虽然叫"MCP",但<strong>本文的 MCP 跟 Anthropic 官方 MCP(JSON-RPC over stdio/HTTP)关系比较松散</strong> —— 它用的是 <code>FastMCP</code> 库,这是 MCP 的 Python 客户端 / 服务端框架,所以技术栈上是兼容的,但论文里所有 tool 都<strong>跑在 student agent 同进程</strong>,没有真正的 cross-process MCP server。这是它和 #19 MCP-Atlas / #25 MCP-Universe / #24 Smithery 生态的关键差: 那几个都跑真 server,这个跑同进程函数。</p>
+
+<div class="nb">
+  把它和 Anthropic 的官方 MCP 类比,更像是<strong>"local-only MCP"</strong> — 借了 protocol 的语法糖(decorator + 标准化 input/output),但没用 transport layer.
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · 蒸馏过程逐 stage 拆解</h2>
+
+<h3>3.1 全景</h3>
+
+<div class="fig">
+<svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+  <defs>
+    <marker id="ar37" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <!-- Teacher block -->
+  <rect x="20" y="40" width="200" height="120" fill="#fff" stroke="#cc4a1b" stroke-width="2" rx="10"/>
+  <text x="120" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">Teacher Agent</text>
+  <text x="120" y="80" text-anchor="middle" font-size="11" fill="#1f2024">Claude-Sonnet-4 (Manager)</text>
+  <text x="120" y="96" text-anchor="middle" font-size="11" fill="#1f2024">GPT-4o (MCP Creator)</text>
+  <text x="120" y="120" text-anchor="middle" font-size="10" fill="#5b5e66">逐题解 → 产生 trajectory τ_i</text>
+  <text x="120" y="138" text-anchor="middle" font-size="10" fill="#5b5e66">每题输出 0~K 个 MCP 脚本</text>
+
+  <!-- Pool L -->
+  <rect x="270" y="40" width="180" height="120" fill="#f3eee0" stroke="#2f6feb" stroke-width="1.5" rx="10"/>
+  <text x="360" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">MCP Pool L</text>
+  <text x="360" y="82" text-anchor="middle" font-size="11" fill="#1f2024">仅保留 π_T(x)=y 的成功 traj</text>
+  <text x="360" y="100" text-anchor="middle" font-size="11" fill="#1f2024">仅保留可执行 MCP</text>
+  <text x="360" y="120" text-anchor="middle" font-size="10" fill="#5b5e66">大而 noisy</text>
+
+  <!-- Box B -->
+  <rect x="500" y="40" width="200" height="120" fill="#fff" stroke="#1f7a4a" stroke-width="2" rx="10"/>
+  <text x="600" y="62" text-anchor="middle" font-size="13" font-weight="600" fill="#1f7a4a">MCP-Box B</text>
+  <text x="600" y="82" text-anchor="middle" font-size="11" fill="#1f2024">Claude-Sonnet-4</text>
+  <text x="600" y="98" text-anchor="middle" font-size="11" fill="#1f2024">Abstract → Cluster → Consolidate</text>
+  <text x="600" y="120" text-anchor="middle" font-size="10" fill="#5b5e66">{(MCP_k^final, cluster_k)}_{k=1..K}</text>
+  <text x="600" y="138" text-anchor="middle" font-size="10" fill="#5b5e66">紧凑 + 参数化 + FastMCP 兼容</text>
+
+  <!-- arrows -->
+  <line x1="220" y1="100" x2="265" y2="100" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar37)"/>
+  <line x1="450" y1="100" x2="495" y2="100" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar37)"/>
+
+  <!-- Student -->
+  <rect x="270" y="220" width="180" height="120" fill="#fff" stroke="#2f6feb" stroke-width="2" rx="10"/>
+  <text x="360" y="240" text-anchor="middle" font-size="13" font-weight="600" fill="#2f6feb">Student Agent π_S</text>
+  <text x="360" y="258" text-anchor="middle" font-size="11" fill="#1f2024">Llama-3.1-8B / Qwen3-8B / GPT-3.5</text>
+  <text x="360" y="276" text-anchor="middle" font-size="11" fill="#1f2024">SmolAgents framework</text>
+  <text x="360" y="296" text-anchor="middle" font-size="10" fill="#5b5e66">∇θ π_S = 0(权重冻结)</text>
+  <text x="360" y="312" text-anchor="middle" font-size="10" fill="#5b5e66">推理时直接 mount B 整个 box</text>
+
+  <line x1="600" y1="160" x2="600" y2="280" stroke="#5b5e66" stroke-width="1.5"/>
+  <line x1="600" y1="280" x2="455" y2="280" stroke="#5b5e66" stroke-width="1.5" marker-end="url(#ar37)"/>
+  <text x="520" y="200" font-size="11" fill="#5b5e66">mount(B)</text>
+
+</svg>
+<figcaption>AgentDistill 三阶段全景: (1) Teacher 解题时<em>顺手</em>写 MCP 脚本 → (2) 用 Claude-Sonnet-4 做 abstract+cluster+consolidate 三步合并成 MCP-Box → (3) Box 直接挂到 student,student 权重冻结。
+注意整张流程中没有任何 student-side training。</figcaption>
+</div>
+
+<h3>3.2 Teacher: 谁是 teacher, 怎么产生 MCP</h3>
+
+<p>论文 §3.5.1 给出 teacher agent 的三组件:</p>
+
+<table>
+  <tr><th>模块</th><th>backbone</th><th>职责</th></tr>
+  <tr><td><strong>Manager Agent</strong></td><td>Claude-Sonnet-4</td><td>把 task 分解, 决定是否需要新工具</td></tr>
+  <tr><td><strong>Basic Image Captioner</strong></td><td>(未指定具体模型)</td><td>把图片转成文本描述, 给 text-only 部分用</td></tr>
+  <tr><td><strong>MCP Creation Module</strong></td><td>GPT-4o</td><td>4 个 sub-section: Brainstorm → Open-Source Search → Script Gen → Virtual Exec</td></tr>
+</table>
+
+<p>关键细节(论文 §3.5.1):</p>
+
+<ul>
+  <li><strong>Open-Source Searching Section</strong>: 主动去 search 已有 open-source code(没说具体接口, <span class="term">很可能是 GPT-4o 的 web search tool</span>);</li>
+  <li><strong>Virtual Environment Execution</strong>: 在 sandbox 里跑生成的脚本, 跑通才算数 — 这是"<em>能跑</em>"的硬保障;</li>
+  <li><strong>MCP Brainstorming Section</strong>: 一开始就生成多个候选 tool design,后面 abstract/cluster 才能 merge。</li>
+</ul>
+
+<h3>3.3 MCP-Box Construction 三步公式</h3>
+
+<p>论文 §3.3 给出三个 LLM-prompt 公式:</p>
+
+<div class="formula">
+(1) Abstraction: &nbsp; <em>M̂CP</em><sub>i,j</sub> = LLM<sub>abstract</sub>(<em>MCP</em><sub>i,j</sub>)
+</div>
+<p>把 example-specific 词去掉,留 ≤3 个 critical parameter。</p>
+
+<div class="formula">
+(2) Clustering: &nbsp; <em>C</em> = LLM<sub>cluster</sub>({<em>M̂CP</em><sub>i,j</sub>})
+</div>
+<p>按 functional semantic 聚到 K 个 cluster(论文里 K 最多 13)。</p>
+
+<div class="formula">
+(3) Consolidation: &nbsp; <em>MCP</em><sub>k</sub><sup>final</sup> = LLM<sub>consolidate</sub>({<em>M̂CP</em><sub>i,j</sub> ∈ <em>C</em><sub>k</sub>})
+</div>
+<p>把每个 cluster 里的多个版本合并成<strong>一个 super-tool</strong>(参数 union,通过 if-branch 切换 behavior)— Figure 5 的脑部 MRI 工具就是这么炼出来的: green 版只看亮区, blue 版只看左半边,黄色版加 <code>region</code> 和 <code>analysis_mode</code> 参数把两者合并。</p>
+
+<h3>3.4 Student: 怎么用 Box</h3>
+
+<p>论文 §3.4 一句话定义: <strong>"mount the entire MCP-Box B into the student agent's tool interface at inference time—without retrieval, reranking, or parameter selection"</strong>.</p>
+
+<p>这是一个非常 <em>非常</em> 重要的设计选择 — 论文反复强调"<em>No external scoring, selection, or retrieval is required</em>". 这意味着:</p>
+
+<ul>
+  <li>所有 K 个 tool 同时暴露在 student 的 prompt context 里;</li>
+  <li>student 自己看 tool name + docstring 决定调哪个;</li>
+  <li>没有 retriever 在前面挑 top-k tool.</li>
+</ul>
+
+<p>所以 AgentDistill 跟 RAG 的<strong>本质区别</strong>: RAG 是把 K 个候选筛到 k 个, AgentDistill 是直接把 K 整个塞进去 — 因为 K 小到 ≤13。如果未来 box 长到几百几千个 tool, 这个 design 就 break 了, 必须改回 retrieval 模式。</p>
+
+<h3>3.5 Optimization 形式化</h3>
+
+<p>论文 (2) 式给出优化目标:</p>
+
+<div class="formula">
+max<sub>B ⊂ L</sub> &nbsp; <em>E</em><sub>(x,y)~D</sub> [ <em>I</em>{ π<sub>S</sub>(x; B) = y } ]
+</div>
+
+<p>但<strong>注意</strong>: 这个"max"是<strong>通过 LLM prompt 去选 B,不是通过梯度</strong>. 三步 LLM 操作其实<em>没有任何显式优化 loop</em> — 没有迭代 / 没有 reject-and-retry。 所以"max"在数学上不算严格,更像是一种<em>启发式 construction</em>。</p>
+
+<hr>
+
+<h2 id="sec4">4 · "Generalizable"的具体含义</h2>
+
+<h3>4.1 论文怎么 claim generalization</h3>
+
+<p>论文标题里"Generalizable MCP Boxes",我读完后认为它在 3 个 axis 上 claim generalization:</p>
+
+<ol>
+  <li><strong>Across input instances within a benchmark</strong>: SLAKE 100 题用 13 个 MCP, MCP-Box Calling Rate 94.7% — 高复用;</li>
+  <li><strong>Across student model backbones</strong>: 同一个 box 喂 GPT-3.5 / Qwen3-8B / Llama-3.1-8B 都涨;</li>
+  <li><strong>Across "configurations" inside one tool</strong>: 一个 <code>analyze_brain_mri</code> 通过 <code>region</code>/<code>analysis_mode</code> 参数支持多种诊断模式 — 论文 §4.2 case study 反复强调。</li>
+</ol>
+
+<h3>4.2 但 generalization 在 3 个 axis 上"<em>没</em>"测</h3>
+
+<table>
+  <tr><th>未测的 axis</th><th>为什么这是个问题</th></tr>
+  <tr>
+    <td><strong>Cross-domain transfer</strong>(PathVQA 训的 box 用在 SLAKE)</td>
+    <td>这是最直接的 generalization 测法。论文每个 box 都是<em>per-benchmark 训的</em>,所以"generalize across domain"完全没证。</td>
+  </tr>
+  <tr>
+    <td><strong>OOD task within domain</strong></td>
+    <td>Game of 24 box 只有 1 个 tool —— 它显然就是一个 "solve 24" 求解器。给它喂 Game of 36 或 Game of 100 会怎样?未测。</td>
+  </tr>
+  <tr>
+    <td><strong>Held-out subset</strong>(同 benchmark 不同 split)</td>
+    <td>论文 sample 100 题做 box, evaluate 同样的 dataset(只说"100 examples from validation set for MCP-box generation")—— <span class="term">box 训练集和评测集的 overlap 不清楚</span>。如果 box gen 见过 test 题, 数字就掺水。</td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>⚠ 关键 caveat</strong> — 论文 §4.1.1 原话: "<em>For each dataset, we sample 100 examples from validation set for MCP-box generation</em>" — 但没说 evaluation 用哪一份。如果是 same 100 题, 这就是 <strong>train=test 测自己的 box</strong> — 非常宽松的设定。读者应当持保留态度直到看到正式 split 说明。<br>
+另外 box 的"<em>3 critical parameters</em>"上限,使得它<strong>必然</strong>是窄域的 — 不可能在 box 大小 ≤13 的设定下,做出可跨 medical/math 跨域的 tool。
+</div>
+
+<h3>4.3 "Generalization"另一种解读: 单 tool 内的参数泛化</h3>
+
+<p>把"generalize"理解为<strong>"一个工具通过参数支持多种行为"</strong>是论文真正打的牌. Figure 5 这个例子里, 两个 narrow MCP (one for bright spot, one for left hemisphere) 被合并成一个带 <code>region</code> + <code>analysis_mode</code> + 3 个 threshold 的 super-tool。 这种"参数化抽象"是它 paper-wide 最有 substance 的贡献 — 但本质上是<strong>程序合成里的 abstraction</strong>,跟"agent generalization"这个 framing 有点错位。</p>
+
+<hr>
+
+<h2 id="sec5">5 · 实验结果(Table 1 / 2 / 3 完整数字)</h2>
+
+<h3>5.1 实验设置</h3>
+
+<div class="kv">
+  <strong>Benchmarks</strong>:
+  <ul style="margin:6px 0">
+    <li><strong>Game of 24</strong>: 1,362 mathematical puzzles, 4 数 → 24, 至少一组解.</li>
+    <li><strong>PathVQA</strong>: 32K 病理学 VQA, 4,998 medical images.</li>
+    <li><strong>SLAKE</strong>: bilingual radiology VQA, 642 image / 14K QA.</li>
+  </ul>
+  <strong>每个 benchmark</strong> sample 100 题做 box generation, 评测 sample size 与 box-gen sample 的关系论文未明示.<br>
+  <strong>3 个 student model</strong>: GPT-3.5-turbo / Qwen3-8B / LLaMA-3.1-8B.<br>
+  <strong>5 个对照</strong>: (i) student before distill; (ii) student + OctoTools pre-defined tools; (iii) student after distill(本文); (iv) teacher agent (Claude4+GPT-4o); (v) OctoTools (GPT-4o).
+</div>
+
+<h3>5.2 Table 1: Distilled MCP 数量 + 调用率</h3>
+
+<table>
+  <tr><th>Dataset</th><th>Student</th><th># Distilled MCPs</th><th>MCP-Box Calling Rate</th></tr>
+  <tr><td rowspan="3">PathVQA</td><td>GPT-3.5-turbo</td><td rowspan="3"><strong>9</strong></td><td>38.0%</td></tr>
+  <tr><td>Qwen3-8B</td><td><strong>58.3%</strong></td></tr>
+  <tr><td>LLaMA3.1-8B</td><td>24.3%</td></tr>
+  <tr><td rowspan="3">SLAKE</td><td>GPT-3.5-turbo</td><td rowspan="3"><strong>13</strong></td><td>57.3%</td></tr>
+  <tr><td>Qwen3-8B</td><td><strong>94.7%</strong></td></tr>
+  <tr><td>LLaMA3.1-8B</td><td>57.0%</td></tr>
+  <tr><td rowspan="3">Game of 24</td><td>GPT-3.5-turbo</td><td rowspan="3"><strong>1</strong></td><td>100%</td></tr>
+  <tr><td>Qwen3-8B</td><td>100%</td></tr>
+  <tr><td>LLaMA3.1-8B</td><td>100%</td></tr>
+</table>
+
+<p><strong>读法</strong>:</p>
+<ul>
+  <li>Qwen3-8B 的 calling rate 显著高于 GPT-3.5-turbo 和 Llama-3.1-8B — <span class="term">说明 student 模型自身的 tool-use 倾向</span>对 box 是否被用起决定作用. 把同样的 box 喂给"愿意调工具"的 model 才能解锁;</li>
+  <li>Game of 24 的 1 tool / 100% 调用率, 几乎等同于把题目<strong>外包给 teacher 写好的 puzzle solver</strong> — 这跟"agent capability transfer"的距离, 比看起来要远;</li>
+  <li>PathVQA 上 Llama-3.1-8B 只有 24.3% 调用率,却也涨分,意味着另一部分涨幅来自<strong>看到 tool docstring 时的 prompt 增强</strong>(student 可能根本没 call, 但 system prompt 里多了"这些是可用工具"这件事).</li>
+</ul>
+
+<h3>5.3 Table 2: Before vs After distillation</h3>
+
+<table>
+  <tr><th>Dataset</th><th>Base Model</th><th>Before</th><th>After</th><th>Δ</th></tr>
+  <tr><td rowspan="3">PathVQA</td><td>GPT-3.5-turbo</td><td>45.7 ± 3.5</td><td>52.7 ± 3.1</td><td class="ok">+7.0</td></tr>
+  <tr><td>Qwen3-8B</td><td>53.0 ± 1.7</td><td>55.3 ± 1.5</td><td class="ok">+2.3</td></tr>
+  <tr><td>LLaMA3.1-8B</td><td>46.7 ± 1.2</td><td>50.0 ± 1.7</td><td class="ok">+3.3</td></tr>
+  <tr><td rowspan="3">SLAKE</td><td>GPT-3.5-turbo</td><td>61.0 ± 2.0</td><td>68.3 ± 0.5</td><td class="ok">+7.3</td></tr>
+  <tr><td>Qwen3-8B</td><td>61.0 ± 3.6</td><td>67.7 ± 2.1</td><td class="ok">+6.7</td></tr>
+  <tr><td>LLaMA3.1-8B</td><td>49.3 ± 2.9</td><td>59.3 ± 2.1</td><td class="ok"><strong>+10.0</strong></td></tr>
+  <tr><td rowspan="3">Game of 24</td><td>GPT-3.5-turbo</td><td>34.3 ± 3.2</td><td>82.7 ± 0.6</td><td class="ok"><strong>+48.4</strong></td></tr>
+  <tr><td>Qwen3-8B</td><td>72.7 ± 5.4</td><td>79.7 ± 6.1</td><td class="ok">+7.0</td></tr>
+  <tr><td>LLaMA3.1-8B</td><td>21.7 ± 4.7</td><td>64.0 ± 6.6</td><td class="ok"><strong>+42.3</strong></td></tr>
+</table>
+
+<p><strong>9 / 9 全部正向</strong>. 但分布极不均匀: Game of 24 在弱 model (GPT-3.5 / Llama-8B) 涨幅惊人(+48 / +42),在强 model (Qwen3-8B) 几乎到 ceiling(+7). 这<strong>不是 distillation 在涨而是 program execution offload 在涨</strong> — Game of 24 是确定性 puzzle, 写一个 solver 谁都过. 把 +48 当 distill 贡献,有点 misleading。</p>
+
+<h3>5.4 Table 3: 跨 agent 横向对比</h3>
+
+<table>
+  <tr><th>Dataset</th><th>OctoTools (GPT-4o)</th><th>Agent w/ Pre-defined Tools(均值)</th><th>Teacher Agent</th><th>Student After Distill(均值)</th></tr>
+  <tr><td>PathVQA</td><td>49</td><td>51.3</td><td>52</td><td><strong>52.7</strong></td></tr>
+  <tr><td>SLAKE</td><td>64</td><td>57.7</td><td>66</td><td>65.1</td></tr>
+  <tr><td>Game of 24</td><td>45</td><td>48</td><td><strong>99</strong></td><td>75.5</td></tr>
+</table>
+
+<p>这是论文最 hyped 的一张表 — student-after-distill 在 PathVQA 上居然<strong>超过</strong>了 teacher agent(52.7 &gt; 52). 论文解释这是 student 平均 + 单个 student 上限的关系, 但更可能的解释是 PathVQA 任务本身 noise 大, 4 列差距(49 / 51.3 / 52 / 52.7)都在 ±3 误差带内。<br>
+但 Game of 24 上 teacher 99 vs student 75.5 显示<strong>student 还是不会用 teacher 写的 solver</strong> — 因为 solver 可能要 student 给出正确的 4 个数和 operator, student 仍可能 typo. 这<strong>正是 distillation 的本质漏点</strong>: 知识在 library 里 ≠ student 会用.</p>
+
+<h3>5.5 关键缺失的 baseline</h3>
+
+<div class="warn">
+  论文<strong>缺失</strong> 3 个我会重点关注的 baseline:
+  <ul>
+    <li>vs <strong>SFT distillation</strong>: 拿 TOUCAN-SFT-8B 这种<em>权重蒸馏</em>过的 model 直接评一下三个 benchmark — 看 training-free 真比 SFT 强吗? 论文没做.</li>
+    <li>vs <strong>提示工程 only</strong>: 把 MCP-Box 的<em>文档</em>(不带 callable)塞进 student prompt — 看 student 单纯"知道"工具的写法能涨多少? 不做这个对照, 就分不清 (a) tool callable 的贡献 vs (b) tool description 的贡献.</li>
+    <li>vs <strong>retrieval</strong>: 论文吹 "no retrieval", 但没和 "with retrieval" 对比 — 我猜在 box=13 这种规模下两者无差.</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2 id="sec6">6 · 与本系列的横向连接</h2>
+
+<h3>6.1 路线全景图: 把"agent capability"放权重里 vs 放工具库里</h3>
+
+<table>
+  <tr><th>论文</th><th>蒸馏对象</th><th>知识载体</th><th>规模</th><th>训练成本</th><th>真 MCP</th></tr>
+  <tr><td><a href="22_TOUCAN.html">#22 TOUCAN</a></td><td>1.5M trajectory</td><td>SFT 权重</td><td>1.5M traj / 495 server / 2K tool</td><td>高(几百 GPU h)</td><td class="ok">是</td></tr>
+  <tr><td><a href="34_ToolMind_2511.15718.html">#34 ToolMind</a></td><td>368K turn-filter</td><td>SFT 权重</td><td>368K (含 turn mask)</td><td>高</td><td class="no">否(LM 模拟)</td></tr>
+  <tr><td><a href="35_ToolACE_2409.00920.html">#35 ToolACE</a></td><td>11K dialog × TSS/SDG/DLV</td><td>SFT 权重</td><td>11K open / ≥180K 内部</td><td>中</td><td class="no">否(LM 模拟)</td></tr>
+  <tr><td><a href="29_TuneTheEnvironment.html">#29 EnvTuning</a></td><td>400 sample + Actionable Env Aug</td><td>RL 权重 + env 改造</td><td>仅 400 SFT sample</td><td>低</td><td class="ok">是(BFCL env)</td></tr>
+  <tr style="background:#f3eee0"><td><strong>#37 AgentDistill</strong></td><td><strong>K=1~13 Python MCP</strong></td><td><strong>工具库(运行时)</strong></td><td>很小</td><td><strong>0</strong></td><td class="no">否(local 同进程)</td></tr>
+</table>
+
+<h3>6.2 跟 <a href="22_TOUCAN.html">#22 TOUCAN</a></h3>
+
+<p>TOUCAN 用 1.5M trajectory 做 SFT, BFCL V3 上 70.45%; AgentDistill 用 K ≤ 13 个 MCP, 在 PathVQA 上让 Qwen3-8B 涨 +2.3 pp。<strong>同样是把 frontier model 的能力转移到小模型, 一个走 weight 路线, 一个走 library 路线</strong>。两者其实可以叠加: 先 TOUCAN-SFT 让 student 学会"<em>会调工具</em>", 再 AgentDistill 给它"<em>专门工具</em>"。这条 hybrid 路线论文都没碰。</p>
+
+<h3>6.3 跟 <a href="34_ToolMind_2511.15718.html">#34 ToolMind</a> / <a href="35_ToolACE_2409.00920.html">#35 ToolACE</a></h3>
+
+<p>这两个都用 LM 模拟工具响应,本质都是<strong>权重蒸馏</strong>路线。AgentDistill 的反命题: 既然你最终都要在<em>运行时</em>调真实工具,为啥不直接把工具本身从 teacher 那里搬过来?这个 framing 优雅,但要求 teacher 写的工具<strong>真的能跨 instance 复用</strong>. 论文证明这一点在 PathVQA / SLAKE / Game24 三个窄域上成立,在 BFCL / τ-bench / MCP-Universe 上还<strong>完全未知</strong>。</p>
+
+<h3>6.4 跟 <a href="29_TuneTheEnvironment.html">#29 EnvTuning</a></h3>
+
+<p>EnvTuning 的 motto 是"<em>不 tune agent, tune environment</em>" — 同样反对动 student 权重,但用的是 RL + env augmentation(改 error message + dense reward). AgentDistill 是"<em>不 tune agent, build the toolbox</em>". 两者哲学高度相似,都<strong>把负担从 model 转移出去</strong>. EnvTuning 在 BFCL V3 上 Qwen2.5-7B 涨 +29.9 pp(7.0→36.9), 用 400 sample SFT; AgentDistill Game24 涨 +48.4 pp 但 0 training. 同一个数据集上没人直接 head-to-head, <span class="term">如果让二者 PK BFCL V3, EnvTuning 应当压倒性赢</span> — 因为 AgentDistill 在 box ≤13 这个尺寸下根本覆盖不了 BFCL 的工具空间.</p>
+
+<h3>6.5 跟 <a href="27_SmallModelMCP_landscape.html">#27 SmallModelMCP landscape</a></h3>
+
+<p>#27 是我做的 ≤40B 小模型 MCP 能力训练的 survey。 AgentDistill 是一个非典型成员: 它不训权重, 但 student backbone 就是 8B。可以加进 §10.2 当"<strong>training-free baseline</strong>"位 — 但报数要小心, 不要拿 PathVQA 跟 BFCL 直接对比。</p>
+
+<h3>6.6 跟 <a href="31_PrimeIntellectHub.html">#31 Prime Intellect Hub</a> 的对照</h3>
+
+<p>Prime Intellect Hub 是把 env 标准化(verifiers SDK)然后做 RL training; AgentDistill 是把<strong>工具</strong>标准化(FastMCP)然后做 zero training. 一个把<em>环境</em>当 IP, 一个把<em>工具</em>当 IP. 二者在"agent IP 应该放在哪里"这件事上分庭抗礼。</p>
+
+<h3>6.7 同源工作: Alita (本文 cite [20])</h3>
+
+<p>Alita 是同样这一组(Mengdi Wang 实验室)早一些的工作, "Alita leverages MCP to dynamically generate, refine, and reuse tool capabilities via MCPs"(论文 §2.1 原话). AgentDistill 可以看作 Alita 的<strong>蒸馏版</strong> — Alita 是 teacher 自己用 MCP, AgentDistill 是把 teacher 写好的 MCP <em>传</em>给 student.</p>
+
+<hr>
+
+<h2 id="sec7">7 · 开源现状 — 实测无官方 repo</h2>
+
+<h3>7.1 GitHub 实地搜索结果</h3>
+
+<p>用如下 query 搜:</p>
+<ul>
+  <li><code>q=AgentDistill+MCP</code> → 0 hit</li>
+  <li><code>q=AgentDistill</code> → 4 个无关用户 repo</li>
+  <li><code>q=MCP-Box+agent</code> → 3 个无关项目</li>
+  <li><code>q=2506.14728</code> code search → 需 auth, 未跑通</li>
+</ul>
+
+<p>同名仓库 <code>shimu0215/AgentDistill</code> 我读了它的 README — 它属于<strong>另一篇</strong>论文 <code>arXiv:2505.17612</code> ("Distilling LLM Agents into Small Models with Retrieval and Code Tools", Nardien et al.), <strong>不是本文</strong>. 这两篇撞名是一个明显的 namespace 冲突, 论文里也 cite 了那篇 [14].</p>
+
+<h3>7.2 arXiv 页面验证</h3>
+
+<p>arxiv.org/abs/2506.14728 的"Code, Data and Media"tab <strong>空</strong>. 文末 references 没有 footnote-style 的 code link. Mengdi Wang 实验室的 GitHub <code>github.com/Princeton-AI-and-Robotics-LAB</code>(假设)在公开搜索中<strong>未找到</strong> AgentDistill 对应 repo.</p>
+
+<h3>7.3 Hugging Face 检索</h3>
+
+<p><code>huggingface.co/api/models?search=AgentDistill</code> 和 <code>datasets?search=AgentDistill</code> 返回的全部是<strong>另一篇</strong> 2505.17612 的产物(<code>agent-distillation</code> org). 本文 2506.14728 在 HF 上<strong>无对应 model / dataset / box</strong>.</p>
+
+<div class="warn">
+<strong>未在公开来源确认:</strong>
+<ul>
+  <li>论文产出的 9 / 13 / 1 个 MCP Python 脚本是否公开 — <strong>未找到</strong></li>
+  <li>Teacher trajectory(用于 box gen 的 100 例)是否公开 — <strong>未找到</strong></li>
+  <li>SmolAgents + FastMCP 的 student-side 配置脚本 — <strong>未找到</strong></li>
+  <li>同组 Alita 的 repo 是否含 AgentDistill code — <span class="term">需要进一步在 Mengdi Wang 实验室主页确认, 我未完成验证</span></li>
+</ul>
+本论文目前(截至 2026-05-19)在公开来源处的开源现状: <strong>仅 arXiv PDF, 无 code / data / model</strong>. 这点在选 baseline 时要注意 — <em>不可复现</em>.
+</div>
+
+<hr>
+
+<h2 id="sec8">8 · Critical analysis — 当我说"training-free"时我并没说清楚什么</h2>
+
+<h3>8.1 "Training-free"的语义边界</h3>
+
+<p>"Training-free"严格来说只指 <strong>student 端不做梯度更新</strong>(∇θπ_S = 0,公式 (1)). 但代价是:</p>
+
+<ul>
+  <li class="no"><strong>Teacher 端的开销</strong>: Claude-Sonnet-4 当 Manager + GPT-4o 当 MCP creator,跑 100 example × N trajectory × 多次 tool exec + virtual env validation. 这一份的成本论文<strong>完全没报</strong>. 我粗估单 dataset 100 example 的 box 生成至少需要 ~ $100-500 frontier model API。</li>
+  <li class="no"><strong>Box construction 端的开销</strong>: abstract / cluster / consolidate 都需要 Claude-Sonnet-4 prompt. 这同样是 token cost,不是 zero.</li>
+  <li class="no"><strong>推理端的 overhead</strong>: 每次 student 推理时 prompt context 多挂 K 个 tool docstring + 调用时跑 Python sandbox. 比 vanilla LLM 推理慢、贵.</li>
+</ul>
+
+<p>所以"training-free"本质是<strong>"把 cost 从 student-side training 转移到 teacher-side data prep"</strong>. 这跟 RAG 把 cost 从 train 转到 inference 同型. <span class="term">"training-free" 这个词在论文标题里有营销成分</span>.</p>
+
+<h3>8.2 "Training-free" 是不是"retrieval-augmented"的换皮</h3>
+
+<p>反方观点: 把 K=13 的 box 整个 mount, 形式上确实<strong>不是</strong> retrieval — 没 top-k 筛选. 但当 K = 100 / 1,000 / 10,000 时, 论文的 design 立刻 break(prompt context 会爆), 必须改回 retrieval. <strong>所以这套 design 的本质是"box 小到可以 in-context"</strong>. 本质上是<em>非 retrieval 的 in-context tool library</em>, 和"static tool prompt"几乎等价 — 只是 tool 集合是 LLM 自动 cluster 出来的而不是人写的.</p>
+
+<h3>8.3 隐藏在 Game of 24 +48.4 pp 后面的尴尬</h3>
+
+<p>Game of 24 上 GPT-3.5-turbo +48.4 / Llama-3.1-8B +42.3, 让人惊艳. 但 Game of 24 是<strong>确定性算法可解的问题</strong> — 4 个数枚举所有 (+−×÷) 排列再加括号, 暴力 8! × ops ≈ 几千次比较. 写一个 brute-force solver 是任何中学生 Python 习题. 当 student 调一次这个 solver, 它<strong>不在</strong>解 puzzle, 而在<strong>读 puzzle 数字 + format output</strong> — 那为啥还到不了 100%? 因为 student 8B 偶尔会数字 OCR / 解析错. 所以 +48 pp 真正测的是 <strong>"GPT-3.5 把 4 个数字读对的概率有多高"</strong>, 跟 agent capability transfer 关系不大.</p>
+
+<p>类比 #29 EnvTuning 上 BFCL V3 +29.9 pp(Qwen2.5-7B 7→37), 那个涨幅是 student 学会 multi-turn tool call 这件 nontrivial 的事 — 含金量不一样.</p>
+
+<h3>8.4 "Privacy preserving"这张牌该不该打</h3>
+
+<p>论文没显式打 privacy 牌 (好). 但如果想象一下: teacher 是 closed Claude-Sonnet-4, student 是开源 8B, 蒸馏产物是 K 个 Python file. 这些 file 里<strong>没有</strong> teacher 模型权重, <strong>没有</strong> trajectory text. 所以从 IP 隔离角度: 比 SFT 蒸馏(把 teacher rationale 灌进 student weight)更"干净" — student 拿到的是<em>可读 Python</em> 而非<em>不可解释的 weight delta</em>. 这是 AgentDistill 真正 underexplored 的卖点 — 论文应该多打这张牌.</p>
+
+<h3>8.5 什么时候输给 SFT</h3>
+
+<table>
+  <tr><th>情景</th><th>建议</th></tr>
+  <tr><td>BFCL V3 / V4 全 5 子项 (Live + Multi-Turn + Agentic)</td><td class="no">SFT 赢(TOUCAN 70.45 已立标杆,AgentDistill 在 box ≤13 下覆盖不了)</td></tr>
+  <tr><td>τ-bench airline / retail / telecom (真 server, 长 horizon)</td><td class="no">SFT 赢(box 设计不为 multi-turn 真 server 服务)</td></tr>
+  <tr><td>MCP-Universe(231 task,11 真 MCP server)</td><td class="no">SFT 赢(真 server response 是 LLM-generated MCP 无法替代的)</td></tr>
+  <tr><td>窄域 deterministic puzzle / 重复性 VQA</td><td class="ok">AgentDistill 可能赢 — 因为只需 1~13 个 tool</td></tr>
+  <tr><td>frontier model API budget 充足 + student 端硬件紧张</td><td class="ok">AgentDistill 可能赢 — 不用 GPU</td></tr>
+</table>
+
+<h3>8.6 跟 #29 EnvTuning 的判选</h3>
+
+<div class="kv">
+  <strong>我会怎么选</strong>:
+  <ul>
+    <li>有 400 样本 + 1 张 GPU + 想在 BFCL/ACEBench 涨分 → <strong>#29 EnvTuning</strong>;</li>
+    <li>无 GPU + 有 Claude/GPT API + 任务空间窄(医学 VQA / 数学 puzzle / 特定企业 API)→ <strong>#37 AgentDistill</strong>;</li>
+    <li>1.5M sample + 8×H100 cluster + 想做通用 tool-agent → <strong>#22 TOUCAN</strong>;</li>
+    <li>1,000 高质量真 MCP server + 想 long-horizon RL → <strong>#31 Prime Intellect Hub + #25 MCP-Universe</strong>.</li>
+  </ul>
+</div>
+
+<h3>8.7 论文的真正 contribution 重排</h3>
+
+<p>我读完后认为论文真正的贡献应当重排:</p>
+
+<ol>
+  <li><strong>(强)</strong> 提出"<em>知识应该结晶为可读的 Python 工具,而不是 weight</em>"这个 framing — 哲学上对的;</li>
+  <li><strong>(中)</strong> Abstract / Cluster / Consolidate 三步 box construction pipeline,Figure 5 的脑部 MRI 例子可视化清晰;</li>
+  <li><strong>(弱)</strong> Game of 24 / PathVQA / SLAKE 三个数字 — 选 benchmark 太窄, "generalizable" claim 弱;</li>
+  <li><strong>(缺)</strong> 没和 SFT / RL 蒸馏路线 head-to-head, 没开源, 不可复现.</li>
+</ol>
+
+<h3>8.8 待跟进的问题</h3>
+
+<details>
+  <summary>3 个验证清单 — 等开源放出后回头补</summary>
+  <ul>
+    <li>把 AgentDistill box 跑到 BFCL V3 Multi-Turn / τ-bench airline,看 K=13 这种规模能不能 cover 一个 100-server 的 benchmark;</li>
+    <li>跨 dataset transfer: PathVQA 训的 box 喂 SLAKE 看掉多少;</li>
+    <li>报清 frontier model 端的 token cost 总和 — 论文说 "low cost" 但缺数字.</li>
+  </ul>
+</details>
+
+<hr>
+
+<h2 id="closing">收尾 · 把它放在 2025-06 这个时间点上看</h2>
+
+<p>这篇是 2025-06 的 v1(同月有 Anthropic MCP 推广满半年). 在那个时间点上, "MCP 是 agent 之间的 protocol" 的认知刚刚定型, 把 MCP 当作<strong>蒸馏对象</strong>是非常前瞻的 framing — 比同期的 TOUCAN(2025-10)/ ToolMind(2025-11)/ ToolACE-MT(2025-08)早. 但<strong>方法本身比较 light, benchmark 选窄, 不开源</strong> — 直到 2026 我读到这里时, 它已经被 TOUCAN-1.5M、EnvTuning-400 这种<em>真的有数</em>的工作覆盖了大半个空间.</p>
+
+<p>它的<strong>遗产</strong>在于把"agent 蒸馏对象"从 trajectory 重新定义到 modular reusable tool — 这个 framing 之后, 才有 #34 ToolMind 的 turn-level filter、#29 EnvTuning 的 actionable env augmentation 这种 "<em>少 train、多动 environment / tool</em>" 的反传统 SFT 思路. 一篇 framing 论文,不是 SOTA 论文.</p>
+
+<div class="paper-card">
+  <span class="ttl">AgentDistill: Training-Free Agent Distillation with Generalizable MCP Boxes</span>
+  <span class="date">arXiv:2506.14728 · 2025-06-17 v1</span>
+  <p style="margin:6px 0 2px 0">Jiahao Qiu, Xinzhe Juan, Yimin Wang, Ling Yang, Xuan Qi, Tongcheng Zhang, Jiacheng Guo, Yifu Lu, Zixin Yao, Hongru Wang, Shilong Liu, Xun Jiang, Liu Leqi, <strong>Mengdi Wang</strong>(通讯)</p>
+  <p style="margin:6px 0 2px 0">Princeton AI Lab · UMich · IIIS Tsinghua · SJTU · Columbia · CUHK · TCCI · UT Austin</p>
+  <p style="margin:6px 0 2px 0">无公开 code / data / model. 三个 benchmark: PathVQA / SLAKE / Game of 24. 最大涨幅 +48.4 pp(GPT-3.5-turbo on Game-of-24).</p>
+</div>
+
+</main>
+</body>
+</html>
