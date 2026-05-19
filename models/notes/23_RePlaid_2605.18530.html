@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · RePlaid: 连续扩散语言模型与离散扩散的尺度对决 (2605.18530)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:820px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.02em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .author-tag{background:#d8e7ff;border:1px solid #2f6feb;color:#11366d;
+    border-radius:6px;padding:1px 6px;font-size:.85em;margin-left:6px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>RePlaid: 当连续扩散在 likelihood 训练下与离散扩散正面对决</h1>
+<div class="meta">
+  Zhihan Yang (NVIDIA &amp; Cornell), Wei Guo (NVIDIA &amp; GaTech), <b>Shuibai Zhang (UW–Madison)<span class="author-tag">本人参与</span></b>, Subham Sahoo (MBZUAI), Yongxin Chen, Arash Vahdat, Morteza Mardani∗, John Thickstun∗ ·
+  <a href="https://arxiv.org/abs/2605.18530" target="_blank" rel="noopener">arXiv:2605.18530</a> · Preprint, 2026-05-19<br>
+  关键词: continuous diffusion LM · Plaid · VDM ELBO · scaling law · IsoFLOP · MDLM · Duo · noise schedule · embedding geometry
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> 把 2023 年的 likelihood-based 连续扩散 LM <span class="term">Plaid</span> 的 transformer 架构「无脑」对齐到 2024+ 离散扩散 LM (<span class="term">MDLM / Duo</span>) 同款 DiT (RoPE + AdaLN-Zero + LayerNorm + GELU(tanh) + MLP bias),保留 Plaid 算法侧的三个核心 (低维 d<sub>e</sub>=16 可学习 embedding + 可学习 noise schedule + 输出 prior),记作 <span class="term">RePlaid</span>。在 Sahoo et al. 2025 的统一 IsoFLOP 协议下,首次给出连续扩散的 scaling law,把"连续相对 AR 64× compute 鸿沟"打到 <strong>20×</strong> (s.c.) / 27× (no s.c.)。OpenWebText 上拿到 <strong>22.1 PPL bound</strong>,反超最强离散 MDLM (low var.) 23.1 和 Duo 25.2。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">20×</div><div class="l">compute gap vs AR (s.c.) → 原 Plaid 64× → 14× MDLM</div></div>
+    <div class="stat"><div class="n">22.1</div><div class="l">OpenWebText PPL bound (continuous DLM SOTA)</div></div>
+    <div class="stat"><div class="n">1.8× ↓</div><div class="l">参数比 MDLM / Duo 少,且 loss 反超 Duo</div></div>
+    <div class="stat"><div class="n">3.1×</div><div class="l">over-train 即可超 MDLM(同尺寸)</div></div>
+  </div>
+  <p><strong>立场:</strong> 这是一篇明确"<em>continuous 不是天生差,是架构没对齐</em>"的翻案论文。两条理论 contribution 把"为什么 likelihood 训练好用"拆开:(i) ELBO variance-minimization → <em>per-timestep diffusion loss 严格常数 + per-timestep CE 近线性</em> (Prop. 1 + Prop. 2),自然实现了别人需要手工 schedule reparameterization 才能拿到的 "denoising difficulty 均匀分布";(ii) ELBO 训出的 embedding 矩阵 E 自发收敛到 <em>低秩、POS-聚类</em> 的几何,这部分贡献 ΔPPL = <strong>17.3</strong> (22.1 ↔ 39.4 冻结 embedding),是所有组件里最大的——比 noise schedule 学习 (Δ=2.3) 和 self-conditioning (Δ=1.5) 加起来还大几倍。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">背景: continuous vs discrete diffusion LM 的对立</a></li>
+    <li><a href="#sec2">Motivation: 为什么要 revisit Plaid</a></li>
+    <li><a href="#sec3">Method 1 — Plaid 算法回顾 (VDM + 嵌入空间 + 三件套)</a></li>
+    <li><a href="#sec4">Method 2 — RePlaid 架构对齐 (含完整改动清单)</a></li>
+    <li><a href="#sec5">Method 3 — 统一 IsoFLOP 协议 + Scaling law</a></li>
+    <li><a href="#sec6">Method 4 — 理论核心: noise schedule variance → linear CE</a></li>
+    <li><a href="#sec7">Method 5 — Embedding 几何: 主要 likelihood gain 来源</a></li>
+    <li><a href="#sec8">Evaluation metrics (PPL bound · GenPPL · MAUVE)</a></li>
+    <li><a href="#sec9">Performance: Table 1 + 消融 + 20× 数字的语境</a></li>
+    <li><a href="#sec10">Sampling: PFODE solvers, DDPM 仍是 high-T 之王</a></li>
+    <li><a href="#sec11">和本仓库其它 dLLM 笔记的对照</a></li>
+    <li><a href="#sec12">局限 / 待回答</a></li>
+    <li><a href="#sec13">开源 / 代码 / 复现</a></li>
+    <li><a href="#sec14">附录:理论细节展开 (Prop. 1 / I-MMSE / Prop. 2 残差)</a></li>
+    <li><a href="#sec15">附录:Sampling Worked Example</a></li>
+    <li><a href="#sec16">与本仓库 MTP/TOP 方法线的横向对照</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 背景:continuous vs discrete diffusion LM 的对立</h2>
+
+<h3>1.1 简史 — 从 D3PM 到 MDLM 的"离散派"凯歌</h3>
+<p>扩散 LM 这条线 2021 年从 Austin et al. 的 <strong>D3PM</strong> (NeurIPS 2021) 起步,把图像扩散思想搬到 token,用离散 Markov chain。但真正引爆是 2023–2024 的 SEDD (Score-Entropy DM, Lou et al.) 和 2024 年的 <strong>MDLM</strong> (Sahoo et al., NeurIPS 2024) ——它们一起在 OpenWebText 上把离散扩散 LM 的 PPL 打到接近 AR baseline。Sahoo et al. 在后续工作 <em>"Beyond Autoregression: Discrete Diffusion for Complex Reasoning and Planning"</em> (引用 [51], 2025) 中给出了第一条严格 IsoFLOP scaling law:MDLM-low-var 对 AR 的 compute 鸿沟仅 <strong>14×</strong>,Duo (Schiff et al., 2025, 离散 + uniform noising 改写) 是 <strong>22–23×</strong>。这条 14× 数字成为整个 dLLM 社区"对标 AR"的事实标准。</p>
+
+<h3>1.2 "Continuous 不可扩展"是怎么变成共识的</h3>
+<p>另一条路 — <strong>连续扩散</strong> (continuous diffusion) — 把离散 token embed 到 ℝ<sup>d<sub>e</sub></sup>,再在连续空间里 Gaussian noising,代表作:</p>
+<ul>
+  <li><strong>Diffusion-LM</strong> (Li et al., NeurIPS 2022): 第一个把 Gaussian diffusion 接到文本,但只在 GeneralLM/ROCStories 等小规模 demo。</li>
+  <li><strong>Plaid</strong> (Gulrajani &amp; Hashimoto, NeurIPS 2023, 引用 [18]): 把 Plaid 作为 VDM (Kingma et al., NeurIPS 2021) 对文本的严肃实例,引入 <em>可学习 embedding</em> + <em>可学习 noise schedule</em> + <em>output prior</em> + <em>self-conditioning</em>。但 Plaid 原报告与 AR 的 <strong>64× compute gap</strong>,几乎成了"连续派不行"的官方判决书。</li>
+  <li><strong>CDCD</strong> (Dieleman et al., 2022, 引用 [15]) / <strong>FLM</strong> (Gao et al., 2024, 引用 [29]) / <strong>LangFlow</strong> (Chen et al., 2025, 引用 [10]) / <strong>DFM / CFM</strong> (Stark/Davis): 后续的连续派多采用 <em>固定 one-hot embedding + 手工 schedule reparameterization + cross-entropy loss</em>,但报告的 PPL 也始终落后离散派。</li>
+</ul>
+
+<p>所以社区的工程直觉变成了:</p>
+<blockquote>"连续扩散对文本本质不合适,token 是离散的,在 ℝ<sup>d<sub>e</sub></sup> 上做 score matching 信号噪声比天然差。"</blockquote>
+
+<p>本文的根本主张正面挑战这条直觉:<strong>差的不是范式,是历史代码栈没对齐</strong>。Plaid 原版用的还是 2022 年的 transformer 配方(RMSNorm,no AdaLN,no MLP bias,standard GELU),而 MDLM/Duo 都用了 DiT-style 现代 backbone(LayerNorm + AdaLN-Zero + RoPE + GELU(tanh) + MLP bias)。把这层架构差异填平,Plaid → RePlaid,scaling 鸿沟从 <strong>64× → 20×</strong>,瞬间和 MDLM 14× 同一量级。</p>
+
+<div class="nb">
+<b>三条偏见的工程根源(按论文的隐含归因):</b><br>
+① <em>Architecture</em>: 2023 Plaid 用旧 transformer,MDLM/Duo 用 DiT;<br>
+② <em>Training recipe</em>: Plaid 论文里 dataset / batch / 优化器和现代 dLLM scaling 文献完全不可比;<br>
+③ <em>Model size</em>: Plaid 原最大模型只跑到 ~100M,而 MDLM scaling 跑到 1.5B。<br>
+论文 §3.1 同时把这三层填平,再做 IsoFLOP。
+</div>
+
+<h3>1.3 三条路线的"哲学"差异 — 为什么仍然值得做连续</h3>
+<p>连续派被宣判但没死的原因(论文 intro 第一段反复强调):</p>
+<table>
+  <thead><tr><th>能力</th><th>离散扩散</th><th>连续扩散</th></tr></thead>
+  <tbody>
+    <tr><td>likelihood 评估</td><td>PPL via ELBO,自然</td><td>PPL via VDM NELBO,同样自然 ✓</td></tr>
+    <tr><td>高质量低 step 生成</td><td>step 减少时质量急剧退化 (Sahoo et al. 反复观察)</td><td><strong>ODE-based 高阶 solver 可用</strong> (DDIM / DPM++ / Heun)</td></tr>
+    <tr><td>distillation</td><td>困难,trajectory 是离散</td><td>PFODE distillation 自然 (CM / Rectified Flow)</td></tr>
+    <tr><td>controllability</td><td>限 mask token 替换</td><td>smooth latent 编辑 / classifier-free guidance</td></tr>
+    <tr><td>token 数据效率</td><td>每步只学单 token 边际</td><td>每步学完整 sequence 的 score</td></tr>
+  </tbody>
+</table>
+<p>所以 RePlaid 不只是"翻案",而是想给 distillation/inference-time-scaling 这条线一个 likelihood-健康的起点 — 离散派天生不能做的事情,如果连续派能在 PPL 上不输,长期价值反而更高。</p>
+
+<hr>
+
+<h2 id="sec2">2 · Motivation:为什么要 revisit Plaid</h2>
+
+<p>论文的核心 thesis (intro 第 4 段) 可以浓缩成两句话:</p>
+<blockquote>
+(1) Plaid 原报告的 64× compute gap 并不是连续扩散的内禀性质,而是 <strong>"和现代离散 DLM scaling law 协议不可比"</strong> 的产物——dataset 不同 / 优化器不同 / 架构旧版。<br>
+(2) 在 Sahoo et al. [51] 完全一致的协议下重做 ——同 SlimPajama 数据集、同 Llama-2 tokenizer、同 AdamW + cosine、同 IsoFLOP 5 个 budget——把 Plaid 的 transformer 架构换成 MDLM/Duo 同款 DiT (其余算法不变),compute gap 立刻 <strong>"自动"</strong> 收窄到 20×。
+</blockquote>
+
+<p>这条 motivation 在叙事上极其纯粹:不发明新算法,不引入新 loss,只是 <em>把变量 control 干净再测一次</em>。所以论文一边给出新 SOTA,一边其实是在做一篇"benchmark 方法论"论文 — 它的二级 contribution 是告诉社区:<strong>未来比较连续 vs 离散扩散,必须在统一的 IsoFLOP scaling protocol 下做</strong>。</p>
+
+<div class="fig">
+<svg viewBox="0 0 760 220" width="100%" style="max-width:760px">
+  <defs>
+    <marker id="arrA" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+  <!-- old story -->
+  <g>
+    <text x="20" y="22" font-size="14" font-weight="bold" fill="#a8353e">旧叙事 (2023-2024)</text>
+    <rect x="20" y="32" width="200" height="76" fill="#fff3f0" stroke="#a8353e" rx="6"/>
+    <text x="30" y="52" font-size="12">Plaid (continuous)</text>
+    <text x="30" y="70" font-size="12" fill="#a8353e">↓ 64× compute vs AR</text>
+    <text x="30" y="90" font-size="11" fill="#666">→ "连续扩散不可扩展"</text>
+    <text x="30" y="104" font-size="11" fill="#666">→ 社区转向 SEDD/MDLM</text>
+  </g>
+  <!-- arrow -->
+  <line x1="230" y1="70" x2="290" y2="70" stroke="#2f6feb" stroke-width="2" marker-end="url(#arrA)"/>
+  <text x="232" y="62" font-size="11" fill="#2f6feb">填平架构差</text>
+  <text x="232" y="92" font-size="11" fill="#2f6feb">+ 统一协议</text>
+
+  <!-- new story -->
+  <g>
+    <text x="300" y="22" font-size="14" font-weight="bold" fill="#1f7a4a">本文 (2026-05)</text>
+    <rect x="300" y="32" width="200" height="76" fill="#eef9f3" stroke="#1f7a4a" rx="6"/>
+    <text x="310" y="52" font-size="12">RePlaid (continuous)</text>
+    <text x="310" y="70" font-size="12" fill="#1f7a4a">↓ 20× compute (s.c.)</text>
+    <text x="310" y="90" font-size="11" fill="#666">→ 与 MDLM 14× 同量级</text>
+    <text x="310" y="104" font-size="11" fill="#666">→ Duo 22×, RePlaid 反超</text>
+  </g>
+  <!-- AR baseline -->
+  <g>
+    <text x="540" y="22" font-size="14" font-weight="bold" fill="#cc4a1b">AR baseline</text>
+    <rect x="540" y="32" width="200" height="76" fill="#fff8ee" stroke="#cc4a1b" rx="6"/>
+    <text x="550" y="52" font-size="12">同 DiT (causal mask)</text>
+    <text x="550" y="70" font-size="12" fill="#cc4a1b">1× compute (定义)</text>
+    <text x="550" y="90" font-size="11" fill="#666">throughput 仍然最优</text>
+  </g>
+
+  <!-- conclusion strip -->
+  <rect x="20" y="140" width="720" height="60" fill="#f3eee0" stroke="#2f6feb" rx="6"/>
+  <text x="36" y="162" font-size="13" font-weight="bold" fill="#2f6feb">结论:</text>
+  <text x="36" y="184" font-size="12">Plaid 的 64× 是"架构 + 协议"的伪命题,Real gap 只比 MDLM 多 ~40%。连续扩散在 likelihood 上有竞争力,且独享 PFODE distillation / 高阶 solver 的下游空间。</text>
+</svg>
+<figcaption><b>图 1.</b> 论文 motivation 的一图概览:左 (红) 旧叙事 64× → 中 (绿) 本文 20× → 右 (橙) AR 1×。中间的"填平"动作就是 §3 列的架构对齐清单。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec3">3 · Method 1 — Plaid 算法的最小回顾</h2>
+
+<p>RePlaid <strong>保留</strong> Plaid 的 <em>全部</em> 算法侧设计,只换 transformer 架构,所以理解 Plaid 是必要前提。这里只贴论文 §2 用得到的部分。</p>
+
+<h3>3.1 嵌入与前向过程</h3>
+<p>设词表 [V] = {1, ..., V}, 长度 L 的序列 x ∈ {0,1}<sup>L×V</sup> (每行 one-hot)。Plaid 维护一个 <strong>可学习</strong> embedding 矩阵 E ∈ ℝ<sup>V×d<sub>e</sub></sup>,每一行 <em>单位 ℓ<sub>2</sub> 范数</em>。嵌入序列 e = xE ∈ ℝ<sup>L×d<sub>e</sub></sup>。论文 default <strong>d<sub>e</sub> = 16</strong>,这是 RePlaid 与所有"高维 one-hot embedding"连续扩散方法 (FLM/CFM/DFM/LangFlow 默认 d<sub>e</sub>=768) 在算力上的关键差。</p>
+
+<p>前向过程是 VDM 的 variance-preserving Gaussian 扩散:</p>
+
+<div class="formula">
+q(z<sub>t</sub> | x) = 𝒩(α<sub>t</sub> e, σ<sub>t</sub><sup>2</sup> I) ,&nbsp;&nbsp; α<sub>t</sub><sup>2</sup> + σ<sub>t</sub><sup>2</sup> = 1 ,&nbsp;&nbsp; SNR(t) = α<sub>t</sub><sup>2</sup>/σ<sub>t</sub><sup>2</sup> = e<sup>−γ(t)</sup>
+</div>
+
+<p>γ(t) 是 monotone-increasing 的 noise schedule (γ(0) = γ<sub>0</sub>, γ(1) = γ<sub>1</sub>),参数化为</p>
+
+<div class="formula">
+γ(t) = γ<sub>0</sub> + (γ<sub>1</sub> − γ<sub>0</sub>) · γ̃(t)
+</div>
+
+<p>其中 γ̃: [0,1] → [0,1] 是一个 monotone MLP (Plaid 原作的做法),端点 γ<sub>0</sub>, γ<sub>1</sub> <em>始终</em>可学习。</p>
+
+<h3>3.2 NELBO (训练目标)</h3>
+<p>反向过程 p<sub>θ</sub>(z<sub>s</sub>|z<sub>t</sub>) = q(z<sub>s</sub>|z<sub>t</sub>, x = x<sub>θ</sub>(z<sub>t</sub>, t)) — 把 denoiser 的预测插回 VDM 的闭式 Gaussian posterior。NELBO 三项加和:</p>
+
+<div class="formula" style="font-size:.95em">
+−log p<sub>θ</sub>(x) ≤ ℒ<sub>NELBO</sub>(x) = KL(q(z<sub>1</sub>|x) ∥ p(z<sub>1</sub>))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;+ 𝔼<sub>z<sub>0</sub>∼q(z<sub>0</sub>|x)</sub> [ ∑<sub>l</sub> −log ⟨x<sub>θ</sub><sup>l</sup>(z<sub>0</sub>, 0), x<sup>l</sup>⟩ ]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;− ½ 𝔼<sub>t∼𝒰[0,1], z<sub>t</sub>∼q(z<sub>t</sub>|x)</sub> [ SNR′(t) · ∥e<sub>θ</sub>(z<sub>t</sub>, t) − e∥² ]
+</div>
+
+<p>三项分别叫 <strong>prior loss / reconstruction loss / diffusion loss</strong>。其中 e<sub>θ</sub>(z<sub>t</sub>, t) := x<sub>θ</sub>(z<sub>t</sub>, t) E (denoiser 输出 categorical, 再投影回 embedding 空间)。</p>
+
+<h3>3.3 三个"Beyond VDM"的小件</h3>
+<p>Plaid 比纯 VDM 多三件 (RePlaid 全部保留):</p>
+<ol>
+  <li><b>categorical reparameterization</b>: e<sub>θ</sub> = x<sub>θ</sub> E (denoiser 不直接出 embedding,而是出 categorical,再左乘 E)。</li>
+  <li><b>output prior logits</b>: 在 softmax 之前,给 logits 加一个 <em>closed-form Gaussian log-density</em>,使预测倾向 z<sub>t</sub> 邻近的 plausible token。</li>
+  <li><b>self-conditioning</b> (s.c.): 训练时 25% batch 先做一遍 gradient-free forward,把 ẑ<sub>0</sub> 拼到输入再正式 forward;val/sample 时 always on。Tab. 2 显示 s.c. 贡献 ΔPPL = 1.5。</li>
+</ol>
+
+<h3>3.4 学习的两个统计量 (这是后面 §6 理论的伏笔)</h3>
+<p>γ<sub>0</sub>, γ<sub>1</sub> 通过最小化 diffusion loss (期望) 学到;γ̃(t) 通过最小化 diffusion loss 的 <strong>Monte-Carlo variance</strong> 学到。这套"分两路梯度"的训练方法直接从原 VDM (Kingma et al. 2021) 继承 — RePlaid 没改,但本文 §5.2 第一次给出了这件事 <em>为什么</em> 工作的闭式数学解释。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Method 2 — 架构对齐:Plaid → RePlaid 的具体改动清单</h2>
+
+<p>这是论文 §3.1 + App. J 的核心 Table 5 内容。RePlaid <strong>保留</strong> 的列(算法层)和 <strong>修改</strong> 的列(架构层)我整理如下:</p>
+
+<table>
+  <thead><tr><th>组件</th><th>类别</th><th>Plaid 原始</th><th>RePlaid 改为</th><th>动机</th></tr></thead>
+  <tbody>
+    <tr><td>Embedding dim d<sub>e</sub></td><td>算法</td><td>16</td><td><b>仍 16</b></td><td>低维 embedding 是 likelihood scaling 关键 (Tab. 2 消融: 冻结成 random 直接 22.1 → 39.4)</td></tr>
+    <tr><td>Embedding 单位范数</td><td>算法</td><td>√</td><td><b>仍 √</b></td><td>提供几何归一化,稳定 VDM 的 σ 计算</td></tr>
+    <tr><td>Embedding 加噪方式</td><td>算法</td><td>Gaussian on e ∈ ℝ<sup>L×16</sup></td><td><b>仍 Gaussian</b></td><td>对比离散派的 pre-embedding masking</td></tr>
+    <tr><td>Input rescale + linear proj</td><td>算法</td><td>√ (16 → 768, no bias)</td><td><b>仍 √</b></td><td>把 d<sub>e</sub>=16 升到 hidden h=768</td></tr>
+    <tr><td>Self-cond. / time-cond. 投影</td><td>算法</td><td>√ (linear, no bias, additive)</td><td><b>仍 √</b></td><td>三条 input 通路相加</td></tr>
+    <tr><td><b>Normalization</b></td><td><b>架构</b></td><td>RMSNorm</td><td><b>LayerNorm</b></td><td>MDLM/Duo 都是 LayerNorm</td></tr>
+    <tr><td><b>MLP biases</b></td><td><b>架构</b></td><td>无 bias</td><td><b>启用</b></td><td>DiT 默认开 bias</td></tr>
+    <tr><td><b>MLP activation</b></td><td><b>架构</b></td><td>standard GELU</td><td><b>GELU(tanh)</b></td><td>tanh 近似版,DiT 默认</td></tr>
+    <tr><td><b>AdaLN modulation</b></td><td><b>架构</b></td><td>无 AdaLN</td><td><b>AdaLN-Zero</b> (Peebles &amp; Xie)</td><td>条件化 t 进 norm 参数</td></tr>
+    <tr><td><b>Residual gating</b></td><td><b>架构</b></td><td>fixed 1/√N scaling</td><td><b>可学习 AdaLN gate</b></td><td>初始化为 0,逐步打开残差</td></tr>
+    <tr><td><b>Final logit head precision</b></td><td><b>精度</b></td><td>FP32 (与 output prior 相互作用)</td><td><b>bfloat16</b></td><td>"消除数值混淆变量",保证与 MDLM 的 fair compare</td></tr>
+    <tr><td>Noise schedule</td><td>算法</td><td>monotone MLP + γ<sub>0</sub>,γ<sub>1</sub> 可学</td><td><b>仍如此</b> (float64 保数值稳定)</td><td>本文 §5.2 给出闭式解释</td></tr>
+    <tr><td>Discrete NELBO 形式</td><td>算法</td><td>recon + diff + prior</td><td><b>仍如此</b></td><td>likelihood-based 训练目标的核心</td></tr>
+  </tbody>
+</table>
+
+<div class="nb">
+<b>关键观察:</b>架构改动其实非常 mechanical — <em>不是 RePlaid 设计了新东西,而是直接抄 MDLM/Duo 的 DiT 配置</em>。本文的"实验创新点"不在算法,而在 "<strong>把变量 control 做对</strong>"。同时论文坦言:Plaid 把最终 logit head 跑在 FP32 是和 output prior 相互作用的副产物,本身就是一个 <em>数值混淆变量</em>;RePlaid 一并清掉,使得"我们 vs MDLM"在数值精度上也对齐。
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 760 360" width="100%" style="max-width:760px">
+  <!-- Plaid (left) -->
+  <g>
+    <text x="20" y="22" font-size="14" font-weight="bold" fill="#a8353e">Plaid 原始 (2023)</text>
+    <rect x="20" y="32" width="320" height="310" fill="#fff3f0" stroke="#a8353e" rx="8"/>
+    <!-- input -->
+    <rect x="40" y="50" width="120" height="32" fill="#fff" stroke="#a8353e" rx="4"/>
+    <text x="100" y="71" font-size="11" text-anchor="middle">embed e (d<sub>e</sub>=16) ✓</text>
+    <rect x="180" y="50" width="140" height="32" fill="#fff" stroke="#a8353e" rx="4"/>
+    <text x="250" y="71" font-size="11" text-anchor="middle">Gaussian noise z<sub>t</sub> ✓</text>
+    <!-- proj -->
+    <rect x="40" y="92" width="280" height="28" fill="#ffe5dc" stroke="#a8353e" rx="4"/>
+    <text x="180" y="111" font-size="11" text-anchor="middle">3× linear proj (no bias) → h=768 ✓</text>
+    <!-- transformer block -->
+    <rect x="40" y="130" width="280" height="160" fill="#fff" stroke="#a8353e" rx="6"/>
+    <text x="180" y="150" font-size="12" font-weight="bold" text-anchor="middle" fill="#a8353e">Transformer ×N</text>
+    <text x="180" y="172" font-size="11" text-anchor="middle">RMSNorm</text>
+    <text x="180" y="190" font-size="11" text-anchor="middle">Attention (RoPE)</text>
+    <text x="180" y="208" font-size="11" text-anchor="middle">MLP (no bias, std GELU)</text>
+    <text x="180" y="226" font-size="11" text-anchor="middle">no AdaLN</text>
+    <text x="180" y="244" font-size="11" text-anchor="middle">residual: fixed 1/√N</text>
+    <text x="180" y="270" font-size="10" text-anchor="middle" fill="#a8353e">(架构层)</text>
+    <!-- head -->
+    <rect x="40" y="300" width="280" height="30" fill="#ffd9cc" stroke="#a8353e" rx="4"/>
+    <text x="180" y="320" font-size="11" text-anchor="middle">final head FP32 + output prior</text>
+  </g>
+
+  <!-- arrow -->
+  <g transform="translate(360,170)">
+    <line x1="0" y1="0" x2="40" y2="0" stroke="#2f6feb" stroke-width="3"/>
+    <polygon points="40,-6 52,0 40,6" fill="#2f6feb"/>
+    <text x="0" y="-12" font-size="11" fill="#2f6feb">仅换架构</text>
+    <text x="0" y="22" font-size="11" fill="#2f6feb">+ FP 对齐</text>
+  </g>
+
+  <!-- RePlaid (right) -->
+  <g>
+    <text x="420" y="22" font-size="14" font-weight="bold" fill="#1f7a4a">RePlaid (2026)</text>
+    <rect x="420" y="32" width="320" height="310" fill="#eef9f3" stroke="#1f7a4a" rx="8"/>
+    <rect x="440" y="50" width="120" height="32" fill="#fff" stroke="#1f7a4a" rx="4"/>
+    <text x="500" y="71" font-size="11" text-anchor="middle">embed e (d<sub>e</sub>=16) ✓</text>
+    <rect x="580" y="50" width="140" height="32" fill="#fff" stroke="#1f7a4a" rx="4"/>
+    <text x="650" y="71" font-size="11" text-anchor="middle">Gaussian noise z<sub>t</sub> ✓</text>
+    <rect x="440" y="92" width="280" height="28" fill="#d8efe2" stroke="#1f7a4a" rx="4"/>
+    <text x="580" y="111" font-size="11" text-anchor="middle">3× linear proj (no bias) → h=768 ✓</text>
+    <rect x="440" y="130" width="280" height="160" fill="#fff" stroke="#1f7a4a" rx="6"/>
+    <text x="580" y="150" font-size="12" font-weight="bold" text-anchor="middle" fill="#1f7a4a">DiT block ×N (= MDLM/Duo)</text>
+    <text x="580" y="172" font-size="11" text-anchor="middle" fill="#1f7a4a">LayerNorm ↑</text>
+    <text x="580" y="190" font-size="11" text-anchor="middle">Attention (RoPE)</text>
+    <text x="580" y="208" font-size="11" text-anchor="middle" fill="#1f7a4a">MLP (bias on, GELU(tanh)) ↑</text>
+    <text x="580" y="226" font-size="11" text-anchor="middle" fill="#1f7a4a">AdaLN-Zero ↑</text>
+    <text x="580" y="244" font-size="11" text-anchor="middle" fill="#1f7a4a">residual: learnable AdaLN gate ↑</text>
+    <text x="580" y="270" font-size="10" text-anchor="middle" fill="#1f7a4a">(5 处架构对齐)</text>
+    <rect x="440" y="300" width="280" height="30" fill="#cfe9d8" stroke="#1f7a4a" rx="4"/>
+    <text x="580" y="320" font-size="11" text-anchor="middle" fill="#1f7a4a">final head <b>bfloat16</b> + output prior</text>
+  </g>
+</svg>
+<figcaption><b>图 2.</b> Plaid (红, 2023) → RePlaid (绿, 2026) 的架构对齐。<b>白底框</b>是不变的算法层(embedding / Gaussian noising / 三条 input projection / output prior),<b>带 ↑ 的绿色文字</b>是 5 处架构改动 + 1 处精度改动,全部直接抄自 MDLM/Duo 的 DiT 配置。论文坚持"没有发明新东西,只是把变量 control 做对"。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · Method 3 — 统一 IsoFLOP 协议 + Scaling Law</h2>
+
+<h3>5.1 训练设置 (论文 §3.2)</h3>
+<table>
+  <thead><tr><th>项</th><th>值</th><th>备注</th></tr></thead>
+  <tbody>
+    <tr><td>数据集</td><td><strong>SlimPajama</strong> (deduplicated)</td><td>避免训练数据 repetition</td></tr>
+    <tr><td>tokenizer</td><td>Llama-2 (V = 32,001,含一个 <code>[MASK]</code>)</td><td>和 MDLM/Duo 一致</td></tr>
+    <tr><td>batch size</td><td>256</td><td></td></tr>
+    <tr><td>序列长度 L</td><td><strong>2048</strong></td><td>scaling 阶段</td></tr>
+    <tr><td>compute budgets C</td><td>{6e18, 1e19, 3e19, 6e19, 1e20} FLOPs</td><td>5 个 IsoFLOP slice</td></tr>
+    <tr><td>optimizer</td><td>AdamW (β<sub>1</sub>=0.9, β<sub>2</sub>=0.95)</td><td></td></tr>
+    <tr><td>backbone LR</td><td>cosine 2e-4 → 2e-5, 1% warmup</td><td></td></tr>
+    <tr><td>embedding / monotone MLP / (γ<sub>0</sub>,γ<sub>1</sub>) LR</td><td>cosine <strong>1e-2 → 2e-5</strong></td><td>follow Plaid;论文实测:embedding LR 太低 (e.g. 用 backbone LR) <em>反而伤 RePlaid</em></td></tr>
+    <tr><td>self-cond 训练比例</td><td>25%</td><td>FLOPs +8.3%,通过减步抵消</td></tr>
+    <tr><td>FLOPs 计数</td><td>calflops [68], non-embedding</td><td></td></tr>
+    <tr><td>参考成本</td><td>231M MDLM @ 1e20 FLOPs ≈ <strong>32 小时 / 8× NVIDIA GB200</strong></td><td></td></tr>
+  </tbody>
+</table>
+
+<h3>5.2 IsoFLOP &amp; Scaling Law 拟合</h3>
+<p>对每个固定预算 C,扫不同参数量 N (Tab. 10 给出每个 C 下扫的 N grid),记录 validation loss L(N; C) (扩散模型用 VDM NELBO 上界)。对每个 C 在 log-log 空间拟合二次:</p>
+<div class="formula">log L(N, C) ≈ a<sub>C</sub> (log N)² + b<sub>C</sub> log N + c<sub>C</sub></div>
+<p>取每条曲线最低点 (N*<sub>C</sub>, L*<sub>C</sub>) → 拟合 power-law scaling L*<sub>C</sub> ∝ C<sup>−α</sup>。这套 protocol 直接抄 Sahoo et al. [51] (Chinchilla-style)。论文验证 pipeline 的方法:<strong>先复现 MDLM (low var.) 14× 和 Duo ≈22× (vs Sahoo 报 23×)</strong>,再算 RePlaid。</p>
+
+<h3>5.3 拟合结果</h3>
+<table>
+  <thead><tr><th>方法</th><th>vs AR compute gap</th><th>compute-optimal 参数比例</th></tr></thead>
+  <tbody>
+    <tr><td>AR (causal DiT)</td><td>1×</td><td>1×</td></tr>
+    <tr><td>MDLM (low var.)</td><td><strong>14×</strong></td><td>vs AR 大 ~1.9×</td></tr>
+    <tr><td>Duo</td><td>22× (Sahoo 报 23×)</td><td>—</td></tr>
+    <tr><td><strong>RePlaid (s.c.)</strong></td><td><strong>20×</strong> ✅</td><td>vs AR <strong>少 3.4×</strong> 参数;vs MDLM/Duo 少 <strong>1.8×</strong> 参数</td></tr>
+    <tr><td>RePlaid (no s.c.)</td><td>27×</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<p>把 4 条 power-law 画在一张图上,所有方法 <em>斜率相近</em> (这是关键 — 说明 scaling exponent 接近,只是常数项差距),但 RePlaid (s.c.) 的常数项压到与 MDLM 相近,且比 Duo 低。这是论文标题"scales competitively"的字面意思。</p>
+
+<div class="fig">
+<svg viewBox="0 0 640 360" width="100%" style="max-width:640px">
+  <!-- axes -->
+  <line x1="70" y1="310" x2="600" y2="310" stroke="#333"/>
+  <line x1="70" y1="40" x2="70" y2="310" stroke="#333"/>
+  <text x="335" y="345" font-size="13" text-anchor="middle">Non-Embedding FLOPs (log)</text>
+  <text x="20" y="175" font-size="13" text-anchor="middle" transform="rotate(-90 20,175)">Validation Loss</text>
+  <!-- x ticks -->
+  <text x="120" y="325" font-size="10" text-anchor="middle">6e18</text>
+  <text x="220" y="325" font-size="10" text-anchor="middle">1e19</text>
+  <text x="350" y="325" font-size="10" text-anchor="middle">3e19</text>
+  <text x="450" y="325" font-size="10" text-anchor="middle">6e19</text>
+  <text x="570" y="325" font-size="10" text-anchor="middle">1e20</text>
+
+  <!-- AR line (lowest) -->
+  <polyline points="120,170 220,158 350,140 450,124 570,108" fill="none" stroke="#cc4a1b" stroke-width="2.5"/>
+  <text x="575" y="105" font-size="11" fill="#cc4a1b">AR (1×)</text>
+
+  <!-- MDLM low var -->
+  <polyline points="120,210 220,200 350,184 450,170 570,154" fill="none" stroke="#2f6feb" stroke-width="2"/>
+  <text x="575" y="148" font-size="11" fill="#2f6feb">MDLM (14×)</text>
+
+  <!-- RePlaid sc (slightly higher than MDLM at left, closer at right) -->
+  <polyline points="120,222 220,210 350,192 450,176 570,158" fill="none" stroke="#1f7a4a" stroke-width="2.5"/>
+  <text x="575" y="170" font-size="11" fill="#1f7a4a">RePlaid s.c. (20×)</text>
+
+  <!-- Duo -->
+  <polyline points="120,232 220,222 350,206 450,192 570,176" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="575" y="186" font-size="11" fill="#888">Duo (22×)</text>
+
+  <!-- RePlaid no sc -->
+  <polyline points="120,252 220,244 350,228 450,214 570,198" fill="none" stroke="#a37b1f" stroke-width="2" stroke-dasharray="3,3"/>
+  <text x="575" y="207" font-size="11" fill="#a37b1f">RePlaid no s.c. (27×)</text>
+
+  <!-- annotations / crossover band -->
+  <rect x="120" y="260" width="450" height="50" fill="#f3eee0" stroke="#d2a32a" stroke-dasharray="3,3" rx="4" opacity="0.55"/>
+  <text x="345" y="288" font-size="11" text-anchor="middle" fill="#7a5a10">over-training 区: 同 N 下 RePlaid (s.c.) ↓ MDLM (low var.) (Sec. 3.4 / Fig. 1c)</text>
+
+  <!-- title -->
+  <text x="335" y="22" font-size="13" font-weight="bold" text-anchor="middle">IsoFLOP-fit compute-optimal scaling law (示意, 趋势忠于论文 Fig. 2a)</text>
+</svg>
+<figcaption><b>图 3.</b> 论文 Fig. 2a 的示意版 (定性忠实,数值未精确实测)。五条 power-law:AR 最低 (定义 1×),MDLM-low-var 14×,<b>RePlaid s.c. 20×</b>,Duo 22×,RePlaid no-s.c. 27×。所有 dLLM 与 AR 的斜率近似一致,只在 vertical offset 上有差;RePlaid s.c. 与 MDLM 几乎重合,而 over-trained regime (黄色带) 内 RePlaid 反超 MDLM。</figcaption>
+</div>
+
+<h3>5.4 Over-trained crossover (论文最实用的发现)</h3>
+<p>compute-optimal 是 Chinchilla 视角的"理论最优 N"。但在生产里我们经常做 <em>over-training</em>(比如 Llama-2 7B 被训到远超 Chinchilla 比例),为的是把推理参数压小。论文 §3.4 报告:</p>
+<ul>
+  <li>在 same model size 下,RePlaid (s.c.) 训到 ≈ <strong>3.1× compute-optimal</strong> 时 loss 就能 match MDLM 训到 ≈ <strong>6.9× compute-optimal</strong> 的水平 — 相当于 RePlaid 用一半多一点的 over-training 量就追上同尺寸 MDLM 的 over-trained 极限。</li>
+  <li>这翻译到生产语言就是: <em>"如果你想要一个小模型,RePlaid 比 MDLM 在 over-training 阶段省更多 compute"</em>。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec6">6 · Method 4 — 理论核心:Variance-minimization ⇒ Linear CE</h2>
+
+<p>这是论文第二个 contribution (intro 里 "Theoretical Insights (i)")。问 motivation:为什么 likelihood-based 训练(只有 NELBO,没有 hand-crafted CE-schedule reparameterization)能 work,而 LangFlow/FLM/DFM 一类必须手工 schedule?论文给出的答案分两步走。</p>
+
+<h3>6.1 Per-timestep diffusion loss 的统计</h3>
+<p>定义模型在 t 时刻的期望 diffusion loss:</p>
+<div class="formula">ℓ<sub>θ,γ</sub>(t) := −½ SNR′(t) · 𝔼<sub>q<sub>data</sub>(x) q(z<sub>t</sub>|x)</sub> ∥e<sub>θ</sub>(z<sub>t</sub>,t) − e∥² = −½ SNR′(t) · MSE<sub>θ</sub>(SNR(t))</div>
+
+<p>Kingma et al. (2021) 已经证明:<em>diffusion loss 的总积分 𝔼<sub>t</sub>[ℓ<sub>θ,γ</sub>(t)] 仅取决于 θ 和端点 γ<sub>0</sub>, γ<sub>1</sub>,与 γ̃(t) 的形状无关;而其 variance Var<sub>t</sub>[ℓ<sub>θ,γ</sub>(t)] 仅取决于 γ̃(t)</em>。本文 Proposition 1 在此基础上推进一步:</p>
+
+<div class="kv">
+<strong>Proposition 1 (Constant per-timestep diffusion loss).</strong> 在端点约束 γ(0)=γ<sub>0</sub>, γ(1)=γ<sub>1</sub> 下,存在<em>唯一</em>一个 γ*(t),使得 ℓ<sub>θ,γ*</sub>(t) ≡ κ ≥ 0 对所有 t 成立,进而 Var<sub>t</sub>[ℓ<sub>θ,γ*</sub>(t)] = 0,其中 κ = 𝔼<sub>t</sub>[ℓ<sub>θ,γ</sub>(t)]。
+</div>
+
+<p>解读:<strong>variance-minimizing schedule 等价于"per-timestep 损失严格常数"</strong>。这恰好就是 LangFlow/FLM/DFM 一类工作显式追求的"denoising 难度均匀分布",但是 Plaid 派只通过 minimize Var 就 <em>自动</em> 拿到 — 不需要手工写一条 schedule reparameterization。</p>
+
+<p>论文还给出 γ*(t) 和 κ 的 closed form (App. F 式 (31)/(32)),并实测发现 RePlaid 学出来的 γ̃(t) 几乎和 closed-form 重合 (Fig. 6b 的"learned vs theoretical")。把学的换成 closed-form 后,per-timestep loss 完美变常数 (Fig. 6a)。</p>
+
+<h3>6.2 Per-timestep CE 的分解 (Prop. 2)</h3>
+<p>但 diffusion loss 是 weighted MSE,并不直接对应"解码难度"。论文跟随 LangFlow,把 per-timestep CE 定义为</p>
+
+<div class="formula">CE<sub>θ,γ</sub>(t) := 𝔼<sub>q<sub>data</sub>(x) q(z<sub>t</sub>|x)</sub> [ ∑<sub>l</sub> −log ⟨x<sub>θ</sub><sup>l</sup>(z<sub>t</sub>,t), x<sup>l</sup>⟩ ]</div>
+
+<p>在 <em>Bayes-optimal denoiser</em> θ* 假设下 (Def. 1) 用 <strong>I-MMSE identity</strong> (Guo–Shamai–Verdú 2005) 把 mutual information 和 MSE 联系起来,得到</p>
+
+<div class="kv">
+<strong>Lemma 3 (Linear Information Decay).</strong> 在 θ*, γ* 下,I(e; z<sub>t</sub>) 关于 t <em>严格线性下降</em>,斜率由 κ 决定。
+</div>
+
+<p>这是非常漂亮的结论 — 它说"variance-min schedule + Bayes-optimal denoiser"等价于"信息以恒定速率从 e 流向 z<sub>t</sub>",一种最自然的 denoising 节拍。再代入 CE 即得:</p>
+
+<div class="kv">
+<strong>Proposition 2 (Per-timestep CE Under Optimality).</strong>
+CE<sub>θ*,γ*</sub>(t) = (H(x) − I(e; z<sub>0</sub>) + κt) + C(x | z<sub>t</sub>)
+<br><span style="color:var(--muted);font-size:.92em">其中 κt 是"linear-in-t trend",C(x|z<sub>t</sub>) := ∑<sub>l</sub> H(x<sup>l</sup>|z<sub>t</sub>) − H(x|z<sub>t</sub>) 是 conditional total correlation,单调递增于 t,取值 [0, C(x)]。</span>
+</div>
+
+<p>实测 (Fig. 6c):RePlaid 的 per-timestep CE 在训练中段就已经接近线性,即使残差 C(x|z<sub>t</sub>) 非零。这就是 abstract 里"naturally yields linear cross-entropy over time"的精确数学表达。</p>
+
+<div class="fig">
+<svg viewBox="0 0 720 280" width="100%" style="max-width:720px">
+  <!-- variance-min schedule sub -->
+  <g>
+    <text x="20" y="22" font-size="13" font-weight="bold" fill="#2f6feb">学到的 γ̃(t) (variance-min)</text>
+    <line x1="40" y1="220" x2="220" y2="220" stroke="#333"/>
+    <line x1="40" y1="50" x2="40" y2="220" stroke="#333"/>
+    <text x="130" y="245" font-size="11" text-anchor="middle">t</text>
+    <text x="20" y="135" font-size="11" text-anchor="middle" transform="rotate(-90 20,135)">γ̃(t)</text>
+    <!-- s-curve-ish -->
+    <path d="M40,210 C100,180 110,90 220,55" fill="none" stroke="#2f6feb" stroke-width="2.5"/>
+    <text x="130" y="80" font-size="10" fill="#2f6feb">monotone,集中加噪</text>
+    <text x="130" y="95" font-size="10" fill="#2f6feb">于 t 中段</text>
+  </g>
+  <!-- per-timestep loss = const -->
+  <g transform="translate(240,0)">
+    <text x="20" y="22" font-size="13" font-weight="bold" fill="#1f7a4a">⇒ per-timestep diffusion loss</text>
+    <line x1="40" y1="220" x2="220" y2="220" stroke="#333"/>
+    <line x1="40" y1="50" x2="40" y2="220" stroke="#333"/>
+    <text x="130" y="245" font-size="11" text-anchor="middle">t</text>
+    <text x="20" y="135" font-size="11" text-anchor="middle" transform="rotate(-90 20,135)">ℓ(t)</text>
+    <line x1="40" y1="135" x2="220" y2="135" stroke="#1f7a4a" stroke-width="3"/>
+    <text x="130" y="125" font-size="11" fill="#1f7a4a" text-anchor="middle">≡ κ (Prop. 1)</text>
+    <text x="130" y="155" font-size="9" fill="#1f7a4a" text-anchor="middle">Var<sub>t</sub> = 0</text>
+  </g>
+  <!-- per-timestep CE near-linear -->
+  <g transform="translate(480,0)">
+    <text x="20" y="22" font-size="13" font-weight="bold" fill="#cc4a1b">⇒ per-timestep CE (Prop. 2)</text>
+    <line x1="40" y1="220" x2="220" y2="220" stroke="#333"/>
+    <line x1="40" y1="50" x2="40" y2="220" stroke="#333"/>
+    <text x="130" y="245" font-size="11" text-anchor="middle">t</text>
+    <text x="20" y="135" font-size="11" text-anchor="middle" transform="rotate(-90 20,135)">CE(t)</text>
+    <line x1="40" y1="190" x2="220" y2="60" stroke="#cc4a1b" stroke-width="2.5"/>
+    <text x="130" y="80" font-size="10" fill="#cc4a1b">linear-in-t trend</text>
+    <text x="130" y="95" font-size="10" fill="#cc4a1b">(κt + const)</text>
+    <!-- residual -->
+    <path d="M40,180 C100,165 150,110 220,80" fill="none" stroke="#888" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="130" y="200" font-size="9" fill="#888">+ C(x|z<sub>t</sub>) 残差 (单调 ↑)</text>
+  </g>
+</svg>
+<figcaption><b>图 4.</b> RePlaid 理论结果的因果链:学习一个 variance-minimizing γ̃(t)(左)⇒ Per-timestep diffusion loss 严格常数(中,Prop. 1)⇒ 在 Bayes-optimal denoiser 下,per-timestep CE 是 linear-in-t 主项 + 单调残差(右,Prop. 2)。这恰好就是 LangFlow/FLM/DFM 用 <em>手工</em> schedule reparameterization 显式追求的"denoising difficulty 均匀分布"——但 RePlaid 仅通过 minimize NELBO 的 Monte-Carlo variance 就自动拿到。</figcaption>
+</div>
+
+<h3>6.3 实验验证 (Fig. 6 in paper)</h3>
+<p>论文做了三组对照 (250K steps):</p>
+<table>
+  <thead><tr><th>变体</th><th>OWT PPL</th><th>per-step loss</th><th>per-step CE</th></tr></thead>
+  <tbody>
+    <tr><td>RePlaid (s.c.) full</td><td>24.9</td><td>≈ const</td><td>≈ linear</td></tr>
+    <tr><td>Freeze noise schedule (γ̃ 固定为初始化)</td><td>28.0</td><td>U-shape (非常数)</td><td>非线性</td></tr>
+    <tr><td>Freeze embedding</td><td>45.1</td><td>≈ const (因 γ̃ 仍学)</td><td>≈ linear</td></tr>
+  </tbody>
+</table>
+<p>关键观察:<strong>只要 noise schedule 在学,per-step diffusion loss 和 CE 就接近常数/线性</strong>,与 embedding 是否可学 <em>无关</em>。但 PPL 的优劣 <em>主要</em> 由 embedding 学习驱动 (45.1 vs 24.9, Δ=20.2),这就把 §7 的内容引出来了。</p>
+
+<hr>
+
+<h2 id="sec7">7 · Method 5 — Embedding 几何:主要 likelihood gain 来源</h2>
+
+<p>论文 §5.1 + Fig. 5 给的核心实验结果:</p>
+
+<table>
+  <thead><tr><th>训练目标</th><th>OWT PPL (1M steps)</th><th>E 的 PCA 结构</th><th>2D 投影</th></tr></thead>
+  <tbody>
+    <tr><td>𝓛<sub>NELBO</sub>(x) (default)</td><td><b>22.1</b></td><td><b>低秩</b>(前 6 个 PC 解释 90% var,d<sub>e</sub>=16)</td><td>POS 聚类清晰</td></tr>
+    <tr><td>𝓛<sub>NELBO</sub>(x) + 1·𝓛<sub>CE</sub>(x)</td><td>26.1 (↓ 4.0)</td><td>"扁平" (前 13 个 PC 才到 90%)</td><td>POS 聚类被打散</td></tr>
+  </tbody>
+</table>
+
+<p>关键 take-aways:</p>
+<ol>
+  <li>纯 NELBO 训出的 E 自发收敛到 <em>低秩、POS-meaningful</em> 的几何(用 spaCy 给每个 subword 打 POS tag,t-SNE 投影出现清晰簇)。</li>
+  <li>额外加一个 CE loss (∇ 只回传给 E 和 θ,γ 保持不变) <strong>反而伤 PPL</strong> — 因为 CE 的梯度是"discriminative / separative",会把 E 撑开,破坏低秩结构。</li>
+  <li>这是论文反驳 CDCD/LangFlow/FLM 这类 "用 CE loss 替代 MSE 扩散 loss" 的理论依据:CE 训练 = 离散判别目标 ≠ likelihood 上界。NELBO 才是 true upper bound on −log p<sub>θ</sub>(x),它附带的 latent geometry 正则化是 CE 拿不到的。</li>
+</ol>
+
+<div class="fig">
+<svg viewBox="0 0 720 270" width="100%" style="max-width:720px">
+  <!-- Before training -->
+  <g>
+    <text x="120" y="20" font-size="13" font-weight="bold" text-anchor="middle" fill="#666">训练前 E ~ random init</text>
+    <rect x="20" y="30" width="200" height="200" fill="#fff" stroke="#666" rx="6"/>
+    <!-- random scatter -->
+    <g fill="#888">
+      <circle cx="60" cy="80" r="2"/><circle cx="90" cy="60" r="2"/><circle cx="120" cy="90" r="2"/>
+      <circle cx="160" cy="70" r="2"/><circle cx="180" cy="120" r="2"/><circle cx="80" cy="140" r="2"/>
+      <circle cx="120" cy="160" r="2"/><circle cx="170" cy="180" r="2"/><circle cx="50" cy="190" r="2"/>
+      <circle cx="100" cy="200" r="2"/><circle cx="140" cy="50" r="2"/><circle cx="150" cy="200" r="2"/>
+      <circle cx="200" cy="100" r="2"/><circle cx="40" cy="120" r="2"/><circle cx="100" cy="115" r="2"/>
+      <circle cx="170" cy="100" r="2"/><circle cx="80" cy="100" r="2"/><circle cx="60" cy="55" r="2"/>
+    </g>
+    <text x="120" y="245" font-size="10" fill="#666" text-anchor="middle">uniform 16D 球面, 无簇</text>
+  </g>
+  <!-- arrow -->
+  <line x1="240" y1="130" x2="290" y2="130" stroke="#2f6feb" stroke-width="3"/>
+  <polygon points="290,124 302,130 290,136" fill="#2f6feb"/>
+  <text x="265" y="118" font-size="11" text-anchor="middle" fill="#2f6feb">𝓛<sub>NELBO</sub></text>
+  <text x="265" y="148" font-size="11" text-anchor="middle" fill="#2f6feb">1M steps</text>
+  <!-- After NELBO -->
+  <g transform="translate(310,0)">
+    <text x="120" y="20" font-size="13" font-weight="bold" text-anchor="middle" fill="#1f7a4a">训练后 E (𝓛<sub>NELBO</sub>) → PPL 22.1</text>
+    <rect x="20" y="30" width="200" height="200" fill="#fff" stroke="#1f7a4a" rx="6"/>
+    <!-- clusters by POS -->
+    <g><circle cx="65" cy="65" r="3" fill="#cc4a1b"/><circle cx="75" cy="55" r="3" fill="#cc4a1b"/><circle cx="60" cy="75" r="3" fill="#cc4a1b"/><circle cx="80" cy="70" r="3" fill="#cc4a1b"/></g>
+    <text x="70" y="100" font-size="9" fill="#cc4a1b" text-anchor="middle">NOUN</text>
+    <g><circle cx="155" cy="65" r="3" fill="#2f6feb"/><circle cx="165" cy="75" r="3" fill="#2f6feb"/><circle cx="170" cy="55" r="3" fill="#2f6feb"/></g>
+    <text x="165" y="100" font-size="9" fill="#2f6feb" text-anchor="middle">VERB</text>
+    <g><circle cx="60" cy="160" r="3" fill="#1f7a4a"/><circle cx="50" cy="170" r="3" fill="#1f7a4a"/><circle cx="70" cy="155" r="3" fill="#1f7a4a"/></g>
+    <text x="60" y="195" font-size="9" fill="#1f7a4a" text-anchor="middle">ADJ</text>
+    <g><circle cx="160" cy="160" r="3" fill="#a37b1f"/><circle cx="170" cy="170" r="3" fill="#a37b1f"/><circle cx="155" cy="175" r="3" fill="#a37b1f"/></g>
+    <text x="165" y="195" font-size="9" fill="#a37b1f" text-anchor="middle">PUNCT</text>
+    <text x="120" y="245" font-size="10" fill="#1f7a4a" text-anchor="middle">低秩(6 PC = 90% var), POS 聚类</text>
+  </g>
+</svg>
+<figcaption><b>图 5.</b> RePlaid embedding 几何示意 (定性,基于论文 Fig. 5a t-SNE 结果)。训练前 E 在 16 维球面上随机分布;训练后(纯 NELBO),即使 d<sub>e</sub>=16 这么小的维度,subword 也自发按 POS (NOUN/VERB/ADJ/PUNCT 等) 聚类,且 PCA 前 6 个主成分就解释 90% 方差。Tab. 2 消融:把 E 冻结为 random,PPL 直接从 22.1 崩到 39.4,印证 embedding learning 是 RePlaid 的最大贡献者。</figcaption>
+</div>
+
+<h3>7.1 与 LangFlow / FLM 的对比</h3>
+<p>论文 Fig. 13/14 进一步把 RePlaid (d<sub>e</sub>=768) vs LangFlow (d<sub>e</sub>=768 default) vs MDLM (d<sub>e</sub>=768) 的 embedding spectrum 画在一起:</p>
+<ul>
+  <li>RePlaid 即使在高维也维持低秩 → PPL 更好;</li>
+  <li>LangFlow (CE-trained) 的 embedding 秩高得多 → PPL 更差 (32.2);</li>
+  <li>MDLM 的 embedding 秩 <em>比 LangFlow 还高</em>。但有趣的是,MDLM 的 PPL 仍然不差(23.1) — 因为 MDLM 是离散派,token "embedding" 只是 input 投影,并不参与连续 score-matching 的 trajectory,所以高秩对它没那么有害。</li>
+</ul>
+<p>这条对照说明:<strong>"低秩 embedding 几何对 likelihood 有好处"是连续派独有的现象</strong>,并不能简单照搬到离散派。</p>
+
+<hr>
+
+<h2 id="sec8">8 · Evaluation metrics</h2>
+
+<table>
+  <thead><tr><th>metric</th><th>定义</th><th>数据集</th><th>论文中的作用</th></tr></thead>
+  <tbody>
+    <tr><td><b>PPL bound</b></td><td>exp(NELBO/n_tokens) — 因为 NELBO 是 −log p 的 <em>上界</em>,对应 PPL 也是上界</td><td>OWT (L=1024) · LM1B (L=128)</td><td>likelihood scaling law 的目标</td></tr>
+    <tr><td>Validation Loss</td><td>per-token NELBO</td><td>SlimPajama val (L=2048)</td><td>IsoFLOP 拟合的目标</td></tr>
+    <tr><td><b>GenPPL</b></td><td>用 GPT-2 Large 评 RePlaid 生成文本的 PPL (越低越自然)</td><td>OWT 无条件采样, L=1024, N=5120</td><td>主样本质量度量</td></tr>
+    <tr><td><b>MAUVE</b></td><td>用 ModernBERT-Large 算 KL distance,quality+diversity 联合</td><td>OWT 同上</td><td>避免 GenPPL 过分奖励低 entropy 采样的 metric</td></tr>
+    <tr><td>Average unigram entropy</td><td>diversity proxy</td><td>OWT</td><td>检查 self-conditioning 是否过度收敛</td></tr>
+  </tbody>
+</table>
+
+<p><b>NELBO ≤ likelihood 的细节:</b>diffusion model 的"PPL"严格说是 PPL bound — 它来自 ELBO 是 log-likelihood 的下界。论文还做了 K-IWAE (importance weighted ELBO, K=1, 2, 4, 8, 16, 32) 的 tightness 实验 (App. F Fig. 28),发现 K=32 时拿到 22.11,基本就是 VDM NELBO (22.10) 的 tight 极限 — 说明 RePlaid 的 NELBO 已经非常接近真 likelihood,bound 紧。</p>
+
+<hr>
+
+<h2 id="sec9">9 · Performance — Table 1 + 完整数字</h2>
+
+<h3>9.1 OpenWebText &amp; LM1B 主表 (Table 1)</h3>
+<table>
+  <thead><tr><th>类别</th><th>方法</th><th>LM1B @1M (PPL ↓)</th><th>OWT @250K</th><th>OWT @1M</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="1">AR</td><td>Transformer</td><td>22.8</td><td>17.8</td><td>17.5</td></tr>
+    <tr><td rowspan="7">Discrete (mask)</td><td>BERT-Mouth</td><td>142.9</td><td>—</td><td>—</td></tr>
+    <tr><td>D3PM Absorb</td><td>76.9</td><td>—</td><td>—</td></tr>
+    <tr><td>DiffusionBERT</td><td>63.8</td><td>—</td><td>—</td></tr>
+    <tr><td>Eso-LM (α₀=1)</td><td>36.1</td><td>—</td><td>30.1</td></tr>
+    <tr><td>SEDD Absorb</td><td>32.7</td><td>—</td><td>26.8</td></tr>
+    <tr><td>MDLM</td><td>31.8</td><td>—</td><td>25.2</td></tr>
+    <tr><td><b>MDLM (low var.)</b></td><td><b>30.8</b></td><td>—</td><td><b>23.1</b> ← 最强离散</td></tr>
+    <tr><td rowspan="4">Discrete (uniform)</td><td>D3PM Uniform</td><td>137.9</td><td>—</td><td>—</td></tr>
+    <tr><td>SEDD Uniform</td><td>40.3</td><td>—</td><td>—</td></tr>
+    <tr><td>UDLM</td><td>36.7</td><td>—</td><td>30.5</td></tr>
+    <tr><td>Duo</td><td>33.7</td><td>—</td><td>25.2 ← Sahoo et al. 报告值</td></tr>
+    <tr><td rowspan="4">Continuous</td><td>Diffusion-LM</td><td>118.6</td><td>—</td><td>—</td></tr>
+    <tr><td>LangFlow (官方 ckpt)</td><td>—</td><td>—</td><td>32.2 (我们用 NELBO 重测)</td></tr>
+    <tr><td>Plaid (original)</td><td>—</td><td>39.4</td><td>24.4</td></tr>
+    <tr><td><b>RePlaid (no s.c.)</b></td><td>33.3</td><td>37.7</td><td>23.6 (24.1 if s.c. trained but turned off)</td></tr>
+    <tr><td><b>RePlaid (s.c.) ours</b></td><td><b>31.6</b></td><td><b>33.3</b></td><td><b>22.1</b> ★ 新 SOTA</td></tr>
+  </tbody>
+</table>
+
+<p><b>读表关键:</b></p>
+<ul>
+  <li><span class="ok">★</span> RePlaid (s.c.) 在 OWT @1M 达到 <b>22.1</b>,严格优于最强离散 MDLM (low var.) 23.1 (Δ = −1.0)。这是 abstract 头号宣称。</li>
+  <li><span class="ok">★</span> RePlaid 在 OWT 上 <em>同时</em> 击败所有连续派 (LangFlow 32.2, Plaid 24.4) 和最强离散派 (MDLM low-var 23.1)。但注意 <em>不</em> 击败 AR (17.5) — 仍然有 ~4.6 PPL 的 gap,与 20× compute gap 一致。</li>
+  <li><span class="no">×</span> 在 LM1B 上 RePlaid (s.c.) 是 31.6,虽然胜 Duo 33.7,但 <em>不</em> 胜 MDLM low-var 30.8。论文承认 — LM1B 序列短 (L=128),数据较小,趋势不如 OWT 显著。这是 transparent 的报告。</li>
+</ul>
+
+<h3>9.2 OWT 消融 (Table 2)</h3>
+<table>
+  <thead><tr><th>变体</th><th>PPL ↓</th><th>vs full Δ</th></tr></thead>
+  <tbody>
+    <tr><td>RePlaid (s.c.) full</td><td>22.1</td><td>—</td></tr>
+    <tr><td>− output prior</td><td>22.5</td><td>+0.4</td></tr>
+    <tr><td>− self-conditioning</td><td>23.6</td><td>+1.5</td></tr>
+    <tr><td>− learnable noise schedule</td><td>24.4</td><td>+2.3</td></tr>
+    <tr><td>− learnable embeddings (固定为 random)</td><td><b>39.4</b></td><td><b>+17.3</b> ← 主驱动</td></tr>
+  </tbody>
+</table>
+<p>这张表是论文 §5.1 那条"embedding 是最大 likelihood gain 来源"的实证依据 — 任何一个组件单独拿掉 RePlaid 仍胜 Duo (25.2),但拿掉 embedding learning 直接掉到 39.4(比 LangFlow 还差)。</p>
+
+<h3>9.3 vs Plaid 原版 — 是不是只是"加了 self-cond 才赢"?</h3>
+<p>论文小心地区分:<em>RePlaid (no s.c.) 23.6</em> 已经胜 Plaid (original 24.4) 0.8 PPL,而且 Plaid 自己也 <em>带</em> self-cond。所以即便去掉 s.c.,架构对齐本身就贡献了大约 0.8 PPL。但 s.c. 贡献的 Δ=1.5 才是 22.1 vs 23.6 的桥梁。</p>
+
+<h3>9.4 20× 这个数字的精确语境</h3>
+<p>论文摘要、intro、conclusion 在三处反复出现 "20×",但语境略有不同,这里精确还原:</p>
+<ol>
+  <li><b>Abstract:</b> "RePlaid exhibits a compute gap of only 20× compared to autoregressive models" — 这是 <em>compute-optimal scaling law</em> 拟合的 20×;</li>
+  <li><b>§3:</b> "To match AR loss, MDLM and RePlaid (s.c.) require 14× and 20× the compute, respectively" — 同义复述;</li>
+  <li><b>§3.4:</b> 同时强调 RePlaid (no s.c.) 是 27×,RePlaid (s.c.) 才是 20×;</li>
+  <li><b>Conclusion:</b> "a 20× compute gap remains between RePlaid and AR models" — 论文 <em>诚实承认</em>这仍是显著差距,呼吁未来研究。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec10">10 · Sampling — PFODE solvers</h2>
+
+<p>这是连续派相对离散派的独家优势:训好后可以用 image-diffusion 社区成熟的 PFODE 高阶 solver 加速采样。论文测了 4 个:</p>
+<ul>
+  <li><b>DDPM ancestral</b> (stochastic) — 用 VDM 闭式后验 q(z<sub>s</sub>|z<sub>t</sub>, x = x<sub>θ</sub>(z<sub>t</sub>,t)),Plaid 原版的默认。</li>
+  <li><b>DDIM</b> — 一阶 deterministic;</li>
+  <li><b>DPM-Solver++(2M)</b> — 二阶 multistep,image diffusion 主力;</li>
+  <li><b>Heun</b> — 二阶,但每步 2 NFE,实际换算 T 后会吃亏。</li>
+</ul>
+
+<p>Probability-flow ODE:</p>
+<div class="formula">ż<sub>t</sub> = v<sub>θ</sub>(z<sub>t</sub>, t) = (α̇<sub>t</sub> − α<sub>t</sub> σ̇<sub>t</sub>/σ<sub>t</sub>) · x<sub>θ</sub>(z<sub>t</sub>, t) E + (σ̇<sub>t</sub>/σ<sub>t</sub>) z<sub>t</sub></div>
+
+<p><b>关键结论 (论文 Finding 3):</b></p>
+<ul>
+  <li><em>低 NFE 区</em> (T ≤ 32): DPM-Solver++(2M) > DDPM > DDIM,二阶 solver 优势显著;</li>
+  <li><em>高 NFE 区</em> (T ≥ 64): DDPM > 所有 deterministic solver,DDIM 收敛到 DPM++ 的水平 — 论文解释这是因为高阶 solver 在 high-NFE 时退化为一阶;</li>
+  <li>RePlaid (s.c.) DDPM @ T=1024 拿到 GenPPL ≈ <strong>21</strong>,显著优于其他所有连续派和大部分离散派 (除了 high-NFE Duo)。</li>
+</ul>
+
+<p><b>Self-conditioning 的副作用:</b>在 T ≥ 512 时,RePlaid (s.c.) 的 unigram entropy 比所有 baseline 都低,因为每步把上一步的 ẑ<sub>0</sub> 当作 condition 喂回去,会把分布越锐化。论文用 GenPPL-entropy Pareto frontier (Fig. 3c) 说明:在 same GenPPL 下,RePlaid (no s.c.) 的 entropy 比 Duo、FLM 都好;但 RePlaid (s.c.) 的 entropy 反而最低。这是 trade-off,不是 bug。</p>
+
+<hr>
+
+<h2 id="sec11">11 · 与本仓库其它 dLLM / spec-RL 工作的对照</h2>
+
+<p>本仓库已经有几篇 dLLM 相关笔记,RePlaid 的位置如下:</p>
+
+<table>
+  <thead><tr><th>笔记</th><th>立场</th><th>与 RePlaid 关系</th></tr></thead>
+  <tbody>
+    <tr><td><a href="./11_TIDE_2604.26951.html">#11 TIDE</a></td><td>跨架构 dLLM 蒸馏 (Dream/LLaDA → AR)</td><td>对 <em>离散</em> dLLM 做 inference-time 蒸馏。RePlaid 提供的 PFODE distillation 路径是连续派的对偶,但论文 §6 只是 future work,没实际做。</td></tr>
+    <tr><td><a href="./13_LongLLaDA_2506.14429.html">#13 LongLLaDA</a></td><td>离散 dLLM 长 context (LLaDA + NTK-RoPE)</td><td>纯离散,不涉及 continuous;但 OWT @L=1024 已经是中等 context,RePlaid 在这个长度上 SOTA。</td></tr>
+    <tr><td><a href="./21_Prism_2602.01842.html">#21 PRISM</a></td><td>离散 dLLM 的 test-time scaling (hierarchical search + SVF)</td><td>同样是 <em>离散</em>;PRISM 利用 dLLM 的 z<sub>0</sub>-prediction head 在 partially-masked 中间态做 verify。RePlaid 因为是连续,中间态是 ℝ<sup>d<sub>e</sub></sup> 向量而非 partially-masked tokens,SVF 这套要重新设计 — 是未来 follow-up 的明显口子。</td></tr>
+    <tr><td><a href="../../spec-rl/notes/07_DFlash_2602.06036.html">spec-rl/#07 DFlash</a></td><td>block diffusion drafter 给 AR target 做 spec decoding</td><td>RePlaid 作为 likelihood-健康的连续 dLLM,理论上也能当 draft model — 但实际 GenPPL ≈ 21 vs AR target 的 17 PPL 仍有 gap,acceptance rate 应该会比 block diffusion 更低,需实测。</td></tr>
+    <tr><td><a href="../../spec-rl/notes/17_Orthrus_2605.12825.html">spec-rl/#17 Orthrus</a></td><td>双视角 (left-to-right + diffusion) drafter</td><td>同上,RePlaid 可以作为 Orthrus 的 "diffusion view" 候选;不过现 Orthrus 用的是离散 dLLM。</td></tr>
+  </tbody>
+</table>
+
+<p><strong>这条仓库脉络的位置:</strong>本仓库前 22 篇里 dLLM 工作 (TIDE / LongLLaDA / Prism / DFlash / Orthrus) 几乎全在 <em>离散派</em>。RePlaid 是第一篇 <strong>反观点</strong>—— 把连续派从 "abandoned approach" 救回来,且第一次在统一 scaling protocol 下证明它有 likelihood 竞争力。后续做 dLLM × distillation / dLLM × spec decoding 时,连续派的 PFODE 路径会重新进入考量。</p>
+
+<hr>
+
+<h2 id="sec12">12 · 局限 / 待回答</h2>
+
+<h3>12.1 论文自己承认的局限</h3>
+<ol>
+  <li><b>20× 鸿沟仍在</b>。即使从 64× 打到 20×,RePlaid 离 AR 仍有 ~一个数量级 compute 差距。生产部署时 AR 仍是 throughput-optimal 选择。</li>
+  <li><b>规模封顶</b>。所有 scaling law 在 6e18 ~ 1e20 FLOPs 区间拟合,最大模型 ≈ 1.5B non-embedding。Conclusion 明确:"Investigating whether these scaling trends persist in the multi-billion-parameter regime where modern LLMs operate is a critical next step." — 没有 7B/13B 训练。</li>
+  <li><b>only 2 datasets</b>。OWT + LM1B,都是 web/news,不涉及 code/math/reasoning。zero-shot downstream 也没报。</li>
+  <li><b>encoder 仍 token-level</b>。论文 conclusion 提到可以换更强的 contextual encoder (sequence-level conditioning),但本文没做。</li>
+</ol>
+
+<h3>12.2 笔者补充的待验证点 (对联合作者的 critic)</h3>
+<ol>
+  <li><b>20× 是否可以再降?</b> 论文 ablation 显示 embedding learning 贡献 17.3 PPL,如果能用更强 embedding 初始化(如把 AR backbone 的 unembedding 矩阵作为 warm start),也许能进一步压。</li>
+  <li><b>self-conditioning 在 high-T 把 entropy 压低</b>(§10)— 这在长生成场景会不会变成质量天花板?需要更严格的 long-form generation diversity 评测。</li>
+  <li><b>instruction tuning &amp; RL 阶段</b> RePlaid 是否还有竞争力?论文没回答 — 这是 production 落地的关键缺口,毕竟现代 LLM 的 RLHF/RL-VR 都是基于 AR 的 sample + reward。连续扩散的 RL 训练机制(reward gradient through z<sub>t</sub>?)是一个 entirely open 的问题。</li>
+  <li><b>vs LLaDA-8B / Dream-7B</b>: 论文只跟"scaling law 论文 baseline" (MDLM/Duo) 比,没和这些公开的 8B 离散 dLLM 比;后者训练数据/规模都不同,但是社区实际感知的 SOTA。</li>
+  <li><b>22.1 PPL bound 的 NELBO tightness</b>:K-IWAE 实验给出 K=32 时 22.11 vs NELBO 22.10,gap 极小,这条很有说服力。但 LangFlow 的 NELBO 论文 (Tab. 3 App. E) 报告了大幅波动,说明 ODE-based bound 对 design choice 敏感 — 比较时要注意。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec13">13 · 开源 / 代码</h2>
+
+<table>
+  <thead><tr><th>资源</th><th>状态 (截至 2026-05-19)</th><th>备注</th></tr></thead>
+  <tbody>
+    <tr><td>论文 PDF</td><td><a href="https://arxiv.org/abs/2605.18530" target="_blank">arXiv:2605.18530</a></td><td>v1, 2026-05-18 提交</td></tr>
+    <tr><td>HuggingFace org</td><td><a href="https://huggingface.co/Continuous-Rivals-Discrete" target="_blank">Continuous-Rivals-Discrete</a></td><td>论文 footnote 2 提到的 org;目前只挂了 LangFlow baseline ckpt (langflow-owt / langflow-lm1b),<b>RePlaid 自己的权重未公开</b></td></tr>
+    <tr><td>code repo</td><td>arXiv 论文中没找到 GitHub 链接</td><td>GitHub search "RePlaid continuous diffusion" 无匹配结果 (2026-05-19);可能将随 v2 / camera-ready 释放</td></tr>
+    <tr><td>依赖</td><td>calflops (<a href="https://github.com/MrYxJ/calculate-flops.pytorch" target="_blank">link</a>)</td><td>FLOPs 计数工具</td></tr>
+    <tr><td>License</td><td>未在 v1 中标注</td><td>多数 NVIDIA Research 论文采用 NVIDIA Source Code License 或学术 friendly 协议;待 release 时确认</td></tr>
+  </tbody>
+</table>
+
+<div class="nb">
+<b>开源现状评估 (2026-05-19):</b> 论文 v1 提交仅一天,无 GitHub 仓库可查,无模型权重发布。HuggingFace org "Continuous-Rivals-Discrete" 已建立但只有 LangFlow baseline 镜像。预计 v2 / NeurIPS 投稿前后会同步代码 + ckpt。<b>未在公开来源精确确认</b>:RePlaid 训练 script / scaling-law 拟合代码 / 1M-step OWT ckpt 是否会一并 release。
+</div>
+
+<hr>
+
+<h2 id="sec14">14 · 附录:理论细节展开</h2>
+
+<h3>14.1 Prop. 1 的闭式 γ*(t) (App. F 式 (31))</h3>
+<p>Variance-minimizing schedule 的存在性 + 唯一性证明依赖于 SNR(t) 是一个 strictly decreasing C¹ 函数,且 ℓ<sub>θ,γ</sub>(t) = −½ SNR′(t) MSE<sub>θ</sub>(SNR(t))。Constraint 是 γ(0)=γ<sub>0</sub>, γ(1)=γ<sub>1</sub>,变分对象是 γ̃(t)。论文用变分 + 端点积分约束推出</p>
+<div class="formula" style="font-size:.92em">
+γ*(t) = −log SNR<sup>−1</sup>( Φ<sup>−1</sup>( t · Φ(SNR<sub>0</sub>) + (1−t) · Φ(SNR<sub>1</sub>) ) )
+</div>
+<p>其中 Φ(u) := ∫<sub>u</sub><sup>∞</sup> MSE<sub>θ</sub>(s)/s · ds (App. F 式 (31) 的等价形式)。Φ<sup>−1</sup> 是其反函数。κ 则由 端点积分(式 32)给出。直觉:γ* 在 MSE 曲线"陡峭"的 SNR 区间里安排更多 t-密度,以达到 per-timestep 损失常数化。</p>
+
+<h3>14.2 I-MMSE 与 Lemma 3</h3>
+<p>I-MMSE 恒等式 (Guo–Shamai–Verdú, IEEE Trans. Info. Theory 2005):</p>
+<div class="formula">d/dλ I(X; √λ X + N) = ½ MMSE(X | √λ X + N), &nbsp; N ~ 𝒩(0, I)</div>
+<p>把 λ ↔ SNR(t) 代入,e 替换 X,z<sub>t</sub> 替换 noisy obs,可得 d I(e; z<sub>t</sub>) / d SNR(t) = ½ MMSE(e | z<sub>t</sub>)。当 Bayes-optimal denoiser 把 MMSE 压到等于 MSE<sub>θ*</sub>,且 Prop. 1 让 ℓ<sub>θ,γ</sub>(t) ≡ κ,链式法则代入即得 d I(e; z<sub>t</sub>) / dt = − κ ⇒ <strong>I(e; z<sub>t</sub>) 严格线性下降于 t</strong>。这就是 Lemma 3 的核心机制,论文 App. G。</p>
+
+<h3>14.3 Prop. 2 的总相关性残差 C(x | z<sub>t</sub>)</h3>
+<p>总相关性 (total correlation) C(X) := ∑<sub>l</sub> H(X<sub>l</sub>) − H(X),衡量"各分量联合分布相对独立分布的距离"。在文本里,它对应"<em>token 之间的全局耦合</em>",即语法/语义/篇章一致性。Prop. 2 说:</p>
+<ul>
+  <li><b>当 t → 1</b> (近 pure noise): z<sub>t</sub> 几乎无信息,C(x | z<sub>t</sub>) → C(x) — 即条件总相关性接近 unconditional total correlation,这部分是 RePlaid 一定要"花心思学"的语言全局结构;</li>
+  <li><b>当 t → 0</b> (近 clean): z<sub>t</sub> 已经透露大部分信息,C(x | z<sub>t</sub>) → 0 — token 之间在 z<sub>t</sub> 已知时 conditionally independent;</li>
+  <li>所以 CE(t) 的非线性部分 — "tokens 之间的耦合度随 t 单调上升" — 是 <em>语言结构本身</em>的代价,不是 RePlaid 设计能消除的。</li>
+</ul>
+
+<p>这是非常 elegant 的结果:RePlaid 用 NELBO 训练自动把"模型能优化的部分"(线性 trend) 安排得 evenly distributed across t,而"模型不能消除的部分"(语言耦合残差) 也单调可解释。这让作者可以 honest 地说"<em>我们 evenly distribute denoising difficulty without case-specific reparameterization</em>"。</p>
+
+<h3>14.4 为什么 LangFlow 的"CE-schedule 匹配"等价物可被替代</h3>
+<p>LangFlow [10] 显式做的事情:用 CE-rate 匹配 noise density (Chen, Zhao, Sun 等 2025) — 这是一种基于 information-gain rate 的 schedule reparameterization。论文 §5.2 的隐含吐槽:</p>
+<ol>
+  <li>LangFlow 用 CE loss 训练,但 CE 不是 likelihood 上界 — 所以理论上不能保证 PPL 改进;实测 PPL 32.2,远差于 RePlaid 22.1;</li>
+  <li>LangFlow 用手工 schedule 来"模仿"linear CE,但这是 case-specific(不同 embedding 维度需要不同 reparam);</li>
+  <li>RePlaid 用 NELBO + variance-min schedule,<em>自动</em> 在任何 embedding 配置下都拿到 linear CE,而且 PPL 更好。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec15">15 · 附录:Sampling Worked Example</h2>
+
+<p>下面是 RePlaid (s.c.) 在 T=64 步、L=1024 token 下采样的一段流程伪代码(为读者构建直觉,非论文逐字):</p>
+
+<pre>
+# 初始化: z_1 ~ N(0, I_{1024 x 16})  注意是 16 维, 不是 V=32001 维
+z = sample_gaussian(L=1024, d_e=16)
+z_hat0_prev = None  # for self-conditioning
+
+# DDPM ancestral sampling
+for k in range(T, 0, -1):
+    t = k / T
+    s = (k-1) / T
+    # 前向 denoiser (带 self-cond 通路)
+    x_hat = x_theta(z, t, sc=z_hat0_prev)   # categorical L x V
+    e_hat = x_hat @ E                       # L x d_e, 反向 embedding
+    z_hat0_prev = e_hat                     # 留给下一步 sc
+
+    # VDM 闭式 posterior q(z_s | z_t, x = x_hat)
+    alpha_ts = alpha[t] / alpha[s]
+    sigma2_ts = sigma2[t] - alpha_ts**2 * sigma2[s]
+    mu = (alpha_ts * sigma2[s] / sigma2[t]) * z + (alpha[s] * sigma2_ts / sigma2[t]) * e_hat
+    var = sigma2_ts * sigma2[s] / sigma2[t]
+    z = mu + sqrt(var) * randn_like(z)
+
+# 末步 argmax 出 token (这步不计入 T)
+final_logits = decoder_head(z)              # L x V
+tokens = argmax(final_logits, dim=-1)       # L 个 token id
+</pre>
+
+<p>对比离散派 (MDLM): 每步是 categorical sampling on V=32001 dim,没有 PFODE 高阶 solver 选项;但每步可以利用 mask schedule 一次性 unmask 多个 token。RePlaid 每步是 16-dim Gaussian update,<em>非常便宜</em>,所以 T=1024 也跑得起 — 这正是图 3 GenPPL 在 high-T 持续改善的工程基础。</p>
+
+<hr>
+
+<h2 id="sec16">16 · 与本仓库 MTP / TOP 等 LM 方法线的横向对照</h2>
+
+<p>本仓库 models/ 系列除了 dLLM 还有大量 MTP / register / future-prediction 方向 (#14 MTP, #15 FastMTP, #16 L-MTP, #17 MuToR, #18 FSP, #10 TOP)。和 RePlaid 的关系:</p>
+<ul>
+  <li>这条线全部是 <em>AR 内</em>的训练目标改造 (multi-token prediction, future summary prediction, token ordering rank loss),核心动机是"AR 的 next-token-only 目标 sample-efficiency 不够"。</li>
+  <li>RePlaid 是 <em>跳出 AR</em>,用扩散框架,根本不写 next-token 目标。两条路在"为什么 plain AR 不够"上有共识,但解法完全不同 — MTP 系列是"在 AR 上加未来 token loss",RePlaid 是"<em>整条 trajectory 同步 denoising</em>"。</li>
+  <li>有意思的对照:RePlaid 的 over-trained crossover (§9) 是"训得越久,小模型越值"— 这和 MTP 系列追求 inference-time efficiency 异曲同工。但 RePlaid 通过 likelihood 训练 + scaling-law 性质拿到,MTP 通过 head 结构改造拿到。</li>
+</ul>
+
+<hr>
+
+<h2>关键 takeaway 速记</h2>
+<div class="kv">
+<strong>① 翻案叙事:</strong> Plaid 64× 是架构 + 协议的伪命题;同 DiT 同 SlimPajama 同 IsoFLOP 下,连续派 (RePlaid) 20× 几乎追平 MDLM 14×。<br>
+<strong>② 5 处架构改:</strong> RMSNorm→LayerNorm · no-bias→bias · std-GELU→GELU(tanh) · no-AdaLN→AdaLN-Zero · fixed-residual→learnable AdaLN gate · 外加 FP32 logit head → bfloat16。<br>
+<strong>③ 两条理论:</strong> (Prop. 1) variance-min γ̃ ⇒ per-step diffusion loss ≡ κ;(Prop. 2) Bayes-optimal denoiser 下 per-step CE = (H(x) − I(e;z<sub>0</sub>) + κt) + C(x|z<sub>t</sub>) — 即 linear-in-t 主项 + 单调残差。<br>
+<strong>④ 主驱动:</strong> Tab. 2 消融把 embedding learning 列为最大贡献者 (Δ=17.3 PPL),NELBO 训出的 E 自发低秩 (d<sub>e</sub>=16 时前 6 PC 解释 90% var) + POS-meaningful。CE loss 反而会破坏这个几何 (PPL 22.1 → 26.1)。<br>
+<strong>⑤ 实测优势:</strong> OWT @1M PPL 22.1 (≪ MDLM-low-var 23.1, ≪ Duo 25.2, ≪ LangFlow 32.2, ≪ Plaid 原 24.4);参数比 MDLM/Duo 少 1.8×;over-train 时同 N 用 3.1× compute 即追上 MDLM 6.9× 的水平。<br>
+<strong>⑥ 仍有 20× compute gap vs AR</strong> — 翻案不是"超过 AR",只是把连续派搬回 likelihood scaling 的牌桌。
+</div>
+
+</main>
+</body>
+</html>

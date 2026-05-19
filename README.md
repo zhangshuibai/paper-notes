@@ -26,7 +26,7 @@
 
 建议阅读顺序: **15 (Lossless 数学证明) → 02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 14 (LK Losses) → 13 (SV) → 12 (DropMatch) → 11 (Performance or Illusion?) → 16 (DDTree) → 17 (Orthrus, intra-model 终极 lossless 加速)**
 
-## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (13 篇)
+## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (23 篇)
 
 | # | 笔记 | 主题 | 大小 |
 |---|---|---|---|
@@ -52,6 +52,7 @@
 | 20 | [CoPD (Co-Evolving Policy Distillation)](https://zhangshuibai.github.io/paper-notes/models/notes/20_CoPD_2604.27083.html) | RLVR + OPD 同步 / mutual teacher / 钟形 η(O) | 50 KB |
 | 21 | [Prism (test-time scaling for dLLM)](https://zhangshuibai.github.io/paper-notes/models/notes/21_Prism_2602.01842.html) | 离散扩散 LLM 的 hierarchical search + self-verify | 50 KB |
 | 22 | [Retrofitting Recurrence](https://zhangshuibai.github.io/paper-notes/models/notes/22_RetrofitRecurrence_2511.07384.html) | 把 pretrained TinyLlama/OLMo/Llama 切成 depth-recurrent / curriculum + Muon | 50 KB |
+| 23 | [RePlaid (continuous DLM) **(本人参与)**](https://zhangshuibai.github.io/paper-notes/models/notes/23_RePlaid_2605.18530.html) | Plaid → 现代 DiT 架构对齐 / OWT PPL 22.1 SOTA(continuous) / vs AR 20× compute(原 64×) / 反超 MDLM 23.1 + Duo 25.2 / variance-min schedule ⇒ linear CE 闭式定理 / embedding 几何驱动 Δ=17.3 PPL | 68 KB |
 
 ### MTP 系列阅读建议
 
@@ -168,6 +169,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | LlamaRL | Meta | 2025-05 | [2505.24034](https://arxiv.org/abs/2505.24034) |
 | Laminar | — | 2025-10 | [2510.12633](https://arxiv.org/abs/2510.12633) |
 | Retrofitting Recurrence | UMD / NYU / LLNL et al. | 2025-11 | [2511.07384](https://arxiv.org/abs/2511.07384) |
+| RePlaid (continuous DLM scaling) **(本人参与)** | NVIDIA + Cornell + UW–Madison + MBZUAI + GaTech | 2026-05 | [2605.18530](https://arxiv.org/abs/2605.18530) |
 
 ### Agent 训练 / 环境 / 内存
 
