@@ -26,7 +26,7 @@
 
 建议阅读顺序: **15 (Lossless 数学证明) → 02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 14 (LK Losses) → 13 (SV) → 12 (DropMatch) → 11 (Performance or Illusion?) → 16 (DDTree) → 17 (Orthrus, intra-model 终极 lossless 加速)**
 
-## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (23 篇)
+## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (24 篇)
 
 | # | 笔记 | 主题 | 大小 |
 |---|---|---|---|
@@ -53,6 +53,7 @@
 | 21 | [Prism (test-time scaling for dLLM)](https://zhangshuibai.github.io/paper-notes/models/notes/21_Prism_2602.01842.html) | 离散扩散 LLM 的 hierarchical search + self-verify | 50 KB |
 | 22 | [Retrofitting Recurrence](https://zhangshuibai.github.io/paper-notes/models/notes/22_RetrofitRecurrence_2511.07384.html) | 把 pretrained TinyLlama/OLMo/Llama 切成 depth-recurrent / curriculum + Muon | 50 KB |
 | 23 | [RePlaid (continuous DLM) **(本人参与)**](https://zhangshuibai.github.io/paper-notes/models/notes/23_RePlaid_2605.18530.html) | Plaid → 现代 DiT 架构对齐 / OWT PPL 22.1 SOTA(continuous) / vs AR 20× compute(原 64×) / 反超 MDLM 23.1 + Duo 25.2 / variance-min schedule ⇒ linear CE 闭式定理 / embedding 几何驱动 Δ=17.3 PPL | 68 KB |
+| 24 | [Nemotron-Labs-Diffusion (NVIDIA Tech Report 2026-05)](https://zhangshuibai.github.io/paper-notes/models/notes/24_NemotronDiff_2026_TechReport.html) | tri-mode LM (AR / Diffusion / Self-Spec) 统一在一颗 8B ckpt / joint loss ℒ_AR + 0.3·ℒ_diff / 双流 attention 4 象限(clean→clean strictly causal 是关键创新)/ 两阶段 1T AR + 300B joint / 256× H100 · Megatron Bridge / Linear SS w/ LoRA on o_proj acceptance 5.46→6.82 (vs Eagle3 2.75 / MTP 4.24) / GB200 SGLang 4× 端到端吞吐 vs Qwen3-8B-Eagle3 2.4× / SOL 7.60× ceiling, 比 Linear SS 高 76.5% real-TPF headroom / SPEED-Bench 11 类 + 3B/8B/14B + VLM 全开源 / **强连接 #23 RePlaid(Mardani 同人, NVIDIA H1 2026 离散 vs 连续双押)** / **同人前作 TiDAR (arXiv:2511.08923, Liu/Fu/Kautz/Molchanov)** — Quad SS = TiDAR 方法,Linear SS + tri-mode + SOL 分析全部新增 | 84 KB |
 
 ### MTP 系列阅读建议
 
@@ -172,6 +173,7 @@ I-1 (decentralized **pretrain** / DiLoCo) → I-2 (decentralized **RL** / TOPLOC
 | Laminar | — | 2025-10 | [2510.12633](https://arxiv.org/abs/2510.12633) |
 | Retrofitting Recurrence | UMD / NYU / LLNL et al. | 2025-11 | [2511.07384](https://arxiv.org/abs/2511.07384) |
 | RePlaid (continuous DLM scaling) **(本人参与)** | NVIDIA + Cornell + UW–Madison + MBZUAI + GaTech | 2026-05 | [2605.18530](https://arxiv.org/abs/2605.18530) |
+| Nemotron-Labs-Diffusion (tri-mode LM) `Tech Report` | NVIDIA + GaTech + HKU + MIT | 2026-05 | [PDF](https://d1qx31qr3h6wln.cloudfront.net/publications/Nemotron_Diffusion_Tech_Report_v1.pdf?VersionId=db8_EMO8B.vmU26.jr7Le9pN3MqcUDNL) |
 
 ### Agent 训练 / 环境 / 内存
 

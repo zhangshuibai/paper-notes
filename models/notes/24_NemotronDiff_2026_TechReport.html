@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精读 · Nemotron-Labs-Diffusion: 三模式统一 AR / Diffusion / Self-Speculation (NVIDIA Tech Report 2026-05)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:820px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.94em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.02em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .author-tag{background:#d8e7ff;border:1px solid #2f6feb;color:#11366d;
+    border-radius:6px;padding:1px 6px;font-size:.85em;margin-left:6px}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Nemotron-Labs-Diffusion: 在一颗模型里活成三副身份的 AR / Diffusion / Self-Speculation</h1>
+<div class="meta">
+  Yonggan Fu · Lexington Whalen (GaTech†) · Abhinav Garg · Chengyue Wu (HKU†) · Maksim Khadkevich · Nicolai Oswald · Enze Xie · Daniel Egert · Sharath Turuvekere Sreenivas · Shizhe Diao · Chenhan Yu · Ye Yu · Weijia Chen · Sajad Norouzi · Shiyi Lan · Ligeng Zhu · Jin Wang (HKU†) · Jindong Jiang · <b>Morteza Mardani</b> · Mehran Maghoumi · <b>Song Han (MIT)</b> · Ante Jukić · Nima Tajbakhsh · Jan Kautz · Pavlo Molchanov ·
+  <a href="https://d1qx31qr3h6wln.cloudfront.net/publications/Nemotron_Diffusion_Tech_Report_v1.pdf?VersionId=db8_EMO8B.vmU26.jr7Le9pN3MqcUDNL" target="_blank" rel="noopener">NVIDIA Tech Report PDF</a> · 2026-05-19<br>
+  关键词: tri-mode LM · joint AR-diffusion training · self-speculation decoding · block diffusion · speed-of-light · LoRA drafter · LK-hybrid loss · SPEED-Bench · GB200 · SGLang · 3B/8B/14B + VLM
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong> NVIDIA 把 <span class="term">AR + block diffusion 双 loss</span> (ℒ = ℒ<sub>AR</sub> + 0.3·ℒ<sub>diff</sub>) 同时灌进同一个 8B 模型,使 <em>一颗</em> Nemotron-Labs-Diffusion 在推理时可任意切换三种模式 — 标准 AR 解码、并行 diffusion 解码、以及 <span class="term">self-speculation</span> (diffusion 起草 / AR 验证,完全免 MTP 辅助头)。配合 <span class="term">两阶段训练</span>(Stage 1 纯 AR 1T tokens → Stage 2 joint 300B tokens)、<span class="term">global loss averaging</span>、<span class="term">DP-rank varying mask</span>、<span class="term">LoRA-tuned drafter</span>,Nemotron-Labs-Diffusion-8B 在 10 个 instruct benchmark 上同时拿到 +0.86% 超 Qwen3-8B 的精度与 <strong>5.99× TPF</strong> 加速,GB200 / SGLang 实测 <strong>4× 端到端吞吐</strong>。论文同时给出一个工业级 <span class="term">Speed-of-Light (SOL)</span> 分析,说明 diffusion 解码的理论上限还有 <strong>76.5%</strong> 的 headroom 没用完。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">6×</div><div class="l">TPF over Qwen3-8B(同精度)</div></div>
+    <div class="stat"><div class="n">4×</div><div class="l">GB200 SGLang 实测吞吐</div></div>
+    <div class="stat"><div class="n">76.5%</div><div class="l">SOL vs Linear SS headroom</div></div>
+    <div class="stat"><div class="n">3/8/14B</div><div class="l">+ VLM 全家族开源</div></div>
+  </div>
+  <p><strong>立场 (我的判断):</strong> 这是一篇明显被工业部署逼出来的论文 — 三个模式的存在不是为了刷点,而是为了让 <em>同一份 checkpoint</em> 在 cloud high-concurrency / edge low-concurrency / batch=1 personal AI 三种部署环境下都不掉链子。这条 thesis 的对手不是其它扩散 LM,而是 <strong>MTP / Eagle3</strong> — 后者长期是低并发部署的事实标准。Self-speculation 用 <em>同一模型的 diffusion pathway 替代独立 draft 模型</em>,把 acceptance length 从 Eagle3 的 2.75 推到 6.82 (LoRA 后),这是论文最实在的工程突破。SOL 一节则是另一层叙事:它把 "diffusion 解码到底还能跑多快" 这个开放问题量化成 7.60× 的硬上限,逼迫整个社区把目标从 "并行" 升级到 "并行 + 智能采样器"。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">Motivation 与论文三问</a></li>
+    <li><a href="#sec2">背景: diffusion LM 当前 scaling 困局</a></li>
+    <li><a href="#sec3">Method 1 — Joint AR-Diffusion 训练 (含 §2/3/4 三图)</a></li>
+    <li><a href="#sec4">Method 2 — Tri-Mode Inference (含 §1/5/7 三图)</a></li>
+    <li><a href="#sec5">Speed-of-Light 分析 (含 §6 图)</a></li>
+    <li><a href="#sec6">训练 recipe + Nemotron-Labs-Diffusion Family</a></li>
+    <li><a href="#sec7">Evaluation - 8B Instruct 主表</a></li>
+    <li><a href="#sec8">Evaluation - 推理实测三机详表</a></li>
+    <li><a href="#sec9">VLM 与 Asymmetric Dual Stream</a></li>
+    <li><a href="#sec10">6 个 takeaway + 4 个未来方向</a></li>
+    <li><a href="#sec11">与本系列工作的链路</a></li>
+    <li><a href="#sec11_5">11.5 ⭐ 与 TiDAR (arXiv:2511.08923) 的关系 — 同人前作</a></li>
+    <li><a href="#sec12">局限 / 待考察</a></li>
+    <li><a href="#sec13">开源 / 代码 / 复现</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · Motivation 与论文三问</h2>
+
+<h3>1.1 论文 abstract (verbatim)</h3>
+<blockquote>
+We introduce Nemotron-Labs-Diffusion, a tri-mode language model (LM) that unifies AR, diffusion, and self-speculation decoding within a single architecture. Trained with a joint AR-diffusion objective, Nemotron-Labs-Diffusion can switch modes to sustain high throughput across deployment settings and concurrency levels. … (1) AR and diffusion objectives are complementary: diffusion improves lookahead planning, while AR provides left-to-right linguistic priors. (2) In self-speculation mode, diffusion drafts while AR verifies, outperforming MTP methods in both acceptance rate and real-device efficiency. (3) A speed-of-light analysis further demonstrates diffusion's long-term potential, with up to 76.5% more tokens per forward pass than self-speculation under an optimal sampler.
+</blockquote>
+
+<h3>1.2 论文三问</h3>
+<p>§1 (Introduction) 把整条 thesis 拆成三个 yes/no 问题,后面九节按部就班回答:</p>
+<table>
+<thead><tr><th>问题</th><th>论文答案</th><th>所在章节</th></tr></thead>
+<tbody>
+<tr><td><b>Q1</b> diffusion LM 应该和 AR 竞争 / 还是可以 harmonize?</td><td>可以 harmonize:joint loss + 双流 attention 在同一颗模型上同时实现 → Q1 = harmonize ✓</td><td>§2 + Tab 1/2/3</td></tr>
+<tr><td><b>Q2</b> diffusion 能否成为比 MTP 更强的加速机制?</td><td>能。self-speculation 用 same-model diffusion drafter,Linear SS acceptance 6.82 vs Eagle3 2.75 (2.48×)</td><td>§3 + §6 + Tab 10</td></tr>
+<tr><td><b>Q3</b> diffusion 解码的长期潜力是否值得继续投入?</td><td>值得。SOL 分析显示 diffusion 比 self-speculation 还高 76.5% headroom,7.60× vs 6.02× real TPF</td><td>§4 + Tab 4</td></tr>
+</tbody>
+</table>
+
+<h3>1.3 NVIDIA 在 2026 H1 的两条并行押注</h3>
+<div class="nb">
+<b>关键观察 — NVIDIA 同月发了两篇 diffusion LM 路线对照的论文:</b><br>
+① 离散侧的 <b>Nemotron-Labs-Diffusion (本篇)</b> — block 离散 mask diffusion + AR joint,工业部署导向,3B/8B/14B 全家族开源。<br>
+② 连续侧的 <b>RePlaid (#23,本人参与)</b> — likelihood-based continuous diffusion,把 Plaid 64× compute gap 推到 20×。<br>
+两篇共有 <b>Morteza Mardani</b>,同月份 (2026-05),都为 dLLM 路线背书。这是 NVIDIA Research 在 diffusion LM 上的 <em>双押</em>:离散侧赌部署,连续侧赌 likelihood 和 distillation 潜力。两条路在 2027 是否合流将是 dLLM 社区最关键的看点。
+</div>
+
+<hr>
+
+<h2 id="sec2">2 · 背景: diffusion LM 当前 scaling 困局</h2>
+
+<h3>2.1 离散派的 8B 平台 — LLaDA / Dream / SDAR 与 30-55% 区间</h3>
+<p>到 2025 年底,公开 8B-class 离散扩散 LM 主要是 LLaDA-8B (Nie et al.), Dream-7B (Ye et al.), SDAR-8B Chat (Cheng et al.),它们在 instruct benchmark 平均精度落在 37–54% 区间(见后面 Tab 5),而同尺度的 Qwen3-8B AR 已经做到 62.75%。这条 "差 ~10 pp" 的 gap 是过去一年 diffusion LM 社区最焦虑的事 — 因为 6× TPF 的并行优势,在精度落后 10 pp 的现实下没人敢用作主线部署。</p>
+
+<h3>2.2 连续派难 scale 的根因 (链接 #23 RePlaid)</h3>
+<p>连续 Gaussian diffusion 在 ℝ<sup>d_e</sup> 上做 score matching,信噪比天然差,且早期 Plaid 报告对 AR 是 64× compute 鸿沟。RePlaid (本人参与) 把这个 gap 推到 20×,但本论文 (Nemotron-Diff) 选了完全相反的路 — <strong>直接在离散 mask diffusion 上做工程化,而不在 score matching 上博 likelihood</strong>。两条路在 2026 H1 形成对照实验。</p>
+
+<h3>2.3 MTP / Eagle3 / Block Diffusion 三条 acceleration 的当前限制</h3>
+<table>
+<thead><tr><th>路线</th><th>代表</th><th>核心限制</th></tr></thead>
+<tbody>
+<tr><td>MTP (auxiliary heads)</td><td>Gloeckle (#14) / Eagle3 / FastMTP (#15)</td><td>draft 头容量小,远端 horizon 退化;Eagle3 仍要付 embedding+LM head 成本</td></tr>
+<tr><td>Block Diffusion</td><td>DFlash (#spec-rl 07) / Fast-dLLM v2 / SDAR</td><td>需要从 AR 转换,KV cache 与 bidirectional attention 冲突</td></tr>
+<tr><td>Set Block Decoding</td><td>Gat et al. (Sec 2.2 引用 [14])</td><td>joint train 但不提供 self-speculation;无 SOL 分析</td></tr>
+</tbody>
+</table>
+<p>Nemotron-Diff 的策略是 — 在 <strong>(joint AR-diff training)</strong> + <strong>(self-speculation 用 same-model AR 当 verifier)</strong> 两层都做改良,把三条路线的优点都吃进来。</p>
+
+<hr>
+
+<h2 id="sec3">3 · Method 1 — Joint AR-Diffusion 训练</h2>
+
+<h3>3.1 三模式总览 (图 1)</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 320" width="100%" style="max-width:780px">
+  <defs>
+    <marker id="ar1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+  <!-- center single model -->
+  <rect x="320" y="120" width="140" height="70" fill="#fff7e0" stroke="#cc4a1b" stroke-width="2" rx="10"/>
+  <text x="390" y="148" font-size="13" font-weight="bold" text-anchor="middle">Nemotron-Labs</text>
+  <text x="390" y="166" font-size="13" font-weight="bold" text-anchor="middle">Diffusion-8B</text>
+  <text x="390" y="184" font-size="11" text-anchor="middle" fill="#666">一份 checkpoint</text>
+
+  <!-- AR mode (top-left) -->
+  <rect x="20" y="20" width="220" height="100" fill="#eef9f3" stroke="#1f7a4a" rx="8"/>
+  <text x="30" y="40" font-size="13" font-weight="bold" fill="#1f7a4a">Mode 1 · AR Decoding</text>
+  <text x="30" y="60" font-size="11" fill="#333">causal mask, 一步一 token</text>
+  <text x="30" y="78" font-size="11" font-family="monospace" fill="#444">"AR decoding."</text>
+  <text x="30" y="96" font-size="11" fill="#666">→ best for high-concurrency</text>
+  <text x="30" y="112" font-size="11" fill="#666">cloud serving (compute-bound)</text>
+  <line x1="240" y1="100" x2="320" y2="135" stroke="#2f6feb" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <!-- Diffusion mode (top-right) -->
+  <rect x="540" y="20" width="220" height="100" fill="#eef4ff" stroke="#2f6feb" rx="8"/>
+  <text x="550" y="40" font-size="13" font-weight="bold" fill="#2f6feb">Mode 2 · Diffusion</text>
+  <text x="550" y="60" font-size="11" fill="#333">block-wise, 多 token 并行</text>
+  <text x="550" y="78" font-size="11" font-family="monospace" fill="#444">"can also [M][M][M]"</text>
+  <text x="550" y="96" font-size="11" fill="#666">→ highest SOL potential</text>
+  <text x="550" y="112" font-size="11" fill="#666">for parallel decoding</text>
+  <line x1="540" y1="100" x2="460" y2="135" stroke="#2f6feb" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <!-- Self-spec (bottom) -->
+  <rect x="200" y="220" width="380" height="80" fill="#fff3f0" stroke="#a8353e" rx="8"/>
+  <text x="210" y="240" font-size="13" font-weight="bold" fill="#a8353e">Mode 3 · Self-Speculation</text>
+  <text x="210" y="260" font-size="11" fill="#333"><b>draft</b>: 自己用 diffusion 起草 k 个 token</text>
+  <text x="210" y="278" font-size="11" fill="#333"><b>verify</b>: 自己用 AR pass 一次接受 longest prefix</text>
+  <text x="210" y="294" font-size="11" fill="#666">→ best for batch=1 personal AI (低 concurrency)</text>
+  <line x1="390" y1="220" x2="390" y2="195" stroke="#a8353e" stroke-width="1.5" marker-end="url(#ar1)"/>
+</svg>
+<figcaption><b>图 1 — 三模式总览。</b>同一份 8B 权重在推理时可切换为 (Mode 1) 标准 AR、 (Mode 2) block diffusion 并行、 (Mode 3) 自我推测解码(diffusion 起草 + AR 验证)。三种模式分别匹配三种部署环境 — cloud 高并发、并行潜力上限、batch=1 个人 AI。没有任何辅助模型、辅助头或架构修改 — 模式切换只换 attention mask 和 sampling 子程序。</figcaption>
+</div>
+
+<h3>3.2 双 Loss 数学定义</h3>
+<p>对一个 token 序列 x,论文同时优化两个 loss:</p>
+<div class="formula">ℒ_AR(θ) = E_{x∼𝒟} [ −Σᵢ log p_θ(xᵢ | x_{&lt;i}) ]   …Eq.(1)</div>
+<div class="formula">ℒ_diff(θ) = E_{t∼𝒰[0,1], x̃ᵇ_t∼q(·|xᵇ)} [ −(1/t) · Σᵇ log p_θ(xᵇ | x̃ᵇ_t, x_{&lt;b}) ]   …Eq.(2)</div>
+<div class="formula"><b>ℒ(θ) = ℒ_AR(θ) + α · ℒ_diff(θ)   with α = 0.3  …Eq.(3)</b></div>
+<p>其中 diff loss 是 <strong>block-wise</strong>(把序列分成 B 个块,只对当前块加 mask 噪声,前缀保持 clean),并带 1/t 的 reweighting — t 越小,被 mask 的 token 越少但每个权重越高(后面会看到这正是 global vs sequence avg 之争的根)。</p>
+
+<h3>3.3 双流 Attention 模式 — 图 2 详解</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 460" width="100%" style="max-width:780px">
+  <defs>
+    <marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+
+  <!-- title -->
+  <text x="390" y="20" font-size="14" font-weight="bold" text-anchor="middle">双流输入: [noisy 流 x̃ | clean 流 x] 拼接进同一前向</text>
+
+  <!-- Top: noisy stream blocks -->
+  <text x="20" y="55" font-size="13" font-weight="bold" fill="#cc4a1b">Noisy 流 (含 mask 的 x̃)</text>
+  <g>
+    <rect x="20" y="68" width="80" height="36" fill="#fff" stroke="#cc4a1b"/>
+    <text x="60" y="91" font-size="11" text-anchor="middle">x̃₁ (Block 1)</text>
+    <rect x="105" y="68" width="80" height="36" fill="#fff" stroke="#cc4a1b"/>
+    <text x="145" y="91" font-size="11" text-anchor="middle">x̃₂ (Block 2)</text>
+    <rect x="190" y="68" width="80" height="36" fill="#fff" stroke="#cc4a1b"/>
+    <text x="230" y="91" font-size="11" text-anchor="middle">x̃₃ (Block 3)</text>
+  </g>
+  <text x="290" y="91" font-size="11" fill="#666">… block-wise mask</text>
+
+  <!-- Bottom: clean stream -->
+  <text x="20" y="135" font-size="13" font-weight="bold" fill="#1f7a4a">Clean 流 (完整 x,无 mask)</text>
+  <g>
+    <rect x="20" y="148" width="80" height="36" fill="#eef9f3" stroke="#1f7a4a"/>
+    <text x="60" y="171" font-size="11" text-anchor="middle">x₁</text>
+    <rect x="105" y="148" width="80" height="36" fill="#eef9f3" stroke="#1f7a4a"/>
+    <text x="145" y="171" font-size="11" text-anchor="middle">x₂</text>
+    <rect x="190" y="148" width="80" height="36" fill="#eef9f3" stroke="#1f7a4a"/>
+    <text x="230" y="171" font-size="11" text-anchor="middle">x₃</text>
+  </g>
+
+  <!-- Attention region map 4 quadrants -->
+  <text x="390" y="220" font-size="13" font-weight="bold" text-anchor="middle">四类 attention 区域(query 行 → key 列)</text>
+
+  <!-- 2x2 quadrant grid -->
+  <g transform="translate(180, 240)">
+    <!-- headers -->
+    <text x="100" y="-6" font-size="11" text-anchor="middle" fill="#cc4a1b">key: Noisy</text>
+    <text x="320" y="-6" font-size="11" text-anchor="middle" fill="#1f7a4a">key: Clean</text>
+    <text x="-90" y="55" font-size="11" fill="#cc4a1b">query: Noisy</text>
+    <text x="-90" y="155" font-size="11" fill="#1f7a4a">query: Clean</text>
+
+    <!-- 4 quadrants -->
+    <rect x="0" y="0" width="200" height="100" fill="#fff3f0" stroke="#a8353e"/>
+    <text x="100" y="25" font-size="12" text-anchor="middle" font-weight="bold">① Noisy→Noisy</text>
+    <text x="100" y="45" font-size="10" text-anchor="middle">块内 bidirectional</text>
+    <text x="100" y="62" font-size="10" text-anchor="middle">跨块 causal</text>
+    <text x="100" y="82" font-size="10" text-anchor="middle" fill="#a8353e">↓ 支持 in-block 并行解码</text>
+
+    <rect x="220" y="0" width="200" height="100" fill="#eef4ff" stroke="#2f6feb"/>
+    <text x="320" y="25" font-size="12" text-anchor="middle" font-weight="bold">② Noisy→Clean</text>
+    <text x="320" y="45" font-size="10" text-anchor="middle">对 x_{&lt;b}(前缀)</text>
+    <text x="320" y="62" font-size="10" text-anchor="middle">全部可见</text>
+    <text x="320" y="82" font-size="10" text-anchor="middle" fill="#2f6feb">↓ clean-context 条件化</text>
+
+    <rect x="220" y="120" width="200" height="100" fill="#eef9f3" stroke="#1f7a4a"/>
+    <text x="320" y="145" font-size="12" text-anchor="middle" font-weight="bold">③ Clean→Clean</text>
+    <text x="320" y="165" font-size="10" text-anchor="middle"><b>严格 causal mask</b></text>
+    <text x="320" y="182" font-size="10" text-anchor="middle">(本文与 [9,10,13] 关键区别)</text>
+    <text x="320" y="202" font-size="10" text-anchor="middle" fill="#1f7a4a">↓ 同一 forward 算 AR loss 无标签泄漏</text>
+
+    <rect x="0" y="120" width="200" height="100" fill="#f0f0f0" stroke="#999"/>
+    <text x="100" y="145" font-size="12" text-anchor="middle" font-weight="bold">④ Clean→Noisy</text>
+    <text x="100" y="170" font-size="11" text-anchor="middle" fill="#666"><b>禁用 (N/A)</b></text>
+    <text x="100" y="190" font-size="10" text-anchor="middle">clean 不能看到 noisy</text>
+    <text x="100" y="205" font-size="10" text-anchor="middle">否则 AR loss 泄漏 mask 信息</text>
+  </g>
+</svg>
+<figcaption><b>图 2 — 双流 attention 模式(对应论文 Fig. 3)</b>。训练时把序列同时摆两份 — noisy 流(含 block-wise mask)和 clean 流(完整 x),拼接进同一个 transformer 前向。query/key 各两个流交叉得到 4 个象限:<b>①</b> noisy→noisy 沿用 [9] 的 block diffusion 设计 — 块内 bidirectional 利于 in-block 并行,跨块 causal 保证 KV cache 可复用; <b>②</b> noisy→clean 让 noisy token 拿到 clean 前缀作为去噪条件; <b>③</b> 关键创新 — clean→clean 用 <em>strictly causal</em> mask(而非 [9,10,13] 的 block-wise)— 这样可以在同一 forward / backward 内同时算 AR loss 和 diff loss,且不存在标签泄漏; <b>④</b> clean→noisy 禁用,否则 clean 端会看到 mask 信息,AR loss 会"作弊"。这个 4-象限设计是 Nemotron-Diff vs 前人的核心差异之一。</figcaption>
+</div>
+
+<h3>3.4 α=0.3 sweet spot — Loss 组合可视化 (图 3)</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 280" width="100%" style="max-width:780px">
+  <defs>
+    <marker id="ar3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+  <!-- formula -->
+  <rect x="220" y="20" width="340" height="46" fill="#fff7e0" stroke="#cc4a1b" rx="6"/>
+  <text x="390" y="50" font-size="14" text-anchor="middle" font-family="monospace"><tspan font-weight="bold">ℒ = ℒ_AR + α · ℒ_diff,  α=0.3</tspan></text>
+
+  <!-- α axis -->
+  <line x1="60" y1="200" x2="720" y2="200" stroke="#444" stroke-width="1.5"/>
+  <text x="55" y="220" font-size="11" text-anchor="end">α=</text>
+  <g font-size="11" text-anchor="middle">
+    <text x="100" y="220">0.1</text>
+    <text x="240" y="220">0.2</text>
+    <text x="380" y="220">0.3</text>
+    <text x="520" y="220">0.5</text>
+    <text x="660" y="220">1.0</text>
+  </g>
+
+  <!-- diff peaks (height = acc) -->
+  <g>
+    <rect x="80" y="160" width="40" height="40" fill="#eef4ff" stroke="#2f6feb"/>
+    <text x="100" y="155" font-size="11" text-anchor="middle">68.20</text>
+    <rect x="220" y="155" width="40" height="45" fill="#eef4ff" stroke="#2f6feb"/>
+    <text x="240" y="150" font-size="11" text-anchor="middle">68.62</text>
+    <rect x="360" y="140" width="40" height="60" fill="#cce1ff" stroke="#2f6feb" stroke-width="2"/>
+    <text x="380" y="135" font-size="11" font-weight="bold" text-anchor="middle">69.77</text>
+    <rect x="500" y="160" width="40" height="40" fill="#eef4ff" stroke="#2f6feb"/>
+    <text x="520" y="155" font-size="11" text-anchor="middle">68.78</text>
+    <rect x="640" y="170" width="40" height="30" fill="#eef4ff" stroke="#2f6feb"/>
+    <text x="660" y="165" font-size="11" text-anchor="middle">66.93</text>
+  </g>
+
+  <!-- AR peaks slightly offset -->
+  <g>
+    <rect x="120" y="150" width="40" height="50" fill="#eef9f3" stroke="#1f7a4a"/>
+    <text x="140" y="145" font-size="11" text-anchor="middle">68.71</text>
+    <rect x="260" y="135" width="40" height="65" fill="#eef9f3" stroke="#1f7a4a"/>
+    <text x="280" y="130" font-size="11" text-anchor="middle">70.50</text>
+    <rect x="400" y="125" width="40" height="75" fill="#bce6cb" stroke="#1f7a4a" stroke-width="2"/>
+    <text x="420" y="120" font-size="11" font-weight="bold" text-anchor="middle">70.62</text>
+    <rect x="540" y="155" width="40" height="45" fill="#eef9f3" stroke="#1f7a4a"/>
+    <text x="560" y="150" font-size="11" text-anchor="middle">68.96</text>
+    <rect x="680" y="165" width="40" height="35" fill="#eef9f3" stroke="#1f7a4a"/>
+    <text x="700" y="160" font-size="11" text-anchor="middle">67.22</text>
+  </g>
+
+  <!-- legend -->
+  <rect x="60" y="240" width="14" height="14" fill="#cce1ff" stroke="#2f6feb"/>
+  <text x="80" y="252" font-size="11">Diff mode acc</text>
+  <rect x="170" y="240" width="14" height="14" fill="#bce6cb" stroke="#1f7a4a"/>
+  <text x="190" y="252" font-size="11">AR mode acc</text>
+
+  <!-- peak callout -->
+  <text x="390" y="100" font-size="13" font-weight="bold" fill="#cc4a1b" text-anchor="middle">两 mode 同一 α 同时 peak — 互相不冲突</text>
+  <line x1="390" y1="105" x2="410" y2="125" stroke="#cc4a1b" stroke-width="1.5" marker-end="url(#ar3)"/>
+</svg>
+<figcaption><b>图 3 — α=0.3 sweet spot(对应论文 Tab. 2)</b>。在 25B-token 连续预训练上扫 α ∈ {0.1, 0.2, 0.3, 0.5, 1.0},诡异地发现 Diff mode 和 AR mode 都在 <b>α=0.3</b> 同时达到峰值(69.77 / 70.62)。这是论文最强的证据之一 — 如果两个 loss 是竞争性的,你应该看到 α 越大 diff 越好 / AR 越差,但实际是两者 rise & fall together,这说明它们 <em>共享</em> 表示能力。论文的对应解释是:diff 提供 lookahead planning,AR 提供 left-to-right linguistic prior — 二者是不同视角下的同一份知识。</figcaption>
+</div>
+
+<h3>3.5 Two-stage training timeline (图 4)</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 240" width="100%" style="max-width:780px">
+  <defs>
+    <marker id="ar4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+  <!-- baseline arrow -->
+  <line x1="40" y1="120" x2="740" y2="120" stroke="#444" stroke-width="2" marker-end="url(#ar4)"/>
+
+  <!-- Start node Ministral3 -->
+  <rect x="20" y="90" width="120" height="60" fill="#fff" stroke="#999" rx="6"/>
+  <text x="80" y="115" font-size="12" font-weight="bold" text-anchor="middle">Ministral3-8B</text>
+  <text x="80" y="132" font-size="11" text-anchor="middle">base ckpt</text>
+  <text x="80" y="146" font-size="10" fill="#666" text-anchor="middle">(NVIDIA Mistral-line)</text>
+
+  <!-- Stage 1: AR -->
+  <rect x="170" y="50" width="240" height="140" fill="#eef9f3" stroke="#1f7a4a" rx="8"/>
+  <text x="290" y="74" font-size="14" font-weight="bold" text-anchor="middle" fill="#1f7a4a">Stage 1: Pure AR</text>
+  <text x="290" y="96" font-size="12" text-anchor="middle">α = 0</text>
+  <text x="290" y="116" font-size="12" text-anchor="middle"><b>1T tokens</b></text>
+  <text x="290" y="134" font-size="11" text-anchor="middle">→ 灌注 left-to-right prior</text>
+  <text x="290" y="152" font-size="11" text-anchor="middle">→ 为 stage 2 提供"易转换"起点</text>
+  <text x="290" y="172" font-size="10" text-anchor="middle" fill="#666">单 Stage 1 = +5.74% acc (Tab 1)</text>
+
+  <!-- arrow -->
+  <line x1="410" y1="120" x2="445" y2="120" stroke="#2f6feb" stroke-width="2" marker-end="url(#ar4)"/>
+
+  <!-- Stage 2: Joint -->
+  <rect x="450" y="50" width="280" height="140" fill="#fff3f0" stroke="#a8353e" rx="8"/>
+  <text x="590" y="74" font-size="14" font-weight="bold" text-anchor="middle" fill="#a8353e">Stage 2: Joint AR + Diff</text>
+  <text x="590" y="96" font-size="12" text-anchor="middle">α = 0.3</text>
+  <text x="590" y="116" font-size="12" text-anchor="middle"><b>300B tokens</b></text>
+  <text x="590" y="134" font-size="11" text-anchor="middle">→ 同时算 Eq.(1)+Eq.(2)</text>
+  <text x="590" y="152" font-size="11" text-anchor="middle">→ 双流 attention + global avg + DP-rank mask</text>
+  <text x="590" y="172" font-size="10" text-anchor="middle" fill="#666">+AR loss = +7.48% acc (Tab 1)</text>
+
+  <!-- bottom: hardware -->
+  <text x="390" y="220" font-size="11" text-anchor="middle" fill="#666">硬件: 256 × H100 / WSD schedule(1e-5 → 3e-6)/ AdamW · wd 0.1 / global batch 512 / seq 4096</text>
+</svg>
+<figcaption><b>图 4 — Two-stage training(对应 §2.1 + §5.1)</b>。Stage 1 把 Eq.(3) 退化为纯 AR(α=0),用 1T tokens 把 left-to-right linguistic prior 灌注到一个 Ministral3-8B 起点上。Stage 2 把 α 调到 0.3,用 300B tokens 同时优化两个 loss。这条 1.3T tokens continued pretraining 是论文最贵的资源(对比 RePlaid #23 用 &lt;1B token IsoFLOP),也是为什么 NVIDIA 能负担一个工业级 family — 但它也是 academic reproducibility 的最大门槛。</figcaption>
+</div>
+
+<h3>3.6 训练技术消融 — Table 1 重现</h3>
+<p>论文 §2.3 在 25B-token 连续预训练上做 5 步阶梯消融,每一步累加新技术,在 coding+math 上看平均:</p>
+<table>
+<thead><tr><th>累加项</th><th>HumanEval</th><th>HumanEval+</th><th>MBPP</th><th>MBPP+</th><th>GSM8K</th><th>Minerva Math</th><th><b>Avg</b></th><th>Δ</th></tr></thead>
+<tbody>
+<tr><td>Block-wise attention (baseline)</td><td>39.02</td><td>37.80</td><td>53.40</td><td>67.72</td><td>82.87</td><td>44.58</td><td>54.23</td><td>—</td></tr>
+<tr><td>+ Global loss averaging</td><td>42.07</td><td>39.02</td><td>56.20</td><td>71.69</td><td>83.78</td><td>45.36</td><td>56.35</td><td><span class="ok">+2.12</span></td></tr>
+<tr><td>+ DP-rank varying mask</td><td>45.12</td><td>43.29</td><td>55.80</td><td>70.90</td><td>81.58</td><td>45.66</td><td>57.06</td><td><span class="ok">+0.71</span></td></tr>
+<tr><td>+ Two-stage training</td><td>58.54</td><td>52.44</td><td>53.00</td><td>73.81</td><td>83.17</td><td>55.84</td><td>62.80</td><td><span class="ok">+5.74</span></td></tr>
+<tr><td><b>+ AR loss</b> (full pipeline)</td><td><b>64.02</b></td><td><b>57.93</b></td><td><b>65.60</b></td><td><b>80.95</b></td><td><b>86.73</b></td><td><b>66.44</b></td><td><b>70.28</b></td><td><b class="ok">+7.48</b></td></tr>
+</tbody>
+</table>
+<p>从 baseline 到 full pipeline 累计 <strong>+16.05 pp</strong>,其中 <b>+AR loss (7.48 pp)</b> 和 <b>two-stage training (5.74 pp)</b> 是最重要两步,合计 13.22 pp 占总收益的 82%。剩下 3 步技巧合计仅 ~3 pp,说明 "好 AR 起点 + 联合 loss" 才是决定性的,其它都是锦上添花。</p>
+
+<h3>3.7 Global vs Sequence Loss Averaging 数学对比</h3>
+<p>§2.1 单独花一节讲 loss aggregation,对应 Eq.(4)/(5):</p>
+<div class="formula">ℒ_seq-avg = (1/N) Σ_n (1/L) Σ_i ℓ_{n,i}     …Eq.(4)</div>
+<div class="formula">ℒ_global = (1/(NL)) Σ_n Σ_i ℓ_{n,i}     …Eq.(5)</div>
+<p>当每条 sequence 有相同 mask 数时两者等价。但 diffusion loss 因为 1/t reweighting + mask token 数 ∝ t,会导致 <em>每条 sequence 的有效 token 数差异大</em>。Sequence-wise 平均会让"少量高权重"的小 t 样本被等同对待,显著增大 batch 间方差。Global avg 等价于按 contribute token 数加权,相当于天然的 importance reweighting。论文的对照实验显示这一项单独贡献 +2.12% — 是除 AR loss 和 two-stage 之外最大的一项。这条经验类比于 GRPO vs DAPO 的 RL aggregation 之争。</p>
+
+<h3>3.8 AR/Diff loss 的相互影响</h3>
+<p>§2.4 单独做了控制实验,在 base 模型上对比 AR-only vs AR+Diff(α=0.3) 的 AR mode 精度:</p>
+<table>
+<thead><tr><th>训练设置</th><th>HumanEval</th><th>MBPP</th><th>GSM8K</th><th>MMLU</th><th>Hellaswag</th><th>PIQA</th><th>Winogrande</th><th><b>Avg</b></th></tr></thead>
+<tbody>
+<tr><td>AR only</td><td>60.37</td><td>67.00</td><td>87.64</td><td>76.34</td><td>76.54</td><td>79.71</td><td>71.98</td><td>72.50</td></tr>
+<tr><td>+ Diff loss (α=0.3)</td><td><b>62.80</b></td><td>65.80</td><td><b>87.79</b></td><td>75.99</td><td><b>76.59</b></td><td><b>79.82</b></td><td>70.32</td><td><b>72.64</b></td></tr>
+</tbody>
+</table>
+<p>AR mode <em>没有掉精度</em> — 反而轻微 +0.14% 提升,instruct 模型上 +0.43%。这呼应了 DeepSeek-V3 [15] 关于 <em>MTP-style 辅助任务可提升 future prediction</em> 的观察。"Diff loss 是免费午餐"这条结论是后面 SS mode 工程价值的根 — 你拿到 SS 加速的同时 AR mode 不仅没退化还涨了。</p>
+
+<hr>
+
+<h2 id="sec4">4 · Method 2 — Tri-Mode Inference</h2>
+
+<h3>4.1 Mode 1: AR Decoding</h3>
+<p>最简单 — 模型作为标准 causal LM,x_i ~ p_θ(·|x_{&lt;i})。这是因为 stage 2 训练时双流的 clean 流就是严格 causal,所以模型本身就有完整 AR 能力。<em>什么时候用</em>:high concurrency cloud serving,因为大 batch 下 memory bound 自然消解,parallel decoding 收益不大。</p>
+
+<h3>4.2 Mode 2: Block-wise Diffusion Denoising</h3>
+<h4>Confidence-based sampling</h4>
+<p>沿用 Fast-dLLM [16] + Efficient-dLM [10] 的范式 — 一个块一个块解,块内所有位置初始化为 [MASK],按 confidence threshold 决定每步并行接受哪些位置。一个块解完后刷新 KV cache,进入下一块。</p>
+
+<h4>Trained sampler (Appendix A)</h4>
+<p>论文额外训了一个 4-layer 轻量 transformer (d=384, 4.8M params, ~0.06% backbone),输入是 144 维 per-position 特征(top-3 PCA 语义 embedding + top-1 prob + margin + entropy + top-3 mass),sigmoid 输出"top-1 是否会与最终 commit 一致"。训练数据从 8B 模型自身收集 ~20M denoising trajectories(B∈{8,32},math/code/STEM/chat)。这是 Pareto frontier 提升 — 同精度 1.3× TPF 或同 TPF +10.6% acc。</p>
+
+<h3>4.3 Mode 3: Linear Self-Speculation — 图 5 详解</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 380" width="100%" style="max-width:780px">
+  <defs>
+    <marker id="ar5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#cc4a1b"/>
+    </marker>
+    <marker id="ar5g" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#1f7a4a"/>
+    </marker>
+  </defs>
+
+  <!-- Step 0: prefix -->
+  <text x="20" y="30" font-size="13" font-weight="bold">Step 0 — 当前已验证 prefix</text>
+  <g font-family="monospace" font-size="11">
+    <rect x="20" y="40" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="40" y="60" text-anchor="middle">x₁</text>
+    <rect x="60" y="40" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="80" y="60" text-anchor="middle">x₂</text>
+    <rect x="100" y="40" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="120" y="60" text-anchor="middle">x₃</text>
+    <rect x="140" y="40" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="160" y="60" text-anchor="middle">…</text>
+    <rect x="180" y="40" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="200" y="60" text-anchor="middle">xₙ</text>
+  </g>
+  <text x="240" y="60" font-size="11" fill="#666">prefix KV 已 cache</text>
+
+  <!-- Step 1: Draft (diffusion) -->
+  <text x="20" y="115" font-size="13" font-weight="bold" fill="#2f6feb">Step 1 — Diffusion Drafting(1 个 forward)</text>
+  <text x="20" y="135" font-size="11" fill="#444">追加 k 个 [MASK] → diffusion 路径并行去噪 → 得到 k 个 draft</text>
+  <g font-family="monospace" font-size="11">
+    <rect x="20" y="148" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="40" y="168" text-anchor="middle">xₙ</text>
+    <text x="78" y="168" text-anchor="middle">||</text>
+    <rect x="100" y="148" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="120" y="168" text-anchor="middle">x̂₁</text>
+    <rect x="140" y="148" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="160" y="168" text-anchor="middle">x̂₂</text>
+    <rect x="180" y="148" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="200" y="168" text-anchor="middle">x̂₃</text>
+    <rect x="220" y="148" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="240" y="168" text-anchor="middle">x̂₄</text>
+    <rect x="260" y="148" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="280" y="168" text-anchor="middle">x̂₅</text>
+  </g>
+  <text x="320" y="168" font-size="11" fill="#666">↑ "可能" 的 k 个 future token</text>
+
+  <!-- Step 2: Verify (AR) -->
+  <text x="20" y="220" font-size="13" font-weight="bold" fill="#a8353e">Step 2 — AR Verification(1 个 forward,causal)</text>
+  <text x="20" y="240" font-size="11" fill="#444">用 same model + causal mask 跑一次,产生 AR 预测 x_AR_{n+j}</text>
+  <g font-family="monospace" font-size="11">
+    <rect x="100" y="252" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="120" y="272" text-anchor="middle">x̂₁</text>
+    <text x="120" y="295" font-size="10" text-anchor="middle" fill="#1f7a4a">≟ x_AR₁ ✓</text>
+    <rect x="140" y="252" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="160" y="272" text-anchor="middle">x̂₂</text>
+    <text x="160" y="295" font-size="10" text-anchor="middle" fill="#1f7a4a">≟ x_AR₂ ✓</text>
+    <rect x="180" y="252" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="200" y="272" text-anchor="middle">x̂₃</text>
+    <text x="200" y="295" font-size="10" text-anchor="middle" fill="#1f7a4a">≟ x_AR₃ ✓</text>
+    <rect x="220" y="252" width="40" height="30" fill="#fff" stroke="#a8353e" stroke-width="2"/><text x="240" y="272" text-anchor="middle" fill="#a8353e">x̂₄</text>
+    <text x="240" y="295" font-size="10" text-anchor="middle" fill="#a8353e"><b>✗ first reject</b></text>
+    <rect x="260" y="252" width="40" height="30" fill="#f0f0f0" stroke="#999"/><text x="280" y="272" text-anchor="middle" fill="#999">x̂₅</text>
+    <text x="280" y="295" font-size="10" text-anchor="middle" fill="#999">discarded</text>
+  </g>
+
+  <!-- Outcome -->
+  <text x="20" y="330" font-size="13" font-weight="bold" fill="#cc4a1b">本步 commit: 3 个 accepted prefix + 1 个 free verified token (x_AR₄) = 4 tokens</text>
+  <text x="20" y="350" font-size="11" fill="#666">下一轮以新 verified prefix 为基础继续 → 每轮产出 1 到 k+1 个 token / 2 个 forward(draft + verify)</text>
+</svg>
+<figcaption><b>图 5 — Linear Self-Speculation 流程</b>(对应论文 §3.3 + Fig. 5)。一轮 = "1 个 diffusion forward 起草 k 个 token" + "1 个 AR forward 验证"。Verification 走标准 speculative decoding (Leviathan-Chen 2023, 见 #spec-rl 15 教程证明):接受最长 prefix(x̂ⱼ == x_AR_j),首个 reject 位置仍提供一个 free verified token(即 AR 在该位置的预测)。所以每轮产出 1 ~ k+1 个 token。两个 forward 之间 prefix 的 KV cache 可复用。LoRA on o_proj (rank 128, α=512, ~36M params, ~0.4% backbone) 把 acceptance length 从 5.46 提到 6.82(Tab 10)。</figcaption>
+</div>
+
+<h3>4.4 LoRA + LK-hybrid loss 强化 drafter</h3>
+<p>这里的工程巧思有几层:</p>
+<ul>
+<li><b>LoRA 位置</b>: 只加在 attention 的 o_proj 上(rank=128, α=512, ~36M)。这极小的 ~0.4% 参数把 8B 模型的 acceptance length 拉 +1.36(5.46→6.82, +25%)。</li>
+<li><b>Active mask "accepted + 1"</b>: 只在 accepted prefix + 第一个 reject 位置算 loss(j* 之后被 mask 掉)。理由是 verifier 的 KV cache 在 reject point 之后会重建,逻辑上不再有意义 — 在那些位置训练会引入 counterfactual bias。</li>
+<li><b>LK-hybrid loss</b> (Eq. 6, 来自 Samarin et al. [19], 即 #spec-rl 14 的 LK Losses 论文):用 union top-K=200 截断 KL + TV(total variation) 双权重 — 早期 (α_j 接近 0) 像 forward KL,晚期 (α_j → 1) 像 TV(直接对 acceptance rate gap 求梯度)。</li>
+<li><b>CE 项</b> (Eq. 7): 加一个 token-level CE against verifier argmax,作为强 teacher forcing。τ=1.0 不缩放。</li>
+<li><b>Total</b>: ℒ = ℒ_LK + ℒ_CE。Inner-batch 90% 用 softmax sampling,10% greedy — 让 drafter 见到更广的 verifier 输出分布。</li>
+</ul>
+
+<h3>4.5 Quadratic Self-Speculation (§3.4 变体)</h3>
+<p>把 draft 和 verify 合并到 <em>单个 forward</em>,用一个特殊 attention mask: causal 部分验证上一步的 draft,parallel diffusion 部分为下一步产生新 draft。代价是 attention 矩阵 O(k²) — 这是为什么叫 quadratic。优势是 always 产出 k 个 token / 1 forward(即使 reject 早发生)。论文进一步引入 AR-diffusion ensemble verifier(causal + diff 加权)。<strong>但 Tab 5 显示 Quad SS 实际部署落后 Linear SS</strong> — 因为 FlexAttention kernel 对这个 dedicated mask 优化不充分(详见后面 §12 局限)。</p>
+
+<div class="nb">
+<strong>⭐ Quadratic SS 的方法学起源 = TiDAR (arXiv:2511.08923)</strong>。论文 §3.4 verbatim: "following the same process as [20]",其中 [20] 就是 TiDAR — <strong>同 NVIDIA 团队 6 个月前的前作</strong>。Yonggan Fu 在 TiDAR 是 co-author,在 Nemotron-Diff 升任一作;Jan Kautz + Pavlo Molchanov 两篇都是 senior author。完整对比见 <a href="#sec11_5">§11.5 与 TiDAR 的关系</a>。
+</div>
+
+<h3>4.6 Block-wise attention pattern 总结 (图 7, optional)</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 240" width="100%" style="max-width:780px">
+  <text x="390" y="22" font-size="13" font-weight="bold" text-anchor="middle">Block-wise diffusion attention(块内 bidirectional, 跨块 causal)</text>
+  <!-- 6 token grid with block boundary -->
+  <g transform="translate(140, 50)">
+    <!-- token labels -->
+    <g font-size="11" text-anchor="middle">
+      <text x="30" y="-8">x₁</text><text x="70" y="-8">x₂</text><text x="110" y="-8">x₃</text>
+      <text x="150" y="-8">x₄</text><text x="190" y="-8">x₅</text><text x="230" y="-8">x₆</text>
+    </g>
+    <g font-size="11" text-anchor="end">
+      <text x="-8" y="22">x₁</text><text x="-8" y="52">x₂</text><text x="-8" y="82">x₃</text>
+      <text x="-8" y="112">x₄</text><text x="-8" y="142">x₅</text><text x="-8" y="172">x₆</text>
+    </g>
+    <!-- block 1 (1-3): bidirectional inside -->
+    <rect x="0" y="0" width="120" height="90" fill="#cce1ff" stroke="#2f6feb"/>
+    <text x="60" y="50" font-size="11" text-anchor="middle">Block 1 双向</text>
+    <!-- block 2 (4-6): bidirectional inside -->
+    <rect x="120" y="90" width="120" height="90" fill="#bce6cb" stroke="#1f7a4a"/>
+    <text x="180" y="140" font-size="11" text-anchor="middle">Block 2 双向</text>
+    <!-- block 2 attends block 1 (causal across blocks) -->
+    <rect x="0" y="90" width="120" height="90" fill="#f0f0f0" stroke="#999"/>
+    <text x="60" y="140" font-size="11" text-anchor="middle">Block 2→Block 1 可见</text>
+    <!-- block 1 cannot see block 2 -->
+    <rect x="120" y="0" width="120" height="90" fill="#fff" stroke="#999" stroke-dasharray="3,3"/>
+    <text x="180" y="35" font-size="11" text-anchor="middle" fill="#999">Block 1 看不到</text>
+    <text x="180" y="52" font-size="11" text-anchor="middle" fill="#999">Block 2(causal)</text>
+    <text x="180" y="72" font-size="10" text-anchor="middle" fill="#a8353e">→ 让 KV cache 跨块复用</text>
+  </g>
+  <!-- legend right -->
+  <text x="430" y="60" font-size="11" font-weight="bold">块内并行 + 跨块 causal 的好处:</text>
+  <text x="430" y="82" font-size="11">• 块内 bidirectional → 一次 forward 可并行解多 token</text>
+  <text x="430" y="104" font-size="11">• 跨块 causal → 已生成块的 KV 可直接 cache 复用</text>
+  <text x="430" y="126" font-size="11">• 当 block size = 1 时退化为标准 AR</text>
+  <text x="430" y="148" font-size="11">• 当 block size = L 时退化为纯 diffusion</text>
+  <text x="430" y="170" font-size="11" fill="#cc4a1b">→ block size 是 AR↔Diff 的连续旋钮</text>
+</svg>
+<figcaption><b>图 7 — Block-wise diffusion attention pattern。</b>把 sequence 分成连续块,块内 token bidirectional 互相看(噪声去噪需要全局信息),块之间严格 causal(让 KV cache 能跨块复用)。这是 Block Diffusion [9] (Arriola et al., 2025) 的原创设计,Nemotron-Diff 沿用并加上 clean 流的严格 causal 改造。Block size 是 AR-Diff 的连续旋钮 — B=1 退化为 AR,B=L 退化为全块 diffusion。Tab 4 末行显示 B 越大 TPF 越高(7.60×@B=32 vs 2.89×@B=4)但 accuracy 略掉(61.81% vs 64.04%),后面 §12 讨论。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec5">5 · Speed-of-Light 分析 (§4)</h2>
+
+<h3>5.1 SOL 是什么 — 论文最重要的方法论贡献</h3>
+<p>Speed-of-Light(SOL) 是论文最有 ambition 的一节 — 它问的不是"我现在跑多快",而是"<strong>如果有最优采样器,diffusion 模式最快能多快?</strong>"。SOL 不涉及 AR verifier,完全在 diffusion 自己内部 — 它给当前所有 sampler / verifier 设计提供了一个 <em>硬性 ceiling</em>。</p>
+
+<h3>5.2 Oracle target — Serial denoising 定义"converged output"</h3>
+<p>对块长 B,从全 mask 输入 [M]^B 出发,每步找当前所有 mask 位置中 peak probability 最高的一个,commit 它的 argmax,重新 forward,重复 B 次。这是 B 个 forward / 一个 token / 完全保守的"如果不并行决策时模型最终会输出什么"。结果记为 target t = (t₁, …, t_B)。SOL acceptance ratio 就定义为"在平均多少个 forward 内能用某种并行策略从全 mask 重建出 t"。</p>
+
+<h3>5.3 Greedy parallel acceptance vs Recursive dynamic compaction</h3>
+<p><b>Greedy</b>: 每个 iteration 看哪些位置的预测 == t_j,全部 commit。简单,但 "context dependent token 同时 commit" 会扰动剩余位置的条件分布,所以不保证收敛到 t — 这是个 lower bound,不是真正 SOL。</p>
+<p><b>Recursive dynamic compaction</b>(图 6 详解): 把 N 个 matched 位置按 confidence 排成 (p₁, …, p_N),做二分搜索找最大的 safe prefix —— "safe" 的定义是,commit 这个 prefix 后剩余位置用 greedy 解仍能到达 t(用 5000-forward budget 模拟验证)。每个 safety check 会递归调用 decoder 一次。Top-1 一定 safe(等价于 serial step),所以至少每步 commit 1 个 — 严格 dominate greedy。</p>
+
+<h3>5.4 图 6 — Recursive Dynamic Compaction 流程</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 380" width="100%" style="max-width:780px">
+  <defs>
+    <marker id="ar6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+
+  <!-- top: serial denoising builds target t -->
+  <text x="20" y="22" font-size="13" font-weight="bold" fill="#1f7a4a">阶段 0 — Serial Denoising 建立 target t (耗 B forward / 仅用于评估)</text>
+  <g font-family="monospace" font-size="11" text-anchor="middle">
+    <rect x="30" y="38" width="40" height="30" fill="#f0f0f0" stroke="#999"/><text x="50" y="58">[M]</text>
+    <rect x="70" y="38" width="40" height="30" fill="#f0f0f0" stroke="#999"/><text x="90" y="58">[M]</text>
+    <rect x="110" y="38" width="40" height="30" fill="#f0f0f0" stroke="#999"/><text x="130" y="58">[M]</text>
+    <rect x="150" y="38" width="40" height="30" fill="#f0f0f0" stroke="#999"/><text x="170" y="58">[M]</text>
+    <text x="220" y="58" text-anchor="start" font-family="sans-serif" fill="#666">→ 每步 commit 最高 confidence 1 个 → …</text>
+    <rect x="500" y="38" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="520" y="58">A</text>
+    <rect x="540" y="38" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="560" y="58">B</text>
+    <rect x="580" y="38" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="600" y="58">C</text>
+    <rect x="620" y="38" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="640" y="58">D</text>
+    <text x="690" y="58" text-anchor="start" font-family="sans-serif" fill="#1f7a4a"><b>= t</b></text>
+  </g>
+
+  <!-- step 1 of parallel scheme -->
+  <text x="20" y="105" font-size="13" font-weight="bold" fill="#2f6feb">阶段 1 — Parallel Step 1: 找 largest safe prefix</text>
+  <text x="20" y="125" font-size="11">从全 mask 出发 forward, matched 位置按 confidence 排:</text>
+  <g font-family="monospace" font-size="11" text-anchor="middle">
+    <rect x="30" y="135" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="50" y="155">B</text><text x="50" y="180" font-size="10" fill="#666">p=0.95</text>
+    <rect x="80" y="135" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="100" y="155">C</text><text x="100" y="180" font-size="10" fill="#666">p=0.93</text>
+    <rect x="130" y="135" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="150" y="155">M</text><text x="150" y="180" font-size="10" fill="#666">p=0.81 ✗</text>
+    <text x="200" y="155" text-anchor="start" font-family="sans-serif">→ 二分搜索 safe k:</text>
+    <text x="200" y="180" text-anchor="start" font-family="sans-serif" fill="#cc4a1b">"commit {B,C} 后,greedy 还能到 ABCD?"</text>
+  </g>
+  <text x="20" y="215" font-size="11" fill="#1f7a4a">→ 答案是 yes(模拟 5000-forward budget 验证)→ commit B, C</text>
+
+  <!-- step 2 -->
+  <text x="20" y="250" font-size="13" font-weight="bold" fill="#2f6feb">阶段 2 — Parallel Step 2: 在 [M, B, C, M] 上 forward,再找 prefix</text>
+  <g font-family="monospace" font-size="11" text-anchor="middle">
+    <rect x="30" y="265" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="50" y="285">A</text><text x="50" y="310" font-size="10" fill="#666">p=0.98</text>
+    <rect x="80" y="265" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="100" y="285">B</text>
+    <rect x="130" y="265" width="40" height="30" fill="#bce6cb" stroke="#1f7a4a"/><text x="150" y="285">C</text>
+    <rect x="180" y="265" width="40" height="30" fill="#cce1ff" stroke="#2f6feb"/><text x="200" y="285">D</text><text x="200" y="310" font-size="10" fill="#666">p=0.92</text>
+    <text x="260" y="285" text-anchor="start" font-family="sans-serif" fill="#1f7a4a">→ 都 match t, commit {A,D}</text>
+  </g>
+
+  <!-- result -->
+  <text x="20" y="345" font-size="13" font-weight="bold" fill="#cc4a1b">最终 SOL Path: B=4 个位置 / 2 个 forward → 2× TPF (vs serial 1×)</text>
+  <text x="20" y="365" font-size="11" fill="#666">实测 8B 模型 SPEED-Bench 平均 SOL = <b>7.60×</b>(B=32)— 但 confidence sampling 当前只跑到 ~3×</text>
+</svg>
+<figcaption><b>图 6 — Recursive Dynamic Compaction(对应论文 §4.1 + Fig. 6)</b>。先用 serial denoising 建立 oracle target t,然后在并行 scheme 里每一步对所有 matched 位置按 confidence 排序,二分搜索最大的"安全" prefix — 安全 = "commit 这些位置后,剩余位置用 greedy 仍能到达 t"(用 5000-forward simulation 验证,超 budget 即 unsafe)。每个 safety check 本身递归调用 decoder,所以叫 recursive。Top-1 永远 safe → 至少 commit 1/step。这是一个 strictly dominant greedy 的过程,被论文用来报告 SOL 上限。</figcaption>
+</div>
+
+<h3>5.5 SPEED-Bench 11 类 SOL 完整数据 (Table 4 重现)</h3>
+<p>713 SPEED-Bench [1] 样本,在 8B instruct 模型上扫块长 B ∈ {4,8,16,32}:</p>
+<table>
+<thead><tr><th>Category</th><th>BL=32</th><th>BL=16</th><th>BL=8</th><th>BL=4</th></tr></thead>
+<tbody>
+<tr><td>coding</td><td>10.24</td><td>7.50</td><td>5.32</td><td>3.32</td></tr>
+<tr><td>humanities</td><td>6.93</td><td>5.00</td><td>3.76</td><td>2.76</td></tr>
+<tr><td>math</td><td>9.30</td><td>7.02</td><td>4.90</td><td>3.20</td></tr>
+<tr><td>multilingual</td><td><b>11.26</b></td><td>8.08</td><td>5.46</td><td>3.37</td></tr>
+<tr><td>qa</td><td>5.63</td><td>4.43</td><td>3.46</td><td>2.61</td></tr>
+<tr><td>rag</td><td>7.32</td><td>5.67</td><td>4.14</td><td>2.91</td></tr>
+<tr><td>reasoning</td><td>7.22</td><td>5.06</td><td>3.87</td><td>2.79</td></tr>
+<tr><td>roleplay</td><td><span class="no">3.49</span></td><td>2.76</td><td>2.41</td><td>2.00</td></tr>
+<tr><td>stem</td><td>8.01</td><td>5.68</td><td>4.11</td><td>2.98</td></tr>
+<tr><td>summarization</td><td>6.02</td><td>4.48</td><td>3.25</td><td>2.71</td></tr>
+<tr><td>writing</td><td>6.13</td><td>4.71</td><td>3.58</td><td>2.62</td></tr>
+<tr><td><b>Acceptance rate (avg)</b></td><td><b>7.60</b></td><td>5.68</td><td>4.17</td><td>2.89</td></tr>
+<tr><td>Benchmark Acc</td><td>61.81</td><td>63.18</td><td>65.43</td><td><b>64.04</b></td></tr>
+</tbody>
+</table>
+<p>四个关键观察:</p>
+<ol>
+<li><strong>SOL 与 B 接近线性</strong>: 2.89→7.60 随 B 4→32 单调上升(2.6×)。</li>
+<li><strong>类别极差 3.2×</strong>: roleplay 3.49 vs multilingual 11.26 — 这是 entropy 假设的预期 (templated/可预测内容并行性强,开放生成弱)。</li>
+<li><strong>confidence sampling 当前只 ~3×</strong> — 距离 7.60× ceiling 还差 ~150% headroom。</li>
+<li><strong>B 越大 acc 越掉</strong>: 末两行 — BL=4 时 acc 64.04,BL=32 时只剩 61.81。这是 efficiency↔accuracy trade-off,论文明确指出 "improving large-B accuracy 是关键方向"。</li>
+</ol>
+
+<h3>5.6 SOL 7.60× vs Linear SS 6.82× vs 实际 3.41× — 76.5% headroom 含义</h3>
+
+<div class="kv">
+<p><strong>三组数字的逐步差异:</strong></p>
+<ul>
+<li><b>SOL acceptance rate 7.60×</b> — 理论上限。1 forward 内可并行接受多少位置。</li>
+<li><b>Linear SS acceptance rate 6.82×</b>(LoRA 后)— 距 SOL 仅 10.3%。"AR 验证 diffusion draft" 是接近 SOL 的有效方式。</li>
+<li><b>SOL real TPF 6.02×</b> vs <b>Linear SS real TPF 3.41×</b> — <strong>这是 76.5% gap</strong>!原因有二: <span class="no">(a)</span> Linear SS 每轮 2 个 forward (draft + verify), real TPF = acceptance ÷ 2; <span class="no">(b)</span> Linear SS 只接受 contiguous prefix,首个 reject 后所有"散落的对"全部丢弃。</li>
+</ul>
+</div>
+
+<p>76.5% 是这篇论文最有冲击力的一个数字 — 它告诉社区:<em>不要满足于 Linear SS 的 6.82× acceptance,真正的并行性是 SOL 的 6.02 real TPF</em>。要够到这个 ceiling,需要(论文 §8 "Future Directions" 提的)更智能的采样器、non-prefix 接受、diffusion-verify-diffusion 流水线。</p>
+
+<hr>
+
+<h2 id="sec6">6 · 训练 recipe + Nemotron-Labs-Diffusion Family</h2>
+
+<h3>6.1 Base Model — Stage 1 + Stage 2</h3>
+<table>
+<tr><th>属性</th><th>设置</th></tr>
+<tr><td>起步 checkpoint</td><td>Ministral3-8B (Liu et al. [21]) base</td></tr>
+<tr><td>预训练数据</td><td>Nemotron Nano 2 数据集 [22]</td></tr>
+<tr><td>Stage 1</td><td>纯 AR(α=0)/ <b>1T tokens</b></td></tr>
+<tr><td>Stage 2</td><td>Joint AR-Diff(α=0.3)/ <b>300B tokens</b></td></tr>
+<tr><td>LR schedule</td><td>WSD: 1e-5 → 3e-6</td></tr>
+<tr><td>Optimizer</td><td>AdamW, weight decay = 0.1</td></tr>
+<tr><td>Global batch size</td><td>512</td></tr>
+<tr><td>Sequence length</td><td>4096</td></tr>
+<tr><td>硬件</td><td>256 × NVIDIA H100</td></tr>
+<tr><td>训练栈</td><td>Megatron Bridge (开源)</td></tr>
+</table>
+
+<h3>6.2 Instruct Model — SFT</h3>
+<table>
+<tr><th>属性</th><th>设置</th></tr>
+<tr><td>SFT 数据</td><td>Nemotron 3 Super [24] SFT dataset, <b>45B tokens</b></td></tr>
+<tr><td>α</td><td>0.3 全程</td></tr>
+<tr><td>LR</td><td>2.5e-6 → 2.5e-7 WSD</td></tr>
+<tr><td>Global batch</td><td>256</td></tr>
+<tr><td>Seq length</td><td>16k</td></tr>
+<tr><td>Loss mask</td><td>只在 answer 部分,prompt 不 mask(沿 LLaDA [2])</td></tr>
+<tr><td>硬件</td><td>256 × NVIDIA H100</td></tr>
+</table>
+
+<h3>6.3 VLM — 多模态扩展</h3>
+<ul>
+<li><b>vision encoder</b>: 继承 Ministral3-8B-Instruct-2512 VLM 的视觉端 + projector。</li>
+<li><b>multimodal projector</b>: 2-layer MLP + <b>2×2 patch merging</b>。</li>
+<li><b>LM backbone</b>: 直接用 Nemotron-Labs-Diffusion-8B Instruct 初始化 — 因为两套 ckpt 的 LM 架构相同,合并是 <em>exact</em>(no parameter mismatch)。</li>
+<li><b>asymmetric dual stream</b>(Eq. 10): noisy 流剥掉所有 vision token —— 因为 vision token 永远不会被 mask,放在 noisy 流里只是浪费 FLOPs。Clean 流保留完整序列。总序列长度 L_text + L 而非 2L。attention FLOPs 节约 ∝ N_vis/L,对高分辨率图像非常显著。</li>
+<li><b>Continued SFT</b>: full model (backbone + vision + projector) 用 joint AR-diff loss 在 FineVision [25] 上 fine-tune。</li>
+</ul>
+
+<hr>
+
+<h2 id="sec7">7 · Evaluation — 8B Instruct 主表</h2>
+
+<h3>7.1 Table 5 完整重现</h3>
+<p>10 个任务: GPQA / IFEval / MMLU / HumanEval / MBPP / LCB-CPP / Math500 / GSM8K / AIME24 / AIME25。所有模型 non-thinking mode。AR baselines 用 NeMo-Skills,diffusion baselines 用各自官方 pipeline。</p>
+<table>
+<thead><tr>
+<th>Model</th><th>Mode</th><th>GPQA</th><th>IFEval</th><th>MMLU</th><th>HumanEval</th><th>MBPP</th><th>LCB-CPP</th><th>Math500</th><th>GSM8K</th><th>AIME24</th><th>AIME25</th><th><b>Acc</b></th><th><b>TPF</b></th>
+</tr></thead>
+<tbody>
+<tr><td>Qwen2.5-7B</td><td>AR</td><td>37.12</td><td>74.58</td><td>74.86</td><td>77.44</td><td>81.55</td><td>12.33</td><td>75.10</td><td>91.89</td><td>13.75</td><td>6.88</td><td>54.55</td><td>1.00</td></tr>
+<tr><td>Qwen3-8B</td><td>AR</td><td>49.24</td><td><b>87.38</b></td><td>76.66</td><td>81.71</td><td>81.88</td><td>21.09</td><td>84.80</td><td>92.42</td><td>30.21</td><td>22.08</td><td>62.75</td><td>1.00</td></tr>
+<tr><td>Ministral3-8B-Inst</td><td>AR</td><td>42.87</td><td>64.31</td><td>73.90</td><td>71.04</td><td>78.97</td><td>20.76</td><td>83.60</td><td>92.42</td><td>27.71</td><td>24.58</td><td>58.02</td><td>1.00</td></tr>
+<tr><td>LLaDA-8B Inst</td><td>Diff</td><td>33.30</td><td>59.90</td><td>65.50</td><td>49.40</td><td>41.00</td><td>4.19</td><td>39.20</td><td>79.91</td><td>0.00</td><td>0.00</td><td>37.24</td><td>1.00</td></tr>
+<tr><td>Dream-7B Inst</td><td>Diff</td><td>33.00</td><td>62.50</td><td>67.00</td><td>55.50</td><td>58.80</td><td>1.25</td><td>43.00</td><td>81.00</td><td>0.00</td><td>3.33</td><td>40.54</td><td>1.00</td></tr>
+<tr><td>SDAR-8B Chat</td><td>Diff</td><td>40.20</td><td>61.40</td><td>78.60</td><td>78.70</td><td>72.00</td><td>13.44</td><td>78.60</td><td>91.30</td><td>16.67</td><td>10.00</td><td>54.09</td><td>1.75</td></tr>
+<tr style="background:#eef9f3"><td><b>NLD-8B</b></td><td>AR</td><td>44.44</td><td>68.65</td><td>79.85</td><td>80.49</td><td>85.19</td><td><b>28.85</b></td><td>88.00</td><td>94.01</td><td>33.33</td><td>33.33</td><td><b>63.61</b></td><td>1.00</td></tr>
+<tr style="background:#eef4ff"><td><b>NLD-8B</b></td><td>Diff</td><td>43.94</td><td>68.32</td><td>78.71</td><td>78.66</td><td>83.86</td><td>26.16</td><td>85.80</td><td>93.03</td><td><b>46.67</b></td><td>26.67</td><td>63.18</td><td><b>2.57</b></td></tr>
+<tr style="background:#fff3f0"><td><b>NLD-8B</b></td><td>Linear SS</td><td>40.40</td><td>69.13</td><td>79.01</td><td><b>81.71</b></td><td>84.92</td><td>24.89</td><td>87.60</td><td>93.78</td><td>36.67</td><td>30.00</td><td>62.81</td><td><b>5.99</b></td></tr>
+<tr style="background:#fff7e0"><td><b>NLD-8B</b></td><td>Quad SS</td><td>44.30</td><td>71.00</td><td><b>79.95</b></td><td>79.27</td><td><b>85.19</b></td><td>27.70</td><td><b>88.80</b></td><td><b>94.16</b></td><td>33.33</td><td><b>36.67</b></td><td><b>64.04</b></td><td><b>6.38</b></td></tr>
+</tbody>
+</table>
+
+<h3>7.2 关键解读</h3>
+<ul>
+<li><b>+0.86% vs Qwen3-8B (AR mode)</b>: 63.61 vs 62.75 — 证明 joint training 不仅保留 AR,还略微提高了。</li>
+<li><b>+9.09% vs SDAR-8B (diff mode)</b>: 63.18 vs 54.09 — 同尺度 diffusion LM,Nemotron-Diff 用 1.3T continued pretrain 把 SOTA 推到接近 Qwen3-8B 水平。</li>
+<li><b>5.99× TPF (Linear SS)</b>: 几乎不掉精度(62.81 vs AR 63.61, 仅 -0.80)。这是工业部署最关键的"无损 6× 加速"。</li>
+<li><b>Quad SS 64.04 / 6.38× TPF</b>: 单看数字最强,但 §12 提到实际 FlexAttention kernel 没优化好,real-device 落后 Linear SS。</li>
+<li><b>AIME24 46.67%</b>(Diff mode)— 是整个表里最高,且比 AR mode(33.33)还高 13.34 pp — 这是 diffusion 模式 lookahead planning 对 math hard problem 的特别益处。</li>
+</ul>
+
+<h3>7.3 Table 7 — 3B / 14B Scale 验证</h3>
+<table>
+<thead><tr><th>Scale</th><th>Model</th><th>Mode</th><th>Avg Acc</th><th>Avg TPF</th></tr></thead>
+<tbody>
+<tr><td rowspan="5">3B</td><td>Llama-3.2-3B-Instruct</td><td>AR</td><td>39.90</td><td>1.00</td></tr>
+<tr><td>Phi-4-mini-Instruct</td><td>AR</td><td>49.20</td><td>1.00</td></tr>
+<tr><td>Qwen3-4B</td><td>AR</td><td>53.23</td><td>1.00</td></tr>
+<tr style="background:#eef9f3"><td><b>NLD-3B</b></td><td>AR / Diff / Linear SS</td><td>55.50 / 52.90 / 55.00</td><td>1.00 / 1.91 / <b>4.36</b></td></tr>
+<tr style="background:#fff7e0"><td><b>NLD-3B</b></td><td>Quad SS</td><td><b>55.80</b></td><td><b>5.42</b></td></tr>
+<tr><td rowspan="5">14B</td><td>Gemma-3-12B-IT</td><td>AR</td><td>58.03</td><td>1.00</td></tr>
+<tr><td>Phi-4-14B</td><td>AR</td><td>60.82</td><td>1.00</td></tr>
+<tr><td>Qwen3-14B</td><td>AR</td><td>65.17</td><td>1.00</td></tr>
+<tr style="background:#eef9f3"><td><b>NLD-14B</b></td><td>AR / Diff / Linear SS</td><td><b>67.46</b> / 66.51 / 66.36</td><td>1.00 / 2.74 / <b>5.96</b></td></tr>
+<tr style="background:#fff7e0"><td><b>NLD-14B</b></td><td>Quad SS</td><td><b>68.15</b></td><td><b>6.92</b></td></tr>
+</tbody>
+</table>
+<p>对应观察 — Linear SS TPF 随规模 increase:3B → 8B → 14B = 4.36 → 5.99 → 5.96。论文归因为 "larger model 有更可靠的 future prediction"。注意 14B Linear SS 略低于 8B 是因为 14B 任务难度上更追求精度,LoRA 收益相对小一点。</p>
+
+<h3>7.4 Table 8 — Base 模型对比</h3>
+<table>
+<thead><tr><th>Model</th><th>Mode</th><th>HumanEval</th><th>MBPP</th><th>GSM8K</th><th>MMLU</th><th>ARC-C</th><th>Hellaswag</th><th>PIQA</th><th>Wino</th><th><b>Avg</b></th><th><b>TPF</b></th></tr></thead>
+<tbody>
+<tr><td>Llama-3.1-8B</td><td>AR</td><td>35.37</td><td>48.80</td><td>54.06</td><td>65.15</td><td>53.41</td><td>78.93</td><td>81.18</td><td>77.43</td><td>57.04</td><td>1.00</td></tr>
+<tr><td>Ministral3-8B</td><td>AR</td><td>42.68</td><td>61.60</td><td>80.21</td><td>76.39</td><td>60.75</td><td>79.01</td><td>80.74</td><td>73.48</td><td>66.75</td><td>1.00</td></tr>
+<tr><td>Qwen3-8B</td><td>AR</td><td>64.63</td><td>69.40</td><td>86.73</td><td>76.93</td><td>53.16</td><td>78.59</td><td>79.22</td><td>75.69</td><td>71.58</td><td>1.00</td></tr>
+<tr><td>LLaDA-8B</td><td>Diff</td><td>32.32</td><td>40.80</td><td>70.96</td><td>65.86</td><td>49.15</td><td>71.05</td><td>73.88</td><td>74.66</td><td>54.92</td><td>1.00</td></tr>
+<tr><td>Dream-7B</td><td>Diff</td><td>54.88</td><td>56.80</td><td>77.18</td><td>67.00</td><td>59.13</td><td>73.73</td><td>75.52</td><td>73.56</td><td>65.30</td><td>1.00</td></tr>
+<tr style="background:#eef9f3"><td><b>NLD-8B Base</b></td><td>AR</td><td>60.37</td><td>68.20</td><td>88.25</td><td>74.68</td><td>58.11</td><td>76.08</td><td>80.09</td><td>71.98</td><td><b>71.89</b></td><td>1.00</td></tr>
+<tr style="background:#eef4ff"><td><b>NLD-8B Base</b></td><td>Diff</td><td>62.80</td><td>67.00</td><td>87.26</td><td>74.68</td><td>58.11</td><td>76.08</td><td>80.09</td><td>71.98</td><td>72.13</td><td>2.06</td></tr>
+<tr style="background:#fff3f0"><td><b>NLD-8B Base</b></td><td>Linear SS</td><td>63.41</td><td>67.20</td><td>88.17</td><td>74.68</td><td>58.11</td><td>76.08</td><td>80.09</td><td>71.98</td><td><b>72.36</b></td><td><b>4.67</b></td></tr>
+<tr style="background:#fff7e0"><td><b>NLD-8B Base</b></td><td>Quad SS</td><td>62.20</td><td>67.60</td><td>88.48</td><td>74.68</td><td>58.11</td><td>76.08</td><td>80.09</td><td>71.98</td><td>72.10</td><td><b>7.04</b></td></tr>
+</tbody>
+</table>
+<p>Diff mode 比 LLaDA-8B/Dream-7B 高 +17.21 / +6.83 pp。Self-spec 在 base 模型上也立稳:Linear SS 4.67× + 72.36 acc(+0.78 vs Qwen3-8B 71.58)。</p>
+
+<hr>
+
+<h2 id="sec8">8 · Evaluation — 推理实测三机详表</h2>
+
+<h3>8.1 三机硬件对比矩阵</h3>
+<table>
+<thead><tr><th>GPU</th><th>AR base</th><th>Linear SS</th><th>Linear SS w/ CUDA opt</th><th>Diff</th><th>Eagle3</th><th>SOL ceiling</th></tr></thead>
+<tbody>
+<tr><td><b>GB200</b> (c=1)</td><td>256 tok/s</td><td>851 (<b>3.32×</b>)</td><td>1015 (<b>3.97×</b>)</td><td>389 (1.52×)</td><td>354 (1.38×)</td><td>1471 (<b>5.75×</b>)</td></tr>
+<tr><td><b>RTX Pro 6000</b> FP8 (c=1)</td><td>80</td><td>223 (2.79×)</td><td><b>277 (3.46×)</b></td><td>137 (1.71×)</td><td>121 (1.51×)</td><td>567 (7.09×)</td></tr>
+<tr><td><b>RTX Pro 6000</b> INT4 (c=1)</td><td>—</td><td>—</td><td><b>525 (6.56×)</b></td><td>204 (2.55×)</td><td>211 (2.64×)</td><td>989 (12.36×)</td></tr>
+<tr><td><b>DGX Spark</b> FP8 (c=1)</td><td>24.7</td><td>41.8 (1.69×)</td><td><b>77.5 (3.14×)</b></td><td>36.5 (1.48×)</td><td>43.2 (1.75×)</td><td>176.2 (7.13×)</td></tr>
+<tr><td><b>DGX Spark</b> INT4 (c=1)</td><td>—</td><td>—</td><td><b>112.5 (4.56×)</b></td><td>54.1 (2.19×)</td><td>—</td><td>223.1 (9.03×)</td></tr>
+</tbody>
+</table>
+
+<h3>8.2 vs Qwen3-8B-Eagle3 的速度比</h3>
+<p>这是论文最有商业说服力的一组数:</p>
+<ul>
+<li><b>GB200</b>: Linear SS 851 vs Eagle3 354 = <strong>2.4×</strong></li>
+<li><b>RTX Pro 6000</b>: 223 vs 121 (FP8) = <strong>2.3×</strong></li>
+<li><b>DGX Spark</b>: 41.8 vs 43.2 (FP8) = ~1.0× <em>(单看 FP8 不占便宜)</em>;但 CUDA opt 后 77.5 vs 43.2 = <strong>1.8×</strong></li>
+</ul>
+
+<h3>8.3 Acceptance length Table 10 — Native / LoRA / Eagle3 / MTP 四方对决</h3>
+<table>
+<thead><tr><th>Category</th><th>Native</th><th>LoRA</th><th>Eagle3</th><th>MTP</th></tr></thead>
+<tbody>
+<tr><td>coding</td><td>6.61</td><td>8.57</td><td>3.14</td><td>5.97</td></tr>
+<tr><td>math</td><td>6.24</td><td>8.14</td><td>2.79</td><td>4.80</td></tr>
+<tr><td>reasoning</td><td>6.18</td><td>7.99</td><td>3.40</td><td>3.68</td></tr>
+<tr><td>multilingual</td><td>7.96</td><td><b>10.06</b></td><td>1.91</td><td>4.47</td></tr>
+<tr><td>humanities</td><td>5.01</td><td>6.31</td><td>3.12</td><td>3.76</td></tr>
+<tr><td>qa</td><td>4.01</td><td>4.65</td><td>2.63</td><td>3.50</td></tr>
+<tr><td>rag</td><td>5.07</td><td>6.15</td><td>3.06</td><td>4.75</td></tr>
+<tr><td>roleplay</td><td>4.66</td><td>5.54</td><td>2.10</td><td>2.32</td></tr>
+<tr><td>stem</td><td>5.55</td><td>7.02</td><td>2.92</td><td>4.45</td></tr>
+<tr><td>summarization</td><td>4.47</td><td>5.48</td><td>2.66</td><td>3.69</td></tr>
+<tr><td>writing</td><td>4.28</td><td>5.07</td><td>2.81</td><td>3.21</td></tr>
+<tr style="background:#fff7e0"><td><b>Average (all 11)</b></td><td><b>5.46</b></td><td><b>6.82</b></td><td><b>2.75</b></td><td><b>4.24</b></td></tr>
+<tr style="background:#fff3f0"><td><b>4-cat avg</b>(math/code/reason/multilang)</td><td>6.75</td><td><b>8.69</b></td><td>2.81</td><td>4.73</td></tr>
+</tbody>
+</table>
+<p>Native = no-LoRA 5.46,LoRA 提到 6.82 (+1.36)。两者对 Eagle3 (2.75) / MTP (4.24) 都形成显著 dominance。LoRA + 4-cat avg = 8.69 vs Eagle3 2.81 = <strong>3.09×</strong> — 在 diffusion-friendly category(语法/语义结构强)上,优势进一步放大。</p>
+
+<hr>
+
+<h2 id="sec9">9 · VLM 结果 + Asymmetric Dual Stream</h2>
+
+<h3>9.1 Table 9 完整重现</h3>
+<table>
+<thead><tr><th>Model</th><th>Mode</th><th>AI2D</th><th>ChartQA</th><th>DocVQA</th><th>MMMU</th><th>MathVista</th><th>RealWorldQA</th><th>TPF</th><th>Acc</th></tr></thead>
+<tbody>
+<tr><td>MMaDA</td><td>Diff</td><td>67.4</td><td>9.6</td><td>9.5</td><td>30.2</td><td>33.4</td><td>49.2</td><td>1</td><td>28.0</td></tr>
+<tr><td>LaViDa</td><td>Diff</td><td>70.0</td><td>59.0</td><td>64.6</td><td>43.3</td><td>44.8</td><td>54.5</td><td>1</td><td>46.9</td></tr>
+<tr><td>Dimple</td><td>Diff</td><td>74.4</td><td>63.4</td><td>37.7</td><td>45.2</td><td>42.3</td><td>55.4</td><td>1</td><td>44.3</td></tr>
+<tr><td>LLaDA-V-8B</td><td>Diff</td><td>77.8</td><td>78.3</td><td>83.9</td><td>48.6</td><td>59.7</td><td>63.2</td><td>1</td><td>58.2</td></tr>
+<tr style="background:#eef9f3"><td><b>NLD-VLM-8B</b></td><td>AR</td><td>75.0</td><td>81.3</td><td>89.2</td><td>50.3</td><td>60.4</td><td>62.6</td><td>1</td><td><b>59.5</b></td></tr>
+<tr style="background:#eef4ff"><td><b>NLD-VLM-8B</b></td><td>Diff (τ=0.9)</td><td>74.7</td><td>76.6</td><td>88.3</td><td>50.4</td><td>58.5</td><td>60.3</td><td>2.46 / 2.80 / <b>3.15</b></td><td>57.9</td></tr>
+<tr style="background:#fff3f0"><td><b>NLD-VLM-8B</b></td><td>Linear SS</td><td>74.9</td><td>81.2</td><td>89.3</td><td>50.0</td><td>60.7</td><td>62.4</td><td>3.63 / 6.03 / <b>7.45</b></td><td><b>59.4</b></td></tr>
+</tbody>
+</table>
+<p>TPF 三个值对应 all-samples / token>100 / token>200。<strong>Token >200 时 Linear SS 跑出 7.45× TPF</strong> — 这是"长 reasoning 任务上 diffusion 加速最明显"的硬证据。AR mode 也比 LLaDA-V 高 1.3 pp。</p>
+
+<h3>9.2 Asymmetric Dual Stream 工程巧思</h3>
+<p>Eq.(10):</p>
+<div class="formula">[ x̃ᵗᵉˣᵗ,ᴸᵗᵉˣᵗ_t | x^L ],   L_text = L − N_vis</div>
+<p>普通双流 (text only) 把 sequence 复制 2 倍。VLM 如果直接复制,vision token 一半在 noisy 流(永不被 mask 仍 forward)— 纯浪费。Asymmetric 方案 strip vision token from noisy half,只保留 clean 流的完整序列(包括 vision token)用于 cross-stream conditioning。total length = L_text + L 而非 2L。attention FLOPs 节约 ∝ N_vis/L,高分辨率图(N_vis 占大头)收益最显著。</p>
+
+<hr>
+
+<h2 id="sec10">10 · 6 个 Takeaway + 4 个未来方向</h2>
+
+<h3>10.1 六个 takeaway(§8 翻译)</h3>
+<ol>
+<li><b>Tri-mode 是 joint training 的自然产物</b> — 不需要任何 mode-specific 架构修改。</li>
+<li><b>AR 和 diff loss 互补,不竞争</b> — 都在 α=0.3 同时 peak,AR loss 引入 left-to-right prior,diff loss 略提升 AR future planning。</li>
+<li><b>Self-spec 优于 MTP</b> — 用 diffusion 自身做 drafter 而非 auxiliary head,acceptance 6.82 vs Eagle3 2.75。</li>
+<li><b>Variance reduction 对 diffusion 训练关键</b> — global loss averaging + two-stage AR init 都是降方差技巧。</li>
+<li><b>Linear SS 当前 infrastructure 最优</b> — Quad SS 单步 TPF 更高但 kernel 未优化,batch=1 部署仍要选 Linear。</li>
+<li><b>Diffusion 解码 headroom 巨大</b> — SOL 比 Linear SS 高 76.5% real TPF,sampler 还有大量优化空间。</li>
+</ol>
+
+<h3>10.2 四个未来方向</h3>
+<ol>
+<li><b>缩小 diffusion sampler 到 SOL 的 gap</b> — 当前 confidence-based sampler 远未达上限,需要更智能的 sampler 或更激进的并行采样训练 scheme。</li>
+<li><b>提升 draft-verifier 对齐</b> — LoRA 已经从 5.46 → 6.82,但用 nested subnets / Flextron / Amoeba-LLM 的 weight-share 子网做 drafter 还能进一步降本。</li>
+<li><b>超越 prefix-only 验证</b> — 当前 AR verify 只接收 contiguous prefix,丢失了 diffusion draft 的"散落对"。未来或用 diffusion verifier 双方互检,接收非连续 token。</li>
+<li><b>段级 / 段落级并行</b> — 当前 diffusion 解码仍偏 left-to-right,只是 token-level 并行。如果训练能鼓励 segment-level / paragraph-level 并行,会触及 diffusion 的全局规划真正本质。</li>
+</ol>
+
+<hr>
+
+<h2 id="sec11">11 · 与本系列工作的链路</h2>
+
+<div class="kv">
+<p><strong>强连接 — 直接共享作者或同源工作:</strong></p>
+<ul>
+<li><b>#23 RePlaid (本人参与)</b>: Morteza Mardani 同人,NVIDIA H1 2026 上的双押 — RePlaid 走 continuous likelihood-based 路线,Nemotron-Diff 走 discrete masking + 部署优化路线。两篇都在 2026-05 出版,共同奠定 NVIDIA Research 对 dLLM 的全栈布局。</li>
+<li><b>spec-rl/#17 Orthrus (推测)</b>: 同样的 AR+diff 双视图共享 KV cache 思想,Orthrus 是学术 prototype,Nemotron-Diff 把它放大到工业级 + 全家族开源。</li>
+<li><b>spec-rl/#07 DFlash / 论文 [9] Block Diffusion</b>: §3.2 直接引用作为 block-wise diffusion drafter 的起源。Nemotron-Diff 沿用其块内 bidirectional + 跨块 causal 设计。</li>
+<li><b>spec-rl/#16 DDTree</b>: 在 block diffusion 框架上的最优 draft tree。Quad SS 的 attention pattern 设计可被理解为 DDTree 的单 forward 工业实现。</li>
+<li><b>spec-rl/#15 Lossless Proof Tutorial</b>: Linear SS 的 verification 部分用的就是 Leviathan-Chen 2023 rejection sampling — 该教程 step-by-step 证明了 rejection sampling 的 distribution preservation。</li>
+<li><b>spec-rl/#14 LK Losses</b>: 论文 [19] 即 LK Losses 原论文,Nemotron-Diff 的 ℒ_LK (Eq. 6) 直接套用,加上 union top-K truncation 适配。</li>
+<li><b>models/#13 LongLLaDA</b>: LLaDA-8B 是 Tab 5 / 8 的主 diffusion baseline。Nemotron-Diff 把 LLaDA 8B base 在 instruct 平均上 +26.37 pp。</li>
+<li><b>models/#21 Prism</b>: dLLM test-time scaling — 与 Nemotron-Diff 的 trained sampler (Appendix A) 思路一致(都是"用一个小 head 学采样决策")。</li>
+<li><b>models/#14-18 MTP 系列</b>: Eagle3 [8] 是 Tab 10 的主对手,Nemotron-Diff acceptance 2.48× of Eagle3。论文实际上是给 MTP 路线设了一个明确的 ceiling。</li>
+<li><b>models/#07/08 INTELLECT-2/3</b>: 同一个 Megatron-bridge 训练栈;两者都是 NVIDIA RL/diff 全栈的代表。</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="sec11_5">11.5 · ⭐ 与 TiDAR (arXiv:2511.08923) 的关系 — 同人前作</h2>
+
+<p><strong>结论先行</strong>:TiDAR (2025-11-12) 是 Nemotron-Labs-Diffusion (2026-05-19) 的<strong>直接前作</strong>,**Nemotron-Diff 的 Quadratic Self-Speculation 模式就是 TiDAR 的核心方法**(论文 §3.4 verbatim "following the same process as [20]")。Nemotron-Diff 在 TiDAR 之上做了三件大事:(1) 引入 Linear SS 作为更工业可部署的双 forward 替代;(2) 把 single-mode 升级为 tri-mode 统一框架;(3) 加入 SOL 分析量化 76.5% headroom。</p>
+
+<h3>11.5.1 同人 trace — 三位作者横跨两篇</h3>
+
+<table>
+<tr><th>身份</th><th>TiDAR (2025-11)</th><th>Nemotron-Diff (2026-05)</th></tr>
+<tr><td>第一作者</td><td>Jingyu Liu</td><td><strong>Yonggan Fu</strong></td></tr>
+<tr><td>Yonggan Fu</td><td>5th author</td><td><strong>1st author (升任一作)</strong></td></tr>
+<tr><td>Jan Kautz</td><td>Senior author</td><td>Senior author</td></tr>
+<tr><td>Pavlo Molchanov</td><td>Last author</td><td>Last author</td></tr>
+<tr><td>机构</td><td>NVIDIA (+ Ce Zhang 学界)</td><td>NVIDIA + Georgia Tech + HKU + MIT</td></tr>
+</table>
+
+<p>从 author dynamics 看,这是 <strong>NVIDIA 一条研究 thread 的两次产出</strong>:TiDAR 是 proof-of-concept (1.5B/8B, 单架构),Nemotron-Diff 是 productionization (3B/8B/14B, 三模式 + 完整 VLM)。</p>
+
+<h3>11.5.2 方法对比 — TiDAR 等价于哪个 Nemotron 模式?</h3>
+
+<div class="fig">
+<svg viewBox="0 0 780 280" width="100%" style="max-width:780px">
+  <defs>
+    <marker id="mar25" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+  </defs>
+  <text x="390" y="22" font-size="14" font-weight="bold" text-anchor="middle">TiDAR 与 Nemotron-Diff 四模式的对应关系</text>
+
+  <!-- TiDAR box (left) -->
+  <rect x="40" y="50" width="280" height="180" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="180" y="74" font-size="14" font-weight="bold" text-anchor="middle" fill="#cc4a1b">TiDAR (2025-11)</text>
+  <text x="180" y="92" font-size="11" text-anchor="middle">"Think in Diffusion, Talk in AR"</text>
+  <text x="180" y="108" font-size="11" text-anchor="middle">Liu et al. arXiv:2511.08923</text>
+
+  <rect x="60" y="125" width="240" height="50" rx="6" fill="#f3eee0" stroke="#cc4a1b"/>
+  <text x="180" y="143" font-size="12" font-weight="bold" text-anchor="middle">单一架构 / 单 forward</text>
+  <text x="180" y="160" font-size="11" text-anchor="middle">Diff draft + AR sample</text>
+  <text x="180" y="172" font-size="10" text-anchor="middle" fill="#a8353e">FlexAttention 结构化 mask</text>
+
+  <text x="180" y="195" font-size="11" text-anchor="middle">规模: 1.5B / 8B</text>
+  <text x="180" y="210" font-size="11" text-anchor="middle">vs AR: <strong>4.71× — 5.91×</strong> tok/s</text>
+  <text x="180" y="223" font-size="10" text-anchor="middle" fill="#5b5e66">首次闭合 hybrid 与 AR 的 quality gap</text>
+
+  <!-- arrow -->
+  <line x1="325" y1="140" x2="450" y2="140" stroke="#2f6feb" stroke-width="3" marker-end="url(#mar25)"/>
+  <text x="387" y="132" font-size="11" font-weight="bold" text-anchor="middle" fill="#2f6feb">扩展 + 升级</text>
+  <text x="387" y="156" font-size="10" text-anchor="middle" fill="#2f6feb">作者复用 + 三模式化</text>
+
+  <!-- Nemotron Diff (right) -->
+  <rect x="460" y="50" width="290" height="220" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="605" y="74" font-size="14" font-weight="bold" text-anchor="middle" fill="#1f7a4a">Nemotron-Labs-Diffusion (2026-05)</text>
+  <text x="605" y="92" font-size="11" text-anchor="middle">"Tri-Mode Unified"</text>
+  <text x="605" y="106" font-size="11" text-anchor="middle">Fu et al. Tech Report</text>
+
+  <!-- four mode boxes -->
+  <rect x="480" y="120" width="120" height="38" rx="5" fill="#f3eee0" stroke="#5b5e66"/>
+  <text x="540" y="138" font-size="11" font-weight="bold" text-anchor="middle">Mode 1: AR</text>
+  <text x="540" y="151" font-size="10" text-anchor="middle">高并发 baseline</text>
+
+  <rect x="610" y="120" width="120" height="38" rx="5" fill="#f3eee0" stroke="#5b5e66"/>
+  <text x="670" y="138" font-size="11" font-weight="bold" text-anchor="middle">Mode 2: Diff</text>
+  <text x="670" y="151" font-size="10" text-anchor="middle">2.57× TPF, trained sampler</text>
+
+  <rect x="480" y="165" width="120" height="40" rx="5" fill="#f3eee0" stroke="#5b5e66"/>
+  <text x="540" y="183" font-size="11" font-weight="bold" text-anchor="middle">Mode 3a: Linear SS</text>
+  <text x="540" y="197" font-size="10" text-anchor="middle">5.99× TPF · <em>新增</em></text>
+
+  <rect x="610" y="165" width="120" height="40" rx="5" fill="#fff3e0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="670" y="183" font-size="11" font-weight="bold" text-anchor="middle" fill="#cc4a1b">Mode 3b: Quad SS</text>
+  <text x="670" y="197" font-size="10" text-anchor="middle" fill="#cc4a1b">= TiDAR 方法</text>
+
+  <text x="605" y="225" font-size="11" text-anchor="middle">规模: 3B / 8B / 14B + VLM</text>
+  <text x="605" y="240" font-size="11" text-anchor="middle">vs AR: 6.38× TPF / GB200 实测 3.97×</text>
+  <text x="605" y="255" font-size="10" text-anchor="middle" fill="#1f7a4a">+ SOL 分析显示 76.5% headroom</text>
+</svg>
+<figcaption><b>TiDAR ↔ Nemotron-Diff 方法对应</b>。橙色框是 TiDAR 的核心方法(单 forward / 结构化 mask / Diff draft + AR sample),被 Nemotron-Diff 完整吸收为 <strong>Mode 3b: Quadratic SS</strong>(也用 FlexAttention)。Nemotron-Diff 新增的是橙色框以外的所有内容:Mode 1 AR / Mode 2 Diff / <strong>Mode 3a Linear SS(双 forward 但 kernel 更友好,实测更快)</strong>,以及 joint AR-Diff 训练 + α=0.3 sweet spot + 双流 attention + 两阶段训练 + SOL 分析。所以 <strong>Nemotron-Diff ⊇ TiDAR + 全套新方法</strong>。</figcaption>
+</div>
+
+<h3>11.5.3 完整对比表</h3>
+
+<table>
+<tr><th>维度</th><th>TiDAR (2025-11)</th><th>Nemotron-Diff (2026-05)</th></tr>
+<tr><td>架构数</td><td>1 (单一 hybrid)</td><td><strong>3 模式</strong> (AR / Diff / SS) × 2 SS 子变体</td></tr>
+<tr><td>核心机制</td><td>单 forward + 结构化 mask + Diff draft + AR sample</td><td>Joint AR-Diff 训练 (α=0.3) + 双流 attention + 4 种推理切换</td></tr>
+<tr><td>TiDAR 对应位置</td><td>整篇 paper</td><td>仅 §3.4 / §4.5 <strong>Quadratic Self-Speculation</strong></td></tr>
+<tr><td>训练目标</td><td>未公开细节(摘要无明确描述)</td><td><strong>显式 α=0.3 sweet spot study</strong>(论文 Tab 2)</td></tr>
+<tr><td>双流 attention</td><td>未提</td><td>4 象限设计,clean 端严格 causal(论文 Fig 3)</td></tr>
+<tr><td>训练阶段</td><td>未细节</td><td><strong>两阶段</strong> (1T AR + 300B joint),WSD schedule</td></tr>
+<tr><td>SOL 分析</td><td>无</td><td><strong>76.5% headroom</strong>(论文 §4)</td></tr>
+<tr><td>模型规模</td><td>1.5B / 8B</td><td><strong>3B / 8B / 14B + VLM</strong></td></tr>
+<tr><td>vs AR speedup</td><td>4.71× — 5.91× tok/sec(论文摘要)</td><td>Linear SS 6× TPF / GB200 实测 3.97× / 量化后 RTX Pro 6000 6.56×</td></tr>
+<tr><td>vs MTP/Eagle3</td><td>"outperforms speculative decoding"(无精确数)</td><td><strong>acceptance 2.48× Eagle3</strong>(Tab 10) / GB200 2.4× tok/sec</td></tr>
+<tr><td>VLM 支持</td><td>无</td><td>有 (asymmetric dual stream)</td></tr>
+<tr><td>开源</td><td>未在 abstract 中提供</td><td>HF Model Family + Megatron Bridge</td></tr>
+</table>
+
+<h3>11.5.4 一句话定位</h3>
+
+<blockquote>
+TiDAR 提出"在 diffusion 里思考,在 AR 里说话"的<strong>单架构 hybrid</strong>;Nemotron-Diff 把这个 hybrid <strong>降级为四种推理模式之一</strong>(Quadratic SS),并在它周围搭建一个完整的 tri-mode 生态 — Linear SS(实测更快)、独立 Diffusion(最高潜力)、纯 AR(高并发兼容)。从工程语言讲,<strong>TiDAR 是 Nemotron-Diff 的"内核子集"</strong>,Nemotron-Diff 是工业部署版本。
+</blockquote>
+
+<h3>11.5.5 哪一篇值得读</h3>
+
+<ul>
+<li>想理解 <strong>"diffusion 起草 + AR 验证"</strong> 单 forward 范式的<strong>方法学根源</strong> → 读 TiDAR (短而集中)</li>
+<li>想看<strong>全套 tri-mode 训练 + 部署 + SOL 上限分析</strong> → 读 Nemotron-Diff (本文)</li>
+<li>想做 <strong>research 改进 hybrid</strong> → 先读 TiDAR 抓本质,再读 Nemotron-Diff 看工业落地经验</li>
+<li>想做 <strong>production 部署</strong> → 直接用 Nemotron-Diff 的 HF Model Family,Linear SS 即可(Quad SS 等 FlexAttention kernel 优化后再切换)</li>
+</ul>
+
+<hr>
+
+<h2 id="sec12">12 · 局限 / 待考察</h2>
+
+<h3>12.1 Quad SS 当前因 kernel 不优而落后 Linear SS</h3>
+<p>Tab 5 显示 Quad SS 单 forward acceptance 更高(6.38× TPF vs 5.99×),但 §6.1 明确说 "due to the use of FlexAttention with less optimized kernels for the dedicated attention mask, the real-device efficiency of quadratic self-speculation falls behind the linear one"。所以 Quad SS 是一个"未来 kernel 优化后会反超"的技术,目前部署默认仍是 Linear。这是工程现实 vs 算法潜力的典型张力。</p>
+
+<h3>12.2 Block size 越大,acceptance 越高但 accuracy 下降</h3>
+<p>Tab 4 末行 — BL=32 时 acc 61.81%,BL=4 时 acc 64.04%。差 2.23 pp。这是因为大 block 内多 token 同时 commit 时,context-dependent 关系被 "smear" 在并行采样里。如何在大 block 上保持精度,论文明确点为 "critical direction" — 这是后面"closing SOL-gap"研究的入口。</p>
+
+<h3>12.3 1.3T tokens continued pretraining 不便宜</h3>
+<p>Stage 1 1T + Stage 2 300B = <strong>1.3T tokens 在 256 × H100 上跑两次</strong>。这超出了大部分学术 lab 的预算,academic 重现几乎不可能。对比 RePlaid (#23) 只用 &lt;1B token IsoFLOP 就 prove 出 scaling law — 学术圈在 method 验证层面只能这样做。这也意味着 Nemotron-Diff 的具体 recipe(α=0.3, two-stage, 1T:300B 比例)是否唯一最优,缺少同等成本的对比实验。</p>
+
+<h3>12.4 没在 ≥30B 上验证 scaling</h3>
+<p>表 7 最大是 14B,而 LLaDA 2.0 已经做到 100B(论文引 [49])。Nemotron-Diff 的 "TPF 随 scale 上升"(3B 4.36→ 8B 5.99)这条 trend 是否能延伸到 30B+ 没有 evidence。一个 70B/100B 验证会让叙事完整,但目前仍是开放问题。</p>
+
+<h3>12.5 SOL 的 5000-budget 假设</h3>
+<p>Recursive dynamic compaction 的 "safe" 判断用 5000-forward simulation budget。如果 budget 改小,SOL 数字会下移;改大,SOL 数字会上移。论文没给 budget 敏感性分析 — 这意味着 7.60× 这个 SOL 数字本身依赖一个 implicit 的超参选择。</p>
+
+<h3>12.6 Trained sampler 的训练数据覆盖</h3>
+<p>Appendix A 说采样器训了 ~20M trajectories,来自 math/code/STEM/chat。但 SOL 11 类里 roleplay (3.49) / writing (6.13) / summarization (6.02) 都不在这 4 类里。"训过 4 类、评估 11 类" 的 sampler 是否对低相似类别可泛化,论文没明确实验。</p>
+
+<hr>
+
+<h2 id="sec13">13 · 开源 / 代码 / 复现</h2>
+
+<h3>13.1 已确认开源资源</h3>
+<table>
+<tr><th>资源</th><th>位置</th></tr>
+<tr><td>Model Family (HF)</td><td>"Nemotron-Labs-Diffusion Model Family" 集合(论文摘要、§5、§7 反复引用,具体 URL 待官方 HF 集合发布)</td></tr>
+<tr><td>训练 pipeline</td><td>Megatron Bridge(§5.1 "We release the training and inference pipeline through Megatron Bridge")</td></tr>
+<tr><td>Tech Report PDF</td><td><code>d1qx31qr3h6wln.cloudfront.net/publications/Nemotron_Diffusion_Tech_Report_v1.pdf</code></td></tr>
+<tr><td>评测框架</td><td>NeMo-Skills <a href="https://github.com/NVIDIA-NeMo/Skills" target="_blank" rel="noopener">github.com/NVIDIA-NeMo/Skills</a></td></tr>
+<tr><td>VLM 评测</td><td>VLMEvalKit (论文 [38])</td></tr>
+<tr><td>SPEED-Bench</td><td>论文 [1] arXiv:2604.09557</td></tr>
+</table>
+
+<h3>13.2 模型家族尺寸</h3>
+<ul>
+<li><b>Base</b>: 3B / 8B / 14B</li>
+<li><b>Instruct</b>: 3B / 8B / 14B</li>
+<li><b>VLM</b>: 8B(论文只在 8B 上展示了 VLM,小 / 大尺寸是否覆盖未明说)</li>
+</ul>
+
+<h3>13.3 模型快速识别</h3>
+<table>
+<tr><th>命名</th><th>含义</th></tr>
+<tr><td>NLD-8B (AR)</td><td>AR 模式,等价于 Qwen3-8B drop-in 替代</td></tr>
+<tr><td>NLD-8B (Diff)</td><td>Diffusion 模式 + confidence sampling,适合纯并行</td></tr>
+<tr><td>NLD-8B (Linear SS)</td><td>默认推荐,batch=1 personal AI 最佳</td></tr>
+<tr><td>NLD-8B (Quad SS)</td><td>实验性,精度最高,等 kernel 优化</td></tr>
+</table>
+
+<hr>
+
+<div class="nb">
+<b>读完之后一句话:</b> Nemotron-Labs-Diffusion 不是要替代 AR 或 diffusion 任何一边,而是<em>用一颗模型同时活成三副身份</em>,让部署的 mode 选择从"换模型"降级为"换 sampling 子程序"。这条路如果真的能产业化(SGLang + GB200 路径已经走通了),会重新定义 inference-time scaling 的工程基础架构 — 未来 LLM 服务的拓扑可能从"每个 deployment 一个 ckpt"变成"一个 ckpt + 多套 decoding 路径"。这正是 NVIDIA 想推的范式。
+</div>
+
+<hr>
+
+<p class="meta">
+  笔记完成日期:2026-05-19。基于论文 v1 (PDF first version)。主要表格(Tab 1/2/4/5/7/8/10/9)逐字对照源文档完成,SVG 图 7 张全部 inline 矢量,未引入外部依赖。
+</p>
+
+</main>
+</body>
+</html>
