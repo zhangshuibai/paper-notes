@@ -91,6 +91,7 @@
   <ol>
     <li><a href="#sec1">Motivation 与论文三问</a></li>
     <li><a href="#sec2">背景: diffusion LM 当前 scaling 困局</a></li>
+    <li><a href="#sec_arch">2.5 ⭐ 架构本质澄清 — 一个 backbone, 一个 LM head, 多种 attention mask</a></li>
     <li><a href="#sec3">Method 1 — Joint AR-Diffusion 训练 (含 §2/3/4 三图)</a></li>
     <li><a href="#sec4">Method 2 — Tri-Mode Inference (含 §1/5/7 三图)</a></li>
     <li><a href="#sec5">Speed-of-Light 分析 (含 §6 图)</a></li>
@@ -154,6 +155,148 @@ We introduce Nemotron-Labs-Diffusion, a tri-mode language model (LM) that unifie
 </tbody>
 </table>
 <p>Nemotron-Diff 的策略是 — 在 <strong>(joint AR-diff training)</strong> + <strong>(self-speculation 用 same-model AR 当 verifier)</strong> 两层都做改良,把三条路线的优点都吃进来。</p>
+
+<hr>
+
+<h2 id="sec_arch">2.5 · 架构本质澄清 — 一个 backbone, 一个 LM head, 多种 attention mask</h2>
+
+<div class="warn">
+<strong>常见误解先撤掉</strong>:Nemotron-Labs-Diffusion <strong>不是</strong>"一个 backbone + 两个 head(AR head + Diffusion head)"的双头结构。它是 <strong>一个 backbone + 一个 LM head</strong> —— <em>全部参数 θ 完全共享</em>。AR 模式和 Diffusion 模式之间的差异 <strong>仅来自 attention mask 配置</strong>,不来自任何额外的 head 或子网络。论文反复强调 "single model" / "single architecture"(abstract / §1 / §8 verbatim),并明确写 "single LM backbone and LM head"(§5.3)。</div>
+
+<h3>2.5.1 完整参数清单(8B 模型)</h3>
+
+<table>
+<tr><th>组件</th><th>参数量</th><th>占比</th><th>训练 vs 推理时</th></tr>
+<tr><td>① <strong>主 Transformer backbone</strong></td><td>~8 B</td><td>~99.5%</td><td>训练时:joint AR+Diff loss / 推理时:所有模式共用</td></tr>
+<tr><td>② <strong>主 LM head</strong>(单一 vocab 投影)</td><td>(已含在 8B)</td><td>—</td><td>所有模式共用,无 AR/Diff 分支</td></tr>
+<tr><td>③ Trained sampler(Mode 2 用)</td><td>~4.8 M</td><td>~0.06%</td><td>只在 Diffusion mode 推理时调用,预测"该不该 commit"</td></tr>
+<tr><td>④ LoRA on <code>o_proj</code>(Mode 3a 用)</td><td>~36 M</td><td>~0.4%</td><td>只在 Linear SS 起草 forward 时启用,对齐 Diff drafter 与 AR verifier</td></tr>
+<tr><td><strong>合计</strong></td><td>≈ 8.04 B</td><td>100.4%</td><td>所有可选模块加起来 +0.46%</td></tr>
+</table>
+
+<h3>2.5.2 一图看清架构(图 A)</h3>
+
+<div class="fig">
+<svg viewBox="0 0 800 540" width="100%" style="max-width:800px">
+  <defs>
+    <marker id="ma1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+    <marker id="ma2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+
+  <text x="400" y="22" font-size="14" font-weight="bold" text-anchor="middle">Nemotron-Labs-Diffusion 实际架构 — 一个 backbone, 共享给 4 种推理模式</text>
+
+  <!-- main backbone (single column) -->
+  <rect x="320" y="50" width="160" height="220" rx="10" fill="#fff" stroke="#2f6feb" stroke-width="3"/>
+  <text x="400" y="74" font-size="13" font-weight="bold" text-anchor="middle" fill="#2f6feb">① 主 Transformer Backbone</text>
+  <text x="400" y="92" font-size="11" text-anchor="middle">~8 B 参数</text>
+
+  <!-- transformer layers stack -->
+  <g font-size="10" text-anchor="middle">
+    <rect x="340" y="105" width="120" height="20" rx="3" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="400" y="119">Transformer Block × N</text>
+    <rect x="340" y="130" width="120" height="20" rx="3" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="400" y="144">(每层 attention 接收外部 mask)</text>
+    <rect x="340" y="155" width="120" height="20" rx="3" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="400" y="169">注意 o_proj ↓</text>
+    <rect x="340" y="180" width="120" height="40" rx="3" fill="#fff3e0" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="400" y="196" font-weight="bold" fill="#cc4a1b">④ LoRA on o_proj</text>
+    <text x="400" y="210" fill="#cc4a1b">rank 128 · ~36M</text>
+  </g>
+
+  <!-- LM head -->
+  <rect x="320" y="240" width="160" height="30" rx="6" fill="#fff" stroke="#2f6feb" stroke-width="2"/>
+  <text x="400" y="260" font-size="12" font-weight="bold" text-anchor="middle" fill="#2f6feb">② 唯一 LM Head(vocab 投影)</text>
+
+  <!-- optional sampler -->
+  <rect x="540" y="180" width="180" height="60" rx="6" fill="#fff" stroke="#cc4a1b" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="630" y="200" font-size="12" font-weight="bold" text-anchor="middle" fill="#cc4a1b">③ Trained Sampler</text>
+  <text x="630" y="217" font-size="11" text-anchor="middle">~4.8 M · 0.06%</text>
+  <text x="630" y="232" font-size="10" text-anchor="middle">只 Diff mode 用</text>
+  <line x1="480" y1="200" x2="540" y2="200" stroke="#cc4a1b" stroke-dasharray="3 3" stroke-width="1.5"/>
+
+  <!-- four mode arrows showing they all share the same backbone -->
+  <text x="100" y="310" font-size="12" font-weight="bold" fill="#5b5e66">↓ 不同推理模式 = 不同 attention mask,但共用上面同一组参数 ↓</text>
+
+  <!-- 4 modes below -->
+  <g font-size="11">
+    <!-- Mode 1 AR -->
+    <rect x="40" y="330" width="170" height="180" rx="8" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="125" y="350" font-weight="bold" text-anchor="middle">Mode 1: AR</text>
+    <text x="125" y="368" text-anchor="middle" font-size="10">attention mask =</text>
+    <text x="125" y="382" text-anchor="middle" font-weight="bold" fill="#a8353e">严格 causal</text>
+    <text x="125" y="402" text-anchor="middle" font-size="10">用 ① + ②</text>
+    <text x="125" y="420" text-anchor="middle" font-size="10">不用 ③ ④</text>
+    <text x="125" y="445" text-anchor="middle" font-size="10">高并发 cloud</text>
+    <text x="125" y="465" text-anchor="middle" font-size="10">TPF = 1.00</text>
+
+    <!-- Mode 2 Diff -->
+    <rect x="220" y="330" width="170" height="180" rx="8" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="305" y="350" font-weight="bold" text-anchor="middle">Mode 2: Diffusion</text>
+    <text x="305" y="368" text-anchor="middle" font-size="10">attention mask =</text>
+    <text x="305" y="382" text-anchor="middle" font-weight="bold" fill="#a8353e">块内双向 + 跨块 causal</text>
+    <text x="305" y="402" text-anchor="middle" font-size="10">用 ① + ② + <span>③</span></text>
+    <text x="305" y="420" text-anchor="middle" font-size="10">不用 ④</text>
+    <text x="305" y="445" text-anchor="middle" font-size="10">flexible 部署</text>
+    <text x="305" y="465" text-anchor="middle" font-size="10">TPF = 2.57×</text>
+
+    <!-- Mode 3a Linear SS -->
+    <rect x="400" y="330" width="170" height="180" rx="8" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+    <text x="485" y="350" font-weight="bold" text-anchor="middle" fill="#1f7a4a">Mode 3a: Linear SS</text>
+    <text x="485" y="368" text-anchor="middle" font-size="10">attention mask =</text>
+    <text x="485" y="380" text-anchor="middle" font-size="10" font-weight="bold" fill="#a8353e">2 次 forward</text>
+    <text x="485" y="394" text-anchor="middle" font-size="10">(Diff draft, AR verify)</text>
+    <text x="485" y="415" text-anchor="middle" font-size="10">用 ① + ② + <strong>④</strong></text>
+    <text x="485" y="430" text-anchor="middle" font-size="10">draft forward 启用 ④</text>
+    <text x="485" y="455" text-anchor="middle" font-size="10">低并发 edge</text>
+    <text x="485" y="475" text-anchor="middle" font-size="10">TPF = 5.99×</text>
+
+    <!-- Mode 3b Quad SS -->
+    <rect x="580" y="330" width="170" height="180" rx="8" fill="#fff3e0" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="665" y="350" font-weight="bold" text-anchor="middle" fill="#cc4a1b">Mode 3b: Quad SS</text>
+    <text x="665" y="365" text-anchor="middle" font-size="10" fill="#cc4a1b">= TiDAR 方法</text>
+    <text x="665" y="380" text-anchor="middle" font-size="10">attention mask =</text>
+    <text x="665" y="394" text-anchor="middle" font-size="10" font-weight="bold" fill="#a8353e">单 forward 复合 mask</text>
+    <text x="665" y="415" text-anchor="middle" font-size="10">用 ① + ②</text>
+    <text x="665" y="430" text-anchor="middle" font-size="10">不用 ③ ④</text>
+    <text x="665" y="455" text-anchor="middle" font-size="10">FlexAttention 决定速度</text>
+    <text x="665" y="475" text-anchor="middle" font-size="10">TPF = 6.38× (理论)</text>
+  </g>
+
+  <!-- arrows from backbone to each mode -->
+  <line x1="125" y1="270" x2="125" y2="330" stroke="#2f6feb" stroke-width="2" marker-end="url(#ma1)"/>
+  <line x1="305" y1="270" x2="305" y2="330" stroke="#2f6feb" stroke-width="2" marker-end="url(#ma1)"/>
+  <line x1="485" y1="270" x2="485" y2="330" stroke="#2f6feb" stroke-width="2" marker-end="url(#ma1)"/>
+  <line x1="665" y1="270" x2="665" y2="330" stroke="#2f6feb" stroke-width="2" marker-end="url(#ma1)"/>
+</svg>
+<figcaption><b>图 A — Nemotron-Labs-Diffusion 完整架构</b>。<strong>关键事实</strong>:整个模型就是<strong>一个 8B Transformer + 一个 LM head</strong>(蓝色双线方块 ① 和 ②),所有 4 种推理模式都共用这同一组参数。两个可选小模块(虚线橙色框)是 ③ 4.8M Trained Sampler(只 Diff mode 用)和 ④ 36M LoRA on o_proj(只 Linear SS 起草 forward 用)。底部 4 个绿/橙框是<strong>同一份权重</strong>在 4 种不同 attention mask 配置下的"四种身份"。<em>没有所谓"AR head"和"Diffusion head"</em> —— 整个 vocab 投影只有一个 LM head。</figcaption>
+</div>
+
+<h3>2.5.3 "AR pathway" 与 "Diff pathway" 的精确含义</h3>
+
+<p>论文 §3.3 写 "leaving the AR pathway unchanged" —— 这里的 "pathway" <strong>不是</strong>独立子网络,而是<strong>同一组参数的一种 attention mask 配置 + 调用方式</strong>:</p>
+
+<table>
+<tr><th>说"pathway"时,真实含义</th><th>具体到 forward pass</th></tr>
+<tr><td><strong>AR pathway</strong></td><td>把 backbone 设成 causal mask(每个 token 只能看前面)+ LM head 出 next-token 分布 + <strong>不启用 LoRA</strong></td></tr>
+<tr><td><strong>Diff pathway</strong> / drafter</td><td>把 backbone 设成块内双向 + 跨块 causal mask + LM head 出每个 mask 位的分布 + <strong>启用 LoRA on o_proj</strong></td></tr>
+</table>
+
+<p>所以 LoRA 训练时 "leaving the AR pathway unchanged" 实际意思是:<em>训练 LoRA 时只在 diff-mask 的 forward 上算 loss,gradient 不流到 causal-mask forward 上;部署时 AR mode 推理可以选择跳过 LoRA delta,行为完全等于原 backbone</em>。</p>
+
+<h3>2.5.4 训练阶段也是同样的"单模型双视图"</h3>
+
+<p>训练时(§2.2):把序列 x 同时摆两份(clean view <code>x</code> + noisy view <code>x̃_t</code>)拼成<strong>一个长序列</strong>过<strong>一次 forward</strong>,用 4 象限 attention mask:</p>
+<ul>
+<li>Clean → Clean 部分用 <strong>严格 causal</strong> mask,LM head 算 ℒ_AR</li>
+<li>Noisy → Noisy 部分用 <strong>块内双向 + 跨块 causal</strong>,LM head 算 ℒ_diff</li>
+<li>Noisy → Clean 让 noisy token 看到 clean 前缀作为去噪条件</li>
+<li>Clean → Noisy <strong>禁用</strong>(防止 AR 端"作弊"看到 mask 信息)</li>
+</ul>
+<p>同一个 LM head 在不同位置算两种 loss;backbone 在一次 forward 里就吃完两种监督。</p>
 
 <hr>
 
@@ -967,6 +1110,120 @@ We introduce Nemotron-Labs-Diffusion, a tri-mode language model (LM) that unifie
   <text x="605" y="255" font-size="10" text-anchor="middle" fill="#1f7a4a">+ SOL 分析显示 76.5% headroom</text>
 </svg>
 <figcaption><b>TiDAR ↔ Nemotron-Diff 方法对应</b>。橙色框是 TiDAR 的核心方法(单 forward / 结构化 mask / Diff draft + AR sample),被 Nemotron-Diff 完整吸收为 <strong>Mode 3b: Quadratic SS</strong>(也用 FlexAttention)。Nemotron-Diff 新增的是橙色框以外的所有内容:Mode 1 AR / Mode 2 Diff / <strong>Mode 3a Linear SS(双 forward 但 kernel 更友好,实测更快)</strong>,以及 joint AR-Diff 训练 + α=0.3 sweet spot + 双流 attention + 两阶段训练 + SOL 分析。所以 <strong>Nemotron-Diff ⊇ TiDAR + 全套新方法</strong>。</figcaption>
+</div>
+
+<h3>11.5.2.5 ⭐ 架构身份对比 — TiDAR 与 Nemotron-Diff 的 backbone 同构</h3>
+
+<p>很多读者(包括我)第一次读会以为 Nemotron-Diff 比 TiDAR <em>多了一个 head</em>。<strong>错</strong>。两篇<strong>底层 backbone 架构是同构的</strong>,差异只在<strong>训练目标</strong>和<strong>推理时怎么选 attention mask</strong>。先看图,再看精确解释。</p>
+
+<div class="fig">
+<svg viewBox="0 0 800 560" width="100%" style="max-width:800px">
+  <defs>
+    <marker id="mb1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f6feb"/>
+    </marker>
+    <marker id="mb2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cc4a1b"/>
+    </marker>
+  </defs>
+
+  <text x="400" y="22" font-size="14" font-weight="bold" text-anchor="middle">TiDAR vs Nemotron-Diff — backbone 架构身份对比</text>
+
+  <!-- 左:TiDAR -->
+  <rect x="40" y="50" width="340" height="490" rx="10" fill="#fff" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="210" y="74" font-size="14" font-weight="bold" text-anchor="middle" fill="#cc4a1b">TiDAR (2025-11)</text>
+  <text x="210" y="92" font-size="11" text-anchor="middle">arXiv:2511.08923</text>
+
+  <!-- TiDAR backbone -->
+  <rect x="100" y="115" width="220" height="120" rx="8" fill="#f3eee0" stroke="#cc4a1b" stroke-width="2"/>
+  <text x="210" y="138" font-size="12" font-weight="bold" text-anchor="middle" fill="#cc4a1b">1 个 Transformer backbone</text>
+  <text x="210" y="156" font-size="11" text-anchor="middle">(1.5B 或 8B)</text>
+  <text x="210" y="180" font-size="11" text-anchor="middle">+ 1 个 LM head</text>
+  <text x="210" y="200" font-size="10" text-anchor="middle">无额外 head, 无 LoRA</text>
+  <text x="210" y="218" font-size="10" text-anchor="middle" fill="#a8353e">完全 vanilla 结构</text>
+
+  <text x="210" y="260" font-size="12" font-weight="bold" text-anchor="middle">训练目标</text>
+  <rect x="80" y="270" width="260" height="55" rx="5" fill="#fff"/>
+  <text x="210" y="288" font-size="10" text-anchor="middle">未在 abstract 公开细节</text>
+  <text x="210" y="302" font-size="10" text-anchor="middle">推测:diffusion loss + AR loss</text>
+  <text x="210" y="316" font-size="10" text-anchor="middle">+ structured mask 联合训练</text>
+
+  <text x="210" y="350" font-size="12" font-weight="bold" text-anchor="middle">推理 — 只有 1 种模式</text>
+  <rect x="80" y="360" width="260" height="80" rx="5" fill="#fff3e0" stroke="#cc4a1b"/>
+  <text x="210" y="380" font-size="11" font-weight="bold" text-anchor="middle" fill="#cc4a1b">单 forward + 复合 mask</text>
+  <text x="210" y="398" font-size="10" text-anchor="middle">Diff draft + AR verify 同 forward</text>
+  <text x="210" y="412" font-size="10" text-anchor="middle">FlexAttention 结构化 mask</text>
+  <text x="210" y="428" font-size="10" text-anchor="middle" fill="#5b5e66">"Think in Diffusion, Talk in AR"</text>
+
+  <text x="210" y="470" font-size="11" text-anchor="middle">Scale: 1.5B / 8B</text>
+  <text x="210" y="488" font-size="11" text-anchor="middle">Speedup vs AR: 4.71-5.91×</text>
+  <text x="210" y="510" font-size="10" font-style="italic" text-anchor="middle" fill="#5b5e66">作为 standalone serving 模型</text>
+  <text x="210" y="525" font-size="10" font-style="italic" text-anchor="middle" fill="#5b5e66">没有 fallback 到纯 AR / 纯 Diff</text>
+
+  <!-- 右:Nemotron -->
+  <rect x="420" y="50" width="340" height="490" rx="10" fill="#fff" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="590" y="74" font-size="14" font-weight="bold" text-anchor="middle" fill="#1f7a4a">Nemotron-Labs-Diffusion (2026-05)</text>
+  <text x="590" y="92" font-size="11" text-anchor="middle">同 NVIDIA 团队 6 个月后</text>
+
+  <!-- Nemotron backbone (IDENTICAL!) -->
+  <rect x="480" y="115" width="220" height="120" rx="8" fill="#e8f5e8" stroke="#1f7a4a" stroke-width="2"/>
+  <text x="590" y="138" font-size="12" font-weight="bold" text-anchor="middle" fill="#1f7a4a">1 个 Transformer backbone</text>
+  <text x="590" y="156" font-size="11" text-anchor="middle">(3B / 8B / 14B)</text>
+  <text x="590" y="180" font-size="11" text-anchor="middle">+ 1 个 LM head</text>
+  <text x="590" y="200" font-size="10" text-anchor="middle">+ 4.8M sampler(可选)</text>
+  <text x="590" y="218" font-size="10" text-anchor="middle" fill="#a8353e">+ 36M LoRA on o_proj(可选)</text>
+
+  <text x="590" y="260" font-size="12" font-weight="bold" text-anchor="middle">训练目标</text>
+  <rect x="460" y="270" width="260" height="55" rx="5" fill="#fff"/>
+  <text x="590" y="288" font-size="10" text-anchor="middle">显式 ℒ_AR + α·ℒ_diff (α=0.3)</text>
+  <text x="590" y="302" font-size="10" text-anchor="middle">双流 4 象限 attention</text>
+  <text x="590" y="316" font-size="10" text-anchor="middle">两阶段: 1T AR + 300B joint</text>
+
+  <text x="590" y="350" font-size="12" font-weight="bold" text-anchor="middle">推理 — 4 种模式 (一个 ckpt)</text>
+  <g font-size="10" text-anchor="middle">
+    <rect x="430" y="358" width="78" height="30" rx="3" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="469" y="375">Mode 1: AR</text>
+    <rect x="513" y="358" width="78" height="30" rx="3" fill="#f3eee0" stroke="#5b5e66"/>
+    <text x="552" y="375">Mode 2: Diff</text>
+    <rect x="596" y="358" width="78" height="30" rx="3" fill="#f3eee0" stroke="#1f7a4a" stroke-width="1.5"/>
+    <text x="635" y="372">Mode 3a:</text>
+    <text x="635" y="383">Linear SS</text>
+    <rect x="679" y="358" width="78" height="30" rx="3" fill="#fff3e0" stroke="#cc4a1b" stroke-width="2"/>
+    <text x="718" y="372" fill="#cc4a1b">Mode 3b:</text>
+    <text x="718" y="383" fill="#cc4a1b">Quad SS</text>
+  </g>
+  <text x="590" y="408" font-size="11" font-weight="bold" text-anchor="middle" fill="#cc4a1b">⭐ Mode 3b 完全等价于 TiDAR</text>
+  <text x="590" y="424" font-size="10" text-anchor="middle">其它 3 个模式是新增</text>
+  <text x="590" y="438" font-size="10" text-anchor="middle" fill="#5b5e66">每个模式只是切换 attention mask</text>
+
+  <text x="590" y="470" font-size="11" text-anchor="middle">Scale: 3B / 8B / 14B + VLM</text>
+  <text x="590" y="488" font-size="11" text-anchor="middle">Speedup vs AR: 3.97-6.56×</text>
+  <text x="590" y="510" font-size="10" font-style="italic" text-anchor="middle" fill="#5b5e66">支持 fallback 到纯 AR(高并发)</text>
+  <text x="590" y="525" font-size="10" font-style="italic" text-anchor="middle" fill="#5b5e66">或纯 Diff(灵活度)</text>
+
+  <!-- arrow showing identity at backbone level -->
+  <line x1="320" y1="175" x2="478" y2="175" stroke="#2f6feb" stroke-width="3" stroke-dasharray="8 4"/>
+  <text x="400" y="165" font-size="11" font-weight="bold" text-anchor="middle" fill="#2f6feb">backbone 架构同构</text>
+  <text x="400" y="195" font-size="10" text-anchor="middle" fill="#2f6feb">(都是 1 backbone + 1 LM head)</text>
+</svg>
+<figcaption><b>架构身份对比</b>。蓝色虚线显示<strong>两篇底层 backbone 架构完全同构</strong>:都是"<em>1 个 Transformer + 1 个 LM head</em>",连 LoRA 都没有(TiDAR)或仅 36M optional(Nemotron)。<strong>差异只在两层</strong>:① <strong>训练目标</strong> — Nemotron-Diff 显式写 ℒ_AR + α·ℒ_diff 和 sweet-spot α=0.3,TiDAR 没公开细节;② <strong>推理时怎么用 mask</strong> — TiDAR 只支持单 forward 复合 mask 一种模式;Nemotron-Diff 支持 4 种(其中 <em>Mode 3b Quadratic SS 完全等价 TiDAR</em>,橙色框)。所以从架构层面讲,<strong>Nemotron-Diff 没有"新增 head"或"新增子网络"</strong> —— 它只是把<strong>同一个 backbone 在推理时多了 3 种 attention mask 切换玩法</strong>,并外加了 36M LoRA / 4.8M sampler 两个可选小模块。这点是理解两篇关系的关键。</figcaption>
+</div>
+
+<div class="kv">
+<p><strong>说"两个 head"是错的</strong>:</p>
+<ul>
+<li>Vocab 投影只有 <strong>1 个</strong> LM head,在 AR / Diff / Linear SS / Quad SS 四种 mode 下复用</li>
+<li>"AR pathway" / "Diff pathway" 是<strong>同一组参数的两种 attention mask 配置</strong>,不是独立 head</li>
+<li>4.8M sampler 模块严格说是"acceptance 决策器",不是 LM head — 它输出"该不该 commit"的二分概率,不输出 token 分布</li>
+<li>36M LoRA 是<strong>同一个 o_proj 矩阵的低秩增量</strong>,不是独立的 attention layer</li>
+</ul>
+<p><strong>TiDAR 与 Nemotron-Diff 区别的本质</strong>:</p>
+<ul>
+<li>架构层面:<em>同构</em>(都是 1 backbone + 1 LM head)</li>
+<li>训练层面:Nemotron-Diff 显式 joint loss + 两阶段 + double-stream attention,TiDAR 细节未公开</li>
+<li>推理层面:TiDAR 仅 1 模式 = Nemotron 的 Mode 3b;Nemotron 多 3 个模式(AR 兼容 / 独立 Diff / Linear SS 双 forward)</li>
+<li>定位层面:TiDAR 是"single architecture for serving",Nemotron-Diff 是"single ckpt for all deployment scenarios"</li>
+</ul>
 </div>
 
 <h3>11.5.3 完整对比表</h3>
