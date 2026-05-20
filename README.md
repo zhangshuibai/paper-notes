@@ -26,7 +26,7 @@
 
 建议阅读顺序: **15 (Lossless 数学证明) → 02 (EAGLE 演化) → 04 (ReSpec) → 03 (SPEC-RL) → 05 (DAS) → 01 (NVIDIA) → 06 (SRT) → 07 (DFlash) → 08 (Hidden States Drift) → 09 (Mirror-SD) → 10 (SSD) → 14 (LK Losses) → 13 (SV) → 12 (DropMatch) → 11 (Performance or Illusion?) → 16 (DDTree) → 17 (Orthrus, intra-model 终极 lossless 加速)**
 
-## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (24 篇)
+## 🟡 models/ — 前沿模型 / 训练系统 / LM 方法 (25 篇)
 
 | # | 笔记 | 主题 | 大小 |
 |---|---|---|---|
@@ -54,6 +54,7 @@
 | 22 | [Retrofitting Recurrence](https://zhangshuibai.github.io/paper-notes/models/notes/22_RetrofitRecurrence_2511.07384.html) | 把 pretrained TinyLlama/OLMo/Llama 切成 depth-recurrent / curriculum + Muon | 50 KB |
 | 23 | [RePlaid (continuous DLM) **(本人参与)**](https://zhangshuibai.github.io/paper-notes/models/notes/23_RePlaid_2605.18530.html) | Plaid → 现代 DiT 架构对齐 / OWT PPL 22.1 SOTA(continuous) / vs AR 20× compute(原 64×) / 反超 MDLM 23.1 + Duo 25.2 / variance-min schedule ⇒ linear CE 闭式定理 / embedding 几何驱动 Δ=17.3 PPL | 68 KB |
 | 24 | [Nemotron-Labs-Diffusion (NVIDIA Tech Report 2026-05)](https://zhangshuibai.github.io/paper-notes/models/notes/24_NemotronDiff_2026_TechReport.html) | tri-mode LM (AR / Diffusion / Self-Spec) 统一在一颗 8B ckpt / joint loss ℒ_AR + 0.3·ℒ_diff / 双流 attention 4 象限(clean→clean strictly causal 是关键创新)/ 两阶段 1T AR + 300B joint / 256× H100 · Megatron Bridge / Linear SS w/ LoRA on o_proj acceptance 5.46→6.82 (vs Eagle3 2.75 / MTP 4.24) / GB200 SGLang 4× 端到端吞吐 vs Qwen3-8B-Eagle3 2.4× / SOL 7.60× ceiling, 比 Linear SS 高 76.5% real-TPF headroom / SPEED-Bench 11 类 + 3B/8B/14B + VLM 全开源 / **强连接 #23 RePlaid(Mardani 同人, NVIDIA H1 2026 离散 vs 连续双押)** / **同人前作 TiDAR (arXiv:2511.08923, Liu/Fu/Kautz/Molchanov)** — Quad SS = TiDAR 方法,Linear SS + tri-mode + SOL 分析全部新增 | 84 KB |
+| 25 | [⚙️ fastllm 调研 (ztxz16/fastllm)](https://zhangshuibai.github.io/paper-notes/models/notes/25_fastllm_infra.html) | **首篇推理框架 infra 调研**(姊妹于 #19 训练框架) / C++ 自有算子, 不依赖 PyTorch / Apache-2.0 · 4664★ · 2023-05 起活跃维护 / **任意 ≥10 GB 显卡跑满血 DeepSeek 671B**: 双路 EPYC 9004/9005 + 单 GPU INT4 30 tps 单并发 · 60+ tps 多并发 · FP8 原版 20 tps / **关键差异化**: 老 GPU 全系(M40/K80 SM_52+ / P100 / MI50)主流框架已抛弃 fastllm 还在 + FP8 软件路径任意显卡 + 奇数张卡 TP (3/5/7) + 国产卡(天数/沐曦/燧原/华为昇腾)+ NPU(ThinkForce)/ **核心招式 CPU+GPU 混合推理**: attention 上 GPU · MoE expert 上 CPU/NUMA · 可挂 disk 兜底 · `--moe_device "{'cuda':1,'numa':19}"` 任意比例 / **NUMA 深度优化**: `FASTLLM_USE_NUMA=ON` + `kernel.numa_balancing=0` + `FASTLLM_NUMA_THREADS=27` / **动态量化** dtype_config regex JSON / 支持 dtype: int4g/int4/int4g256/int8/fp8/float16/bf16/NVFP4(B200) / 工具调用支持 GLM4.5/Qwen3-Instruct/Qwen3-Coder/Kimi-K2/DeepSeek V3.1 / OpenAI + Anthropic 兼容 API + 多模态(V0.1.6.0+)/ V0.1.6.x 节奏快: NVFP4 / DSV4 / 磁盘 MoE / chunked prefill 都密集发布 / **vs KTransformers**: 按比例切 MoE 层更细 + 奇数卡 TP + C++ 不依赖 PyTorch / **vs vLLM/SGLang**: 不抢高并发 serving 但补齐了"单机 671B + 老硬件 + 国产卡"独占赛道 / 局限: 无 PagedAttention · 无多机 EP/PD-disagg · 无 Mac · 量化质量盲区 · 英文文档落后 / 链 models/#19 #07 #08 #24 + agents/#27 #28 #36 | 74 KB |
 
 ### MTP 系列阅读建议
 

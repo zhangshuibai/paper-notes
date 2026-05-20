@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>fastllm 调研 — 老硬件 + MoE 混合推理 (2026)</title>
+<style>
+  :root{
+    --bg:#fbfaf6; --fg:#1f2024; --muted:#5b5e66;
+    --accent:#2f6feb; --accent2:#cc4a1b; --good:#1f7a4a; --bad:#a8353e;
+    --card:#fff; --line:#e2dfd5; --soft:#f3eee0; --code:#f5f1e6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+  main{max-width:820px;margin:0 auto;padding:36px 24px 120px}
+  h1{font-size:30px;line-height:1.3;margin:.2em 0 .1em}
+  h2{font-size:22px;margin:1.8em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:.3em}
+  h3{font-size:18px;margin:1.4em 0 .4em;color:var(--accent)}
+  h4{font-size:16px;margin:1em 0 .3em;color:var(--accent2)}
+  p{margin:.6em 0}
+  code{background:var(--code);padding:1px 6px;border-radius:4px;font-size:.92em;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:.9em}
+  blockquote{border-left:3px solid var(--accent);background:var(--soft);
+    padding:10px 16px;margin:1em 0;border-radius:0 8px 8px 0;color:#3a3b40}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:24px}
+  .tldr{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:18px 0 28px;box-shadow:0 1px 0 rgba(0,0,0,.03)}
+  .tldr h2{margin-top:0;border:none;font-size:18px;color:var(--accent)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat{background:var(--soft);border-radius:10px;padding:10px 12px;text-align:center}
+  .stat .n{font-size:20px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:.92em}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  .kv{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:.6em 0}
+  .kv strong{color:var(--accent)}
+  .term{background:#fff7e0;border-radius:3px;padding:0 4px}
+  .fig{background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin:18px 0;text-align:center}
+  .fig figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;
+    background:var(--soft);color:var(--muted);margin-right:6px}
+  .ok{color:var(--good)}.no{color:var(--bad)}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:12px 16px;margin:10px 0;font-family:"SF Mono",Menlo,monospace;
+    text-align:center;font-size:1.05em}
+  details{margin:.6em 0;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:8px 14px}
+  details summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 22px;margin:18px 0}
+  .toc ol{padding-left:22px;margin:6px 0}
+  .toc a{color:var(--accent);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0}
+  .nb{background:#fff8e8;border-left:3px solid #d2a32a;padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  .warn{background:#fff0ec;border-left:3px solid var(--accent2);padding:8px 14px;
+    border-radius:0 6px 6px 0;margin:.6em 0;font-size:.95em}
+  section.fw{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin:22px 0}
+  section.fw h3{margin-top:0}
+  .tier{border-left:4px solid var(--accent);padding:10px 16px;margin:12px 0;background:var(--card);border-radius:0 8px 8px 0;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .tier.t1{border-left-color:#1f7a4a}
+  .tier.t2{border-left-color:#d2a32a}
+  .tier.t3{border-left-color:#cc4a1b}
+  .tier.t4{border-left-color:#2f6feb}
+  .tier.t5{border-left-color:#a8353e}
+  .tier h4{margin-top:0}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<main>
+
+<h1>fastllm 调研 — 老硬件 + MoE 混合推理框架</h1>
+<div class="meta">
+  Infra / Landscape Note · 2026-05-20<br>
+  仓库: <a href="https://github.com/ztxz16/fastllm">ztxz16/fastllm</a> · License Apache-2.0 · C++ 主干 · 中文社区主导<br>
+  关键词: hybrid CPU+GPU MoE · NUMA · FP8 任意显卡 · DeepSeek 671B 单卡 · 老 GPU 兼容
+</div>
+
+<div class="tldr">
+  <h2>速读卡片 (TL;DR)</h2>
+  <p><strong>一句话:</strong>fastllm 是一个 <em>C++ 自有算子、不依赖 PyTorch</em> 的中文社区 LLM 推理框架,定位 <strong>"穷人推理满血 MoE"</strong> — 只要一张 ≥10 GB 显存的显卡 + 一台多通道服务器(256–700 GB RAM),就能跑 DeepSeek R1 671B 满血原版,在双路 EPYC 9004/9005 上 INT4 单并发 30 tps、多并发 60+ tps。它不和 vLLM/SGLang 抢 frontier serving 市场,但在 <strong>老 GPU(K80/M40/P100/MI50)+ 国产卡 + NUMA</strong> 这条赛道上几乎独占。</p>
+  <div class="stats">
+    <div class="stat"><div class="n">4664★</div><div class="l">Stars (2026-05)</div></div>
+    <div class="stat"><div class="n">Apache-2.0</div><div class="l">商用 friendly</div></div>
+    <div class="stat"><div class="n">≥10 GB GPU</div><div class="l">跑满血 671B</div></div>
+    <div class="stat"><div class="n">30/60+ tps</div><div class="l">INT4 单/多并发</div></div>
+  </div>
+  <p><strong>立场:</strong><span class="pill">兼容性</span><span class="pill">MoE 混合推理</span><span class="pill">NUMA</span><span class="pill">FP8 任意显卡</span> 适合做 <em>单机本地部署</em>、<em>老硬件 / 国产卡 / 内存大 GPU 小</em> 的场景。<strong>不适合</strong>:高并发 serving (vLLM/SGLang 强项)、Mac、frontier benchmark 学术对比。</p>
+</div>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#sec1">一句话定位 — fastllm 在推理框架 landscape 里的位置</a></li>
+    <li><a href="#sec2">完整 GPU / 硬件支持矩阵</a></li>
+    <li><a href="#sec3">5 级硬件资源测试阶梯</a></li>
+    <li><a href="#sec4">A100 / H100 / B200 三主力卡详解</a></li>
+    <li><a href="#sec5">关键概念解构</a></li>
+    <li><a href="#sec6">性能数据</a></li>
+    <li><a href="#sec7">API + 部署 + 工具调用</a></li>
+    <li><a href="#sec8">与其他推理框架横向对比</a></li>
+    <li><a href="#sec9">与本系列其他工作的链路</a></li>
+    <li><a href="#sec10">1 小时验证 checklist</a></li>
+    <li><a href="#sec11">局限 / 诚实分析</a></li>
+    <li><a href="#sec12">决策树 — 我该用 fastllm 还是 …</a></li>
+    <li><a href="#sec13">开源资产清单</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<h2 id="sec1">1 · 一句话定位 — fastllm 在推理框架 landscape 里的位置</h2>
+
+<p>2025-2026 的 LLM 推理框架可以粗分成三条赛道:</p>
+
+<table>
+<tr><th>赛道</th><th>代表</th><th>核心诉求</th><th>典型用户</th></tr>
+<tr><td>高并发 serving</td><td>vLLM / SGLang / TensorRT-LLM</td><td>PagedAttention · radix cache · continuous batching · 多机 EP/TP</td><td>云厂商 / API service provider</td></tr>
+<tr><td>本地 / 端侧</td><td>llama.cpp · MLC-LLM · ExecuTorch</td><td>GGUF · 端 CPU/Metal/NPU · 最低显存</td><td>个人开发者 · 手机 · Mac</td></tr>
+<tr><td>"超大模型 + 边缘硬件"</td><td><strong>fastllm</strong> · KTransformers · ik_llama.cpp</td><td>MoE expert 卸到 CPU/NUMA · 任意显卡跑 671B · int4 + FP8 混精</td><td>单机本地部署满血 MoE · 老服务器复用</td></tr>
+</table>
+
+<p>fastllm 落在第三条赛道。它最接近 <strong>KTransformers</strong>(清华 KVCache.AI 的"MoE CPU 卸载"路线)和 <strong>ik_llama.cpp</strong>(llama.cpp 的高性能 fork),但走的是<em>更彻底的 NUMA 优化</em>路线 — README 里明确鸣谢 KTransformers 的"MOE 算子线程不平衡时动态调度的思路",同时基于 numa 改进了自己的 MoE 算子(参考 lvllm 的实现)。</p>
+
+<div class="fig">
+<svg viewBox="0 0 760 380" width="100%" style="max-width:740px">
+  <text x="380" y="20" text-anchor="middle" font-size="14" font-weight="600">图 1 · LLM 推理框架 landscape (X = 并发吞吐能力, Y = 老硬件兼容性)</text>
+  <!-- axes -->
+  <line x1="60" y1="340" x2="720" y2="340" stroke="#333" stroke-width="1.5" marker-end="url(#arrFL)"/>
+  <line x1="60" y1="340" x2="60" y2="50" stroke="#333" stroke-width="1.5" marker-end="url(#arrFL)"/>
+  <defs>
+    <marker id="arrFL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#333"/>
+    </marker>
+  </defs>
+  <text x="720" y="365" text-anchor="end" font-size="12" fill="#5b5e66">高并发 / batching 能力 →</text>
+  <text x="50" y="50" text-anchor="end" font-size="12" fill="#5b5e66" transform="rotate(-90 50 50)">↑ 老硬件兼容性 / 单机大 MoE</text>
+  <!-- grid -->
+  <line x1="60" y1="195" x2="720" y2="195" stroke="#eee"/>
+  <line x1="390" y1="340" x2="390" y2="50" stroke="#eee"/>
+  <!-- dots -->
+  <g font-size="11">
+    <!-- vLLM high-right -->
+    <circle cx="600" cy="130" r="9" fill="#2f6feb"/>
+    <text x="610" y="125" fill="#2f6feb" font-weight="600">vLLM</text>
+    <text x="610" y="140" fill="#5b5e66" font-size="10">PagedAttention · 云厂主选</text>
+    <!-- SGLang -->
+    <circle cx="650" cy="170" r="9" fill="#2f6feb"/>
+    <text x="660" y="170" fill="#2f6feb" font-weight="600">SGLang</text>
+    <!-- TRT-LLM -->
+    <circle cx="680" cy="100" r="9" fill="#7a3a99"/>
+    <text x="615" y="95" fill="#7a3a99" font-weight="600">TensorRT-LLM</text>
+    <!-- llama.cpp -->
+    <circle cx="200" cy="160" r="9" fill="#1f7a4a"/>
+    <text x="115" y="160" fill="#1f7a4a" font-weight="600">llama.cpp</text>
+    <!-- ik_llama.cpp -->
+    <circle cx="250" cy="115" r="8" fill="#1f7a4a"/>
+    <text x="260" y="110" fill="#1f7a4a">ik_llama.cpp</text>
+    <!-- KTransformers -->
+    <circle cx="290" cy="80" r="9" fill="#cc4a1b"/>
+    <text x="300" y="75" fill="#cc4a1b" font-weight="600">KTransformers</text>
+    <!-- fastllm -->
+    <circle cx="220" cy="65" r="13" fill="#a8353e"/>
+    <text x="240" y="60" fill="#a8353e" font-weight="700" font-size="13">fastllm</text>
+    <text x="240" y="75" fill="#5b5e66" font-size="10">老 GPU + NUMA + 671B 单卡</text>
+    <!-- MLC -->
+    <circle cx="150" cy="260" r="8" fill="#d2a32a"/>
+    <text x="160" y="263" fill="#d2a32a">MLC-LLM (端侧)</text>
+    <!-- ExecuTorch -->
+    <circle cx="120" cy="300" r="8" fill="#d2a32a"/>
+    <text x="130" y="303" fill="#d2a32a">ExecuTorch</text>
+  </g>
+  <!-- quadrant labels -->
+  <text x="500" y="50" font-size="11" fill="#5b5e66" opacity="0.6">高并发 + 老硬件少</text>
+  <text x="200" y="335" font-size="11" fill="#5b5e66" opacity="0.6" text-anchor="start">端侧 / 单卡 / 单并发</text>
+</svg>
+<figcaption>图 1 · fastllm 几乎独占左上象限 — 老 GPU/国产卡 + 单机大 MoE 混合推理。vLLM/SGLang 落在右上(高并发 frontier serving),llama.cpp/KTransformers 是邻居。坐标为相对定位,非定量。</figcaption>
+</div>
+
+<h2 id="sec2">2 · 完整 GPU / 硬件支持矩阵</h2>
+
+<p>fastllm 的招牌就是<strong>兼容性</strong>:README 第一行就写"M40, K80 到 5090 全系列 N 卡"。这是 vLLM / SGLang / TRT-LLM 早就放弃的赛道 — vLLM 从 0.5.0 起逐步抛弃 SM &lt; 70 的卡,而 fastllm 通过 PIP 包仍支持 <strong>SM_52 起步</strong>(版本日志 V0.0.0.6 提到"PIP 安装包支持更多架构,目前最低支持到 SM_52")。</p>
+
+<h3>2.1 NVIDIA GPU 矩阵</h3>
+
+<table>
+<tr><th>架构</th><th>SM</th><th>代表卡</th><th>fastllm</th><th>vLLM</th><th>备注</th></tr>
+<tr><td>Maxwell</td><td>52</td><td>M40 · 970/980</td><td><span class="ok">PIP / 源码</span></td><td><span class="no">放弃</span></td><td>需 <code>CUDA_NO_TENSOR_CORE=ON</code>(FAQ),不支持半精度</td></tr>
+<tr><td>Kepler</td><td>37</td><td>K80</td><td><span class="ok">源码</span></td><td><span class="no">放弃</span></td><td>极老卡,README 明确支持</td></tr>
+<tr><td>Pascal</td><td>60/61</td><td>P100 · P40 · 1080Ti</td><td><span class="ok">PIP</span></td><td><span class="no">放弃</span></td><td>README 亮点功能特别提到"PIP 安装支持可以支持到 P100、MI50 等老卡"</td></tr>
+<tr><td>Volta</td><td>70</td><td>V100</td><td><span class="ok">PIP</span></td><td><span class="ok">PIP</span></td><td>FP16 OK,无 BF16</td></tr>
+<tr><td>Turing</td><td>75</td><td>T4 · 2080Ti</td><td><span class="ok">PIP</span></td><td><span class="ok">PIP</span></td><td>—</td></tr>
+<tr><td>Ampere</td><td>80/86</td><td>A100 · A6000 · 3090</td><td><span class="ok">PIP</span></td><td><span class="ok">PIP</span></td><td>SM_80 在 V0.1.6.0 加入 PIP 预编译</td></tr>
+<tr><td>Ada Lovelace</td><td>89</td><td>L40 · 4090</td><td><span class="ok">PIP / 源码</span></td><td><span class="ok">PIP</span></td><td>4090 用 <code>-DCUDA_ARCH=89</code> 编译,FP8 起飞</td></tr>
+<tr><td>Hopper</td><td>90</td><td>H100 · H200</td><td><span class="ok">PIP / 源码</span></td><td><span class="ok">PIP</span></td><td>FP8 原生 Tensor Core</td></tr>
+<tr><td>Blackwell</td><td>100</td><td>B200</td><td><span class="ok">源码</span></td><td><span class="ok">PIP (滞后)</span></td><td>NVFP4 — V0.1.6.0 起 PIP CUDA wheel 补 NCCL,V0.1.6.1 起支持 NVFP4 线性计算</td></tr>
+<tr><td>Blackwell consumer</td><td>120</td><td>5090</td><td><span class="ok">源码</span></td><td>—</td><td>"M40, K80 到 5090 全系列" 这句的右端</td></tr>
+</table>
+
+<h3>2.2 AMD / 国产 / NPU 矩阵</h3>
+
+<table>
+<tr><th>厂商</th><th>设备</th><th>fastllm</th><th>方式</th><th>备注</th></tr>
+<tr><td>AMD</td><td>MI50</td><td><span class="ok">✔</span></td><td>PIP (<code>ftllm-rocm</code>)</td><td>老 ROCm 卡的少数选项之一</td></tr>
+<tr><td>AMD</td><td>MI100 / MI200 / MI300</td><td><span class="ok">✔</span></td><td>PIP / 源码</td><td>需先安装 ROCM 6.3.3,见 README</td></tr>
+<tr><td>AMD</td><td>RX 7900</td><td><span class="ok">✔</span></td><td>PIP</td><td>消费级 RDNA3</td></tr>
+<tr><td>天数智芯</td><td>BI/MR 系列</td><td><span class="ok">✔</span></td><td>源码</td><td>国产 GPU</td></tr>
+<tr><td>沐曦 (MetaX)</td><td>—</td><td><span class="ok">✔</span></td><td>源码</td><td>国产 GPU</td></tr>
+<tr><td>燧原 (Enflame)</td><td>—</td><td><span class="ok">✔</span></td><td>源码</td><td>README "亮点功能" 第 8 条</td></tr>
+<tr><td>华为</td><td>昇腾 Ascend</td><td><span class="ok">✔</span></td><td>源码</td><td>README "亮点功能" 第 8 条</td></tr>
+<tr><td>ThinkForce</td><td>NPU</td><td><span class="ok">✔</span></td><td>源码 (<code>docs/tfacc.md</code>)</td><td>TFACC 平台</td></tr>
+<tr><td>Apple</td><td>M1/M2/M3</td><td><span class="no">✗</span></td><td>—</td><td>README 未列出 Mac 支持</td></tr>
+</table>
+
+<div class="warn"><strong>关键差异化:</strong>K80/M40/P100/MI50 这些老卡几乎所有主流推理框架都已放弃维护 — vLLM 是最典型的例子,SGLang 也只支持 SM ≥ 80。fastllm 是少数还在主动维护老 GPU 路径的项目,而且 <strong>FP8 不依赖 Hopper Tensor Core</strong>:README 直接写"支持 CPU 和显卡实现 FP8 运算,老设备也可以运行"。这意味着 V100 / 3090 / 4090 都能跑 FP8 量化权重(精度),只是不享受 Hopper 原生 FP8 Tensor Core 加速。</div>
+
+<h3>2.3 CUDA_ARCH 对照表</h3>
+
+<table>
+<tr><th>卡</th><th><code>CUDA_ARCH</code></th><th>编译命令</th></tr>
+<tr><td>K80</td><td>37</td><td><code>bash install.sh -DUSE_CUDA=ON -DCUDA_ARCH=37 -DCUDA_NO_TENSOR_CORE=ON</code></td></tr>
+<tr><td>P100</td><td>60</td><td><code>bash install.sh -DUSE_CUDA=ON -DCUDA_ARCH=60</code></td></tr>
+<tr><td>V100</td><td>70</td><td><code>-DCUDA_ARCH=70</code></td></tr>
+<tr><td>A100 / 3090</td><td>80 / 86</td><td><code>-DCUDA_ARCH="80;86"</code></td></tr>
+<tr><td>4090 / L40</td><td>89</td><td><code>-DCUDA_ARCH=89</code> (README 示例)</td></tr>
+<tr><td>H100 / H200</td><td>90</td><td><code>-DCUDA_ARCH=90</code></td></tr>
+<tr><td>B200</td><td>100</td><td><code>-DCUDA_ARCH=100</code></td></tr>
+<tr><td>5090</td><td>120</td><td><code>-DCUDA_ARCH=120</code></td></tr>
+<tr><td>多卡混合</td><td>多个</td><td><code>-DCUDA_ARCH="61;75;86;89"</code> (FAQ 示例,";" 分隔)</td></tr>
+</table>
+
+<p>FAQ 里特别提示:某些 cmake 版本会报 <code>CMAKE_CUDA_ARCHITECTURES must be non-empty</code>,需用 <code>-DCMAKE_CUDA_ARCHITECTURES=native</code> 让 cmake 自动探测;但 nvcc 不认 <code>compute_native</code>,如果遇到要手动写架构号。</p>
+
+<hr>
+
+<h2 id="sec3">3 · 5 级硬件资源测试阶梯</h2>
+
+<p>把读者从"我电脑只有 2 GB 显存"到"我有 8 张 H100"的全光谱用法整理成五个阶梯:</p>
+
+<section class="fw">
+<div class="tier t1">
+<h4>🟢 阶梯 1 · 入门 (~2 GB+ VRAM, Qwen3-0.6B, 5 分钟)</h4>
+<p><strong>场景:</strong>验证安装、笔记本试水、桌面 1050Ti / Mac CPU(注意 Mac GPU 不支持)。</p>
+<pre>pip install ftllm -U
+ftllm run Qwen/Qwen3-0.6B</pre>
+<p><strong>说明:</strong>0.6B 模型 FP16 约 1.2 GB,在 2 GB 显存的卡上能跑;CPU-only 也行(<code>--device cpu</code>)。Webui 用 <code>ftllm webui Qwen/Qwen3-0.6B</code>,OpenAI 风格 server 用 <code>ftllm server Qwen/Qwen3-0.6B --port 8080</code>。</p>
+</div>
+
+<div class="tier t2">
+<h4>🟡 阶梯 2 · 单卡小模型 (6-16 GB, Qwen3-8B/14B INT4)</h4>
+<p><strong>场景:</strong>3060/4060 (12 GB) / 2080Ti (11 GB) / 3080 (10 GB) / 桌面工作站。</p>
+<pre># 直接在线量化加载 14B → INT4
+ftllm server Qwen/Qwen3-14B --dtype int4 --port 8080
+
+# 或者先离线导出再加载(读取更快)
+ftllm export /mnt/Qwen3-14B -o /mnt/Qwen3-14B-INT4 --dtype int4 -t 16
+ftllm run /mnt/Qwen3-14B-INT4/</pre>
+<p>14B 模型 INT4 约 7 GB,8B 模型 INT4 约 4 GB,12 GB 显存绰绰有余。<br>
+<strong>支持的量化类型:</strong><code>int4g</code>(分组量化,精度更好) · <code>int4</code> · <code>int4g256</code> · <code>int8</code> · <code>fp8</code> · <code>float16</code> · <code>bfloat16</code>。</p>
+</div>
+
+<div class="tier t3">
+<h4>🟠 阶梯 3 · 中端 (24 GB+ VRAM, Qwen3-30B-A3B / 32B / GLM4.5-Air)</h4>
+<p><strong>场景:</strong>4090/3090 24 GB · A5000/A6000 · 工作站单卡。</p>
+<pre># Qwen3-32B AWQ 量化原版,推荐 24 GB 单卡
+ftllm server Qwen/Qwen3-32B-AWQ --device cuda
+
+# Qwen3-30B-A3B MoE 模型,使用单卡 + CPU 混合推理
+ftllm server Qwen/Qwen3-30B-A3B --device cuda --moe_device cpu -t 16
+
+# GLM4.5-AIR (支持工具调用)
+ftllm server zai-org/GLM-4.5-Air</pre>
+<p>到这一阶梯就开始体现 fastllm 真正的特长:即使 4090 24 GB 显存不够装下 30B MoE 全部权重,也可以让 attention/non-MoE 留 GPU、MoE expert 卸到 CPU。</p>
+</div>
+
+<div class="tier t4">
+<h4>🔵 阶梯 4 · 满血 DeepSeek 671B (任意 ≥10 GB GPU + 256-700 GB RAM)</h4>
+<p><strong>场景:</strong>这是 fastllm 的招牌用例 — README 第一行就写。一台带双路 EPYC 9004/9005 服务器(典型配置 512 GB 内存 ~ 768 GB)+ <em>一张</em> 4090/A100/H100/B200,部署 DeepSeek R1 671B 满血原版 FP8。</p>
+<pre># INT4 量化版,~340 GB 内存(MoE)+ ~6 GB 显存(non-MoE)
+ftllm server fastllm/DeepSeek-R1-INT4 --device cuda --moe_device numa
+# 启动 NUMA 加速
+export FASTLLM_USE_NUMA=ON
+export FASTLLM_NUMA_THREADS=27   # 每 NUMA 节点 27 线程
+# 关闭系统 numa balancing(强烈推荐)
+sudo sysctl -w kernel.numa_balancing=0
+
+# FP8 原版(671B FP8 ~ 660 GB,需要 700 GB+ 内存)
+ftllm server deepseek-ai/DeepSeek-R1 --dtype fp8 --device cuda --moe_device numa</pre>
+<p><strong>性能(README 给出):</strong></p>
+<ul>
+  <li>双路 9004/9005 + 单 GPU 部署 <strong>FP8 原版 671B</strong>: 单并发 ~20 tps</li>
+  <li>双路 9004/9005 + 单 GPU 部署 <strong>INT4 量化 671B</strong>: 单并发 ~30 tps · 多并发 60+ tps</li>
+</ul>
+<p>这是单机 671B 部署目前少有的、有数字可量化的方案。</p>
+</div>
+
+<div class="tier t5">
+<h4>🔴 阶梯 5 · 多卡张量并行 + GPU+CPU 混合张量并行</h4>
+<p><strong>场景:</strong>2-8 张卡的服务器,DeepSeek-V4-Flash / Qwen3-72B 等。fastllm 支持 <strong>奇数张卡</strong>(3/5/7),这是 vLLM/SGLang TP 罕见的。</p>
+<pre># 双卡张量并行
+ftllm server fastllm/DeepSeek-V3-0324-INT4 --device multicuda:0,1
+
+# 双卡 + CPU 混合张量并行 (cuda:0 算 4/10, cuda:1 算 5/10, cpu 算 1/10)
+ftllm server X --device multicuda:0:4,1:5,cpu:1
+
+# 串行多卡(每张卡负责一段层,而非 TP 切权重)
+ftllm server X --device "{'cuda:0':3,'cuda:1':2}"
+# 等价简写: --device cudapp=2 (均匀串行)
+# 比例串行: --device cudapp=1:2:3
+
+# 高级:大部分 MoE 走 NUMA,少量 MoE 用双卡 TP 加速
+ftllm server fastllm/DeepSeek-V4-Flash --device cuda \
+  --moe_device "{'multicuda:0,1':15,'numa':85}"</pre>
+<p>更极致地:<code>"{'cuda':1,'numa':8,'disk':1}"</code> 可以把 1/10 的 MoE 层走<strong>磁盘</strong>(V0.1.6.2 新增 disk MoE 推理),用 SSD 当容量补充,但速度会比 NUMA 慢得多。</p>
+</div>
+</section>
+
+<hr>
+
+<h2 id="sec4">4 · A100 / H100 / B200 三主力卡详解</h2>
+
+<p>三张主力卡背后的差异主要在 <strong>FP8 / FP4 Tensor Core 的代际能力</strong>:</p>
+
+<table>
+<tr><th>卡</th><th>SM</th><th>FP16/BF16</th><th>原生 FP8</th><th>原生 FP4 (NVFP4)</th><th>fastllm 适用场景</th></tr>
+<tr><td>A100 80G</td><td>80</td><td><span class="ok">Tensor Core</span></td><td><span class="no">仅软件路径</span></td><td><span class="no">N/A</span></td><td>主力 BF16/INT4,FP8 走 emulation</td></tr>
+<tr><td>H100 80G</td><td>90</td><td><span class="ok">Tensor Core</span></td><td><span class="ok">Tensor Core</span></td><td><span class="no">N/A</span></td><td>FP8 原生 671B,带 NVLink 高速 P2P</td></tr>
+<tr><td>B200</td><td>100</td><td><span class="ok">Tensor Core</span></td><td><span class="ok">Tensor Core</span></td><td><span class="ok">NVFP4 Tensor Core</span></td><td>V0.1.6.1 起原生 NVFP4 线性计算 → DeepSeek V4 NVFP4 模型</td></tr>
+</table>
+
+<h3>4.1 源码编译命令(三卡分别)</h3>
+
+<pre># A100 (CUDA_ARCH=80)
+bash install.sh -DUSE_CUDA=ON -DCUDA_ARCH=80 \
+  -DCMAKE_CUDA_COMPILER=$(which nvcc)
+
+# H100 (CUDA_ARCH=90)
+bash install.sh -DUSE_CUDA=ON -DCUDA_ARCH=90 \
+  -DCMAKE_CUDA_COMPILER=$(which nvcc)
+
+# B200 (CUDA_ARCH=100)
+bash install.sh -DUSE_CUDA=ON -DCUDA_ARCH=100 \
+  -DCMAKE_CUDA_COMPILER=$(which nvcc)</pre>
+
+<h3>4.2 PyPI 滞后问题</h3>
+
+<div class="warn"><strong>实战经验提示</strong>:fastllm 的 PyPI wheel 主要预编译 SM_80 (Ampere) 之后的架构,V0.1.6.0 才把 SM80 加入预编译(版本日志:"CUDA wheel 补充 NCCL 依赖和 SM80 预编译架构")。<br>
+对 B200 / 5090 等新架构,<strong>首次测试强烈建议源码编译</strong>。具体表现:<code>pip install ftllm</code> 安装后启动卡在 <code>no kernel image is available for execution on the device</code>,这就是 CUDA_ARCH 没匹配上,改源码编译指定 <code>-DCUDA_ARCH=100</code> / <code>120</code> 即可解决。</div>
+
+<h3>4.3 三卡上的 DeepSeek 671B 实战</h3>
+
+<table>
+<tr><th>卡</th><th>FP8 原版 671B</th><th>INT4 量化 671B</th><th>NVFP4 (DSV4)</th></tr>
+<tr><td>A100 80G</td><td>能跑,FP8 走 software 路径</td><td>能跑,30 tps (双路 9004)</td><td>—</td></tr>
+<tr><td>H100 80G</td><td>原生 FP8,20 tps (双路 9004)</td><td>能跑,30 tps</td><td>—</td></tr>
+<tr><td>B200</td><td>FP8 原生 + NVFP4 Tensor Core</td><td>能跑</td><td><strong>DeepSeek V4 NVFP4</strong> (V0.1.6.0+)</td></tr>
+</table>
+<p>需要说明:README 的"双路 9004 单 GPU 20/30 tps"未明确测试 GPU 是哪一张,推测最低门槛是 ≥10 GB 显存的 4090/A100。<span class="pill">未在公开来源精确确认</span></p>
+
+<hr>
+
+<h2 id="sec5">5 · 关键概念解构</h2>
+
+<h3>5.1 CPU + GPU 混合推理(灵魂)</h3>
+
+<p>DeepSeek-R1 671B 模型的权重分布大致是:</p>
+<ul>
+  <li><strong>MoE expert 权重</strong>(每层 256 个 expert,每 token 激活 8 个): 占总参数 95%+,~650 GB FP8</li>
+  <li><strong>non-MoE 部分</strong>(embeddings · attention QKVO · LayerNorm · LM head): 占 ~3-5%,~10-20 GB</li>
+</ul>
+<p>但 <em>每次 forward 只激活一小部分 expert</em>(8/256),因此 MoE 部分是<strong>带宽 bound</strong>,不是计算 bound。这意味着:</p>
+
+<div class="formula">
+attention (compute-heavy, 计算密集) → GPU<br>
+MoE expert (memory-bandwidth-heavy, 带宽密集) → CPU + DDR5 多通道
+</div>
+
+<p>双路 EPYC 9004/9005 服务器有 24 个 DDR5 通道(双 socket × 12 通道),理论内存带宽 ~920 GB/s,接近一张 A100 的 HBM 带宽。fastllm 利用这个特性,把 671B 的 MoE 部分平铺在 RAM,GPU 只算 attention/non-MoE。</p>
+
+<div class="fig">
+<svg viewBox="0 0 760 360" width="100%" style="max-width:740px">
+  <text x="380" y="22" text-anchor="middle" font-size="14" font-weight="600">图 2 · DeepSeek-R1 671B 在 fastllm 上的混合推理拓扑</text>
+
+  <!-- GPU box -->
+  <rect x="50" y="60" width="200" height="170" fill="#e8f0ff" stroke="#2f6feb" stroke-width="2" rx="8"/>
+  <text x="150" y="85" text-anchor="middle" font-size="14" font-weight="600" fill="#2f6feb">GPU (≥10 GB)</text>
+  <text x="150" y="100" text-anchor="middle" font-size="11" fill="#5b5e66">4090 / A100 / H100 / B200</text>
+  <rect x="65" y="115" width="170" height="28" fill="#fff" stroke="#2f6feb"/>
+  <text x="150" y="133" text-anchor="middle" font-size="11">Embedding · LM head</text>
+  <rect x="65" y="148" width="170" height="28" fill="#fff" stroke="#2f6feb"/>
+  <text x="150" y="166" text-anchor="middle" font-size="11">Attention (Q/K/V/O · MLA)</text>
+  <rect x="65" y="181" width="170" height="28" fill="#fff" stroke="#2f6feb"/>
+  <text x="150" y="199" text-anchor="middle" font-size="11">LayerNorm · shared expert</text>
+  <text x="150" y="222" text-anchor="middle" font-size="11" fill="#1f7a4a" font-weight="600">≈ 8 GB FP16 / 5 GB FP8</text>
+
+  <!-- NUMA Node 0 -->
+  <rect x="290" y="60" width="200" height="120" fill="#fff0ec" stroke="#cc4a1b" stroke-width="2" rx="8"/>
+  <text x="390" y="82" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">NUMA Node 0 (EPYC #1)</text>
+  <text x="390" y="98" text-anchor="middle" font-size="11" fill="#5b5e66">12 ch DDR5 · ~460 GB/s</text>
+  <rect x="305" y="112" width="170" height="22" fill="#fff" stroke="#cc4a1b"/>
+  <text x="390" y="127" text-anchor="middle" font-size="11">MoE experts: layer 0-30</text>
+  <rect x="305" y="138" width="170" height="22" fill="#fff" stroke="#cc4a1b"/>
+  <text x="390" y="153" text-anchor="middle" font-size="11">~330 GB INT4</text>
+
+  <!-- NUMA Node 1 -->
+  <rect x="290" y="195" width="200" height="120" fill="#fff0ec" stroke="#cc4a1b" stroke-width="2" rx="8"/>
+  <text x="390" y="217" text-anchor="middle" font-size="13" font-weight="600" fill="#cc4a1b">NUMA Node 1 (EPYC #2)</text>
+  <text x="390" y="233" text-anchor="middle" font-size="11" fill="#5b5e66">12 ch DDR5 · ~460 GB/s</text>
+  <rect x="305" y="247" width="170" height="22" fill="#fff" stroke="#cc4a1b"/>
+  <text x="390" y="262" text-anchor="middle" font-size="11">MoE experts: layer 31-60</text>
+  <rect x="305" y="273" width="170" height="22" fill="#fff" stroke="#cc4a1b"/>
+  <text x="390" y="288" text-anchor="middle" font-size="11">~330 GB INT4</text>
+
+  <!-- Disk -->
+  <rect x="530" y="125" width="200" height="100" fill="#f4f1e0" stroke="#d2a32a" stroke-width="2" rx="8"/>
+  <text x="630" y="148" text-anchor="middle" font-size="13" font-weight="600" fill="#d2a32a">SSD (可选)</text>
+  <text x="630" y="164" text-anchor="middle" font-size="11" fill="#5b5e66">NVMe · 5-10 GB/s</text>
+  <rect x="545" y="178" width="170" height="22" fill="#fff" stroke="#d2a32a"/>
+  <text x="630" y="193" text-anchor="middle" font-size="11">disk-resident MoE (少量)</text>
+  <text x="630" y="217" text-anchor="middle" font-size="10" fill="#a8353e">"内存装不下 → 兜底"</text>
+
+  <!-- arrows -->
+  <line x1="250" y1="145" x2="290" y2="145" stroke="#666" stroke-width="2" marker-end="url(#arrA)"/>
+  <line x1="290" y1="270" x2="250" y2="170" stroke="#666" stroke-width="2" marker-end="url(#arrA)"/>
+  <line x1="490" y1="180" x2="530" y2="180" stroke="#d2a32a" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrD)"/>
+  <defs>
+    <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#666"/>
+    </marker>
+    <marker id="arrD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#d2a32a"/>
+    </marker>
+  </defs>
+
+  <!-- legend bottom -->
+  <text x="380" y="345" text-anchor="middle" font-size="11" fill="#5b5e66">
+    --device cuda --moe_device "{'cuda':1,'numa':8,'disk':1}"
+  </text>
+</svg>
+<figcaption>图 2 · fastllm 的混合推理拓扑。Non-MoE 留 GPU(~8 GB FP16),MoE expert 平铺到 2 个 NUMA 节点(双路 EPYC 服务器),按需还能把 1/10 卸到 NVMe SSD。MoE expert 是带宽 bound 而非算力 bound,所以 DDR5 多通道 + numa-local 内存绑定可以接近 GPU HBM 的带宽利用率。</figcaption>
+</div>
+
+<h3>5.2 NUMA 加速</h3>
+
+<p>双路 / 四路服务器有 2-8 个 NUMA 节点(每个 CPU socket 一个或多个)。如果 OS 自动跨节点搬运数据(numa balancing),性能会严重劣化。fastllm 的 NUMA 优化关键有三点:</p>
+
+<ol>
+  <li><strong>关闭 OS numa balancing</strong>: <code>sudo sysctl -w kernel.numa_balancing=0</code>(README 强烈建议)</li>
+  <li><strong>FASTLLM_USE_NUMA=ON</strong> 环境变量激活多 NUMA 模式</li>
+  <li><strong>FASTLLM_NUMA_THREADS</strong> 设定每个 NUMA 节点的线程数(推荐 = socket 物理核数,如 27)</li>
+</ol>
+
+<p>当 <code>--moe_device numa</code> 时,推理线程数主要由 <code>FASTLLM_NUMA_THREADS</code> 决定,<code>-t</code> 参数应设小(推荐 1)。注意 <code>--device numa</code> 和 <code>--moe_device numa</code> 是两个独立参数 — 前者整模型跑 NUMA(用于纯 CPU 推理),后者只有 MoE 层跑 NUMA(混合推理标配)。</p>
+
+<p>如果想单 NUMA 节点跑(避免跨 socket),用 <code>numactl -C 0-31 -m 0 ftllm server X --moe_device cpu -t 27</code> 绑定。</p>
+
+<h3>5.3 multicuda 张量并行</h3>
+
+<p>fastllm 的 multicuda 是基于自有 worker 池实现的张量并行,支持 <strong>3、5、7 等奇数张卡</strong>(README 第 5 条亮点功能)。这是 vLLM/SGLang 罕见的特性 — 它们的 TP 通常要求张卡数能整除头数(power-of-2 友好)。</p>
+
+<p><strong>核心环境变量(<code>mixforward.md</code>):</strong></p>
+<table>
+<tr><th>环境变量</th><th>默认值</th><th>说明</th></tr>
+<tr><td><code>FASTLLM_DISABLE_MULTICUDA_DEDICATED_WORKERS</code></td><td>未设置</td><td>设 <code>1</code> 关闭专用 worker,回退通用线程池</td></tr>
+<tr><td><code>FASTLLM_MULTICUDA_WORKER_CPU_BASE</code></td><td>0</td><td>专用 worker 绑核起始 CPU,worker i 绑到 <code>(BASE+i) % CPU 数</code></td></tr>
+<tr><td><code>FASTLLM_MULTICUDA_WORKER_SPIN_ITERS</code></td><td>262144</td><td>worker 空闲忙等轮数,大 → 低延迟高 CPU,小 → 反之</td></tr>
+</table>
+
+<h3>5.4 dtype 矩阵</h3>
+
+<table>
+<tr><th>dtype</th><th>说明</th><th>典型场景</th></tr>
+<tr><td><code>float16</code></td><td>FP16,16-bit IEEE</td><td>稠密模型默认,V100 起支持</td></tr>
+<tr><td><code>bfloat16</code></td><td>BF16,16-bit Brain Float</td><td>A100+,V0.1.5.0 支持 <code>--moe_dtype bfloat16</code></td></tr>
+<tr><td><code>fp8</code></td><td>FP8_E4M3 (V0.0.1.1+,任意硬件)</td><td>DeepSeek V3/R1 原版精度</td></tr>
+<tr><td><code>int8</code></td><td>8-bit 整数量化</td><td>显存吃紧时的中档选择</td></tr>
+<tr><td><code>int4</code></td><td>4-bit 整数量化</td><td>671B 落地的主力选项</td></tr>
+<tr><td><code>int4g</code></td><td>4-bit 分组量化(group quant)</td><td>比 int4 精度更好</td></tr>
+<tr><td><code>int4g256</code></td><td>4-bit + group size 256</td><td>分组粒度可调</td></tr>
+<tr><td><code>nvfp4</code></td><td>NVIDIA NVFP4 (B200+,V0.1.6.1+)</td><td>DeepSeek V4 模型</td></tr>
+<tr><td><code>Q2_K_L</code>/<code>Q2_K_M</code> 等</td><td>GGUF 量化类型(V0.1.6.1+ 部分支持)</td><td>读取 GGUF 模型</td></tr>
+</table>
+
+<h3>5.5 <code>--moe_device</code> 完整语法</h3>
+
+<p>这是 fastllm 最强的"调参旋钮"。基本格式:</p>
+
+<pre># 单一设备
+--moe_device cpu       # 全 MoE 走 CPU
+--moe_device numa      # 全 MoE 走多 NUMA 节点
+--moe_device cuda      # 全 MoE 走 GPU(显存够时,极少用)
+
+# 多设备按比例(推荐用法,关键!)
+--moe_device "{'cuda':1, 'numa':19}"           # 1/20 MoE 上 GPU, 19/20 上 NUMA
+--moe_device "{'cuda':1, 'numa':8, 'disk':1}"  # 1/10 GPU + 8/10 NUMA + 1/10 SSD
+--moe_device "{'multicuda:0,1':15, 'numa':85}" # 15/100 MoE 走双卡 TP + 85/100 NUMA</pre>
+
+<p>这种"按比例分配 MoE 层"是 fastllm 区别于 KTransformers 的关键设计 — 不需要二选一,可以任意切。这也是为什么 fastllm 在"显存有一点剩余想榨干"时往往比 KTransformers 略快(V0.1.6.4 更新日志:"减少 NVFP4 模型的内存占用"也是这条思路的延伸)。</p>
+
+<h3>5.6 动态量化(dtype_config)</h3>
+
+<p>V0.1.4.8 起 fastllm 支持"<strong>通用动态量化</strong>" — 用正则表达式指定权重子集的精度。配置文件示例:</p>
+
+<pre>[
+  {"key": "(.)*",
+   "dtype": "int4g",
+   "comment": "default int4g"},
+  {"key": "model\\.layers\\.([0-9]|[1][0-9]|2[0-5])\\.(.)*",
+   "dtype": "fp8",
+   "comment": "layer 0~25 use fp8"},
+  {"key": "(.)*mlp\\.gate\\.weight",
+   "dtype": "float16",
+   "comment": "gate use fp16"},
+  {"key": "(.)*experts(.)*[gate|up|down]_proj(.)*",
+   "dtype": "int4",
+   "comment": "moe use int4"}
+]</pre>
+
+<p>调用:<code>ftllm server X --dtype_config /path/to/config.json</code>。规则越靠后优先级越高。这相当于把 vLLM 的 layer-wise quantization 推到了 weight-name regex 级别 — 比 GGUF 的 Q*_K_L 命名约定更细。</p>
+
+<h3>5.7 模型支持矩阵(从 docs/models.md + 版本日志整合)</h3>
+
+<table>
+<tr><th>系列</th><th>支持模型</th><th>方式</th><th>备注</th></tr>
+<tr><td>GLM</td><td>ChatGLM-6B (1/2/3) · GLM-4-9b · CodeGeex4 · GLM4.5 · GLM4.5-AIR</td><td>safetensors 直接读取 + 离线转 .flm + 加载后转换</td><td>GLM4.5 支持工具调用(V0.1.4.5)</td></tr>
+<tr><td>Qwen</td><td>Qwen 1/1.5/2/2.5/3 全系列 (0.5B-110B) · CodeQwen1.5 · Qwen-72B · Qwen3-Coder · Qwen3-Next · <strong>Qwen3.5</strong> 含多模态 (V0.1.6.0)</td><td>三种方式都行</td><td>Qwen3-Instruct/Coder 工具调用支持</td></tr>
+<tr><td>DeepSeek</td><td>DeepSeek-Coder 1.3B/6.7B/7B/33B · DeepSeek V2/V2.5/V3/V3.1/V3.2 · <strong>DeepSeek R1</strong> · <strong>DeepSeek V4</strong> (V0.1.6.0)</td><td>safetensors + .flm + GGUF (with <code>--ori</code>)</td><td>fastllm 的招牌</td></tr>
+<tr><td>LLaMA</td><td>Llama-2-7b/13b · CodeLlama · Llama-3-8B/70B · Llama-3.1/3.2</td><td>三种方式</td><td>—</td></tr>
+<tr><td>Mistral 类</td><td>Phi-3 · Gemma 2 9b/27b · Gemma 4 (初步支持, V0.1.6.0) · Minimax 01/M1/M2</td><td>safetensors 直接</td><td>—</td></tr>
+<tr><td>中文社区</td><td>Yi-6B/34B/Coder · Baichuan/Baichuan2 · MiniCPM 2B/3-4B · MOSS · XVERSE · InternLM 1/2/3 · TeleChat2-3B/7B</td><td>多数 .flm 离线</td><td>—</td></tr>
+<tr><td>大厂中文 MoE</td><td>Hunyuan (混元) · Ernie 4.5 (文心) · Pangu Pro (盘古) · Kimi-K2 (V0.1.3.3)</td><td>safetensors 直接</td><td>Kimi-K2 工具调用支持</td></tr>
+</table>
+
+<p>另外:V0.1.4.0 起 fastllm <strong>初步支持 GGUF 模型读取</strong> — 这是和 llama.cpp 生态对接的关键。需要 <code>--ori</code> 指定<em>原始模型配置文件夹</em>(权重不用下载,仅需 config.json 和 tokenizer):</p>
+
+<pre># 先下载 DeepSeek-V3 的配置(不含权重)
+ftllm download deepseek-ai/DeepSeek-V3 --exclude "*safetensors*"
+
+# 用 GGUF 权重 + 原始配置启动
+ftllm server DeepSeek-V3-0324-Q4_K_M-00001-of-00009.gguf --ori DeepSeek-V3</pre>
+
+<p>V0.1.4.6 起支持部分 GGUF 类型,V0.1.6.1 起加入 Q2_K_R4 反量化,V0.1.4.3 加入 q8_0 类型支持。GGUF 兼容性是 fastllm vs llama.cpp 的桥梁,但功能上 fastllm 仍以自有 .flm 格式为主推。</p>
+
+<h3>5.8 ftllm 命令完整参数清单</h3>
+
+<details>
+<summary>展开:服务器侧关键参数 (从 README + version.md 整合)</summary>
+<table>
+<tr><th>参数</th><th>说明</th><th>示例</th></tr>
+<tr><td><code>-t / --threads</code></td><td>CPU 线程数;numa 模式下设小(推荐 1),由 <code>FASTLLM_NUMA_THREADS</code> 控制</td><td><code>-t 27</code></td></tr>
+<tr><td><code>--dtype</code></td><td>模型整体精度(BF16/FP16/FP8 原版时生效)</td><td><code>--dtype int4</code></td></tr>
+<tr><td><code>--moe_dtype</code></td><td>MoE 层精度(可与 --dtype 不同)</td><td><code>--moe_dtype int4</code></td></tr>
+<tr><td><code>--dtype_config</code></td><td>动态量化 JSON 配置路径(V0.1.4.8+)</td><td><code>--dtype_config /tmp/cfg.json</code></td></tr>
+<tr><td><code>--device</code></td><td>cpu/cuda/numa/multicuda:0,1/cudapp=4/字典语法</td><td><code>--device cudapp=4</code></td></tr>
+<tr><td><code>--moe_device</code></td><td>MoE 层设备,支持字典: <code>"{'cuda':1,'numa':8,'disk':1}"</code></td><td>—</td></tr>
+<tr><td><code>--moe_experts</code></td><td>限制激活的 expert 数(默认按模型 config)</td><td><code>--moe_experts 6</code></td></tr>
+<tr><td><code>--moe_atype</code></td><td>MoE 层激活类型 (V0.1.6.0+)</td><td>—</td></tr>
+<tr><td><code>--cuda_se</code></td><td>共享 expert 是否在 cuda 上执行(默认 true,V0.1.3.0+)</td><td><code>--cuda_se false</code></td></tr>
+<tr><td><code>--cuda_slab</code></td><td>CUDA 权重 slab 分配块大小 MB(V0.1.6.3+),减少显存碎片</td><td><code>--cuda_slab 1024</code></td></tr>
+<tr><td><code>--port</code></td><td>API server 端口</td><td><code>--port 8080</code></td></tr>
+<tr><td><code>--api_key</code></td><td>OpenAI 风格 API key</td><td><code>--api_key sk-xxx</code></td></tr>
+<tr><td><code>--hide_input</code></td><td>日志隐藏请求内容</td><td>—</td></tr>
+<tr><td><code>--max_token</code></td><td>webui 模式最大输出 token</td><td>—</td></tr>
+<tr><td><code>--think</code></td><td>强制思考(R1/DSV3.1/DSV4 模式)</td><td>—</td></tr>
+<tr><td><code>--enable_thinking</code></td><td>DSV3.1/DSV4 显式启用思考输出 (V0.1.6.2+)</td><td>—</td></tr>
+<tr><td><code>--kv_cache_dtype</code></td><td>KV 缓存类型 (V0.1.6.0+),如 fp8</td><td><code>--kv_cache_dtype fp8</code></td></tr>
+<tr><td><code>--chunked_prefill_size</code></td><td>分块 prefill 大小,降长上下文显存峰值 (V0.1.6.0+)</td><td><code>--chunked_prefill_size 1024</code></td></tr>
+<tr><td><code>--tokens / --page_size / --gpu_mem_ratio</code></td><td>长上下文 / KV cache 控制 (V0.1.6.0+)</td><td>—</td></tr>
+<tr><td><code>--chat_template</code></td><td>自定义 jinja chat template</td><td><code>--chat_template ds31.jinja</code></td></tr>
+<tr><td><code>--cache_dir</code></td><td>HF 模型缓存目录</td><td><code>--cache_dir /mnt/</code></td></tr>
+<tr><td><code>--amx</code></td><td>开启 AMX 加速 (V0.1.5.1+)</td><td><code>--amx true</code></td></tr>
+<tr><td><code>--ori</code></td><td>GGUF 启动时指定原始模型配置(必填)</td><td><code>--ori DeepSeek-V3</code></td></tr>
+</table>
+</details>
+
+<hr>
+
+<h2 id="sec6">6 · 性能数据</h2>
+
+<h3>6.1 README 给出的明确数字</h3>
+
+<table>
+<tr><th>硬件</th><th>模型</th><th>单并发 tps</th><th>多并发 tps</th><th>备注</th></tr>
+<tr><td>双路 EPYC 9004/9005 + 单 GPU</td><td>DeepSeek R1 671B FP8 (原版)</td><td>~20</td><td>—</td><td>README 介绍段</td></tr>
+<tr><td>双路 EPYC 9004/9005 + 单 GPU</td><td>DeepSeek R1 671B INT4</td><td>~30</td><td>60+</td><td>README 介绍段</td></tr>
+<tr><td>消费级 4090 单卡</td><td>DeepSeek R1 671B INT4</td><td>20+</td><td>—</td><td>README_EN 介绍段</td></tr>
+</table>
+
+<h3>6.2 老卡性能</h3>
+
+<p>README 提到 P100/MI50 等老卡能跑,但<strong>没有给具体 tps 数字</strong>。社区报告(QQ 群 / 知乎)有一些零散数据,但<span class="pill">未在公开来源(官方 README/docs)精确确认</span>,这里不引用以避免误导。读者实测可作为参考。</p>
+
+<h3>6.3 NUMA / 线程数对性能的影响</h3>
+
+<p>FAQ 和 README 都强调:</p>
+<ul>
+  <li><code>FASTLLM_NUMA_THREADS</code> 一般设为单 socket 物理核数(典型 EPYC 9004 单 socket 32 核 → 27-32)</li>
+  <li>CPU 线程数 <strong>不要超过物理核数</strong>(hyperthreading 反而拖累)</li>
+  <li>关闭 <code>kernel.numa_balancing</code> 是性能提升的关键开关</li>
+  <li>速度和参数设置并不完全正相关(README 第 4 节直说):需要 <em>多方向尝试</em></li>
+</ul>
+
+<h3>6.4 KV cache 与长上下文(V0.1.6.x 新增)</h3>
+
+<p>V0.1.6.0 起 fastllm 加入了一组长上下文相关的参数:</p>
+<ul>
+  <li><code>--kv_cache_dtype fp8</code> — 把 KV cache 也降到 FP8,显存占用约减半。这对 128K context 的 DSV4 / Qwen3.5 特别有用。</li>
+  <li><code>--chunked_prefill_size 1024</code> — 分块 prefill,降低 prefill 阶段的显存峰值。配合磁盘 MoE(<code>'disk':1</code>),即使内存吃紧也能跑长上下文。</li>
+  <li><code>--page_size</code> — 内部 KV cache 的页大小(类似 vLLM 的 block size,但实现细节不同)。</li>
+  <li><code>--gpu_mem_ratio</code> — 控制 fastllm 占用显存的比例(类似 vLLM 的 <code>gpu_memory_utilization</code>),典型设 0.85-0.92。</li>
+  <li><code>--tokens</code> — 限制总 token 数,避免 OOM。</li>
+</ul>
+
+<p>这些参数虽然没达到 vLLM PagedAttention 的成熟度,但说明项目在朝"高并发 + 长上下文"这两个 vLLM 强项靠拢。预计 2026 H2 会有更多这方面的优化。</p>
+
+<h3>6.5 V0.1.6.x 的速度提升轨迹(版本日志)</h3>
+
+<table>
+<tr><th>版本</th><th>关键性能更新</th></tr>
+<tr><td>V0.1.6.4</td><td>优化 DSV4 解码 / 预填 / 并发速度;优化 NVFP4 算子;CUDA MOE 速度提升;Qwen3.5 批量解码吞吐优化</td></tr>
+<tr><td>V0.1.6.3</td><td><code>--cuda_slab</code> 减少 CUDA 模型权重小块分配带来的显存碎片</td></tr>
+<tr><td>V0.1.6.2</td><td>磁盘 MoE 推理 / DSV4 显存缓存拼接优化 / 稀疏预填充临时显存限制</td></tr>
+<tr><td>V0.1.6.1</td><td>CUDA NVFP4 线性计算 / DSV4 compressedKV CUDA 缓存优化</td></tr>
+<tr><td>V0.1.6.0</td><td><strong>DSV4 模型支持</strong> / Qwen3.5 多模态 / Minimax-M2 / <code>--kv_cache_dtype</code> / <code>--chunked_prefill_size</code> / <code>--moe_atype</code> / <code>cudapp=N</code> 简写</td></tr>
+<tr><td>V0.1.5.1</td><td><strong>AMX 加速</strong>(支持 AMX 的机器用 <code>--amx true</code>)</td></tr>
+<tr><td>V0.1.5.0</td><td>moe_device=numa 时的 prefill 速度提升 / 支持 <code>--moe_dtype bfloat16</code> / 支持 DeepSeek V3.2</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec7">7 · API + 部署 + 工具调用</h2>
+
+<h3>7.1 三种入口</h3>
+
+<table>
+<tr><th>命令</th><th>用途</th><th>典型场景</th></tr>
+<tr><td><code>ftllm run X</code></td><td>命令行聊天</td><td>调试模型 / 单人交互</td></tr>
+<tr><td><code>ftllm webui X</code></td><td>Gradio webui</td><td>本地浏览器对话(可加 <code>--max_token</code> / <code>--think</code>)</td></tr>
+<tr><td><code>ftllm server X</code></td><td>OpenAI 风格 API server</td><td>对外暴露 API,被其他客户端调用</td></tr>
+<tr><td><code>ftllm download X</code></td><td>从 HF/ModelScope 镜像下载</td><td>国内高速</td></tr>
+<tr><td><code>ftllm export X -o Y --dtype int4 -t 16</code></td><td>离线量化 + 转 .flm 格式</td><td>避免每次启动在线量化</td></tr>
+</table>
+
+<h3>7.2 OpenAI 兼容</h3>
+
+<p><code>ftllm server</code> 实现了 OpenAI <code>/v1/chat/completions</code> 风格端点 + 流式输出 + <code>api_key</code> + <code>hide_input</code>。V0.1.6.0 起还<strong>初步支持 Anthropic API 兼容</strong>(新增 <code>/v1/messages</code>),并支持图文输入(<code>http://</code>、<code>data url</code>、<code>file url</code>)。</p>
+
+<pre>ftllm server fastllm/DeepSeek-V3-0324-INT4 \
+  --device cuda --moe_device numa \
+  --port 8080 --api_key sk-xxx --hide_input \
+  --max_token 32768 \
+  --kv_cache_dtype fp8 \
+  --chunked_prefill_size 1024 \
+  --gpu_mem_ratio 0.9</pre>
+
+<h3>7.3 工具调用(function call)</h3>
+
+<p>README 明确支持工具调用的模型:</p>
+<ul>
+  <li><strong>GLM4.5, GLM4.5-AIR</strong>(V0.1.4.5 加入)</li>
+  <li><strong>Qwen3-Instruct 系列</strong></li>
+  <li><strong>Qwen3-Coder 系列</strong></li>
+  <li><strong>Kimi-K2</strong>(V0.1.3.3 加入)</li>
+  <li><strong>DeepSeek V3.1</strong>(需指定 <code>--chat_template example/chat_template/deepseekv31.jinja</code>)</li>
+</ul>
+
+<p>fastllm 的 tool parser 参考了 <code>vllm/entrypoints/openai/tool_parsers</code> 的实现(README 鸣谢)。所以 OpenAI client 的 <code>tools=[...]</code> 调用范式可以直接 work。这点对本系列 #28 BFCL / #19 MCP-Atlas 评测特别有用 — fastllm 部署后可以直接当被测对象。</p>
+
+<h3>7.4 chat_template 自定义</h3>
+
+<p><code>--chat_template /path/to/file.jinja</code> 直接覆盖。example 目录下提供了 <code>deepseekv31.jinja</code>。</p>
+
+<h3>7.5 多模态(V0.1.6.0+)</h3>
+
+<p>V0.1.6.0 起:</p>
+<ul>
+  <li>Qwen3.5 多模态推理(补充 Python 接口)</li>
+  <li>Gemma4 多模态初步支持</li>
+  <li>OpenAI 兼容 API 支持图文输入</li>
+</ul>
+
+<hr>
+
+<h2 id="sec8">8 · 与其他推理框架横向对比</h2>
+
+<table>
+<tr><th>维度</th><th>vLLM</th><th>SGLang</th><th>llama.cpp</th><th>KTransformers</th><th><strong>fastllm</strong></th></tr>
+<tr><td>语言 / 后端</td><td>Python + CUDA</td><td>Python + CUDA</td><td>C++ + GGML</td><td>Python + CUDA + cpuinfer</td><td><strong>C++ 自有算子</strong>(不依赖 PyTorch)</td></tr>
+<tr><td>License</td><td>Apache-2.0</td><td>Apache-2.0</td><td>MIT</td><td>Apache-2.0</td><td>Apache-2.0</td></tr>
+<tr><td>老 GPU 支持 (≤V100)</td><td><span class="no">已逐步放弃</span></td><td><span class="no">SM ≥ 80</span></td><td><span class="ok">CPU 优先,GPU 可选</span></td><td>有限</td><td><strong><span class="ok">SM_52+ (K80/M40)</span></strong></td></tr>
+<tr><td>高并发 serving</td><td><strong><span class="ok">业界标准</span></strong> · PagedAttention · continuous batching</td><td><span class="ok">RadixAttention · 多机 EP</span></td><td>有限 (continuous batch 在 v0.0.x 后)</td><td>有限</td><td>支持动态 batch 但非强项</td></tr>
+<tr><td>NUMA 优化</td><td>—</td><td>—</td><td>有限</td><td><span class="ok">cpuinfer NUMA-aware</span></td><td><strong><span class="ok">深度 NUMA</span></strong>(<code>FASTLLM_NUMA_THREADS</code>, balancing off)</td></tr>
+<tr><td>FP8 任意显卡</td><td>需 Hopper</td><td>需 Hopper</td><td>有限</td><td>需 Hopper</td><td><strong><span class="ok">软件路径,V100 也跑</span></strong></td></tr>
+<tr><td>MoE 混合 (GPU+CPU)</td><td>—</td><td>—</td><td>有限</td><td><span class="ok">主打</span></td><td><strong><span class="ok">主打 + 按比例任意切</span></strong> + disk 兜底</td></tr>
+<tr><td>国产卡 (天数/沐曦/燧原/昇腾)</td><td>—</td><td>—</td><td>—</td><td>—</td><td><strong><span class="ok">全支持</span></strong></td></tr>
+<tr><td>奇数张卡 TP</td><td><span class="no">power-of-2</span></td><td><span class="no">power-of-2</span></td><td>—</td><td>—</td><td><strong><span class="ok">3/5/7 张卡</span></strong></td></tr>
+<tr><td>PagedAttention / radix cache</td><td><span class="ok">PagedAttention</span></td><td><span class="ok">RadixAttention</span></td><td>无</td><td>无</td><td><strong>无</strong>(但有 <code>--page_size</code>)</td></tr>
+<tr><td>上手成本</td><td>低(pip 一行)</td><td>低</td><td>需编译 / 量化</td><td>较高</td><td><strong>低</strong>(pip 一行 + <code>ftllm run X</code>)</td></tr>
+<tr><td>中文生态 / 文档</td><td>英文为主</td><td>英文为主</td><td>英文为主</td><td>中文友好</td><td><strong>中文母语项目</strong></td></tr>
+<tr><td>Mac 支持</td><td><span class="no">否</span></td><td><span class="no">否</span></td><td><span class="ok">Metal</span></td><td><span class="no">否</span></td><td><span class="no">否</span></td></tr>
+</table>
+
+<h3>8.0 各推理框架 1-2 行画像</h3>
+
+<table>
+<tr><th>框架</th><th>一句话画像</th></tr>
+<tr><td><strong>vLLM</strong></td><td>UC Berkeley Sky Lab,PagedAttention 始作俑者;Apache-2.0;~50K+ stars;<em>云厂商 + frontier serving 默认选项</em>;但 SM ≥ 80(Ampere 起)。</td></tr>
+<tr><td><strong>SGLang</strong></td><td>UC Berkeley + LMSYS,RadixAttention + 前端 DSL;Apache-2.0;~15K+ stars;DeepSeek 和 Mooncake 等深度合作;<em>多机 EP/PD-disagg 的最强 OSS 选项</em>。</td></tr>
+<tr><td><strong>TensorRT-LLM</strong></td><td>NVIDIA 官方,C++ 引擎 + Triton;Apache-2.0;<em>H100/B200 上的极限吞吐</em>,但对非 NV 卡完全不支持。</td></tr>
+<tr><td><strong>llama.cpp</strong></td><td>Georgi Gerganov,GGML/GGUF 生态根源;MIT;~80K+ stars;<em>端侧 + CPU 推理 + Mac Metal 的事实标准</em>;GPU offload 较粗。</td></tr>
+<tr><td><strong>ik_llama.cpp</strong></td><td>Ikawrakow fork of llama.cpp,专门优化新量化格式 + 性能;MIT;<em>llama.cpp 性能党的进阶版</em>。</td></tr>
+<tr><td><strong>KTransformers</strong></td><td>清华 KVCache.AI 团队,DeepSeek 单卡部署提案的发起者;Apache-2.0;~13K+ stars;<em>fastllm 最直接的对手</em>。</td></tr>
+<tr><td><strong>fastllm</strong></td><td>ztxz16,C++ 自有算子;Apache-2.0;4.66K stars;<em>中文社区 671B 本地部署 + 老 GPU + 国产卡</em>独占赛道。</td></tr>
+<tr><td><strong>MLC-LLM</strong></td><td>CMU + 上交,TVM 编译路径;Apache-2.0;<em>端侧多平台(iOS/Android/WebGPU)</em>;不擅服务器场景。</td></tr>
+<tr><td><strong>ExecuTorch</strong></td><td>Meta 官方,PyTorch 端侧栈;BSD-3;<em>iOS/Android 上的 LLaMA / IG / WhatsApp 已在用</em>。</td></tr>
+</table>
+
+<h3>8.1 fastllm vs KTransformers — 最直接的对手</h3>
+
+<p>这两个项目的差异:</p>
+<ul>
+  <li><strong>设计哲学</strong>:KTransformers 仍以 Python + 自有 cpuinfer 算子为主,基于 transformers 库扩展;fastllm 是<em>完全自有 C++ 算子,不依赖 PyTorch</em>(README 第 3 条亮点),启动更轻量。</li>
+  <li><strong>切层粒度</strong>:KTransformers 通常按层数划分 CPU/GPU;fastllm 的 <code>--moe_device "{'cuda':1,'numa':19}"</code> 是<em>按比例分配 MoE 层</em>,且可同时挂 cuda+numa+disk 三种。</li>
+  <li><strong>张量并行</strong>:fastllm 支持奇数张卡 + multicuda + 混合张量并行,KTransformers 多卡支持较弱。</li>
+  <li><strong>FP8 / 量化粒度</strong>:fastllm 的动态量化 dtype_config 是 regex-based,粒度比 KTransformers 细。</li>
+  <li><strong>社区</strong>:KTransformers 在英文圈影响力大(尤其 r/LocalLLaMA);fastllm 在中文圈更主流。</li>
+</ul>
+
+<h3>8.2 fastllm vs llama.cpp</h3>
+
+<p>llama.cpp 也支持 CPU + GPU 混合卸载(<code>-ngl</code>),但:</p>
+<ul>
+  <li>llama.cpp 的 GPU offload 是<em>按层连续切</em>,无法"MoE expert 上 CPU + attention 上 GPU";</li>
+  <li>llama.cpp 的 NUMA 支持较弱(有 <code>--numa</code> 但效果有限);</li>
+  <li>但 llama.cpp 的 GGUF 量化生态更成熟,Q4_K_M/Q5_K_M 等格式有大量预量化模型。</li>
+</ul>
+<p>fastllm V0.1.4.0 起<strong>支持读取 GGUF 模型</strong>(需 <code>--ori</code> 指定原始模型配置文件夹),实际是把 GGUF 当输入格式,跑自己的算子 — 等于"用 fastllm 的 NUMA + 混合推理跑 GGUF 模型"。这对从 llama.cpp 迁移特别友好。</p>
+
+<hr>
+
+<h2 id="sec9">9 · 与本系列其他工作的链路</h2>
+
+<table>
+<tr><th>本系列条目</th><th>链路</th></tr>
+<tr><td><a href="19_RL_Frameworks_Comparison.html">#19 RL 框架横评</a></td><td><strong>训练侧 vs 推理侧的镜像</strong>。#19 是 GRPO/DAPO 时代的训练框架画像(veRL/AReaL/slime/NeMo-RL/OpenRLHF),它们的 rollout backend 全部是 vLLM/SGLang。本篇是同一时期的<em>推理侧</em>,fastllm 不是 rollout 的常规选项(它不擅高并发),但是 <strong>已训模型本地部署</strong>的关键工具。</td></tr>
+<tr><td><a href="01_INTELLECT1_2412.01152.html">#01 INTELLECT-1</a> · <a href="07_INTELLECT2_2505.07291.html">#07 INTELLECT-2</a> · <a href="08_INTELLECT3_2512.16144.html">#08 INTELLECT-3</a></td><td>INTELLECT 系列证明了"跨地理 / 去中心化 + 异构 GPU"的可行性 — 训练侧的兼容性方案;fastllm 是<em>推理侧</em>的同主题答案:让老 GPU / 国产卡 / 内存大 GPU 小的边缘节点也能跑 frontier MoE。</td></tr>
+<tr><td><a href="../../agents/notes/36_MobileAgents_landscape.html">#36 MobileAgents landscape</a></td><td>fastllm 后端"前后端分离设计,可跨平台移植,<strong>可在安卓上直接编译</strong>"(README 亮点功能第 9 条) — 在 #36 列出的 ExecuTorch/MLC-LLM/llama.cpp 端侧栈之外,fastllm 是少有的"既能在服务器跑 671B 又能在手机跑小模型"的统一框架。</td></tr>
+<tr><td><a href="../../agents/notes/27_SmallModelMCP_landscape.html">#27 SmallModelMCP landscape</a></td><td>fastllm 支持 Qwen3-Instruct/Qwen3-Coder 的工具调用,且 <code>ftllm server</code> 是 OpenAI 兼容 API — 这意味着 #27 列出的 xLAM / Hammer / Functionary 等 ≤40B 小模型,可以用 fastllm 本地高速部署,然后挂 MCP server。</td></tr>
+<tr><td><a href="../../agents/notes/28_BFCL.html">#28 BFCL</a></td><td>BFCL V3/V4 评测需要被测模型暴露 OpenAI 风格 endpoint。fastllm 是低门槛选项 — 即使没有 H100,有一台二手 P100/4090 都可以用 fastllm 跑 INT4 量化版本,然后跑 BFCL。<strong>对中国研究者尤其有用</strong>(国内 H100 紧缺,P100/A100 二手好买)。</td></tr>
+<tr><td><a href="24_NemotronDiff_2026_TechReport.html">#24 Nemotron-Diff</a></td><td>Linear SS 设计的"在一个 backbone 上 toggle AR / Diffusion / Self-Spec 三种推理模式"也是单 backbone 推理思路的延伸 — 跟 fastllm "一份权重多种用法"(完整 / int4 / fp8 / 动态量化 / 混合 device)在哲学上呼应:<em>把 frontier model 的运行时变得更灵活</em>。</td></tr>
+<tr><td><a href="../../agents/notes/29_TuneTheEnvironment.html">#29 EnvTuning</a> · <a href="../../agents/notes/22_TOUCAN.html">#22 TOUCAN</a> · <a href="../../agents/notes/34_ToolMind_2511.15718.html">#34 ToolMind</a></td><td>这些 agentic SFT/RL 工作的产出 ckpt 都是 7B/14B/32B 级别,fastllm 是其本地推理的天然选项 — 尤其在 P100/V100/3090 二手 GPU + 32-64 GB RAM 的研究者机器上。</td></tr>
+</table>
+
+<hr>
+
+<h2 id="sec10">10 · 1 小时验证 checklist</h2>
+
+<p>给读者一个完整 0 → DeepSeek 671B 的命令清单。假设有一台 4090 + 256 GB RAM(可以装 INT4 671B 但不能装 FP8 原版):</p>
+
+<pre># Step 0: 卸载冲突 conda 环境(可选)
+conda deactivate
+
+# Step 1: 安装(linux + nvidia)
+pip install ftllm -U
+ftllm -v        # 验证安装,应该输出版本号
+
+# Step 2: 跑一个 0.6B 小模型验证
+ftllm run Qwen/Qwen3-0.6B
+# &lt;input: hello&gt;
+# &lt;output: ...&gt;
+# 退出 Ctrl-D
+
+# Step 3: 跑 Qwen3-8B INT4 验证显卡正常
+ftllm server Qwen/Qwen3-8B --dtype int4 --port 8080
+# 另开 terminal: curl http://localhost:8080/v1/chat/completions ...
+
+# Step 4: 下载 DeepSeek-R1 INT4 (~340 GB)
+ftllm download fastllm/DeepSeek-R1-INT4 --cache_dir /mnt/
+
+# Step 5: 关闭 NUMA balancing 并设环境变量
+sudo sysctl -w kernel.numa_balancing=0
+export FASTLLM_USE_NUMA=ON
+export FASTLLM_NUMA_THREADS=27
+
+# Step 6: 启动 671B 满血 API server
+ftllm server fastllm/DeepSeek-R1-INT4 \
+  --device cuda --moe_device numa \
+  --port 8080 -t 1
+
+# Step 7: 验证(应该看到 ~30 tps)
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"DeepSeek-R1","messages":[{"role":"user","content":"什么是 NUMA?"}],"stream":true}'
+
+# Step 8 (可选): 上 webui
+ftllm webui fastllm/DeepSeek-R1-INT4 \
+  --device cuda --moe_device numa</pre>
+
+<p>如果第 6 步报"内存不足",换 <code>--moe_device "{'cuda':1,'numa':8,'disk':1}"</code> 把 1/10 MoE 卸到 SSD。如果 4090 报 OOM(显存),用 <code>--gpu_mem_ratio 0.85</code> 留点显存给 KV cache。</p>
+
+<hr>
+
+<h2 id="sec11">11 · 局限 / 诚实分析</h2>
+
+<div class="warn">
+<strong>11.1 不是高并发 serving 首选</strong> — fastllm 没有 PagedAttention / RadixAttention / continuous batching 这类专门的 KV cache 管理技术,所以多并发 60+ tps 已经是 INT4 671B 在双路 9004 上的天花板。对于"我要给 1000 个用户同时提供 8B 模型的低延迟服务"这种 vLLM/SGLang 的强项场景,fastllm 不是最优解。
+</div>
+
+<div class="warn">
+<strong>11.2 中文文档为主,英文文档落后</strong> — README_EN 比 README 简短得多(218 行 vs 454 行),很多关键参数(<code>--moe_device</code> 字典语法、<code>FASTLLM_NUMA_THREADS</code>、动态量化)只在中文文档详细。英文社区(r/LocalLLaMA / X / discord)讨论量也远小于 KTransformers。
+</div>
+
+<div class="warn">
+<strong>11.3 没有 frontier model card 直接引用</strong> — 这是和本系列 #19 MCP-Atlas / #28 BFCL 的关键差异。MCP-Atlas 被 Claude Opus 4.7 system card 引用(77.3%),BFCL 被 GPT-5/5.5 system card 引用 — fastllm 作为推理框架不是评测,自然不会被 model card 引用,<em>但</em>它也没在 frontier lab 的"训练 infra 致谢"里出现过(如 DeepSeek/Qwen 团队的 paper acknowledgements)。它是<strong>社区项目,不是 frontier lab 的 infra</strong>。
+</div>
+
+<div class="warn">
+<strong>11.4 量化质量盲区</strong> — fastllm 的 int4 / int4g / fp8 量化与 vLLM/SGLang 用的 AWQ / GPTQ / Bitsandbytes 等没有直接的 <em>perplexity / MMLU degradation</em> 横向对比。README 提到"减少专家数可以提高推理速度,但可能降低推理准确度",这条警示是诚实的,但具体到不同量化方式的精度损失,目前在公开文档里找不到系统评测。<span class="pill">未在公开来源精确确认</span>
+</div>
+
+<div class="warn">
+<strong>11.5 没有 PagedAttention 等先进 KV cache 管理</strong> — V0.1.6.0 加入了 <code>--page_size</code> / <code>--gpu_mem_ratio</code> / <code>--kv_cache_dtype</code> 等参数,说明项目在朝这个方向走,但目前不是 vLLM 同级的 paged 实现。长上下文(128k+)的 prefill 显存峰值是个已知问题,V0.1.6.2 才"限制 DSV4 稀疏预填充临时显存"。
+</div>
+
+<div class="warn">
+<strong>11.6 Mac 不支持</strong> — README 的安装说明只有 Linux + Nvidia / Linux + AMD / Windows + Nvidia 三种,没有 macOS 路径。这意味着用 M-series Mac 的本地开发者只能用 llama.cpp/MLC-LLM/Ollama,fastllm 不是选项。
+</div>
+
+<div class="warn">
+<strong>11.7 测试矩阵口径含糊</strong> — README 写"任意 ≥10 GB 显卡跑满血 671B",但具体测了哪几张卡、显存使用细节(KV cache 多大、batch=1/4/8 各是多少 tps),官方未给完整 benchmark 表。社区报告很多但散落在 issues。<span class="pill">未在公开来源精确确认</span>
+</div>
+
+<div class="warn">
+<strong>11.8 V0.1.6.x 节奏快,可能不稳定</strong> — 5 月单月内 V0.1.5.x → V0.1.6.4 五个小版本,DSV4 / 多模态 / NVFP4 / disk MoE 等大改密集发布,生产环境用建议锁定具体小版本(<code>pip install ftllm==0.1.6.4</code>)。
+</div>
+
+<div class="warn">
+<strong>11.9 PIP wheel 大小限制带来的 ROCm/CUDA 依赖外置</strong> — README 明确说"由于目前 PyPI 限制库大小,安装包中不含 ROCM 依赖",必须手动 <code>amdgpu-install --usecase=hiplibsdk,rocm,dkms</code>。CUDA 12+ 也建议手动装。<em>这对 docker 镜像构建友好</em>(可以共享 base image),但对裸机首装是一个隐藏门槛。
+</div>
+
+<div class="warn">
+<strong>11.10 没有 distributed 多机 EP/PD</strong> — DeepSeek 的 671B 在 frontier 部署中,SGLang + Mooncake 提出了 <strong>EP (Expert Parallelism) + PD-disagg</strong>(Prefill-Decode 分离)架构,可以在 16-64 张 H100 / B200 上实现极高吞吐。fastllm 是<em>单机</em>定位 — multicuda 是单机内 TP,不是跨机分布。要做云级 671B serving,SGLang 仍是首选。<span class="pill">这是定位差异,不是缺陷</span>
+</div>
+
+<div class="warn">
+<strong>11.11 GGUF 支持还在补</strong> — V0.1.4.0 起加入,V0.1.4.3/4.6/6.1 持续修 q8_0 / Q2_K_R4 等类型;但目前 GGUF 支持仍不如 llama.cpp 完整(很多 i-quants 还未支持)。把 fastllm 当 "GGUF 高速跑路工具"目前不如直接用 ik_llama.cpp 稳。
+</div>
+
+<div class="warn">
+<strong>11.12 Windows 上的 int4 乱码 + dll 依赖</strong> — FAQ 列出多个 Windows 特有问题:MSVC 优化等级 <code>/Ob2/Ob3</code> 会让 int4 输出乱码(改 <code>/Ob1</code> 解决);GPU 编译后启动报 FileNotFoundError 需要手动拷贝 cudart/cublas 的 dll 到 fastllm_tools 目录。Windows 用户首装<em>很可能踩坑</em>,建议优先 WSL。
+</div>
+
+<hr>
+
+<h2 id="sec12">12 · 决策树 — 我该用 fastllm 还是 …</h2>
+
+<div class="fig">
+<svg viewBox="0 0 760 580" width="100%" style="max-width:740px">
+  <defs>
+    <marker id="arrT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#5b5e66"/>
+    </marker>
+  </defs>
+  <text x="380" y="20" text-anchor="middle" font-size="14" font-weight="600">图 3 · 推理框架选型决策树</text>
+
+  <!-- root -->
+  <rect x="280" y="40" width="200" height="40" fill="#fff" stroke="#333" rx="6"/>
+  <text x="380" y="63" text-anchor="middle" font-size="13" font-weight="600">你的部署目标?</text>
+
+  <!-- branches level 1 -->
+  <line x1="380" y1="80" x2="120" y2="115" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <line x1="380" y1="80" x2="380" y2="115" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <line x1="380" y1="80" x2="640" y2="115" stroke="#5b5e66" marker-end="url(#arrT)"/>
+
+  <rect x="20" y="120" width="200" height="40" fill="#e8f0ff" stroke="#2f6feb" rx="6"/>
+  <text x="120" y="143" text-anchor="middle" font-size="11">A. 云厂商高并发 serving</text>
+  <rect x="280" y="120" width="200" height="40" fill="#fff0ec" stroke="#cc4a1b" rx="6"/>
+  <text x="380" y="143" text-anchor="middle" font-size="11">B. 单机本地部署</text>
+  <rect x="540" y="120" width="200" height="40" fill="#e8f5e8" stroke="#1f7a4a" rx="6"/>
+  <text x="640" y="143" text-anchor="middle" font-size="11">C. 端侧 (手机/Mac)</text>
+
+  <!-- A -->
+  <line x1="120" y1="160" x2="120" y2="200" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <rect x="30" y="205" width="180" height="38" fill="#fff" stroke="#2f6feb" rx="6"/>
+  <text x="120" y="228" text-anchor="middle" font-size="12" fill="#2f6feb" font-weight="600">vLLM / SGLang</text>
+
+  <!-- C -->
+  <line x1="640" y1="160" x2="640" y2="200" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <rect x="540" y="205" width="200" height="38" fill="#fff" stroke="#1f7a4a" rx="6"/>
+  <text x="640" y="228" text-anchor="middle" font-size="11">iOS: ExecuTorch / Apple CoreML<br/>Android: MLC-LLM / MediaPipe</text>
+
+  <!-- B branches -->
+  <line x1="380" y1="160" x2="380" y2="200" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <rect x="260" y="205" width="240" height="40" fill="#fff" stroke="#cc4a1b" rx="6"/>
+  <text x="380" y="228" text-anchor="middle" font-size="12">模型规模?</text>
+
+  <!-- B sub branches -->
+  <line x1="380" y1="245" x2="160" y2="280" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <line x1="380" y1="245" x2="380" y2="280" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <line x1="380" y1="245" x2="600" y2="280" stroke="#5b5e66" marker-end="url(#arrT)"/>
+
+  <rect x="60" y="285" width="200" height="40" fill="#fff" stroke="#cc4a1b" rx="6"/>
+  <text x="160" y="308" text-anchor="middle" font-size="12">≤14B 稠密</text>
+  <rect x="280" y="285" width="200" height="40" fill="#fff" stroke="#cc4a1b" rx="6"/>
+  <text x="380" y="308" text-anchor="middle" font-size="12">30B–80B (含 MoE)</text>
+  <rect x="500" y="285" width="200" height="40" fill="#fff" stroke="#cc4a1b" rx="6"/>
+  <text x="600" y="308" text-anchor="middle" font-size="12">200B+ MoE (671B)</text>
+
+  <!-- ≤14B -->
+  <line x1="160" y1="325" x2="160" y2="365" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <rect x="20" y="370" width="280" height="60" fill="#fff" stroke="#cc4a1b" rx="6"/>
+  <text x="160" y="392" text-anchor="middle" font-size="11">显存够? → vLLM (高并发) / fastllm</text>
+  <text x="160" y="412" text-anchor="middle" font-size="11">老 GPU (P100/V100)? → <strong>fastllm</strong></text>
+
+  <!-- 30-80B -->
+  <line x1="380" y1="325" x2="380" y2="365" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <rect x="280" y="370" width="200" height="60" fill="#fff" stroke="#cc4a1b" rx="6"/>
+  <text x="380" y="392" text-anchor="middle" font-size="11">MoE (30B-A3B)? → <strong>fastllm</strong></text>
+  <text x="380" y="412" text-anchor="middle" font-size="11">稠密 32B → vLLM/fastllm 均可</text>
+
+  <!-- 671B -->
+  <line x1="600" y1="325" x2="600" y2="365" stroke="#5b5e66" marker-end="url(#arrT)"/>
+  <rect x="500" y="370" width="240" height="80" fill="#fff" stroke="#cc4a1b" rx="6"/>
+  <text x="620" y="392" text-anchor="middle" font-size="11">显存 ≥ 256GB (多卡)? → vLLM/SGLang EP</text>
+  <text x="620" y="412" text-anchor="middle" font-size="11">RAM 大显存小? → <strong>fastllm</strong> / KTransformers</text>
+  <text x="620" y="432" text-anchor="middle" font-size="11">国产卡? → <strong>fastllm</strong></text>
+
+  <!-- key call out -->
+  <rect x="170" y="475" width="420" height="80" fill="#fff7e0" stroke="#d2a32a" rx="6"/>
+  <text x="380" y="498" text-anchor="middle" font-size="12" font-weight="600" fill="#cc4a1b">fastllm 的 5 个决定性 yes 信号</text>
+  <text x="380" y="518" text-anchor="middle" font-size="11">① 想跑 671B / 100B+ MoE 但只有 1 张 GPU</text>
+  <text x="380" y="535" text-anchor="middle" font-size="11">② 老 GPU (K80/M40/P100/MI50) ③ 国产卡 (天数/沐曦/燧原/昇腾)</text>
+  <text x="380" y="552" text-anchor="middle" font-size="11">④ 双路 / 多 NUMA 服务器 + 大 RAM ⑤ 中文社区 / 文档需求</text>
+</svg>
+<figcaption>图 3 · 选型决策树。fastllm 不是万能选项,但在"单机部署 MoE + 老硬件 + 国产卡 + NUMA"四个 trigger 任一命中时,它都是<em>第一选项</em>。其余场景(高并发 / 端侧 / 通用 7B serving)优先考虑 vLLM/SGLang/llama.cpp。</figcaption>
+</div>
+
+<hr>
+
+<h2 id="sec13">13 · 开源资产清单</h2>
+
+<table>
+<tr><th>资产</th><th>状态</th><th>备注</th></tr>
+<tr><td>GitHub repo</td><td><a href="https://github.com/ztxz16/fastllm">ztxz16/fastllm</a></td><td>主仓库,C++ 主干</td></tr>
+<tr><td>License</td><td>Apache-2.0</td><td>商用 friendly</td></tr>
+<tr><td>Stars</td><td>4664 (2026-05)</td><td>中等规模社区</td></tr>
+<tr><td>Forks</td><td>464</td><td>—</td></tr>
+<tr><td>Open issues</td><td>290</td><td>—</td></tr>
+<tr><td>主语言</td><td>C++</td><td>不依赖 PyTorch</td></tr>
+<tr><td>首次发布</td><td>2023-05-13</td><td>—</td></tr>
+<tr><td>最近推送</td><td>2026-05-20</td><td>仍在活跃维护(本笔记撰写当日)</td></tr>
+<tr><td>仓库大小</td><td>~29 MB</td><td>不包含模型权重</td></tr>
+<tr><td>PyPI 包名</td><td><code>ftllm</code> · <code>ftllm-rocm</code> · <code>ftllm-nightly</code></td><td>三个 channel</td></tr>
+<tr><td>Documentation</td><td><a href="https://github.com/ztxz16/fastllm/blob/master/README.md">中文 README</a> · <a href="https://github.com/ztxz16/fastllm/blob/master/README_EN.md">English README</a> · docs/ 子目录</td><td>中文为主,英文滞后</td></tr>
+<tr><td>FLM 模型库</td><td><a href="https://huggingface.co/fastllm">huggingface.co/fastllm</a> · <a href="https://modelscope.cn/profile/huangyuyang">ModelScope</a></td><td>预量化模型(DeepSeek-V3-0324-INT4 / DeepSeek-R1-INT4 等)</td></tr>
+<tr><td>社区交流</td><td>QQ 群 831641348 · 微信用户群 · 微信开发群</td><td>中文社区为主</td></tr>
+<tr><td>主作者</td><td>ztxz16 (黄宇阳 huangyuyang)</td><td>—</td></tr>
+<tr><td>引用与致谢</td><td>pytorch · transformers · llama.cpp · ik_llama.cpp · flashInfer · KTransformers · lvllm · vLLM · json11</td><td>README 末尾列出</td></tr>
+<tr><td>支持模型规模</td><td>~0.5B → 671B</td><td>覆盖 GLM/Qwen/DeepSeek/LLaMA/Phi/Gemma/Kimi/Minimax/Hunyuan/Ernie/Pangu/Yi/Baichuan/MiniCPM/MOSS 等</td></tr>
+<tr><td>支持平台</td><td>Linux + Nvidia · Linux + AMD · Windows + Nvidia · Android 编译</td><td>Mac 不支持</td></tr>
+</table>
+
+<h3>13.1 同类项目对照(stars 单位千)</h3>
+
+<table>
+<tr><th>项目</th><th>License</th><th>Stars (2026-05 量级)</th><th>语言</th></tr>
+<tr><td>vLLM</td><td>Apache-2.0</td><td>~50K+</td><td>Python + CUDA</td></tr>
+<tr><td>SGLang</td><td>Apache-2.0</td><td>~15K+</td><td>Python + CUDA</td></tr>
+<tr><td>llama.cpp</td><td>MIT</td><td>~80K+</td><td>C/C++</td></tr>
+<tr><td>KTransformers</td><td>Apache-2.0</td><td>~13K+</td><td>Python + C++</td></tr>
+<tr><td>ik_llama.cpp</td><td>MIT</td><td>~3K+</td><td>C/C++</td></tr>
+<tr><td><strong>fastllm</strong></td><td>Apache-2.0</td><td>4.66K</td><td>C++</td></tr>
+</table>
+<p>fastllm 在 star 数上不是最显赫的,但在<em>中文 671B 本地部署</em>这个垂直赛道里几乎是社区第一选项。<span class="pill">竞品 star 数为量级估计,未在公开来源精确确认</span></p>
+
+<hr>
+
+<h2>14 · 一些可能踩的坑(社区视角)</h2>
+
+<table>
+<tr><th>现象</th><th>原因</th><th>解决</th></tr>
+<tr><td><code>Load fastllm failed</code> / <code>GLIBCXX_3.4.32 not found</code></td><td>GLIBC 太老(Ubuntu 20.04-)</td><td>conda: <code>conda install conda-forge::libstdcxx-ng</code> / 非 conda: 加 jammy 源更新 libc6</td></tr>
+<tr><td>CUDA 编译报 <code>CMAKE_CUDA_ARCHITECTURES must be non-empty</code></td><td>cmake 部分版本 bug</td><td><code>-DCMAKE_CUDA_ARCHITECTURES=native</code> 或手填架构号</td></tr>
+<tr><td>nvcc 报 <code>Unsupported gpu architecture 'compute_native'</code></td><td>nvcc 不认 native</td><td>查 GPU compute capability 手填: <code>-DCUDA_ARCH="61;75;86;89"</code></td></tr>
+<tr><td><code>identifier "__hdiv" is undefined</code></td><td>SM ≤ 5.3 老卡不支持半精度</td><td>加 <code>-DCUDA_NO_TENSOR_CORE=ON</code></td></tr>
+<tr><td><code>undefined reference to std::filesystem</code></td><td>GCC &lt; 8.0 / 部分 8.x 不完整支持 C++17 filesystem</td><td><code>-DFASTLLM_LINKED_LIBS=stdc++fs</code></td></tr>
+<tr><td>退出时 <code>CUDA error 4 cudaErrorCudartUnloading</code></td><td>Python 解释器在 CUDA Runtime 关闭后才析构,无大碍</td><td>显式 <code>llm.release_memory()</code></td></tr>
+<tr><td>NUMA 推理时 prefill 慢于 decode</td><td>线程绑定 / kernel.numa_balancing 未关</td><td>关 balancing + 设 <code>FASTLLM_NUMA_THREADS</code> = 单 socket 核数</td></tr>
+<tr><td>4090 跑 671B INT4 OOM</td><td>显存被 KV cache 吃光</td><td><code>--gpu_mem_ratio 0.85</code> + <code>--kv_cache_dtype fp8</code></td></tr>
+<tr><td>多张卡张量并行启动慢</td><td>multicuda 默认开启专用 worker 池</td><td>调 <code>FASTLLM_MULTICUDA_WORKER_SPIN_ITERS=4096</code> 或关 dedicated workers</td></tr>
+<tr><td>从 GGUF 启动报 model 解析错</td><td>需要 <code>--ori</code> 指定原始 HF 模型配置目录</td><td><code>ftllm download X --exclude "*safetensors*"</code> 后加 <code>--ori X</code></td></tr>
+</table>
+
+<h2>15 · 阅读建议 / 进一步资料</h2>
+
+<ul>
+  <li><strong>主 README</strong> (中文): <a href="https://github.com/ztxz16/fastllm/blob/master/README.md">github.com/ztxz16/fastllm/README.md</a></li>
+  <li><strong>DeepSeek 部署</strong>: <a href="https://github.com/ztxz16/fastllm/blob/master/docs/deepseek.md">docs/deepseek.md</a></li>
+  <li><strong>Qwen3 部署</strong>: <a href="https://github.com/ztxz16/fastllm/blob/master/docs/qwen3.md">docs/qwen3.md</a></li>
+  <li><strong>动态量化指南</strong>: <a href="https://github.com/ztxz16/fastllm/blob/master/docs/dtype_config.md">docs/dtype_config.md</a></li>
+  <li><strong>混合推理指南</strong>(<code>moe_device</code> 字典语法): <a href="https://github.com/ztxz16/fastllm/blob/master/docs/mixforward.md">docs/mixforward.md</a></li>
+  <li><strong>版本日志</strong>: <a href="https://github.com/ztxz16/fastllm/blob/master/docs/version.md">docs/version.md</a></li>
+  <li><strong>FAQ</strong>: <a href="https://github.com/ztxz16/fastllm/blob/master/docs/faq.md">docs/faq.md</a></li>
+  <li><strong>支持模型列表</strong>: <a href="https://github.com/ztxz16/fastllm/blob/master/docs/models.md">docs/models.md</a></li>
+  <li><strong>自定义模型结构</strong>: <a href="https://github.com/ztxz16/fastllm/blob/master/docs/custom.md">docs/custom.md</a></li>
+  <li><strong>KTransformers 思路介绍</strong>(MoE 动态调度): <a href="https://zhuanlan.zhihu.com/p/1900318746402329329">知乎 1900318746402329329</a></li>
+</ul>
+
+<h2>结语 · 一句话</h2>
+
+<p>fastllm 是一个 <strong>"中文社区版 KTransformers + ik_llama.cpp 杂交体"</strong> — 它不试图取代 vLLM/SGLang 在高并发 serving 的位置,但在"单机 671B + 老 GPU + NUMA + 国产卡"这条赛道上几乎独占。当你只有一张 4090 / A100 + 一台双路 EPYC 服务器,想在本地跑满血 DeepSeek R1 671B,它<em>就是答案</em>。当你的 K80/P100/MI50 已经被 vLLM 抛弃但想物尽其用,它<em>也是答案</em>。</p>
+
+<p>本系列 #19 是训练侧的 RL 框架横评,本篇 #25 是推理侧的对位 — fastllm 在 RL post-training 完成后的"<em>本地部署 + 评测 + agent serving</em>"这一段补齐了图。结合 #27 (≤40B MCP) + #28 (BFCL) + #36 (Mobile),它是中国研究者最务实的<em>推理 infra</em>选项之一。</p>
+
+<p class="meta" style="margin-top:30px">— END · 2026-05-20 —</p>
+
+</main>
+</body>
+</html>
