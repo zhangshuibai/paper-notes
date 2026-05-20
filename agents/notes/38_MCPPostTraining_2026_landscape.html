@@ -276,12 +276,12 @@
 <tr><td><a href="22_TOUCAN.html">TOUCAN (#22)</a></td><td>1,527,259 traj</td><td>495 MCP server / 2K+ tool</td><td>5-LLM 出题 × 3-teacher distill</td><td>Apache-2.0</td><td>✅</td></tr>
 <tr><td><a href="24_Smithery.html">Smithery hub (#24)</a></td><td>7,300+ server(registry)</td><td>MCP servers 上游 registry</td><td>用户自抓</td><td>各 server 各自</td><td>看 server</td></tr>
 <tr><td>Toolathlon (#21)</td><td>90 task / 32 server</td><td>真 MCP server 长 horizon</td><td>人工 + 真 docker</td><td>Apache-2.0</td><td>✅</td></tr>
-<tr><td><span class="badge-new">2026-05 NEW</span> MCP-Flow</td><td>68,733 instruction-call pairs + 6,439 traj</td><td>1,166 server / 11,536 tool</td><td>web-agent driven discovery</td><td>未在公开来源精确确认</td><td>—</td></tr>
+<tr><td><span class="badge-new">2026-05 NEW</span> <a href="39_MCPFlow_2510.24284.html">MCP-Flow (#39 已精读)</a></td><td>68,733 instruction-call pairs + 6,439 traj</td><td>1,166 server / 11,536 tool</td><td>Playwright web-agent 跨 6 marketplace</td><td>无 LICENSE 文件(2026-05 实测)</td><td>⚠️ 需联系作者</td></tr>
 <tr><td><span class="badge-new">2026-05 NEW</span> FireFly</td><td>未在公开来源精确确认 traj count</td><td>real MCP servers</td><td>"invert standard synthesis pipeline" — 先 verify 再生成</td><td>未在公开来源精确确认</td><td>—</td></tr>
 </table>
 
 <div class="kv">
-<strong>MCP-Flow (arXiv:2510.24284) 重点</strong> — 1,166 MCP server / 11,536 tool / 68,733 instruction-function-call pair + 6,439 multi-turn traj,<strong>规模超 TOUCAN 的 2,000 tool 5×</strong>。论文声称 "automated web-agent-driven pipeline for large-scale server discovery, data synthesis, and model training",但代码 / 数据 license 未在公开来源精确确认。这是 2026 真 MCP server 数据规模新天花板。
+<strong>MCP-Flow (arXiv:2510.24284) 重点</strong> — 1,166 MCP server / 11,536 tool / 68,733 instruction-function-call pair + 6,439 multi-turn traj,<strong>规模超 TOUCAN 的 2,000 tool 5×</strong>。已 <strong>ACL 2026 Main 接收</strong>。论文用 Playwright web-agent 跨 6 marketplace(Smithery+Glama+MCP.so+MCPHub+PipeDream+PulseMCP)增量爬取,本地起服后用 GPT-4o few-shot + WizardLM evolve + DeepSeek-V3 judge 三重过滤合成。SFT 出来的 Qwen3-4B 在 unseen-server 上 AST 65.2 反超 Claude-4-Sonnet 48.4,GAIA 上 Qwen3-4B 10.68→21.36(+100%)。<strong>但只有 6.4K traj(TOUCAN 1.5M 的 0.4%)+ executable server 仅 356/1166(30%)+ 无 LICENSE 文件 + ckpt 未发布</strong> — 是"广度补丁"而非完全替代。<strong>详细精读见 <a href="39_MCPFlow_2510.24284.html">#39 MCP-Flow 笔记</a></strong>。
 </div>
 
 <div class="kv">
