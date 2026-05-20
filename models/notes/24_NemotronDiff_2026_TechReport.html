@@ -586,6 +586,37 @@ We introduce Nemotron-Labs-Diffusion, a tri-mode language model (LM) that unifie
 
 <h3>4.3 Mode 3: Linear Self-Speculation — 图 5 详解</h3>
 
+<div class="kv">
+<p><strong>⭐ Linear SS 一句话本质</strong>: <em>同一颗模型自己给自己当 speculative decoder</em> — Diff pathway 一次 forward 起草 k 个 token,AR pathway 一次 forward 验证;接受最长匹配 prefix。无需独立 draft model(对比 Eagle3 / MTP)。</p>
+
+<p><strong>名字拆解</strong>:</p>
+<ul>
+<li><strong>Self</strong>(自):draft 和 verify 用<em>同一组参数</em>(同 backbone + 同 LM head),不像传统 spec decoding 那样需要"小 draft 模型 + 大 target 模型"两套权重</li>
+<li><strong>Speculation</strong>(投机):走 <a href="../../spec-rl/notes/15_Lossless_Proof_Tutorial.html">Leviathan-Chen 2023 rejection sampling</a> 的经典 spec decoding 协议 — 起草 k 个候选,验证后保留匹配 prefix,数学上 lossless</li>
+<li><strong>Linear</strong>(线性):一次循环里<strong>两次独立 forward</strong>(draft 一次 + verify 一次),时间复杂度 O(k);<em>对比</em> Quadratic SS 把 draft 和 verify 塞进单个 forward 但 attention 矩阵 O(k²)</li>
+</ul>
+
+<p><strong>vs MTP/Eagle3 三大不同</strong>:</p>
+<table style="font-size:.92em">
+<tr><th>对比维度</th><th>Eagle3 / MTP</th><th>Linear SS</th></tr>
+<tr><td>draft 模型</td><td>独立的小模型 / 附加 prediction heads</td><td><strong>同一个 backbone</strong>,仅切换 attention mask</td></tr>
+<tr><td>draft 生成方式</td><td>串行 / 半串行 — 仍受 token-by-token 限制</td><td><strong>一次 forward 并行</strong>出 k 个 token(diffusion 块内双向)</td></tr>
+<tr><td>额外参数</td><td>独立 draft 模型(MB-GB 级)</td><td>0 或可选 36M LoRA on o_proj</td></tr>
+<tr><td>实测 acceptance length</td><td>Eagle3 2.75 / MTP 4.24(Tab 10)</td><td><strong>5.46 (native) / 6.82 (LoRA)</strong></td></tr>
+</table>
+
+<p><strong>为什么"Linear"?</strong> 因为它用 <strong>2 次 forward / 循环</strong>:</p>
+<pre>循环 i:
+  forward 1: Diff 起草 — [verified_prefix] + [k 个 mask] → 出 k 个 draft token
+  forward 2: AR 验证   — [verified_prefix] + [k 个 draft] → 出 k 个 AR 预测
+  比对 + accept 最长匹配 prefix + 第一个 reject 位置免费拿 1 个 AR token</pre>
+<p>2 次 forward 都共用 prefix KV cache(<em>关键工程细节</em>)。Quadratic SS 把这两步压到 1 次 forward,但用 O(k²) attention mask;Linear 是当前 FlexAttention kernel 下实测最快的部署形态。</p>
+
+<p><strong>为什么免费拿到 1 个 AR token?</strong> 标准 spec decoding 性质:在第一个 reject 的位置,AR head 已经算出"它会选哪个 token",这个 token 是 AR 模式下本该生成的,所以可以直接采纳(等价于多走了一步纯 AR)。详见 <a href="../../spec-rl/notes/15_Lossless_Proof_Tutorial.html">spec-rl/#15 Lossless 证明 tutorial</a>。</p>
+
+<p><strong>性能直观</strong>(8B,SPEED-Bench 平均):每次循环平均接受 <strong>5.46 → 6.82</strong>(LoRA 后)个 token,但用了 2 次 forward,所以 <em>per-forward TPF</em> = 6.82 / 2 = 3.41×;<strong>per-cycle 接受 6.82 个 token</strong> 才是这个数的真正含义。real-device tok/sec 取决于硬件:GB200 上 1015 tok/s,比 Eagle3 354 tok/s 快 2.87×。</p>
+</div>
+
 <div class="fig">
 <svg viewBox="0 0 780 380" width="100%" style="max-width:780px">
   <defs>
